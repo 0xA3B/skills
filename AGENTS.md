@@ -5,35 +5,22 @@
 This project is a personal Codex plugin marketplace to provide a centralized place to capture my set
 of personal skills.
 
-## Tech Stack
-
-- Typescript
-- pnpm
-- Oxfmt
-- Oxlint
-- Vitest
-
-## Development Commands
-
-- `pnpm check`: Run format, lint, typecheck, and plugin validation
-- `pnpm format`: Use oxfmt to format all supported filetypes in the repo
-- `pnpm format:check`: Use oxfmt to check all supported filetypes in the repo
-- `pnpm lint`: Use Oxlint to lint TypeScript
-- `pnpm lint:plugins`: Lint the Codex marketplace, plugin manifests, and skill metadata
-- `pnpm lint:plugins:external`: Run plugin linting with opt-in network checks for external URLs and
-  repositories
-- `pnpm typecheck`: Use TypeScript to typecheck validation tooling
-- `pnpm test`: Run the Vitest suite
-
 ## Project Conventions
 
 - Commit messages must follow `conventional-commits:writing-conventional-commits`.
-- Commitlint inherits 100-character limits for commit body and footer lines; wrap multi-line commit
-  messages before running `git commit`.
-- Keep `README.md` human-facing; put agent-operational guidance in `AGENTS.md`.
 - Keep tests co-located in `src/`.
-- Use `mise exec -- <command>` when reproducing local validation if the active shell runtime does
-  not match `.node-version`.
+- Use mise for runtime management.
+- Use `mise exec --` in non-interactive shells when the command relies on a runtime tool managed by
+  mise.
+- `package.json#packageManager` is the canonical pnpm version; mise only ensures a pnpm launcher is
+  available.
+- Use the `package.json` script surface for validation and formatting.
+- Use `pnpm run check` as the default full local gate.
+- Use the smallest relevant targeted script when narrowing validation.
+- Scripts with the `check` suffix should be non-mutating.
+- Keep README user-facing and lightweight.
+- Keep AGENTS files agent-facing, lightweight, and focused on durable guidance. Avoid temporary
+  notes or details that may go stale quickly.
 
 ## Glossary
 
