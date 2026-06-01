@@ -2,8 +2,8 @@
 
 ## Purpose
 
-This project is a personal Codex plugin marketplace to provide a centralized place to capture my set
-of personal skills.
+This project is a personal skills repository for AI-agent workflows. The current distributable
+content is published as Codex plugin bundles under `codex_plugins/`.
 
 ## Project Conventions
 
@@ -41,10 +41,10 @@ When maintaining the glossary:
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | **Marketplace**         | The installable Codex plugin source published by this repository.                                                    | plugin repo, package      |
 | **Marketplace catalog** | `.agents/plugins/marketplace.json`, the root list of plugins exposed by the marketplace.                             | manifest, registry        |
-| **Plugin**              | A distributable bundle under `plugins/<plugin-name>/` with a `.codex-plugin/plugin.json` manifest.                   | skill pack                |
+| **Plugin**              | A distributable bundle under `codex_plugins/<plugin-name>/` with a `.codex-plugin/plugin.json` manifest.             | skill pack                |
 | **Plugin manifest**     | `.codex-plugin/plugin.json`, the plugin-level metadata consumed by Codex.                                            | marketplace entry         |
 | **Marketplace entry**   | One plugin listing inside `.agents/plugins/marketplace.json`.                                                        | plugin manifest           |
-| **Plugin skill**        | A shipped skill under `plugins/<plugin>/skills/<skill>/`.                                                            | repo-local skill          |
+| **Plugin skill**        | A shipped skill under `codex_plugins/<plugin>/skills/<skill>/`.                                                      | repo-local skill          |
 | **Repo-local skill**    | A maintenance workflow under `.agents/skills/` used only while working in this checkout.                             | plugin skill              |
 | **Skill body**          | `SKILL.md`, the runtime instructions and frontmatter for a skill.                                                    | metadata, prompt metadata |
 | **Codex UI metadata**   | `agents/openai.yaml`, the skill-level display metadata and invocation policy for Codex.                              | skill frontmatter         |

@@ -70,12 +70,12 @@ export function validateLocalRepositoryAlignment(
   catalog: Catalog,
 ): void {
   for (const entry of catalog.localEntries.values()) {
-    if (entry.sourcePath !== `./plugins/${entry.name}`) {
+    if (entry.sourcePath !== `./codex_plugins/${entry.name}`) {
       warning(
         context,
         "alignment/source-path",
         catalog.marketplacePath,
-        `Local source path usually matches "./plugins/<name>"; found "${entry.sourcePath}".`,
+        `Local source path usually matches "./codex_plugins/<name>"; found "${entry.sourcePath}".`,
         entry.pointer,
       );
     }

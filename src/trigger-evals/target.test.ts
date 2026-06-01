@@ -11,13 +11,13 @@ describe("resolveSkillTarget", () => {
     expect(
       resolveSkillTarget(
         repoRoot,
-        "plugins/conventional-commits/skills/writing-conventional-commits",
+        "codex_plugins/conventional-commits/skills/writing-conventional-commits",
       ),
     ).toMatchObject({
       repoRoot,
       pluginName: "conventional-commits",
       skillName: "writing-conventional-commits",
-      pluginPath: path.join(repoRoot, "plugins", "conventional-commits"),
+      pluginPath: path.join(repoRoot, "codex_plugins", "conventional-commits"),
     });
   });
 

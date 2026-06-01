@@ -2,7 +2,7 @@
 
 ## Scope
 
-These instructions apply to plugin directories under `plugins/`.
+These instructions apply to plugin directories under `codex_plugins/`.
 
 ## Plugin Rules
 

@@ -55,7 +55,7 @@ describe("runTriggerEval", () => {
 
     const result = await runTriggerEval({
       repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
+      skillPath: "codex_plugins/demo/skills/auto-skill",
       caseId: "skip-case",
     });
 
@@ -72,7 +72,7 @@ describe("runTriggerEval", () => {
 
 async function writeRepoFixture(): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
-  const pluginPath = path.join(repoRoot, "plugins", "demo");
+  const pluginPath = path.join(repoRoot, "codex_plugins", "demo");
   const skillPath = path.join(pluginPath, "skills", "auto-skill");
 
   await mkdir(path.join(pluginPath, ".codex-plugin"), { recursive: true });

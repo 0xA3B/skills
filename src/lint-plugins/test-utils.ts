@@ -107,7 +107,7 @@ export function validMarketplace(overrides: Partial<MarketplaceFixture> = {}): M
         category: "workflow",
         name: "demo-plugin",
         policy: { authentication: "ON_INSTALL", installation: "AVAILABLE" },
-        source: "./plugins/demo-plugin",
+        source: "./codex_plugins/demo-plugin",
       },
     ],
     ...overrides,
@@ -169,11 +169,11 @@ export function validOpenAiMetadata(
 export function validLocalCatalogEntry(repoRoot: string): LocalCatalogEntry {
   return {
     category: "workflow",
-    manifestPath: path.join(repoRoot, "plugins/demo-plugin/.codex-plugin/plugin.json"),
+    manifestPath: path.join(repoRoot, "codex_plugins/demo-plugin/.codex-plugin/plugin.json"),
     name: "demo-plugin",
-    pluginPath: path.join(repoRoot, "plugins/demo-plugin"),
+    pluginPath: path.join(repoRoot, "codex_plugins/demo-plugin"),
     pointer: "/plugins/0",
-    sourcePath: "./plugins/demo-plugin",
+    sourcePath: "./codex_plugins/demo-plugin",
   };
 }
 
@@ -189,13 +189,13 @@ export async function writeValidPluginRepo(
 
   await writeJson(
     repoRoot,
-    "plugins/demo-plugin/.codex-plugin/plugin.json",
+    "codex_plugins/demo-plugin/.codex-plugin/plugin.json",
     fixture.manifest ?? validPluginManifest(),
   );
 
   await writeText(
     repoRoot,
-    "plugins/demo-plugin/skills/hello/SKILL.md",
+    "codex_plugins/demo-plugin/skills/hello/SKILL.md",
     typeof fixture.skillMarkdown === "string"
       ? fixture.skillMarkdown
       : validSkillMarkdown(fixture.skillMarkdown),
@@ -204,7 +204,7 @@ export async function writeValidPluginRepo(
   const openAiMetadata = fixture.openAiMetadata ?? validOpenAiMetadata();
   await writeText(
     repoRoot,
-    "plugins/demo-plugin/skills/hello/agents/openai.yaml",
+    "codex_plugins/demo-plugin/skills/hello/agents/openai.yaml",
     typeof openAiMetadata === "string" ? openAiMetadata : toYaml(openAiMetadata),
   );
 }

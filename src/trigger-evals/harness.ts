@@ -13,7 +13,7 @@ export type HarnessPaths = {
 export async function prepareHarness(runDir: string, target: SkillTarget): Promise<HarnessPaths> {
   const workspacePath = path.join(runDir, "workspace");
   const codexHome = path.join(runDir, "codex-home");
-  const copiedPluginPath = path.join(workspacePath, "plugins", target.pluginName);
+  const copiedPluginPath = path.join(workspacePath, "codex_plugins", target.pluginName);
   const pluginVersion = await readPluginVersion(target);
   const cachedPluginPath = path.join(
     codexHome,
@@ -50,7 +50,7 @@ function buildMarketplace(target: SkillTarget): unknown {
         name: target.pluginName,
         source: {
           source: "local",
-          path: `./plugins/${target.pluginName}`,
+          path: `./codex_plugins/${target.pluginName}`,
         },
         policy: {
           installation: "AVAILABLE",

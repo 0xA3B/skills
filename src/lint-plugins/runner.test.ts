@@ -29,7 +29,7 @@ describe("lint runner", () => {
   it("reports repo-required OpenAI metadata through the result object", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
-      await rm(path.join(repoRoot, "plugins/demo-plugin/skills/hello/agents/openai.yaml"));
+      await rm(path.join(repoRoot, "codex_plugins/demo-plugin/skills/hello/agents/openai.yaml"));
 
       const result = await lintPlugins({ repoRoot });
 
@@ -45,7 +45,7 @@ describe("lint runner", () => {
         ".agents/plugins/marketplace.json",
         validMarketplace({ plugins: [] }),
       );
-      await writeText(repoRoot, "plugins/broken/.codex-plugin/plugin.json", "{");
+      await writeText(repoRoot, "codex_plugins/broken/.codex-plugin/plugin.json", "{");
 
       const result = await lintPlugins({ repoRoot });
 
@@ -65,7 +65,7 @@ describe("lint runner", () => {
               category: "workflow",
               name: "demo-plugin",
               policy: { authentication: "ON_INSTALL", installation: "AVAILABLE" },
-              source: "./plugins/./demo-plugin",
+              source: "./codex_plugins/./demo-plugin",
             },
           ],
         }),

@@ -12,7 +12,9 @@ export function parseTriggerEvalCliOptions(argv: string[]): RunTriggerEvalOption
 
   const [skillPath, extra] = parsed.positionals;
   if (skillPath === undefined || extra !== undefined) {
-    throw new Error("Usage: pnpm eval:trigger -- <plugins/<plugin>/skills/<skill>> [options]");
+    throw new Error(
+      "Usage: pnpm eval:trigger -- <codex_plugins/<plugin>/skills/<skill>> [options]",
+    );
   }
 
   if (parsed.values.fixture !== undefined) {
@@ -45,7 +47,7 @@ export class HelpRequested extends Error {
 
 export function usage(): string {
   return [
-    "Usage: pnpm eval:trigger -- <plugins/<plugin>/skills/<skill>> [options]",
+    "Usage: pnpm eval:trigger -- <codex_plugins/<plugin>/skills/<skill>> [options]",
     "",
     "Options:",
     "  --fixture <path>      Use a fixture file other than evals/triggers.yaml.",
