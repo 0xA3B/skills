@@ -2,8 +2,23 @@
 
 ## Purpose
 
-This project is a personal skills repository for AI-agent workflows. The current distributable
-content is published as Codex plugin bundles under `codex_plugins/`.
+This repository maintains reusable AI-agent skills and workflow guidance that can be installed,
+evaluated, and improved over time. Changes should preserve these outcomes:
+
+- Skill instructions remain portable, durable, and useful across agent sessions.
+- Codex-facing distribution stays valid through plugin bundles under `codex_plugins/` and the
+  marketplace catalog under `.agents/plugins/marketplace.json`.
+- Repository-local validation catches broken plugin manifests, skill metadata, and trigger behavior
+  before skills are published or reused.
+- Documentation explains how to use and maintain the skills without duplicating temporary workflow
+  details that will drift.
+
+## Repository Model
+
+- This is a skills repository first; Codex plugins are the current distribution format.
+- Keep Codex-specific packaging under `codex_plugins/`.
+- Keep repo-local maintenance workflows under `.agents/skills/` if they are added in the future.
+- Keep generated eval output and local working artifacts under `.local/`, not tracked project state.
 
 ## Project Conventions
 
@@ -14,13 +29,14 @@ content is published as Codex plugin bundles under `codex_plugins/`.
   mise.
 - `package.json#packageManager` is the canonical pnpm version; mise only ensures a pnpm launcher is
   available.
-- Use the `package.json` script surface for validation and formatting.
+- Use the `package.json` script surface for validation and formatting instead of raw tool commands.
 - Use `pnpm run check` as the default full local gate.
 - Use the smallest relevant targeted script when narrowing validation.
 - Scripts with the `check` suffix should be non-mutating.
 - Keep README user-facing and lightweight.
 - Keep AGENTS files agent-facing, lightweight, and focused on durable guidance. Avoid temporary
   notes or details that may go stale quickly.
+- Treat `AGENTS.md` as canonical agent guidance; keep sibling `CLAUDE.md` files as symlinks to it.
 
 ## Glossary
 
@@ -39,7 +55,8 @@ When maintaining the glossary:
 
 | Term                    | Definition                                                                                                           | Aliases to Avoid          |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| **Marketplace**         | The installable Codex plugin source published by this repository.                                                    | plugin repo, package      |
+| **Skills repository**   | This repository, which maintains reusable agent skills and publishes the current Codex distribution surface.         | plugin repo, package      |
+| **Marketplace**         | The Codex marketplace distribution surface exposed by this repository.                                               | skills repository         |
 | **Marketplace catalog** | `.agents/plugins/marketplace.json`, the root list of plugins exposed by the marketplace.                             | manifest, registry        |
 | **Plugin**              | A distributable bundle under `codex_plugins/<plugin-name>/` with a `.codex-plugin/plugin.json` manifest.             | skill pack                |
 | **Plugin manifest**     | `.codex-plugin/plugin.json`, the plugin-level metadata consumed by Codex.                                            | marketplace entry         |
