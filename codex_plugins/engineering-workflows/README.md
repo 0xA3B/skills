@@ -1,12 +1,13 @@
 # Engineering Workflows
 
 Engineering workflow skills for brainstorming, planning, building, TDD, diagnosis, architecture
-review, and codebase orientation.
+review, codebase orientation, and visual presentation artifacts.
 
 Typical implementation flow: `brainstorm` when solution direction is unclear, `plan` once a
 direction is selected, then `build` for greenfield or high-churn implementation and `tdd` for stable
 behavior. `diagnose`, `zoom-out`, and `improve-codebase-architecture` are ad hoc workflows for
-specific needs.
+specific needs. `visualize` is a manual presentation workflow for turning session output into a
+temporary visual artifact without changing the underlying analysis.
 
 Some skills are adapted from Matt Pocock's MIT-licensed
 [`mattpocock/skills`](https://github.com/mattpocock/skills) repository. Adapted skills include Agent
@@ -24,3 +25,5 @@ MIT license notice from the source repository is preserved in [LICENSE](./LICENS
 - `engineering-workflows:zoom-out`: Map an unfamiliar code area at a higher level of abstraction.
 - `engineering-workflows:improve-codebase-architecture`: Find module deepening and architecture
   improvement opportunities.
+- `engineering-workflows:visualize`: Create a temporary visual report, diagram, or presentation
+  artifact from the current session.

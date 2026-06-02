@@ -1,18 +1,26 @@
 {
   "name": "engineering-workflows",
   "version": "1.0.0",
-  "description": "Engineering workflow skills for brainstorming, planning, building, TDD, diagnosis, architecture review, and codebase orientation.",
+  "description": "Engineering workflow skills for brainstorming, planning, building, TDD, diagnosis, architecture review, codebase orientation, and visual presentation artifacts.",
   "author": {
     "name": "Alex Baker"
   },
   "homepage": "https://github.com/0xA3B/codex-plugins/blob/main/plugins/engineering-workflows/README.md",
   "repository": "https://github.com/0xA3B/codex-plugins",
-  "keywords": ["engineering", "debugging", "build", "tdd", "architecture", "planning"],
+  "keywords": [
+    "engineering",
+    "debugging",
+    "build",
+    "tdd",
+    "architecture",
+    "planning",
+    "visualization"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Engineering Workflows",
-    "shortDescription": "Brainstorm, plan, build, diagnose, test, and review codebases.",
-    "longDescription": "Workflow skills for evidence-backed brainstorming, implementation planning, pragmatic building, disciplined debugging, test-driven development, architecture review, and high-level codebase orientation. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
+    "shortDescription": "Brainstorm, plan, build, diagnose, test, review, and visualize work.",
+    "longDescription": "Workflow skills for evidence-backed brainstorming, implementation planning, pragmatic building, disciplined debugging, test-driven development, architecture review, high-level codebase orientation, and temporary visual presentation artifacts. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
@@ -25,7 +33,8 @@
       "Use $engineering-workflows:tdd to implement this with a red-green-refactor loop.",
       "Use $engineering-workflows:diagnose to diagnose this bug.",
       "Use $engineering-workflows:zoom-out to explain how this code area fits into the larger system.",
-      "Use $engineering-workflows:improve-codebase-architecture to find architecture deepening opportunities."
+      "Use $engineering-workflows:improve-codebase-architecture to find architecture deepening opportunities.",
+      "Use $engineering-workflows:visualize to turn this session into a visual report."
     ]
   }
 }

@@ -34,14 +34,15 @@ Skills for planning, writing, validating, and executing Conventional Commits.
 ### `engineering-workflows`
 
 Engineering workflow skills for brainstorming, planning, building, TDD, diagnosis, architecture
-review, and codebase orientation. Some skills are adapted from Matt Pocock's MIT-licensed
-[`mattpocock/skills`](https://github.com/mattpocock/skills) repository with source attribution
-preserved in each adapted skill's Agent Skills frontmatter metadata.
+review, codebase orientation, and visual presentation artifacts. Some skills are adapted from Matt
+Pocock's MIT-licensed [`mattpocock/skills`](https://github.com/mattpocock/skills) repository with
+source attribution preserved in each adapted skill's Agent Skills frontmatter metadata.
 
 Typical implementation flow: `brainstorm` when solution direction is unclear, `plan` once a
 direction is selected, then `build` for greenfield or high-churn implementation and `tdd` for stable
 behavior. `diagnose`, `zoom-out`, and `improve-codebase-architecture` are ad hoc workflows for
-specific needs.
+specific needs. `visualize` is a manual presentation workflow for turning session output into a
+temporary visual artifact without changing the underlying analysis.
 
 - [`engineering-workflows:brainstorm`](./codex_plugins/engineering-workflows/skills/brainstorm/):
   Researches and compares solution options before planning.
@@ -57,3 +58,5 @@ specific needs.
   an unfamiliar code area at a higher level of abstraction.
 - [`engineering-workflows:improve-codebase-architecture`](./codex_plugins/engineering-workflows/skills/improve-codebase-architecture/):
   Finds module deepening and architecture improvement opportunities.
+- [`engineering-workflows:visualize`](./codex_plugins/engineering-workflows/skills/visualize/):
+  Creates a temporary visual report, diagram, or presentation artifact from the current session.

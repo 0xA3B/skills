@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Visualize"
+  short_description: "Create temporary visual reports"
+  default_prompt: "Use $engineering-workflows:visualize to turn this session into a visual report."
+policy:
+  allow_implicit_invocation: false
