@@ -1,6 +1,6 @@
 {
   "name": "engineering-workflows",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Engineering workflow skills for brainstorming, planning, building, TDD, diagnosis, architecture review, codebase orientation, and visual presentation artifacts.",
   "author": {
     "name": "Alex Baker"
