@@ -26,8 +26,10 @@ created.
 - Create temporary files outside tracked project state.
 - Create files under `.local/` only when the user wants the artifact near the repository.
 - Use Tailwind, Mermaid, image generation, or remote assets when they improve the artifact.
-- Open a generated local HTML artifact in the Codex in-app Browser when that capability is
-  available.
+- Open a generated HTML artifact in the Codex in-app Browser when that capability is available,
+  preferably through a temporary loopback server.
+- Start and stop a temporary localhost server for an HTML artifact when that is the most reliable
+  way to present it in the in-app Browser.
 - Do not stage, commit, publish, or persist the artifact as project documentation unless the user
   explicitly asks.
 
@@ -63,8 +65,29 @@ artifact.
    minimal and avoid app-style state unless interaction is necessary.
 6. For generated images, create or request the image asset first, then embed it in HTML or present
    it alongside the summary.
-7. Open the HTML artifact in the in-app Browser when available. Otherwise, report the absolute path
-   and how to open it.
+7. Present the HTML artifact in the in-app Browser when available, using the browser presentation
+   workflow below. Otherwise, report the absolute path and how to open it.
+
+## Browser Presentation
+
+Prefer a temporary local server over direct `file://` navigation when opening HTML in the Codex
+in-app Browser. Browser Use may reject agent-driven `file://` navigation even when the user can open
+the same file manually.
+
+1. Start a temporary static server bound to `127.0.0.1` from the directory containing the HTML
+   artifact. Use an available high port.
+2. Open `http://127.0.0.1:<port>/<artifact-name>.html` in the in-app Browser and make the browser
+   visible when the user wants to inspect the artifact.
+3. Confirm the page loaded by checking the title, URL, DOM, or screenshot.
+4. Stop the temporary server before finishing unless the user explicitly asks to keep it running for
+   reloads.
+5. If the local server cannot be started, cannot be opened, or cleanup is uncertain, fall back to
+   showing the in-app Browser when possible and report the absolute `file://` URL for the user to
+   paste manually.
+
+When the server is stopped, the already loaded static page should remain visible, but reloads may
+fail. Embed generated images and critical assets directly when the report should survive after
+server shutdown.
 
 ## HTML Guidance
 
