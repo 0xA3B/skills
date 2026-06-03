@@ -21,13 +21,14 @@ product decision, report it without broadening the change.
 
 ## Source Of Truth
 
-- `pnpm lint:plugins` lints the marketplace catalog, plugin manifests, skill frontmatter, and skill
-  `agents/openai.yaml` metadata.
-- `pnpm format:check` validates supported Markdown, JSON, YAML, and TypeScript formatting.
-- `pnpm lint` runs Oxlint on TypeScript.
-- `pnpm typecheck` runs TypeScript type checking.
-- `pnpm check` runs the full format, lint, typecheck, and plugin linting gate.
-- `plugins/AGENTS.md` defines plugin structure and compatibility rules.
+- `mise exec -- pnpm lint:plugins` lints the marketplace catalog, plugin manifests, skill
+  frontmatter, and skill `agents/openai.yaml` metadata.
+- `mise exec -- pnpm format:check` validates supported Markdown, JSON, YAML, and TypeScript
+  formatting.
+- `mise exec -- pnpm lint` runs Oxlint on TypeScript.
+- `mise exec -- pnpm typecheck` runs TypeScript type checking.
+- `mise exec -- pnpm check` runs the full format, lint, typecheck, and plugin linting gate.
+- `codex_plugins/AGENTS.md` defines plugin structure and compatibility rules.
 
 ## Workflow
 
@@ -36,26 +37,26 @@ product decision, report it without broadening the change.
    linting for plugin or skill metadata changes:
 
    ```bash
-   pnpm lint:plugins
+   mise exec -- pnpm lint:plugins
    ```
 
 3. Run format validation when Markdown, JSON, YAML, TypeScript, or skill files changed:
 
    ```bash
-   pnpm format:check
+   mise exec -- pnpm format:check
    ```
 
 4. Run TypeScript validation when scripts, validators, package config, or CI changed:
 
    ```bash
-   pnpm lint
-   pnpm typecheck
+   mise exec -- pnpm lint
+   mise exec -- pnpm typecheck
    ```
 
 5. For broad repo changes or pre-commit readiness, run:
 
    ```bash
-   pnpm check
+   mise exec -- pnpm check
    ```
 
 6. If a check fails, fix the issue when the cause is clear and rerun only the failed or affected

@@ -22,11 +22,11 @@ report the remaining work instead of guessing.
 
 ## Source Of Truth
 
-- Follow `plugins/AGENTS.md` for manifest conventions and skill metadata placement.
-- Plugin metadata lives in `plugins/<plugin-name>/.codex-plugin/plugin.json`.
+- Follow `codex_plugins/AGENTS.md` for manifest conventions and skill metadata placement.
+- Plugin metadata lives in `codex_plugins/<plugin-name>/.codex-plugin/plugin.json`.
 - Marketplace entries live in `.agents/plugins/marketplace.json`.
 - Skill-level Codex UI metadata lives in
-  `plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml`.
+  `codex_plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml`.
 - Plugin README files carry user-facing plugin summaries.
 
 ## Workflow
@@ -44,18 +44,18 @@ report the remaining work instead of guessing.
 7. Run validation:
 
    ```bash
-   pnpm lint:plugins
-   pnpm format:check
+   mise exec -- pnpm lint:plugins
+   mise exec -- pnpm format:check
    ```
 
-8. Run `pnpm lint` and `pnpm typecheck` when validation tooling changed.
+8. Run `mise exec -- pnpm lint` and `mise exec -- pnpm typecheck` when validation tooling changed.
 
 ## Consistency Rules
 
 - Keep plugin `name`, `version`, `description`, `author`, `repository`, `keywords`, and `skills`
   aligned with the marketplace catalog and plugin directory.
 - Use plugin-qualified Codex prompts such as `$plugin-name:skill-name`.
-- Keep README skill lists aligned with actual `plugins/<plugin-name>/skills/` directories.
+- Keep README skill lists aligned with actual `codex_plugins/<plugin-name>/skills/` directories.
 - Do not add Codex-only policy keys to `SKILL.md` frontmatter.
 
 ## Boundaries

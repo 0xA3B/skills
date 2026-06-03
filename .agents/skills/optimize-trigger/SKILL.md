@@ -24,7 +24,7 @@ skill's intended trigger boundary.
 
 ## Target Scope
 
-- Target only repo plugin skills under `plugins/<plugin>/skills/<skill>/`.
+- Target only repo plugin skills under `codex_plugins/<plugin>/skills/<skill>/`.
 - Use this workflow only for skills with `agents/openai.yaml`
   `policy.allow_implicit_invocation: true`.
 - If the target skill is manual-only, warn the user and do not optimize trigger behavior unless they
@@ -36,7 +36,7 @@ skill's intended trigger boundary.
 Trigger fixtures live at:
 
 ```text
-plugins/<plugin>/skills/<skill>/evals/triggers.yaml
+codex_plugins/<plugin>/skills/<skill>/evals/triggers.yaml
 ```
 
 Each fixture file must include both positive and negative cases:
@@ -72,7 +72,7 @@ different skill.
 4. Run:
 
    ```bash
-   pnpm eval:trigger -- plugins/<plugin>/skills/<skill>
+   mise exec -- pnpm eval:trigger -- codex_plugins/<plugin>/skills/<skill>
    ```
 
 5. Read the report and failed case outputs under `.local/skill-evals/trigger/`.
@@ -82,10 +82,10 @@ different skill.
 9. Run repository validation for changed files:
 
    ```bash
-   pnpm lint:plugins
-   pnpm format:check
-   pnpm lint
-   pnpm typecheck
+   mise exec -- pnpm lint:plugins
+   mise exec -- pnpm format:check
+   mise exec -- pnpm lint
+   mise exec -- pnpm typecheck
    ```
 
 ## Harness Notes
@@ -100,4 +100,5 @@ different skill.
 
 - Do not change skill behavior or body instructions unless the trigger boundary requires it.
 - Do not make the script edit descriptions automatically.
-- Do not add trigger evals to `pnpm check`; this is a development workflow, not a routine gate.
+- Do not add trigger evals to `mise exec -- pnpm check`; this is a development workflow, not a
+  routine gate.

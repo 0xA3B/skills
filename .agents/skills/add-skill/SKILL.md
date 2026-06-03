@@ -9,10 +9,11 @@ license: MIT
 
 # Add Skill
 
-Repo-local wrapper for adding a skill under `plugins/<plugin-name>/skills/`.
+Repo-local wrapper for adding a skill under `codex_plugins/<plugin-name>/skills/`.
 
-Use the built-in `skill-creator` guidance for drafting or materially revising `SKILL.md`. This skill
-adds only this repository's plugin placement, metadata, documentation, and validation conventions.
+Use the built-in `skill-creator` guidance for drafting or materially revising `SKILL.md`. Use this
+skill for this repository's plugin placement, metadata, documentation, invocation-policy, and
+validation conventions.
 
 ## Outcome
 
@@ -25,37 +26,67 @@ is not clearly caused by this change, report the blocker and the safest next act
 
 ## Source Of Truth
 
-- Follow `plugins/AGENTS.md` for skill metadata placement and authoring rules.
+- Follow `codex_plugins/AGENTS.md` for skill metadata placement and authoring rules.
 - Follow the built-in `skill-creator` skill for general skill design, progressive disclosure, and
-  skill-body drafting.
+  skill-body drafting. Do not take target paths or repo layout from `skill-creator`.
 - Use existing skills in the target plugin as local style examples.
 - Keep plugin manifests pointed at `./skills/`; do not add per-skill manifest paths.
 - Keep runtime instructions in `SKILL.md`.
 - Keep Codex UI metadata and invocation policy in `agents/openai.yaml`.
+- Bias new skills toward manual invocation. Allow implicit invocation only when the skill has a
+  clear trigger contract, the user intent boundary is narrow enough to avoid surprising activation,
+  and trigger fixtures are added and validated as part of the workflow.
 
 ## Workflow
 
 1. Identify the target plugin and normalize the skill name to lowercase kebab-case.
-2. Confirm the skill does not already exist at `plugins/<plugin-name>/skills/<skill-name>/`.
+2. Confirm the skill does not already exist at `codex_plugins/<plugin-name>/skills/<skill-name>/`.
 3. Create:
 
    ```text
-   plugins/<plugin-name>/skills/<skill-name>/SKILL.md
-   plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml
+   codex_plugins/<plugin-name>/skills/<skill-name>/SKILL.md
+   codex_plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml
    ```
 
-4. Use `skill-creator` guidance to draft `SKILL.md`; apply `plugins/AGENTS.md` for this repo's
+4. Use `skill-creator` guidance to draft `SKILL.md`; apply `codex_plugins/AGENTS.md` for this repo's
    frontmatter and placement rules.
 5. Write `agents/openai.yaml` with `interface.display_name`, `interface.short_description`,
-   `interface.default_prompt`, and `policy.allow_implicit_invocation`.
-6. Update the plugin README when the new skill should be visible to plugin users.
-7. Update Codex plugin default prompts when the new skill is a primary user workflow.
-8. Run validation:
+   `interface.default_prompt`, and `policy.allow_implicit_invocation`. Use
+   `policy.allow_implicit_invocation: false` unless the skill is clearly designed for implicit
+   invocation from the start.
+6. If `policy.allow_implicit_invocation: true`, add positive and negative trigger fixtures:
+
+   ```text
+   codex_plugins/<plugin-name>/skills/<skill-name>/evals/triggers.yaml
+   ```
+
+7. Update the plugin README and root `README.md` when the new skill should be visible to plugin
+   users.
+8. Update Codex plugin default prompts when the skill should be visible from plugin-level prompt
+   examples.
+9. Run the skill-creator validator when `uv` is available:
 
    ```bash
-   pnpm lint:plugins
-   pnpm format:check
+   mise exec -- uv run --with pyyaml python \
+     /Users/alebaker/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
+     codex_plugins/<plugin-name>/skills/<skill-name>
    ```
+
+   If `uv` or Python with PyYAML is unavailable, skip this optional validator and rely on the
+   repository validation below.
+
+10. If implicit invocation is enabled, run trigger validation:
+
+```bash
+mise exec -- pnpm eval:trigger -- codex_plugins/<plugin-name>/skills/<skill-name>
+```
+
+11. Run repository validation:
+
+```bash
+mise exec -- pnpm lint:plugins
+mise exec -- pnpm format:check
+```
 
 ## Boundaries
 
@@ -63,5 +94,5 @@ is not clearly caused by this change, report the blocker and the safest next act
 - Do not change plugin metadata unless the new skill affects plugin descriptions, prompts, keywords,
   or visible docs.
 - Do not duplicate broad skill-authoring guidance here; keep repo-wide review guidance in
-  `plugins/AGENTS.md` and use `skill-creator` for general authoring details.
+  `codex_plugins/AGENTS.md` and use `skill-creator` for general authoring details.
 - Do not stage or commit changes unless the user asks.
