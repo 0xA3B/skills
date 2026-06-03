@@ -31,6 +31,8 @@ is not clearly caused by this change, report the blocker and the safest next act
   skill-body drafting. Do not take target paths or repo layout from `skill-creator`.
 - Use existing skills in the target plugin as local style examples.
 - Keep plugin manifests pointed at `./skills/`; do not add per-skill manifest paths.
+- Follow the plugin version policy in `codex_plugins/AGENTS.md`; adding a new skill requires a patch
+  version bump unless the user explicitly asks to test same-version behavior.
 - Keep runtime instructions in `SKILL.md`.
 - Keep Codex UI metadata and invocation policy in `agents/openai.yaml`.
 - Bias new skills toward manual invocation. Allow implicit invocation only when the skill has a
@@ -64,24 +66,25 @@ is not clearly caused by this change, report the blocker and the safest next act
    users.
 8. Update Codex plugin default prompts when the skill should be visible from plugin-level prompt
    examples.
-9. Run the skill-creator validator when `uv` is available:
+9. Bump the target plugin manifest patch version so Codex treats the installed skill set as changed.
+10. Run the skill-creator validator when `uv` is available:
 
-   ```bash
-   mise exec -- uv run --with pyyaml python \
-     /Users/alebaker/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
-     codex_plugins/<plugin-name>/skills/<skill-name>
-   ```
+```bash
+mise exec -- uv run --with pyyaml python \
+  /Users/alebaker/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
+  codex_plugins/<plugin-name>/skills/<skill-name>
+```
 
-   If `uv` or Python with PyYAML is unavailable, skip this optional validator and rely on the
-   repository validation below.
+If `uv` or Python with PyYAML is unavailable, skip this optional validator and rely on the
+repository validation below.
 
-10. If implicit invocation is enabled, run trigger validation:
+11. If implicit invocation is enabled, run trigger validation:
 
 ```bash
 mise exec -- pnpm eval:trigger -- codex_plugins/<plugin-name>/skills/<skill-name>
 ```
 
-11. Run repository validation:
+12. Run repository validation:
 
 ```bash
 mise exec -- pnpm lint:plugins

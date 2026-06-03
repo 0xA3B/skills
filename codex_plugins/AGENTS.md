@@ -13,6 +13,20 @@ These instructions apply to plugin directories under `codex_plugins/`.
 - When adding or renaming a plugin, keep the marketplace entry, plugin directory, and manifest
   `name` aligned.
 
+## Plugin Version Policy
+
+- Do not bump the plugin version for content-only updates to existing skills, references, README
+  copy, descriptions, prompts, or metadata when the installed skill set, invocation names,
+  capability policy, and expected workflow behavior stay the same.
+- Bump the patch version when adding a skill, adding non-breaking visible capability, or expanding
+  an existing skill without removing prior behavior. A new skill changes the installed skill set and
+  needs a fresh plugin version for Codex cache and invocation behavior.
+- Bump the minor version when removing or renaming a skill, narrowing invocation availability,
+  changing plugin capabilities or install policy, or materially changing expected workflow behavior.
+- Reserve major version bumps for maintainer discretion when compatibility, trust boundaries, or the
+  packaging model changes significantly.
+- When in doubt, choose the smallest bump that reflects user-visible compatibility risk.
+
 ## Skill Rules
 
 - Skill names use lowercase kebab-case and match the skill directory name.

@@ -62,6 +62,7 @@ When maintaining the glossary:
 | **Plugin manifest**     | `.codex-plugin/plugin.json`, the plugin-level metadata consumed by Codex.                                            | marketplace entry         |
 | **Marketplace entry**   | One plugin listing inside `.agents/plugins/marketplace.json`.                                                        | plugin manifest           |
 | **Plugin skill**        | A shipped skill under `codex_plugins/<plugin>/skills/<skill>/`.                                                      | repo-local skill          |
+| **Plugin version**      | The `.codex-plugin/plugin.json` version used for plugin install, cache, and compatibility decisions.                 | package version           |
 | **Repo-local skill**    | A maintenance workflow under `.agents/skills/` used only while working in this checkout.                             | plugin skill              |
 | **Skill body**          | `SKILL.md`, the runtime instructions and frontmatter for a skill.                                                    | metadata, prompt metadata |
 | **Codex UI metadata**   | `agents/openai.yaml`, the skill-level display metadata and invocation policy for Codex.                              | skill frontmatter         |

@@ -28,6 +28,7 @@ report the remaining work instead of guessing.
 - Skill-level Codex UI metadata lives in
   `codex_plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml`.
 - Plugin README files carry user-facing plugin summaries.
+- Plugin version changes follow the version policy in `codex_plugins/AGENTS.md`.
 
 ## Workflow
 
@@ -36,19 +37,21 @@ report the remaining work instead of guessing.
 3. Determine whether the request changes plugin name, version, description, author, repository,
    keywords, category, prompts, skill display names, skill descriptions, invocation policy, or
    README-visible summaries.
-4. Update all affected metadata surfaces together.
-5. Preserve schema-specific field names and shapes; do not normalize them into a different
+4. Determine whether the change is content-only, additive, narrowing, or compatibility-affecting,
+   then apply the plugin version policy.
+5. Update all affected metadata surfaces together.
+6. Preserve schema-specific field names and shapes; do not normalize them into a different
    structure.
-6. When evidence is missing, inspect the actual plugin directories and existing metadata before
+7. When evidence is missing, inspect the actual plugin directories and existing metadata before
    inventing names, summaries, prompts, or categories.
-7. Run validation:
+8. Run validation:
 
    ```bash
    mise exec -- pnpm lint:plugins
    mise exec -- pnpm format:check
    ```
 
-8. Run `mise exec -- pnpm lint` and `mise exec -- pnpm typecheck` when validation tooling changed.
+9. Run `mise exec -- pnpm lint` and `mise exec -- pnpm typecheck` when validation tooling changed.
 
 ## Consistency Rules
 
@@ -57,6 +60,9 @@ report the remaining work instead of guessing.
 - Use plugin-qualified Codex prompts such as `$plugin-name:skill-name`.
 - Keep README skill lists aligned with actual `codex_plugins/<plugin-name>/skills/` directories.
 - Do not add Codex-only policy keys to `SKILL.md` frontmatter.
+- Do not bump versions for content-only metadata edits that preserve installed skills, invocation
+  names, capability policy, and expected workflow behavior.
+- Treat new skills as patch-version changes and deleted or renamed skills as minor-version changes.
 
 ## Boundaries
 
