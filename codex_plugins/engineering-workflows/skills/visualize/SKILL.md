@@ -70,10 +70,14 @@ artifact.
 
 Make the artifact readable before making it decorative.
 
+- Default to a dark color palette unless the user requests another theme. Use a near-black page
+  background, high-contrast text, muted borders, and one or two restrained accent colors.
 - Start with the title, generated date, and one-sentence purpose.
 - Put the conclusion or top recommendation in the first viewport.
 - Use cards only for repeated items such as candidates, options, risks, or timeline events.
 - Prefer tables for dense comparisons and diagrams for relationships.
+- Make cards, tables, Mermaid containers, and inline diagrams legible on dark surfaces. Avoid light
+  panels inside a dark page unless the contrast is intentional and isolated.
 - Keep labels short and tied to the user's actual domain language.
 - Include enough source references or evidence labels for the artifact to be auditable.
 - Avoid turning the report into new analysis; if analysis gaps appear, note them as uncertainties.
