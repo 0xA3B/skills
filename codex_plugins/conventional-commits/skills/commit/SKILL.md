@@ -4,8 +4,8 @@ description:
   Reviews current git changes, splits them into logical Conventional Commits, and creates git
   commits with minimal interaction. Use when the user asks to commit current work, create commits,
   batch commits, or run a fast commit workflow. Do not use for message-only drafting, syntax
-  validation, conceptual commit questions, history inspection, or ordinary-language uses of "commit"
-  such as committing to a plan.
+  validation, split guidance without commit execution, conceptual commit questions, history
+  inspection, or ordinary-language uses of "commit" such as committing to a plan.
 license: MIT
 ---
 
@@ -23,8 +23,8 @@ the user wants commit message text without staging or committing.
 
 - This skill may be implicitly invoked when the user asks to create git commits.
 - Default behavior is execution mode: review all current changes and commit them.
-- If the user asks for a dry run, message draft, split plan, syntax check, or conceptual
-  explanation, do not create commits.
+- If the user asks for a dry run, message draft, split guidance without execution, syntax check, or
+  conceptual explanation, do not create commits.
 - If the user uses "commit" to mean agree, decide, or commit to a plan, do not invoke this skill.
 - If the repository has documented commit conventions beyond Conventional Commits, follow them.
 - Load `references/conventional-commits.md` only when detailed specification rules, examples, footer

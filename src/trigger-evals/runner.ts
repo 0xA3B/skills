@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { runCodexExec } from "./codex-exec.js";
@@ -17,11 +17,13 @@ export type RunTriggerEvalOptions = {
   model?: string;
   force?: boolean;
   timeoutMs?: number;
+  concurrency?: number;
   sourceCodexHome?: string;
   abortSignal?: AbortSignal;
 };
 
 const DEFAULT_TIMEOUT_MS = 120_000;
+const DEFAULT_CONCURRENCY = 3;
 
 export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<TriggerEvalResult> {
   const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
@@ -45,25 +47,27 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   const runDir = await createRunDir(repoRoot, target.skillName);
   const harness = await prepareHarness(runDir, target);
 
-  const results: TriggerCaseResult[] = [];
+  const results: Array<TriggerCaseResult | undefined> = new Array(fixture.cases.length);
+  const concurrency = normalizeConcurrency(options.concurrency ?? DEFAULT_CONCURRENCY);
   try {
-    await prepareCodexHome({
-      codexHome: harness.codexHome,
-      workspacePath: harness.workspacePath,
-      marketplaceName: EVAL_MARKETPLACE_NAME,
-      pluginName: target.pluginName,
-      ...(options.sourceCodexHome === undefined
-        ? {}
-        : { sourceCodexHome: options.sourceCodexHome }),
-    });
-
-    for (const testCase of fixture.cases) {
+    await runConcurrently(fixture.cases, concurrency, async (testCase, index) => {
       if (options.abortSignal?.aborted === true) {
-        break;
+        return;
       }
       const caseDir = path.join(runDir, "cases", testCase.id);
+      const codexHome = path.join(runDir, "codex-home", "cases", testCase.id);
+      await prepareCodexHome({
+        codexHome,
+        workspacePath: harness.workspacePath,
+        marketplaceName: EVAL_MARKETPLACE_NAME,
+        pluginName: target.pluginName,
+        ...(options.sourceCodexHome === undefined
+          ? {}
+          : { sourceCodexHome: options.sourceCodexHome }),
+      });
+      await prepareCasePluginCache(codexHome, target, harness.pluginVersion);
       const codexRunOptions = {
-        codexHome: harness.codexHome,
+        codexHome,
         workspacePath: harness.workspacePath,
         prompt: testCase.prompt,
         caseDir,
@@ -71,34 +75,102 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         ...(options.model === undefined ? {} : { model: options.model }),
         ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
       };
-      const codexResult = await runCodexExec(codexRunOptions);
 
-      const invocationSignal = detectInvocation(codexResult, target);
-      const invoked = invocationSignal !== "none";
-      const completed = codexResult.error === undefined && codexResult.exitCode === 0;
-      const matchedExpectation = testCase.expect === "invoke" ? invoked : !invoked;
-      const passed = completed && matchedExpectation;
-      results.push({
-        caseId: testCase.id,
-        expect: testCase.expect,
-        invocationSignal,
-        invoked,
-        passed,
-        exitCode: codexResult.exitCode,
-        finalMessagePath: codexResult.finalMessagePath,
-        stdoutPath: codexResult.stdoutPath,
-        stderrPath: codexResult.stderrPath,
-        ...(codexResult.error === undefined ? {} : { error: codexResult.error }),
-      });
-    }
+      try {
+        const codexResult = await runCodexExec(codexRunOptions);
+        results[index] = buildCaseResult(testCase, codexResult, target);
+      } finally {
+        await removeCopiedAuth(codexHome);
+      }
+    });
   } finally {
     await removeCopiedAuth(harness.codexHome);
   }
 
   const reportPath = path.join(runDir, "report.json");
-  const result = { runDir, reportPath, target, results };
+  const result = { runDir, reportPath, target, results: results.filter(isDefined) };
   await writeFile(reportPath, JSON.stringify(result, null, 2));
   return result;
+}
+
+function buildCaseResult(
+  testCase: { id: string; expect: "invoke" | "skip" },
+  codexResult: {
+    stderr: string;
+    error?: string;
+    exitCode: number | null;
+    finalMessagePath: string;
+    stdoutPath: string;
+    stderrPath: string;
+  },
+  target: { pluginName: string; skillName: string },
+): TriggerCaseResult {
+  const invocationSignal = detectInvocation(codexResult, target);
+  const invoked = invocationSignal !== "none";
+  const completed = codexResult.error === undefined && codexResult.exitCode === 0;
+  const matchedExpectation = testCase.expect === "invoke" ? invoked : !invoked;
+  const passed = completed && matchedExpectation;
+  return {
+    caseId: testCase.id,
+    expect: testCase.expect,
+    invocationSignal,
+    invoked,
+    passed,
+    exitCode: codexResult.exitCode,
+    finalMessagePath: codexResult.finalMessagePath,
+    stdoutPath: codexResult.stdoutPath,
+    stderrPath: codexResult.stderrPath,
+    ...(codexResult.error === undefined ? {} : { error: codexResult.error }),
+  };
+}
+
+async function runConcurrently<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+  let nextIndex = 0;
+  const workerCount = Math.min(concurrency, items.length);
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      const item = items[currentIndex];
+      if (item === undefined) {
+        continue;
+      }
+      await worker(item, currentIndex);
+    }
+  });
+  await Promise.all(workers);
+}
+
+function isDefined<T>(value: T | undefined): value is T {
+  return value !== undefined;
+}
+
+function normalizeConcurrency(value: number): number {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new Error("concurrency must be a positive integer.");
+  }
+  return value;
+}
+
+async function prepareCasePluginCache(
+  codexHome: string,
+  target: { pluginName: string; pluginPath: string },
+  pluginVersion: string,
+): Promise<void> {
+  const cachedPluginPath = path.join(
+    codexHome,
+    "plugins",
+    "cache",
+    EVAL_MARKETPLACE_NAME,
+    target.pluginName,
+    pluginVersion,
+  );
+  await mkdir(path.dirname(cachedPluginPath), { recursive: true });
+  await cp(target.pluginPath, cachedPluginPath, { recursive: true });
 }
 
 async function createRunDir(repoRoot: string, skillName: string): Promise<string> {

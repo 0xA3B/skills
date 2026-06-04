@@ -29,6 +29,9 @@ export function parseTriggerEvalCliOptions(argv: string[]): RunTriggerEvalOption
   if (parsed.values["timeout-ms"] !== undefined) {
     options.timeoutMs = parseTimeoutMs(parsed.values["timeout-ms"]);
   }
+  if (parsed.values.concurrency !== undefined) {
+    options.concurrency = parseConcurrency(parsed.values.concurrency);
+  }
   if (parsed.values["codex-home"] !== undefined) {
     options.sourceCodexHome = readStringOption(parsed.values["codex-home"], "--codex-home");
   }
@@ -54,6 +57,7 @@ export function usage(): string {
     "  --case <id>           Run one trigger fixture case.",
     "  --model <model>       Override the Codex model for the eval run.",
     "  --timeout-ms <ms>     Per-case timeout. Defaults to 120000.",
+    "  --concurrency <n>     Number of cases to run in parallel. Defaults to 3.",
     "  --codex-home <path>   Source Codex home to copy auth/config from. Defaults to ~/.codex.",
     "  --force               Run even when allow_implicit_invocation is false.",
   ].join("\n");
@@ -69,6 +73,7 @@ function parseTriggerArgs(argv: string[]) {
         case: { type: "string" },
         model: { type: "string" },
         "timeout-ms": { type: "string" },
+        concurrency: { type: "string" },
         "codex-home": { type: "string" },
         force: { type: "boolean" },
         help: { type: "boolean", short: "h" },
@@ -80,16 +85,24 @@ function parseTriggerArgs(argv: string[]) {
 }
 
 function parseTimeoutMs(value: string): number {
+  return parsePositiveInteger(value, "--timeout-ms");
+}
+
+function parseConcurrency(value: string): number {
+  return parsePositiveInteger(value, "--concurrency");
+}
+
+function parsePositiveInteger(value: string, optionName: string): number {
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new Error("--timeout-ms must be a positive integer.");
+    throw new Error(`${optionName} must be a positive integer.`);
   }
 
-  const timeoutMs = Number(value);
-  if (!Number.isSafeInteger(timeoutMs)) {
-    throw new Error("--timeout-ms must be a positive integer.");
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${optionName} must be a positive integer.`);
   }
 
-  return timeoutMs;
+  return parsed;
 }
 
 function readStringOption(value: string, optionName: string): string {

@@ -8,6 +8,7 @@ export const EVAL_MARKETPLACE_NAME = "trigger-eval";
 export type HarnessPaths = {
   workspacePath: string;
   codexHome: string;
+  pluginVersion: string;
 };
 
 export async function prepareHarness(runDir: string, target: SkillTarget): Promise<HarnessPaths> {
@@ -15,19 +16,9 @@ export async function prepareHarness(runDir: string, target: SkillTarget): Promi
   const codexHome = path.join(runDir, "codex-home");
   const copiedPluginPath = path.join(workspacePath, "codex_plugins", target.pluginName);
   const pluginVersion = await readPluginVersion(target);
-  const cachedPluginPath = path.join(
-    codexHome,
-    "plugins",
-    "cache",
-    EVAL_MARKETPLACE_NAME,
-    target.pluginName,
-    pluginVersion,
-  );
   await mkdir(path.join(workspacePath, ".agents", "plugins"), { recursive: true });
   await mkdir(path.dirname(copiedPluginPath), { recursive: true });
-  await mkdir(path.dirname(cachedPluginPath), { recursive: true });
   await cp(target.pluginPath, copiedPluginPath, { recursive: true });
-  await cp(target.pluginPath, cachedPluginPath, { recursive: true });
   await writeFile(
     path.join(workspacePath, ".agents", "plugins", "marketplace.json"),
     JSON.stringify(buildMarketplace(target), null, 2),
@@ -36,6 +27,7 @@ export async function prepareHarness(runDir: string, target: SkillTarget): Promi
   return {
     workspacePath,
     codexHome,
+    pluginVersion,
   };
 }
 

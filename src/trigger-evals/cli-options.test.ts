@@ -21,6 +21,8 @@ describe("parseTriggerEvalCliOptions", () => {
         "gpt-5",
         "--timeout-ms",
         "5000",
+        "--concurrency",
+        "4",
         "--codex-home",
         "/tmp/codex",
         "--force",
@@ -31,6 +33,7 @@ describe("parseTriggerEvalCliOptions", () => {
       caseId: "case-a",
       model: "gpt-5",
       timeoutMs: 5000,
+      concurrency: 4,
       sourceCodexHome: "/tmp/codex",
       force: true,
     });
@@ -70,6 +73,15 @@ describe("parseTriggerEvalCliOptions", () => {
     expect(() =>
       parseTriggerEvalCliOptions(["codex_plugins/foo/skills/bar", "--timeout-ms", "1.5"]),
     ).toThrow("--timeout-ms must be a positive integer.");
+  });
+
+  it("rejects invalid concurrency values", () => {
+    expect(() =>
+      parseTriggerEvalCliOptions(["codex_plugins/foo/skills/bar", "--concurrency", "0"]),
+    ).toThrow("--concurrency must be a positive integer.");
+    expect(() =>
+      parseTriggerEvalCliOptions(["codex_plugins/foo/skills/bar", "--concurrency", "abc"]),
+    ).toThrow("--concurrency must be a positive integer.");
   });
 
   it("rejects unknown options", () => {

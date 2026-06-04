@@ -15,18 +15,31 @@ const mockState = vi.hoisted(() => ({
     stderrPath: string;
     finalMessagePath: string;
     error?: string;
+    delayMs?: number;
   }>,
+  activeExecs: 0,
+  maxActiveExecs: 0,
+  codexHomes: [] as string[],
 }));
 
 vi.mock("./codex-exec.js", () => ({
-  runCodexExec: vi.fn<() => Promise<CodexRunResult>>(async () => {
-    const result = mockState.codexResults.shift();
-    if (result === undefined) {
-      throw new Error("Missing mocked Codex result.");
-    }
+  runCodexExec: vi.fn<(options: { codexHome: string; prompt: string }) => Promise<CodexRunResult>>(
+    async (options) => {
+      mockState.codexHomes.push(options.codexHome);
+      mockState.activeExecs += 1;
+      mockState.maxActiveExecs = Math.max(mockState.maxActiveExecs, mockState.activeExecs);
 
-    return result;
-  }),
+      try {
+        const result = mockState.codexResults.shift() ?? buildMockCodexResult(options.prompt);
+        if (result.delayMs !== undefined) {
+          await new Promise((resolve) => setTimeout(resolve, result.delayMs));
+        }
+        return result;
+      } finally {
+        mockState.activeExecs -= 1;
+      }
+    },
+  ),
 }));
 
 vi.mock("./codex-home.js", () => ({
@@ -39,6 +52,9 @@ import { runTriggerEval } from "./runner.js";
 describe("runTriggerEval", () => {
   beforeEach(() => {
     mockState.codexResults = [];
+    mockState.activeExecs = 0;
+    mockState.maxActiveExecs = 0;
+    mockState.codexHomes = [];
   });
 
   it("fails cases when codex exec errors even if invocation expectation matches", async () => {
@@ -68,9 +84,53 @@ describe("runTriggerEval", () => {
       error: "codex exec exited with code 1.",
     });
   });
+
+  it("runs cases concurrently while preserving fixture order", async () => {
+    const repoRoot = await writeRepoFixture({
+      cases: [
+        { id: "case-a", expect: "invoke" },
+        { id: "case-b", expect: "skip" },
+        { id: "case-c", expect: "invoke" },
+        { id: "case-d", expect: "skip" },
+      ],
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "codex_plugins/demo/skills/auto-skill",
+      concurrency: 2,
+    });
+
+    expect(result.results.map((caseResult) => caseResult.caseId)).toEqual([
+      "case-a",
+      "case-b",
+      "case-c",
+      "case-d",
+    ]);
+    expect(result.results.every((caseResult) => caseResult.passed)).toBe(true);
+    expect(mockState.maxActiveExecs).toBe(2);
+    expect(new Set(mockState.codexHomes).size).toBe(4);
+  });
 });
 
-async function writeRepoFixture(): Promise<string> {
+function buildMockCodexResult(prompt: string): CodexRunResult & { delayMs: number } {
+  const shouldInvoke = !prompt.startsWith("Do not invoke");
+  return {
+    exitCode: 0,
+    finalMessage: "",
+    stderr: shouldInvoke ? "codex.skill.injected demo:auto-skill" : "",
+    stdoutPath: "/tmp/stdout.jsonl",
+    stderrPath: "/tmp/stderr.log",
+    finalMessagePath: "/tmp/final.txt",
+    delayMs: 50,
+  };
+}
+
+async function writeRepoFixture(
+  options: {
+    cases?: Array<{ id: string; expect: "invoke" | "skip" }>;
+  } = {},
+): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
   const pluginPath = path.join(repoRoot, "codex_plugins", "demo");
   const skillPath = path.join(pluginPath, "skills", "auto-skill");
@@ -92,15 +152,23 @@ async function writeRepoFixture(): Promise<string> {
     [
       "version: 1",
       "cases:",
-      "  - id: invoke-case",
-      "    prompt: Invoke the skill.",
-      "    expect: invoke",
-      "  - id: skip-case",
-      "    prompt: Do not invoke the skill.",
-      "    expect: skip",
+      ...fixtureCaseLines(
+        options.cases ?? [
+          { id: "invoke-case", expect: "invoke" },
+          { id: "skip-case", expect: "skip" },
+        ],
+      ),
       "",
     ].join("\n"),
   );
 
   return repoRoot;
+}
+
+function fixtureCaseLines(cases: Array<{ id: string; expect: "invoke" | "skip" }>): string[] {
+  return cases.flatMap((testCase) => [
+    `  - id: ${testCase.id}`,
+    `    prompt: ${testCase.expect === "invoke" ? "Invoke" : "Do not invoke"} the skill.`,
+    `    expect: ${testCase.expect}`,
+  ]);
 }

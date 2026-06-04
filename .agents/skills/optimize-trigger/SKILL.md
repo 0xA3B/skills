@@ -75,6 +75,9 @@ different skill.
    mise exec -- pnpm eval:trigger -- codex_plugins/<plugin>/skills/<skill>
    ```
 
+   Trigger cases run with bounded parallelism by default. Use `--concurrency <n>` when the target
+   fixture needs a slower or faster run than the default concurrency of 3.
+
 5. Read the report and failed case outputs under `.local/skill-evals/trigger/`.
 6. For false negatives, make the description more explicit about the missing user intent.
 7. For false positives, narrow the description with clearer ownership boundaries or exclusions.
