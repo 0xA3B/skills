@@ -53,7 +53,8 @@ is not clearly caused by this change, report the blocker and the safest next act
 4. Use `skill-creator` guidance to draft `SKILL.md`; apply `codex_plugins/AGENTS.md` for this repo's
    frontmatter and placement rules.
 5. Write `agents/openai.yaml` with `interface.display_name`, `interface.short_description`,
-   `interface.default_prompt`, and `policy.allow_implicit_invocation`. Use
+   `interface.default_prompt`, and `policy.allow_implicit_invocation`. For manual-only skills, make
+   `interface.default_prompt` include the explicit `$plugin-name:skill-name` callout. Use
    `policy.allow_implicit_invocation: false` unless the skill is clearly designed for implicit
    invocation from the start.
 6. If `policy.allow_implicit_invocation: true`, add positive and negative trigger fixtures:
@@ -65,7 +66,8 @@ is not clearly caused by this change, report the blocker and the safest next act
 7. Update the plugin README and root `README.md` when the new skill should be visible to plugin
    users.
 8. Update Codex plugin default prompts when the skill should be visible from plugin-level prompt
-   examples.
+   examples. Keep `interface.defaultPrompt` to three prompts or fewer, choose the most useful entry
+   points, and include explicit `$plugin-name:skill-name` callouts for manual-only skills.
 9. Bump the target plugin manifest patch version so Codex treats the installed skill set as changed.
 10. Run the skill-creator validator when `uv` is available:
 

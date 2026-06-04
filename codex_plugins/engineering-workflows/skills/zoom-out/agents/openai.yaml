@@ -3,6 +3,6 @@ interface:
   display_name: "Zoom Out"
   short_description: "Map unfamiliar code at a higher level"
   default_prompt:
-    "Use $engineering-workflows:zoom-out to explain how this area fits into the larger system."
+    "Use $engineering-workflows:zoom-out to explain how this code area fits into the larger system."
 policy:
   allow_implicit_invocation: false

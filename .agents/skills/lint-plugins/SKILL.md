@@ -22,7 +22,7 @@ product decision, report it without broadening the change.
 ## Source Of Truth
 
 - `mise exec -- pnpm lint:plugins` lints the marketplace catalog, plugin manifests, skill
-  frontmatter, and skill `agents/openai.yaml` metadata.
+  frontmatter, skill `agents/openai.yaml` metadata, and plugin default prompt limits.
 - `mise exec -- pnpm format:check` validates supported Markdown, JSON, YAML, and TypeScript
   formatting.
 - `mise exec -- pnpm lint` runs Oxlint on TypeScript.

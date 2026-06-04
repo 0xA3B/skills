@@ -57,7 +57,14 @@ report the remaining work instead of guessing.
 
 - Keep plugin `name`, `version`, `description`, `author`, `repository`, `keywords`, and `skills`
   aligned with the marketplace catalog and plugin directory.
-- Use plugin-qualified Codex prompts such as `$plugin-name:skill-name`.
+- Keep plugin-level `interface.defaultPrompt` to three prompts or fewer because the Codex UI
+  surfaces only the first three.
+- Use plugin-level prompts to highlight the most useful or interesting entry points instead of
+  listing every skill.
+- Use plugin-qualified Codex prompts such as `$plugin-name:skill-name` when a prompt should invoke a
+  manual-only skill.
+- Keep skill-level `agents/openai.yaml` `interface.default_prompt` concise and include explicit
+  `$plugin-name:skill-name` callouts for manual-only skills.
 - Keep README skill lists aligned with actual `codex_plugins/<plugin-name>/skills/` directories.
 - Do not add Codex-only policy keys to `SKILL.md` frontmatter.
 - Do not bump versions for content-only metadata edits that preserve installed skills, invocation

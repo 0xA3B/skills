@@ -13,6 +13,20 @@ These instructions apply to plugin directories under `codex_plugins/`.
 - When adding or renaming a plugin, keep the marketplace entry, plugin directory, and manifest
   `name` aligned.
 
+## Default Prompt Policy
+
+- Keep plugin-level `interface.defaultPrompt` to three prompts or fewer; Codex UI surfaces only the
+  first three prompts.
+- Use plugin-level prompts to highlight the most useful or interesting entry points, not every skill
+  in the plugin.
+- Use concise action wording that fits the UI prompt card.
+- Include an explicit `$plugin-name:skill-name` callout when a prompt should invoke a skill with
+  `policy.allow_implicit_invocation: false`.
+- Skill-level `agents/openai.yaml` `interface.default_prompt` should normally include the explicit
+  `$plugin-name:skill-name` callout for manual-only skills.
+- Natural-language prompts are acceptable for implicitly invokable skills when the trigger contract
+  is clear, but explicit skill callouts are still fine when they improve determinism.
+
 ## Plugin Version Policy
 
 - Do not bump the plugin version for content-only updates to existing skills, references, README

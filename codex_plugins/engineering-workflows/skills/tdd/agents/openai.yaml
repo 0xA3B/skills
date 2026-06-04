@@ -2,6 +2,6 @@ version: 1
 interface:
   display_name: "TDD"
   short_description: "Use red-green-refactor development"
-  default_prompt: "Use $engineering-workflows:tdd to implement this with TDD."
+  default_prompt: "Use $engineering-workflows:tdd to implement this with a red-green-refactor loop."
 policy:
   allow_implicit_invocation: false

@@ -27,13 +27,8 @@
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png",
     "defaultPrompt": [
-      "Use $engineering-workflows:brainstorm to research options for this problem.",
       "Use $engineering-workflows:plan to turn this direction into an implementation-ready plan.",
-      "Use $engineering-workflows:build to implement this with pragmatic validation.",
-      "Use $engineering-workflows:tdd to implement this with a red-green-refactor loop.",
-      "Use $engineering-workflows:diagnose to diagnose this bug.",
-      "Use $engineering-workflows:zoom-out to explain how this code area fits into the larger system.",
-      "Use $engineering-workflows:improve-codebase-architecture to find architecture deepening opportunities.",
+      "Use $engineering-workflows:improve-codebase-architecture to review this codebase architecture.",
       "Use $engineering-workflows:visualize to turn this session into a visual report."
     ]
   }

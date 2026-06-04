@@ -157,7 +157,7 @@ export function validatePluginInterface(
     "/interface/capabilities",
     { required: true },
   );
-  validateStringArray(
+  const defaultPrompts = validateStringArray(
     context,
     manifestInterface["defaultPrompt"],
     "interface.defaultPrompt",
@@ -165,6 +165,15 @@ export function validatePluginInterface(
     "/interface/defaultPrompt",
     { required: false },
   );
+  if (defaultPrompts !== undefined && defaultPrompts.length > 3) {
+    error(
+      context,
+      "manifest/default-prompt-limit",
+      entry.manifestPath,
+      "Expected interface.defaultPrompt to contain 3 or fewer prompts because Codex UI surfaces only the first 3.",
+      "/interface/defaultPrompt",
+    );
+  }
 
   for (const fieldName of ["websiteURL", "privacyPolicyURL", "termsOfServiceURL"]) {
     const url = getOptionalString(

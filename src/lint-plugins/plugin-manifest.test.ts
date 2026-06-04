@@ -65,4 +65,27 @@ describe("plugin manifest validation", () => {
       );
     });
   });
+
+  it("reports plugin default prompt arrays that exceed the Codex UI limit", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeJson(repoRoot, "codex_plugins/demo-plugin/.codex-plugin/plugin.json", {
+        ...validPluginManifest(),
+        interface: {
+          ...validPluginManifest().interface,
+          defaultPrompt: [
+            "Use $demo-plugin:first.",
+            "Use $demo-plugin:second.",
+            "Use $demo-plugin:third.",
+            "Use $demo-plugin:fourth.",
+          ],
+        },
+      });
+      await writeJson(repoRoot, "codex_plugins/demo-plugin/skills/.keep", {});
+      const context = createTestContext(repoRoot);
+
+      await validatePlugin(context, validLocalCatalogEntry(repoRoot));
+
+      expect(ruleIds(context)).toContain("manifest/default-prompt-limit");
+    });
+  });
 });
