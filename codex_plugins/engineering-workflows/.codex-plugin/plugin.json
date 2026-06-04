@@ -1,7 +1,7 @@
 {
   "name": "engineering-workflows",
-  "version": "1.0.1",
-  "description": "Engineering workflow skills for brainstorming, planning, building, TDD, diagnosis, architecture review, codebase orientation, and visual presentation artifacts.",
+  "version": "1.1.0",
+  "description": "Engineering workflow skills for brainstorming, adversarial design review, building, TDD, diagnosis, architecture review, codebase orientation, and visual presentation artifacts.",
   "author": {
     "name": "Alex Baker"
   },
@@ -19,15 +19,15 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Engineering Workflows",
-    "shortDescription": "Brainstorm, plan, build, diagnose, test, review, and visualize work.",
-    "longDescription": "Workflow skills for evidence-backed brainstorming, implementation planning, pragmatic building, disciplined debugging, test-driven development, architecture review, high-level codebase orientation, and temporary visual presentation artifacts. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
+    "shortDescription": "Brainstorm, stress-test, build, diagnose, test, review, and visualize work.",
+    "longDescription": "Workflow skills for evidence-backed brainstorming, adversarial design review, pragmatic building, disciplined debugging, test-driven development, architecture review, high-level codebase orientation, and temporary visual presentation artifacts. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png",
     "defaultPrompt": [
-      "Use $engineering-workflows:plan to turn this direction into an implementation-ready plan.",
+      "Use $engineering-workflows:grill-me to stress-test this approach through adversarial questioning.",
       "Use $engineering-workflows:improve-codebase-architecture to review this codebase architecture.",
       "Use $engineering-workflows:visualize to turn this session into a visual report."
     ]

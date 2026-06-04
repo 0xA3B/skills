@@ -31,27 +31,29 @@ Skills for drafting and creating Conventional Commits.
 
 ### `engineering-workflows`
 
-Engineering workflow skills for brainstorming, planning, building, TDD, diagnosis, architecture
-review, codebase orientation, and visual presentation artifacts. Some skills are adapted from Matt
-Pocock's MIT-licensed [`mattpocock/skills`](https://github.com/mattpocock/skills) repository with
-source attribution preserved in each adapted skill's Agent Skills frontmatter metadata.
+Engineering workflow skills for brainstorming, adversarial design review, building, TDD, diagnosis,
+architecture review, codebase orientation, and visual presentation artifacts. Some skills are
+adapted from Matt Pocock's MIT-licensed [`mattpocock/skills`](https://github.com/mattpocock/skills)
+repository with source attribution preserved in each adapted skill's Agent Skills frontmatter
+metadata.
 
-Typical implementation flow: `brainstorm` when solution direction is unclear, `plan` once a
-direction is selected, then `build` for greenfield or high-churn implementation and `tdd` for stable
-behavior. `diagnose`, `zoom-out`, and `improve-codebase-architecture` are ad hoc workflows for
-specific needs. `visualize` is a manual presentation workflow for turning session output into a
-temporary visual artifact without changing the underlying analysis.
+Typical implementation flow: `brainstorm` when solution direction is unclear, `grill-me` once a
+direction is selected and needs interrogation, then `build` for greenfield or high-churn
+implementation and `tdd` for stable behavior. `diagnose`, `zoom-out`, and
+`improve-codebase-architecture` are ad hoc workflows for specific needs. `visualize` is a manual
+presentation workflow for turning session output into a temporary visual artifact without changing
+the underlying analysis.
 
 - [`engineering-workflows:brainstorm`](./codex_plugins/engineering-workflows/skills/brainstorm/):
-  Researches and compares solution options before planning.
+  Researches and compares solution options before adversarial review.
 - [`engineering-workflows:build`](./codex_plugins/engineering-workflows/skills/build/): Implements
   working slices with pragmatic validation.
 - [`engineering-workflows:diagnose`](./codex_plugins/engineering-workflows/skills/diagnose/): Runs a
   disciplined diagnosis loop for bugs, flaky behavior, and performance regressions.
 - [`engineering-workflows:tdd`](./codex_plugins/engineering-workflows/skills/tdd/): Builds features
   or fixes with a red-green-refactor loop.
-- [`engineering-workflows:plan`](./codex_plugins/engineering-workflows/skills/plan/): Turns a
-  direction into an implementation-ready plan.
+- [`engineering-workflows:grill-me`](./codex_plugins/engineering-workflows/skills/grill-me/):
+  Stress-tests an approach through adversarial questioning.
 - [`engineering-workflows:zoom-out`](./codex_plugins/engineering-workflows/skills/zoom-out/): Maps
   an unfamiliar code area at a higher level of abstraction.
 - [`engineering-workflows:improve-codebase-architecture`](./codex_plugins/engineering-workflows/skills/improve-codebase-architecture/):

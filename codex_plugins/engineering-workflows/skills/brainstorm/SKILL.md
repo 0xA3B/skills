@@ -2,9 +2,9 @@
 name: brainstorm
 description: >-
   Explore a goal or problem through repo inspection, research, and one-question-at-a-time idea
-  generation until there is a preferred direction ready for planning. Use when the user wants to
-  brainstorm, compare possible approaches, research solution options, or find a promising direction
-  before making an implementation plan.
+  generation until there is a preferred direction ready for adversarial review. Use when the user
+  wants to brainstorm, compare possible approaches, research solution options, or find a promising
+  direction before stress-testing it.
 license: MIT
 metadata:
   original_author: Alex Baker
@@ -12,14 +12,14 @@ metadata:
 
 # Brainstorm
 
-Explore the problem space before committing to a plan. This is the divergent, evidence-gathering
-step before `engineering-workflows:plan`.
+Explore the problem space before committing to an approach. This is the divergent,
+evidence-gathering step before `engineering-workflows:grill-me`.
 
 ## Outcome
 
 Produce a preferred direction, promising alternatives, and the open decisions that should be taken
-into `engineering-workflows:plan`. The session should improve option quality through local evidence,
-current external research when useful, and focused user input.
+into `engineering-workflows:grill-me`. The session should improve option quality through local
+evidence, current external research when useful, and focused user input.
 
 ## Allowed Side Effects
 
@@ -39,10 +39,10 @@ current external research when useful, and focused user input.
 - For each path, state the evidence, tradeoff, and current recommendation.
 - Compare options as they emerge. Avoid dumping a broad idea list without evidence.
 - Surface uncertainty and name the evidence that would change the recommendation.
-- Suggest glossary terms only as possible inputs to `engineering-workflows:plan`; do not make
+- Suggest glossary terms only as possible inputs to `engineering-workflows:grill-me`; do not make
   terminology durable during brainstorming.
-- Stop when there is a preferred direction ready for planning, or when the remaining uncertainty
-  requires a user decision.
+- Stop when there is a preferred direction ready for adversarial review, or when the remaining
+  uncertainty requires a user decision.
 
 ## Output
 
@@ -52,6 +52,6 @@ When brainstorming is complete, summarize:
 - Promising alternatives.
 - Evidence gathered.
 - Rejected paths and why.
-- Possible glossary terms for planning to confirm.
-- Open decisions for `engineering-workflows:plan`.
-- Suggested first planning question.
+- Possible glossary terms for adversarial review to confirm.
+- Open decisions for `engineering-workflows:grill-me`.
+- Suggested first interview question.

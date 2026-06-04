@@ -41,7 +41,8 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 ## Glossary
 
 Use this section for durable domain terms that should guide future work in this repository. Add or
-update entries when a term becomes stable during planning, architecture review, or implementation.
+update entries when a term becomes stable during adversarial review, architecture review, or
+implementation.
 
 When maintaining the glossary:
 
@@ -75,8 +76,8 @@ When maintaining the glossary:
 | **Eval artifact**       | Generated trigger-eval output under `.local/skill-evals/`, not committed project state.                              | fixture                   |
 | **Plugin linter**       | The local validator behind `pnpm lint:plugins`, covering marketplace, manifest, skill, and metadata consistency.     | validator                 |
 | **External validation** | Opt-in network or remote URL checks run separately from default local plugin linting.                                | normal linting            |
-| **Brainstorm**          | A read-only exploration workflow that researches and compares solution directions before planning.                   | idea list                 |
-| **Plan**                | A convergence workflow that turns a chosen direction into an implementation-ready plan.                              |                           |
+| **Brainstorm**          | A read-only exploration workflow that researches and compares solution directions before adversarial review.         | idea list                 |
+| **Grill Me**            | A convergence workflow that stress-tests a chosen direction through adversarial questioning before implementation.   | plan                      |
 | **Build**               | The implementation workflow that delivers working vertical slices with pragmatic validation while interfaces settle. | prototype                 |
 | **TDD**                 | The implementation workflow that delivers behavior through red-green-refactor cycles.                                | testing phase             |
 | **Diagnostic**          | A structured plugin-linter finding with a code, file, message, and pointer.                                          | error string              |
@@ -92,8 +93,8 @@ Relationships:
 - A **Marketplace entry** points to one **Plugin**.
 - A **Plugin** owns one **Plugin manifest** and zero or more **Plugin skills**.
 - A **Plugin skill** owns one **Skill body** and one **Codex UI metadata** file.
-- **Brainstorm** can hand off a preferred direction to **Plan**; **Plan** can hand off an
-  implementation-ready plan to **Build** or **TDD**.
+- **Brainstorm** can hand off a preferred direction to **Grill Me**; **Grill Me** can hand off a
+  sufficiently resolved approach to **Build** or **TDD**.
 - A **Trigger eval** runs **Trigger fixtures** against one implicitly invokable **Plugin skill**.
 - **Eval artifacts** are generated under `.local/` and should not be committed.
 - **Plugin linter** checks are local and deterministic by default; **External validation** is

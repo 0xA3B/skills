@@ -1,8 +1,0 @@
-version: 1
-interface:
-  display_name: "Plan"
-  short_description: "Turn an approach into an implementation-ready plan"
-  default_prompt:
-    "Use $engineering-workflows:plan to turn this direction into an implementation-ready plan."
-policy:
-  allow_implicit_invocation: false

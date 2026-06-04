@@ -1,24 +1,27 @@
 ---
-name: plan
+name: grill-me
 description: >-
-  Interview the user about a plan or design until the important decisions, dependencies, and edge
-  cases are clear. Use when the user asks to plan work, stress-test an approach, turn a brainstormed
-  direction into an implementation-ready plan, or resolve an ambiguous design before implementation.
+  Interview the user through an adversarial line of questioning until the important decisions,
+  dependencies, and edge cases are clear. Use when the user asks to stress-test an approach, get
+  grilled on a design, challenge a brainstormed direction, or resolve ambiguity before
+  implementation.
 license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8/skills/productivity/grill-me
 ---
 
-# Plan
+# Grill Me
 
-Interview the user about the plan until there is a shared understanding of the shape of the work.
-Walk the decision tree one branch at a time, resolving dependencies before moving deeper.
+Interview the user about the approach until there is a shared understanding of the shape of the
+work. Walk the decision tree one branch at a time, resolving dependencies before moving deeper.
+Treat the session as a rigorous design review, not a promise to produce a formal implementation
+artifact.
 
 ## Outcome
 
-Produce a plan that is specific enough to implement, defer, or reject. The session should resolve
-the decisions that materially affect implementation, risk, scope, product behavior, or validation.
+Expose and resolve the decisions that materially affect implementation, risk, scope, product
+behavior, or validation. The approach should become specific enough to implement, defer, or reject.
 
 ## Behavior
 
@@ -36,14 +39,14 @@ the decisions that materially affect implementation, risk, scope, product behavi
   cardinality.
 - Only add terms relevant to domain experts or project maintainers. Skip generic programming terms
   and incidental class, function, or module names unless they are part of the domain language.
-- Do not implement the plan.
-- Stop when the plan is specific enough to implement, defer, or reject.
+- Do not implement the approach.
+- Stop when the approach is specific enough to implement, defer, or reject.
 
 ## Output
 
-When the planning session is complete, summarize:
+When the interview is complete, summarize:
 
 - The decisions that were made.
 - Glossary terms added, changed, or intentionally deferred.
 - The assumptions that remain.
-- The next implementation or planning step.
+- The next implementation or review step.

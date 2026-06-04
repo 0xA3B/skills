@@ -65,7 +65,7 @@ Build loosely on test timing, not on design quality.
 - Keep domain names aligned with `AGENTS.md ## Glossary` when present.
 
 If interface or module shape becomes the main risk, pause and use
-`engineering-workflows:improve-codebase-architecture` or `engineering-workflows:plan` before
+`engineering-workflows:improve-codebase-architecture` or `engineering-workflows:grill-me` before
 continuing implementation.
 
 ## Dependency Rules
