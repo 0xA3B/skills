@@ -1,33 +1,34 @@
 ---
 name: commit
 description:
-  Reviews current git changes, splits them into logical Conventional Commits, and executes them with
-  minimal interaction. Use when the user asks to commit current work, batch commits, or run a fast
-  commit workflow.
+  Reviews current git changes, splits them into logical Conventional Commits, and creates git
+  commits with minimal interaction. Use when the user asks to commit current work, create commits,
+  batch commits, or run a fast commit workflow. Do not use for message-only drafting, syntax
+  validation, conceptual commit questions, history inspection, or ordinary-language uses of "commit"
+  such as committing to a plan.
 license: MIT
 ---
 
 # Commit
 
-User-invoked workflow skill for committing current repository changes quickly and consistently. This
-skill owns git state inspection, commit partitioning, staging, and commit execution. Its successful
-outcome is a clean sequence of repository commits that matches the user's requested scope and can be
-explained briefly after execution.
-
-This skill does not own Conventional Commit policy.
-`conventional-commits:writing-conventional-commits` is the model-invoked authority for message
-structure, type and scope guidance, split heuristics, and validation rules.
+Workflow skill for committing current repository changes quickly and consistently. This skill owns
+git state inspection, commit partitioning, Conventional Commit message policy, staging, and commit
+execution. Its successful outcome is a clean sequence of repository commits that matches the user's
+requested scope and can be explained briefly after execution.
 
 Use this skill when the user wants commits created. Use `conventional-commits:draft-message` when
 the user wants commit message text without staging or committing.
 
 ## Invocation Behavior
 
-- This skill is user-invoked only (`allow_implicit_invocation: false`).
+- This skill may be implicitly invoked when the user asks to create git commits.
 - Default behavior is execution mode: review all current changes and commit them.
-- It uses `conventional-commits:writing-conventional-commits` as the authoritative commit format and
-  split policy.
+- If the user asks for a dry run, message draft, split plan, syntax check, or conceptual
+  explanation, do not create commits.
+- If the user uses "commit" to mean agree, decide, or commit to a plan, do not invoke this skill.
 - If the repository has documented commit conventions beyond Conventional Commits, follow them.
+- Load `references/conventional-commits.md` only when detailed specification rules, examples, footer
+  edge cases, or anti-patterns are needed.
 
 ## Success Criteria
 
@@ -47,50 +48,21 @@ the user wants commit message text without staging or committing.
 - Do not keep searching for alternative scopes or message phrasings after the commit plan is
   defensible.
 
-## Delegation Boundaries
+## Commit Message Policy
 
-- This skill MUST handle:
-  - Git state inspection
-  - Staging and commit execution order
-  - Splitting changed files or hunks into commit units
-  - User-facing override interpretation such as dry runs or path restrictions
-- This skill MUST delegate to `conventional-commits:writing-conventional-commits` for:
-  - Commit header, body, and footer construction
-  - Type and scope selection guidance
-  - Breaking-change formatting guidance
-
-## Commit Message Source
-
-- Commit headers, bodies, and footers MUST come from
-  `conventional-commits:writing-conventional-commits`.
-- This skill MUST NOT introduce conflicting formatting, type, or scope rules of its own.
-- Repository-specific commit rules discovered during the workflow override the default profile from
-  `conventional-commits:writing-conventional-commits`.
-
-## Default Workflow (No Extra Context)
-
-1. Inspect all changes:
-   - Staged changes
-   - Unstaged tracked changes
-   - Untracked files (excluding ignored files)
-2. Build a commit plan:
-   - Split work into logical units by purpose
-   - For each unit, delegate type, scope, and breaking-change guidance to
-     `conventional-commits:writing-conventional-commits`
-3. Execute commits in dependency order:
-   - Stage and commit one unit at a time.
-   - Use elevated sandbox permissions only when the environment or repository policy requires it.
-   - Repeat until all intended changes are committed
-4. Return a concise summary of created commits.
-
-## Minimal-Interaction Policy
-
-- MUST proceed without questions when intent is clear.
-- MUST treat "run commit" with no extra context as "commit all current changes."
-- MAY ask one short blocking question only when safe execution is impossible:
-  - merge conflicts/rebase in progress
-  - ambiguous overlapping hunks that cannot be safely split
-  - empty working tree
+- Use the Conventional Commits shape: `<type>[optional scope][!]: <description>`.
+- Prefer repository-specific commit rules over this default profile.
+- Use `feat` for features, `fix` for bug fixes, and the most specific conventional type for other
+  work: `docs`, `refactor`, `test`, `perf`, `style`, `build`, `ci`, `chore`, or `revert`.
+- Choose scope by intent or stable repository vocabulary rather than blindly mirroring folder names.
+- Use an imperative, lowercase subject with no trailing period unless repository rules say
+  otherwise.
+- Keep headers near 72 characters when practical.
+- Use a body for non-trivial refactors, high-risk fixes, performance work, and breaking changes.
+- Use `!` and/or a `BREAKING CHANGE: <description>` footer for breaking changes; include the footer
+  when release tooling or reviewers need structured detail.
+- Return warnings only for assumptions that could change type, scope, body, footer, breaking-change
+  handling, or commit partitioning.
 
 ## Commit Partitioning Rules
 
@@ -101,6 +73,30 @@ Split commits when units differ by:
 - rollback boundary (one unit can be reverted independently)
 
 Keep together when changes are jointly required for one behavior and should be reverted together.
+
+## Default Workflow
+
+1. Inspect all changes:
+   - Staged changes
+   - Unstaged tracked changes
+   - Untracked files, excluding ignored files
+2. Build a commit plan:
+   - Split work into logical units by purpose and rollback boundary
+   - Choose type, scope, body, and footer for each unit
+3. Execute commits in dependency order:
+   - Stage and commit one unit at a time
+   - Use elevated sandbox permissions only when the environment or repository policy requires it
+   - Repeat until all intended changes are committed
+4. Return a concise summary of created commits.
+
+## Minimal-Interaction Policy
+
+- MUST proceed without questions when intent is clear.
+- MUST treat "run commit" with no extra context as "commit all current changes."
+- MAY ask one short blocking question only when safe execution is impossible:
+  - merge conflicts or rebase in progress
+  - ambiguous overlapping hunks that cannot be safely split
+  - empty working tree
 
 ## Optional Overrides
 

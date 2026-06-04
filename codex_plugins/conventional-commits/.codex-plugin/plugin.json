@@ -1,7 +1,7 @@
 {
   "name": "conventional-commits",
-  "version": "1.0.0",
-  "description": "Skills for drafting, validating, splitting, and executing Conventional Commits.",
+  "version": "1.1.0",
+  "description": "Skills for drafting and creating Conventional Commits.",
   "author": {
     "name": "Alex Baker"
   },
@@ -19,10 +19,8 @@
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png",
     "defaultPrompt": [
-      "Use $conventional-commits:draft-message to draft a Conventional Commit message for my changes.",
-      "Use $conventional-commits:commit to commit the current work using Conventional Commits.",
-      "Use $conventional-commits:writing-conventional-commits to split my current changes into logical Conventional Commits.",
-      "Commit the current work using Conventional Commits."
+      "Commit the current work using Conventional Commits.",
+      "Use $conventional-commits:draft-message to draft a Conventional Commit message."
     ]
   }
 }

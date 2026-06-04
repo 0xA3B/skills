@@ -22,14 +22,12 @@ After adding or upgrading the marketplace, install the desired plugins from Code
 
 ### `conventional-commits`
 
-Skills for planning, writing, validating, and executing Conventional Commits.
+Skills for drafting and creating Conventional Commits.
 
 - [`conventional-commits:commit`](./codex_plugins/conventional-commits/skills/commit/): Reviews
-  current changes, stages logical units, and creates Conventional Commit commits.
+  current changes, stages logical units, and creates git commits with Conventional Commit messages.
 - [`conventional-commits:draft-message`](./codex_plugins/conventional-commits/skills/draft-message/):
   Drafts Conventional Commit messages without staging or committing.
-- [`conventional-commits:writing-conventional-commits`](./codex_plugins/conventional-commits/skills/writing-conventional-commits/):
-  Reusable commit message policy and split guidance.
 
 ### `engineering-workflows`
 

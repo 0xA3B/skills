@@ -1,7 +1,7 @@
 version: 1
 interface:
   display_name: "Commit"
-  short_description: "Create Conventional Commit commits"
-  default_prompt: "Use $conventional-commits:commit to commit the current changes."
+  short_description: "Create git commits with Conventional Commit messages"
+  default_prompt: "Commit the current work using Conventional Commits."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

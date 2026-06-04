@@ -1,0 +1,61 @@
+version: 1
+cases:
+  - id: commit-current-work
+    prompt: >-
+      Commit the current work using Conventional Commits.
+    expect: invoke
+    rationale: The user is asking to create git commits for current changes.
+
+  - id: create-commit-for-changes
+    prompt: >-
+      Please commit these changes.
+    expect: invoke
+    rationale: The user is asking for a git commit workflow.
+
+  - id: split-and-commit
+    prompt: >-
+      Split my current changes into logical commits and commit them.
+    expect: invoke
+    rationale: The user is asking for commit partitioning plus commit execution.
+
+  - id: commit-selected-scope
+    prompt: >-
+      Commit only the docs updates.
+    expect: invoke
+    rationale: The user is asking to create a scoped commit.
+
+  - id: draft-message-only
+    prompt: >-
+      Draft a Conventional Commit message for these changes.
+    expect: skip
+    rationale: The user wants message text only, not commit execution.
+
+  - id: split-guidance-only
+    prompt: >-
+      Review my current changes and suggest how to split them into logical Conventional Commits.
+    expect: skip
+    rationale: The user asks for split guidance, not commit execution.
+
+  - id: validate-syntax
+    prompt: >-
+      Is "feat(api)!: remove legacy response fields" valid Conventional Commit syntax?
+    expect: skip
+    rationale: The user is asking to validate message syntax, not create commits.
+
+  - id: conceptual-purpose-question
+    prompt: >-
+      What is the purpose of Conventional Commits?
+    expect: skip
+    rationale: The user is asking a conceptual question, not requesting a commit workflow.
+
+  - id: git-history-question
+    prompt: >-
+      Show me the last commit in this repository.
+    expect: skip
+    rationale: The user is asking for git history inspection, not commit creation.
+
+  - id: non-git-commit-phrase
+    prompt: >-
+      I am ready to commit to this implementation plan.
+    expect: skip
+    rationale: The word commit is used as ordinary language, not a git commit request.

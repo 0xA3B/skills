@@ -1,8 +1,0 @@
-version: 1
-interface:
-  display_name: "Writing Conventional Commits"
-  short_description: "Draft and validate Conventional Commits"
-  default_prompt:
-    "Use $conventional-commits:writing-conventional-commits to draft a Conventional Commit message."
-policy:
-  allow_implicit_invocation: true

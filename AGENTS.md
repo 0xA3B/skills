@@ -22,7 +22,7 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 
 ## Project Conventions
 
-- Commit messages must follow `conventional-commits:writing-conventional-commits`.
+- Commit messages must follow Conventional Commits.
 - Keep tests co-located in `src/`.
 - Use mise for runtime management.
 - Use `mise exec --` in non-interactive shells when the command relies on a runtime tool managed by

@@ -9,14 +9,10 @@ license: MIT
 
 # Draft Message
 
-User-invoked workflow skill for drafting Conventional Commit messages without mutating git state.
-This skill owns change inspection, intent clarification, and final message presentation. Its
-successful outcome is ready-to-use commit message text for the requested changes, plus only the
-assumptions needed to review that text.
-
-This skill does not own Conventional Commit policy.
-`conventional-commits:writing-conventional-commits` is the model-invoked authority for message
-structure, type and scope guidance, split heuristics, and validation rules.
+Workflow skill for drafting Conventional Commit messages without mutating git state. This skill owns
+change inspection, message partitioning, Conventional Commit message policy, and final message
+presentation. Its successful outcome is ready-to-use commit message text for the requested changes,
+plus only the assumptions needed to review that text.
 
 Use this skill when the user wants message text only. Use `conventional-commits:commit` when the
 user wants changes staged and committed.
@@ -25,8 +21,6 @@ user wants changes staged and committed.
 
 - This skill is user-invoked only (`allow_implicit_invocation: false`).
 - Default behavior is drafting mode: inspect relevant changes and return commit message text.
-- It uses `conventional-commits:writing-conventional-commits` as the authoritative commit format and
-  split policy.
 - If the repository has documented commit conventions beyond Conventional Commits, follow them.
 - MUST NOT stage files, create commits, amend commits, or rewrite history.
 
@@ -48,17 +42,19 @@ user wants changes staged and committed.
 - Do not keep searching for alternate wording after the message satisfies the requested output
   shape.
 
-## Delegation Boundaries
+## Commit Message Policy
 
-- This skill MUST handle:
-  - Reading the requested diff, file list, or user-provided change summary
-  - Determining whether one message or multiple messages are needed
-  - Presenting draft messages for user review
-  - Interpreting user-facing overrides such as single-message or path-restricted drafts
-- This skill MUST delegate to `conventional-commits:writing-conventional-commits` for:
-  - Commit header, body, and footer construction
-  - Type and scope selection guidance
-  - Breaking-change formatting guidance
+- Use the Conventional Commits shape: `<type>[optional scope][!]: <description>`.
+- Prefer repository-specific commit rules over this default profile.
+- Use `feat` for features, `fix` for bug fixes, and the most specific conventional type for other
+  work: `docs`, `refactor`, `test`, `perf`, `style`, `build`, `ci`, `chore`, or `revert`.
+- Choose scope by intent or stable repository vocabulary rather than blindly mirroring folder names.
+- Use an imperative, lowercase subject with no trailing period unless repository rules say
+  otherwise.
+- Use a body for non-trivial refactors, high-risk fixes, performance work, and breaking changes.
+- Use `!` and/or a `BREAKING CHANGE: <description>` footer for breaking changes; include the footer
+  when structured detail would help release tooling or reviewers.
+- Split message drafts when changes differ by type, scope, purpose, or rollback boundary.
 
 ## Default Workflow
 
@@ -67,9 +63,8 @@ user wants changes staged and committed.
    - Otherwise inspect current git changes without staging anything.
 2. Build a draft plan:
    - Use one message when the changes are one logical unit.
-   - Use multiple messages when changes differ by type, scope, or rollback boundary.
-3. For each message, delegate type, scope, body, footer, and breaking-change decisions to
-   `conventional-commits:writing-conventional-commits`.
+   - Use multiple messages when changes differ by type, scope, purpose, or rollback boundary.
+3. Choose type, scope, body, footer, and breaking-change markers for each message.
 4. Return only the drafted message or messages plus brief notes for weak assumptions.
 
 ## Optional Overrides
