@@ -31,6 +31,8 @@ behavior, or validation. The approach should become specific enough to implement
   gather that evidence instead of asking.
 - Use `AGENTS.md` when it exists, especially its `## Glossary` section, to align questions with the
   project's domain language.
+- Do not move on to the next question until the current answer is understood, any disagreement is
+  explicit, and unresolved uncertainty has been captured as an assumption, decision, or follow-up.
 - Ask the next question that most reduces implementation risk or decision ambiguity.
 - Challenge vague, overloaded, or conflicting terms. Propose a canonical term, define it in one
   tight sentence, and name aliases to avoid.
