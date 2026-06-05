@@ -55,11 +55,21 @@ cases:
       What is the purpose of Conventional Commits?
     expect: skip
     rationale: The user is asking a conceptual question, not requesting the workflow.
+
+  - id: project-convention-conflict
+    prompt: >-
+      Commit these changes.
+    workspace_files:
+      AGENTS.md: |
+        Commit messages must use Gitmoji, not Conventional Commits.
+    expect: skip
+    rationale: Repository instructions require a different workflow than this skill owns.
 ```
 
 Use positive cases for prompts that should load the skill. Use negative cases for nearby prompts
 that should not load it, especially conceptual questions, adjacent workflows, or requests owned by a
-different skill.
+different skill. Use `workspace_files` for cases where loaded repository instructions should affect
+the trigger boundary, such as an `AGENTS.md` commit convention.
 
 ## Workflow
 
@@ -94,6 +104,8 @@ different skill.
 ## Harness Notes
 
 - The runner creates a temporary Codex home and local marketplace under `.local/skill-evals/`.
+- Cases with `workspace_files` run in a case-specific copy of the isolated workspace, then write the
+  listed safe relative paths before invoking Codex.
 - The committed `description` remains the trigger surface under test.
 - The runner classifies invocation from Codex CLI stderr telemetry containing `codex.skill.injected`
   for the target skill.

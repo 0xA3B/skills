@@ -1,11 +1,15 @@
 ---
 name: commit
 description:
-  Reviews current git changes, splits them into logical Conventional Commits, and creates git
-  commits with minimal interaction. Use when the user asks to commit current work, create commits,
-  batch commits, or run a fast commit workflow. Do not use for message-only drafting, syntax
-  validation, split guidance without commit execution, conceptual commit questions, history
-  inspection, or ordinary-language uses of "commit" such as committing to a plan.
+  Creates git commits using Conventional Commit messages after reviewing current changes and
+  splitting logical units. Use when the user asks to commit current work, create commits, batch
+  commits, or run a fast commit workflow, and neither the prompt nor loaded repository instructions
+  require a different commit-message standard. Also use when no repository convention is specified,
+  because Conventional Commits are this plugin's default. Do not use for message-only drafting,
+  syntax validation, split guidance without commit execution, conceptual commit questions, history
+  inspection, user prompts or loaded repository instructions that reject Conventional Commits or
+  request Gitmoji or another commit-message standard, or ordinary-language uses of "commit" such as
+  committing to a plan.
 license: MIT
 ---
 
@@ -25,6 +29,8 @@ the user wants commit message text without staging or committing.
 - Default behavior is execution mode: review all current changes and commit them.
 - If the user asks for a dry run, message draft, split guidance without execution, syntax check, or
   conceptual explanation, do not create commits.
+- If the user prompt or loaded repository instructions ask not to use Conventional Commits or
+  require another commit-message standard such as Gitmoji, do not invoke this skill.
 - If the user uses "commit" to mean agree, decide, or commit to a plan, do not invoke this skill.
 - If the repository has documented commit conventions beyond Conventional Commits, follow them.
 - Load `references/conventional-commits.md` only when detailed specification rules, examples, footer

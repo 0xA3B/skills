@@ -5,6 +5,7 @@ export type TriggerCase = {
   prompt: string;
   expect: TriggerExpectation;
   rationale?: string;
+  workspaceFiles?: Record<string, string>;
 };
 
 export type TriggerFixture = {

@@ -7,7 +7,7 @@ import { prepareCodexHome, removeCopiedAuth } from "./codex-home.js";
 import { loadTriggerFixture } from "./fixtures.js";
 import { EVAL_MARKETPLACE_NAME, prepareHarness } from "./harness.js";
 import { readAllowImplicitInvocation, resolveSkillTarget } from "./target.js";
-import type { TriggerCaseResult, TriggerEvalResult } from "./types.js";
+import type { TriggerCase, TriggerCaseResult, TriggerEvalResult } from "./types.js";
 
 export type RunTriggerEvalOptions = {
   repoRoot?: string;
@@ -56,9 +56,14 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
       }
       const caseDir = path.join(runDir, "cases", testCase.id);
       const codexHome = path.join(runDir, "codex-home", "cases", testCase.id);
+      const workspacePath = await prepareCaseWorkspace({
+        baseWorkspacePath: harness.workspacePath,
+        caseDir,
+        testCase,
+      });
       await prepareCodexHome({
         codexHome,
-        workspacePath: harness.workspacePath,
+        workspacePath,
         marketplaceName: EVAL_MARKETPLACE_NAME,
         pluginName: target.pluginName,
         ...(options.sourceCodexHome === undefined
@@ -68,7 +73,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
       await prepareCasePluginCache(codexHome, target, harness.pluginVersion);
       const codexRunOptions = {
         codexHome,
-        workspacePath: harness.workspacePath,
+        workspacePath,
         prompt: testCase.prompt,
         caseDir,
         timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
@@ -154,6 +159,28 @@ function normalizeConcurrency(value: number): number {
     throw new Error("concurrency must be a positive integer.");
   }
   return value;
+}
+
+async function prepareCaseWorkspace(options: {
+  baseWorkspacePath: string;
+  caseDir: string;
+  testCase: TriggerCase;
+}): Promise<string> {
+  if (options.testCase.workspaceFiles === undefined) {
+    return options.baseWorkspacePath;
+  }
+
+  const workspacePath = path.join(options.caseDir, "workspace");
+  await mkdir(options.caseDir, { recursive: true });
+  await cp(options.baseWorkspacePath, workspacePath, { recursive: true });
+
+  for (const [relativeFilePath, content] of Object.entries(options.testCase.workspaceFiles)) {
+    const absoluteFilePath = path.join(workspacePath, relativeFilePath);
+    await mkdir(path.dirname(absoluteFilePath), { recursive: true });
+    await writeFile(absoluteFilePath, content);
+  }
+
+  return workspacePath;
 }
 
 async function prepareCasePluginCache(

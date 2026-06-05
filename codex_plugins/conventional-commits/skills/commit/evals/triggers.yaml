@@ -24,6 +24,40 @@ cases:
     expect: invoke
     rationale: The user is asking to create a scoped commit.
 
+  - id: non-conventional-commit-request
+    prompt: >-
+      Commit these changes without using Conventional Commits.
+    expect: skip
+    rationale: The user explicitly asks not to use the commit standard owned by this skill.
+
+  - id: gitmoji-commit-request
+    prompt: >-
+      Commit these changes using Gitmoji commit messages.
+    expect: skip
+    rationale: The user asks for a different commit message standard than Conventional Commits.
+
+  - id: agents-no-conventional-commits
+    prompt: >-
+      Commit these changes.
+    workspace_files:
+      AGENTS.md: |
+        # Project Conventions
+
+        Commit messages must not use Conventional Commits.
+    expect: skip
+    rationale: Repository instructions explicitly reject the commit standard owned by this skill.
+
+  - id: agents-gitmoji-commits
+    prompt: >-
+      Commit these changes.
+    workspace_files:
+      AGENTS.md: |
+        # Project Conventions
+
+        Commit messages must use Gitmoji.
+    expect: skip
+    rationale: Repository instructions require a different commit message standard.
+
   - id: draft-message-only
     prompt: >-
       Draft a Conventional Commit message for these changes.

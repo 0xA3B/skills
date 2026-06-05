@@ -14,6 +14,9 @@ cases:
   - id: commit-message
     prompt: Draft a Conventional Commit message.
     expect: invoke
+    workspace_files:
+      AGENTS.md: |
+        Commit messages must use Conventional Commits.
   - id: general-question
     prompt: What is a commit?
     expect: skip
@@ -22,7 +25,11 @@ cases:
     await expect(loadTriggerFixture(fixturePath)).resolves.toMatchObject({
       version: 1,
       cases: [
-        { id: "commit-message", expect: "invoke" },
+        {
+          id: "commit-message",
+          expect: "invoke",
+          workspaceFiles: { "AGENTS.md": "Commit messages must use Conventional Commits.\n" },
+        },
         { id: "general-question", expect: "skip" },
       ],
     });
@@ -39,6 +46,25 @@ cases:
 
     await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
       "expected at least one case with expect: skip",
+    );
+  });
+
+  it("rejects unsafe workspace file paths", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: commit-message
+    prompt: Draft a Conventional Commit message.
+    expect: invoke
+    workspace_files:
+      ../AGENTS.md: Invalid.
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+`);
+
+    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
+      'workspace_files path "../AGENTS.md" to be a safe relative path',
     );
   });
 });

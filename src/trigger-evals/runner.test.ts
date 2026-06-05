@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -20,26 +20,32 @@ const mockState = vi.hoisted(() => ({
   activeExecs: 0,
   maxActiveExecs: 0,
   codexHomes: [] as string[],
+  workspacePaths: [] as string[],
 }));
 
 vi.mock("./codex-exec.js", () => ({
-  runCodexExec: vi.fn<(options: { codexHome: string; prompt: string }) => Promise<CodexRunResult>>(
-    async (options) => {
-      mockState.codexHomes.push(options.codexHome);
-      mockState.activeExecs += 1;
-      mockState.maxActiveExecs = Math.max(mockState.maxActiveExecs, mockState.activeExecs);
+  runCodexExec: vi.fn<
+    (options: {
+      codexHome: string;
+      prompt: string;
+      workspacePath: string;
+    }) => Promise<CodexRunResult>
+  >(async (options) => {
+    mockState.codexHomes.push(options.codexHome);
+    mockState.workspacePaths.push(options.workspacePath);
+    mockState.activeExecs += 1;
+    mockState.maxActiveExecs = Math.max(mockState.maxActiveExecs, mockState.activeExecs);
 
-      try {
-        const result = mockState.codexResults.shift() ?? buildMockCodexResult(options.prompt);
-        if (result.delayMs !== undefined) {
-          await new Promise((resolve) => setTimeout(resolve, result.delayMs));
-        }
-        return result;
-      } finally {
-        mockState.activeExecs -= 1;
+    try {
+      const result = mockState.codexResults.shift() ?? buildMockCodexResult(options.prompt);
+      if (result.delayMs !== undefined) {
+        await new Promise((resolve) => setTimeout(resolve, result.delayMs));
       }
-    },
-  ),
+      return result;
+    } finally {
+      mockState.activeExecs -= 1;
+    }
+  }),
 }));
 
 vi.mock("./codex-home.js", () => ({
@@ -55,6 +61,7 @@ describe("runTriggerEval", () => {
     mockState.activeExecs = 0;
     mockState.maxActiveExecs = 0;
     mockState.codexHomes = [];
+    mockState.workspacePaths = [];
   });
 
   it("fails cases when codex exec errors even if invocation expectation matches", async () => {
@@ -111,6 +118,42 @@ describe("runTriggerEval", () => {
     expect(mockState.maxActiveExecs).toBe(2);
     expect(new Set(mockState.codexHomes).size).toBe(4);
   });
+
+  it("applies fixture workspace files in a case-isolated workspace", async () => {
+    const repoRoot = await writeRepoFixture({
+      cases: [
+        {
+          id: "agents-case",
+          expect: "skip",
+          workspaceFiles: {
+            "AGENTS.md": "Commit messages must use Gitmoji, not Conventional Commits.\n",
+          },
+        },
+        { id: "plain-case", expect: "invoke" },
+      ],
+    });
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "codex_plugins/demo/skills/auto-skill",
+      concurrency: 2,
+    });
+
+    const agentsWorkspace = mockState.workspacePaths.find((workspacePath) =>
+      workspacePath.includes(path.join("cases", "agents-case", "workspace")),
+    );
+    const plainWorkspace = mockState.workspacePaths.find(
+      (workspacePath) => !workspacePath.includes(path.join("cases")),
+    );
+    expect(agentsWorkspace).toBeDefined();
+    expect(plainWorkspace).toBeDefined();
+    expect(agentsWorkspace).toContain(path.join("cases", "agents-case", "workspace"));
+    await expect(readFile(path.join(agentsWorkspace ?? "", "AGENTS.md"), "utf8")).resolves.toBe(
+      "Commit messages must use Gitmoji, not Conventional Commits.\n",
+    );
+    expect(plainWorkspace).toContain(path.join(".local", "skill-evals", "trigger"));
+    expect(plainWorkspace).not.toContain(path.join("cases", "plain-case", "workspace"));
+  });
 });
 
 function buildMockCodexResult(prompt: string): CodexRunResult & { delayMs: number } {
@@ -128,7 +171,11 @@ function buildMockCodexResult(prompt: string): CodexRunResult & { delayMs: numbe
 
 async function writeRepoFixture(
   options: {
-    cases?: Array<{ id: string; expect: "invoke" | "skip" }>;
+    cases?: Array<{
+      id: string;
+      expect: "invoke" | "skip";
+      workspaceFiles?: Record<string, string>;
+    }>;
   } = {},
 ): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
@@ -165,10 +212,22 @@ async function writeRepoFixture(
   return repoRoot;
 }
 
-function fixtureCaseLines(cases: Array<{ id: string; expect: "invoke" | "skip" }>): string[] {
-  return cases.flatMap((testCase) => [
-    `  - id: ${testCase.id}`,
-    `    prompt: ${testCase.expect === "invoke" ? "Invoke" : "Do not invoke"} the skill.`,
-    `    expect: ${testCase.expect}`,
-  ]);
+function fixtureCaseLines(
+  cases: Array<{ id: string; expect: "invoke" | "skip"; workspaceFiles?: Record<string, string> }>,
+): string[] {
+  return cases.flatMap((testCase) => {
+    const lines = [
+      `  - id: ${testCase.id}`,
+      `    prompt: ${testCase.expect === "invoke" ? "Invoke" : "Do not invoke"} the skill.`,
+      `    expect: ${testCase.expect}`,
+    ];
+    if (testCase.workspaceFiles !== undefined) {
+      lines.push("    workspace_files:");
+      for (const [filePath, content] of Object.entries(testCase.workspaceFiles)) {
+        lines.push(`      ${filePath}: |`);
+        lines.push(...content.split("\n").map((line) => `        ${line}`));
+      }
+    }
+    return lines;
+  });
 }

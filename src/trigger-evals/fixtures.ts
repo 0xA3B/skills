@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 import { parse as parseYaml } from "yaml";
 
@@ -80,8 +81,15 @@ function validateCase(value: unknown, fixturePath: string, index: number): Trigg
       `${fixturePath}: expected cases[${index}].rationale to be a non-empty string when provided.`,
     );
   }
+  const workspaceFiles = readWorkspaceFiles(value["workspace_files"], fixturePath, index);
 
-  return rationale === undefined ? { id, prompt, expect } : { id, prompt, expect, rationale };
+  return {
+    id,
+    prompt,
+    expect,
+    ...(rationale === undefined ? {} : { rationale }),
+    ...(workspaceFiles === undefined ? {} : { workspaceFiles }),
+  };
 }
 
 function readString(
@@ -104,6 +112,51 @@ function readExpectation(value: unknown, fixturePath: string, index: number): Tr
   }
 
   return value;
+}
+
+function readWorkspaceFiles(
+  value: unknown,
+  fixturePath: string,
+  index: number,
+): Record<string, string> | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!isRecord(value)) {
+    throw new Error(`${fixturePath}: expected cases[${index}].workspace_files to be an object.`);
+  }
+
+  const files: Record<string, string> = {};
+  for (const [filePath, content] of Object.entries(value)) {
+    validateWorkspaceFilePath(filePath, fixturePath, index);
+    if (typeof content !== "string") {
+      throw new Error(
+        `${fixturePath}: expected cases[${index}].workspace_files["${filePath}"] to be a string.`,
+      );
+    }
+    files[filePath] = content;
+  }
+
+  if (Object.keys(files).length === 0) {
+    throw new Error(
+      `${fixturePath}: expected cases[${index}].workspace_files to include at least one file.`,
+    );
+  }
+
+  return files;
+}
+
+function validateWorkspaceFilePath(filePath: string, fixturePath: string, index: number): void {
+  if (
+    filePath.length === 0 ||
+    path.isAbsolute(filePath) ||
+    filePath.split(/[\\/]+/).includes("..")
+  ) {
+    throw new Error(
+      `${fixturePath}: expected cases[${index}].workspace_files path "${filePath}" to be a safe relative path.`,
+    );
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
