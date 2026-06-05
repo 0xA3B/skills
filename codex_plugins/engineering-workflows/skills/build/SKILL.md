@@ -24,13 +24,17 @@ still settling.
 
 ## When To Use
 
-Use `engineering-workflows:build` when the primary risk is choosing the wrong shape too early:
+Use `engineering-workflows:build` when the code is intended to become real implementation and the
+primary risk is choosing the wrong shape too early:
 
-- greenfield apps, scripts, CLIs, tools, or prototypes
+- greenfield apps, scripts, CLIs, tools, or first implementation slices
 - unstable interfaces or unclear module boundaries
 - high expected refactor churn
 - test setup would dominate the useful feedback loop
 - representative input, a smoke run, or a real workflow is the best early signal
+
+Use `engineering-workflows:prototype` instead when the code is disposable evidence for a design
+question during brainstorming or adversarial review.
 
 Use `engineering-workflows:tdd` when the primary risk is breaking known behavior: mature projects,
 bug fixes, stable public seams, or well-defined behavior that should be test-first.

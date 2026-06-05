@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Prototype"
+  short_description: "Create disposable exploratory code"
+  default_prompt:
+    "Use $engineering-workflows:prototype to create a disposable prototype for this design question."
+policy:
+  allow_implicit_invocation: false

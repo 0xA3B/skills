@@ -34,6 +34,8 @@ behavior, or validation. The approach should become specific enough to implement
 - Ask the next question that most reduces implementation risk or decision ambiguity.
 - Challenge vague, overloaded, or conflicting terms. Propose a canonical term, define it in one
   tight sentence, and name aliases to avoid.
+- When a decision cannot be resolved by questioning or repository inspection, recommend an explicit
+  handoff to `engineering-workflows:prototype`; do not create prototype code during the interview.
 - When a stable domain term emerges, update the `## Glossary` section in `AGENTS.md`. Create the
   section if needed. Include relationships between terms when they clarify ownership, lifecycle, or
   cardinality.
@@ -49,4 +51,5 @@ When the interview is complete, summarize:
 - The decisions that were made.
 - Glossary terms added, changed, or intentionally deferred.
 - The assumptions that remain.
+- Prototype questions that should be answered before implementation, if any.
 - The next implementation or review step.

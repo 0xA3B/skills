@@ -1,7 +1,7 @@
 {
   "name": "engineering-workflows",
-  "version": "1.1.0",
-  "description": "Engineering workflow skills for brainstorming, adversarial design review, building, TDD, diagnosis, architecture review, codebase orientation, and visual presentation artifacts.",
+  "version": "1.1.1",
+  "description": "Engineering workflow skills for brainstorming, adversarial design review, disposable prototyping, building, TDD, diagnosis, architecture review, codebase orientation, and visual presentation artifacts.",
   "author": {
     "name": "Alex Baker"
   },
@@ -10,6 +10,7 @@
   "keywords": [
     "engineering",
     "debugging",
+    "prototyping",
     "build",
     "tdd",
     "architecture",
@@ -19,8 +20,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Engineering Workflows",
-    "shortDescription": "Brainstorm, stress-test, build, diagnose, test, review, and visualize work.",
-    "longDescription": "Workflow skills for evidence-backed brainstorming, adversarial design review, pragmatic building, disciplined debugging, test-driven development, architecture review, high-level codebase orientation, and temporary visual presentation artifacts. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
+    "shortDescription": "Brainstorm, stress-test, prototype, build, diagnose, test, review, and visualize work.",
+    "longDescription": "Workflow skills for evidence-backed brainstorming, adversarial design review, disposable prototyping, pragmatic building, disciplined debugging, test-driven development, architecture review, high-level codebase orientation, and temporary visual presentation artifacts. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],

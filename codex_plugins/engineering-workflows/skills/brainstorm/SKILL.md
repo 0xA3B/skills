@@ -39,6 +39,8 @@ evidence, current external research when useful, and focused user input.
 - For each path, state the evidence, tradeoff, and current recommendation.
 - Compare options as they emerge. Avoid dumping a broad idea list without evidence.
 - Surface uncertainty and name the evidence that would change the recommendation.
+- When an option needs executable evidence before adversarial review, recommend an explicit handoff
+  to `engineering-workflows:prototype`; do not create prototype code during brainstorming.
 - Suggest glossary terms only as possible inputs to `engineering-workflows:grill-me`; do not make
   terminology durable during brainstorming.
 - Stop when there is a preferred direction ready for adversarial review, or when the remaining
@@ -54,4 +56,5 @@ When brainstorming is complete, summarize:
 - Rejected paths and why.
 - Possible glossary terms for adversarial review to confirm.
 - Open decisions for `engineering-workflows:grill-me`.
+- Prototype questions that would reduce uncertainty, if any.
 - Suggested first interview question.

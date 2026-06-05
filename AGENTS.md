@@ -78,6 +78,7 @@ When maintaining the glossary:
 | **External validation** | Opt-in network or remote URL checks run separately from default local plugin linting.                                | normal linting            |
 | **Brainstorm**          | A read-only exploration workflow that researches and compares solution directions before adversarial review.         | idea list                 |
 | **Grill Me**            | A convergence workflow that stress-tests a chosen direction through adversarial questioning before implementation.   | plan                      |
+| **Prototype**           | A disposable executable artifact used to answer one design question before real implementation.                      | build, spike              |
 | **Build**               | The implementation workflow that delivers working vertical slices with pragmatic validation while interfaces settle. | prototype                 |
 | **TDD**                 | The implementation workflow that delivers behavior through red-green-refactor cycles.                                | testing phase             |
 | **Diagnostic**          | A structured plugin-linter finding with a code, file, message, and pointer.                                          | error string              |
@@ -93,6 +94,8 @@ Relationships:
 - A **Marketplace entry** points to one **Plugin**.
 - A **Plugin** owns one **Plugin manifest** and zero or more **Plugin skills**.
 - A **Plugin skill** owns one **Skill body** and one **Codex UI metadata** file.
+- **Brainstorm** and **Grill Me** can hand off unresolved executable questions to **Prototype**.
+- **Prototype** can hand off a validated decision to **Build** or **TDD**.
 - **Brainstorm** can hand off a preferred direction to **Grill Me**; **Grill Me** can hand off a
   sufficiently resolved approach to **Build** or **TDD**.
 - A **Trigger eval** runs **Trigger fixtures** against one implicitly invokable **Plugin skill**.
