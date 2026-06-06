@@ -11,6 +11,7 @@ describe("resolveSkillTarget", () => {
     expect(
       resolveSkillTarget(repoRoot, "codex_plugins/conventional-commits/skills/commit"),
     ).toMatchObject({
+      kind: "plugin",
       repoRoot,
       pluginName: "conventional-commits",
       skillName: "commit",
@@ -18,9 +19,20 @@ describe("resolveSkillTarget", () => {
     });
   });
 
-  it("rejects non-plugin skill paths", () => {
-    expect(() => resolveSkillTarget("/repo", ".agents/skills/optimize-trigger")).toThrow(
-      "Expected a repo plugin skill path",
+  it("accepts repo-local skill paths", () => {
+    const repoRoot = "/repo";
+
+    expect(resolveSkillTarget(repoRoot, ".agents/skills/add-skill")).toMatchObject({
+      kind: "repo-local",
+      repoRoot,
+      skillName: "add-skill",
+      skillPath: path.join(repoRoot, ".agents", "skills", "add-skill"),
+    });
+  });
+
+  it("rejects unsupported skill paths", () => {
+    expect(() => resolveSkillTarget("/repo", ".codex/skills/optimize-trigger")).toThrow(
+      "Expected a skill path like",
     );
   });
 });

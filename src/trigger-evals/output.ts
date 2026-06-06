@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { skillTargetLabel } from "./target.js";
 import type { TriggerEvalResult } from "./types.js";
 
 export function printTriggerEvalResult(result: TriggerEvalResult): void {
@@ -11,7 +12,7 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
 
   const failures = result.results.filter((caseResult) => !caseResult.passed);
   console.log(
-    `Trigger eval completed for ${result.target.pluginName}:${result.target.skillName}: ${result.results.length - failures.length}/${result.results.length} passed.`,
+    `Trigger eval completed for ${skillTargetLabel(result.target)}: ${result.results.length - failures.length}/${result.results.length} passed in ${formatDuration(result.durationMs)}.`,
   );
 
   for (const caseResult of result.results) {
@@ -19,7 +20,7 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
     const actual = caseResult.invoked ? "invoke" : "skip";
     const signal = caseResult.invoked ? ` via ${caseResult.invocationSignal}` : "";
     console.log(
-      `- ${status} ${caseResult.caseId}: expected ${caseResult.expect}, observed ${actual}${signal}`,
+      `- ${status} ${caseResult.caseId}: expected ${caseResult.expect}, observed ${actual}${signal} (${formatDuration(caseResult.durationMs)})`,
     );
     if (caseResult.error !== undefined) {
       console.log(`  error: ${caseResult.error}`);
@@ -30,4 +31,12 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   if (failures.length > 0) {
     process.exitCode = 1;
   }
+}
+
+function formatDuration(durationMs: number): string {
+  if (durationMs < 1000) {
+    return `${durationMs}ms`;
+  }
+
+  return `${(durationMs / 1000).toFixed(1)}s`;
 }

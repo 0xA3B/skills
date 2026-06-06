@@ -1,0 +1,61 @@
+version: 1
+cases:
+  - id: add-skill-to-existing-plugin
+    prompt: >-
+      Add a new skill named smoke-test to the engineering-workflows plugin.
+    expect: invoke
+    rationale: The user asks to add a new skill under an existing plugin in this repo.
+
+  - id: add-workflow-to-plugin
+    prompt: >-
+      Add a new workflow skill to the conventional-commits plugin for validating commit messages.
+    expect: invoke
+    rationale: A workflow skill is a reusable capability under an existing Codex plugin.
+
+  - id: add-reusable-capability
+    prompt: >-
+      Create a reusable code-review-checklist skill in the engineering-workflows plugin.
+    expect: invoke
+    rationale: The user is asking for a new plugin skill, even without saying "add-skill".
+
+  - id: use-skill-creator-wrapper
+    prompt: >-
+      Use the repo's skill-creation workflow to add a new skill to engineering-workflows.
+    expect: invoke
+    rationale: The skill intentionally wraps skill-creator with this repo's plugin conventions.
+
+  - id: create-new-plugin
+    prompt: >-
+      Which repo workflow should create a new Codex plugin for database tools?
+    expect: skip
+    rationale: This skill only adds skills to existing plugins; plugin creation belongs elsewhere.
+
+  - id: update-existing-skill
+    prompt: >-
+      Update the tdd skill instructions in engineering-workflows.
+    expect: skip
+    rationale: The user is modifying an existing skill, not adding a new one.
+
+  - id: update-plugin-metadata
+    prompt: >-
+      Which repo workflow should update default prompts for the engineering-workflows plugin?
+    expect: skip
+    rationale: Metadata updates belong to update-plugin-metadata.
+
+  - id: add-trigger-evals
+    prompt: >-
+      Which repo workflow should add trigger evals to an existing repo-local skill?
+    expect: skip
+    rationale: This is adding tests to an existing skill, not adding a new plugin skill.
+
+  - id: conceptual-skill-question
+    prompt: >-
+      What makes a good Codex skill?
+    expect: skip
+    rationale: Conceptual skill-authoring questions should not trigger the repo-local wrapper.
+
+  - id: repo-local-skill-request
+    prompt: >-
+      Add a new repo-local maintenance skill under .agents/skills.
+    expect: skip
+    rationale: Current add-skill scope is plugin skills under codex_plugins, not repo-local skills.

@@ -8,6 +8,8 @@ type CodexRunOptions = {
   prompt: string;
   caseDir: string;
   timeoutMs: number;
+  sandboxMode: "read-only" | "workspace-write";
+  stopWhen?: (output: { stdout: string; stderr: string }) => boolean;
   model?: string;
   abortSignal?: AbortSignal;
 };
@@ -15,6 +17,7 @@ type CodexRunOptions = {
 export type CodexRunResult = {
   exitCode: number | null;
   finalMessage: string;
+  stdout: string;
   stderr: string;
   stdoutPath: string;
   stderrPath: string;
@@ -32,7 +35,7 @@ export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunRe
     "-a",
     "never",
     "-s",
-    "read-only",
+    options.sandboxMode,
     "exec",
     "--json",
     "--ephemeral",
@@ -54,7 +57,9 @@ export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunRe
 
   const result = await spawnCodex(args, {
     CODEX_HOME: options.codexHome,
+    cwd: options.workspacePath,
     timeoutMs: options.timeoutMs,
+    ...(options.stopWhen === undefined ? {} : { stopWhen: options.stopWhen }),
     ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
   });
 
@@ -65,6 +70,7 @@ export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunRe
   const baseResult = {
     exitCode: result.exitCode,
     finalMessage,
+    stdout: result.stdout,
     stderr: result.stderr,
     stdoutPath,
     stderrPath,
@@ -92,14 +98,17 @@ function spawnCodex(
   args: string[],
   options: {
     CODEX_HOME: string;
+    cwd: string;
     timeoutMs: number;
+    stopWhen?: (output: { stdout: string; stderr: string }) => boolean;
     abortSignal?: AbortSignal;
   },
 ): Promise<SpawnCodexResult> {
   return new Promise((resolve) => {
+    let earlyStopped = false;
     const resolveResult = (exitCode: number | null, error?: string): void => {
       resolve({
-        exitCode,
+        exitCode: earlyStopped ? 0 : exitCode,
         stdout: Buffer.concat(stdoutChunks).toString("utf8"),
         stderr: Buffer.concat(stderrChunks).toString("utf8"),
         ...(error === undefined ? {} : { error }),
@@ -108,7 +117,22 @@ function spawnCodex(
 
     const stdoutChunks: Buffer[] = [];
     const stderrChunks: Buffer[] = [];
+    const maybeStopEarly = (): void => {
+      if (earlyStopped || options.stopWhen === undefined) {
+        return;
+      }
+      if (
+        options.stopWhen({
+          stdout: Buffer.concat(stdoutChunks).toString("utf8"),
+          stderr: Buffer.concat(stderrChunks).toString("utf8"),
+        })
+      ) {
+        earlyStopped = true;
+        child.kill("SIGTERM");
+      }
+    };
     const child = spawn("codex", args, {
+      cwd: options.cwd,
       env: { ...process.env, CODEX_HOME: options.CODEX_HOME },
       killSignal: "SIGTERM",
       ...(options.abortSignal === undefined ? {} : { signal: options.abortSignal }),
@@ -116,8 +140,14 @@ function spawnCodex(
       timeout: options.timeoutMs,
     });
 
-    child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
-    child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdoutChunks.push(chunk);
+      maybeStopEarly();
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderrChunks.push(chunk);
+      maybeStopEarly();
+    });
     child.on("error", (caught) => {
       const error = options.abortSignal?.aborted === true ? "codex exec aborted." : caught.message;
       resolveResult(null, error);
@@ -125,7 +155,7 @@ function spawnCodex(
 
     child.on("close", (exitCode, signal) => {
       const aborted = options.abortSignal?.aborted === true;
-      const timedOut = exitCode === null && signal === "SIGTERM" && !aborted;
+      const timedOut = exitCode === null && signal === "SIGTERM" && !aborted && !earlyStopped;
       const error = aborted
         ? "codex exec aborted."
         : timedOut

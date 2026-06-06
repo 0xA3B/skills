@@ -13,23 +13,34 @@ export type TriggerFixture = {
   cases: TriggerCase[];
 };
 
-export type SkillTarget = {
+type SkillTargetBase = {
   repoRoot: string;
-  pluginName: string;
   skillName: string;
-  pluginPath: string;
   skillPath: string;
   skillFilePath: string;
   metadataPath: string;
   fixturePath: string;
 };
 
+export type PluginSkillTarget = SkillTargetBase & {
+  kind: "plugin";
+  pluginName: string;
+  pluginPath: string;
+};
+
+export type RepoLocalSkillTarget = SkillTargetBase & {
+  kind: "repo-local";
+};
+
+export type SkillTarget = PluginSkillTarget | RepoLocalSkillTarget;
+
 export type TriggerCaseResult = {
   caseId: string;
   expect: TriggerExpectation;
-  invocationSignal: "stderr-skill-injected" | "none";
+  invocationSignal: "stderr-skill-injected" | "stdout-skill-canary" | "none";
   invoked: boolean;
   passed: boolean;
+  durationMs: number;
   exitCode: number | null;
   finalMessagePath: string;
   stdoutPath: string;
@@ -41,6 +52,7 @@ export type TriggerEvalResult = {
   runDir: string;
   reportPath: string;
   target: SkillTarget;
+  durationMs: number;
   results: TriggerCaseResult[];
   skippedReason?: string;
 };

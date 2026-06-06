@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { parse as parseYaml } from "yaml";
 
 import type { CodexRunResult } from "./codex-exec.js";
 
@@ -10,6 +11,7 @@ const mockState = vi.hoisted(() => ({
   codexResults: [] as Array<{
     exitCode: number | null;
     finalMessage: string;
+    stdout: string;
     stderr: string;
     stdoutPath: string;
     stderrPath: string;
@@ -21,6 +23,8 @@ const mockState = vi.hoisted(() => ({
   maxActiveExecs: 0,
   codexHomes: [] as string[],
   workspacePaths: [] as string[],
+  sandboxModes: [] as string[],
+  stopWhenPredicates: [] as Array<(output: { stdout: string; stderr: string }) => boolean>,
 }));
 
 vi.mock("./codex-exec.js", () => ({
@@ -29,15 +33,21 @@ vi.mock("./codex-exec.js", () => ({
       codexHome: string;
       prompt: string;
       workspacePath: string;
+      sandboxMode: "read-only" | "workspace-write";
+      stopWhen?: (output: { stdout: string; stderr: string }) => boolean;
     }) => Promise<CodexRunResult>
   >(async (options) => {
     mockState.codexHomes.push(options.codexHome);
     mockState.workspacePaths.push(options.workspacePath);
+    mockState.sandboxModes.push(options.sandboxMode);
+    if (options.stopWhen !== undefined) {
+      mockState.stopWhenPredicates.push(options.stopWhen);
+    }
     mockState.activeExecs += 1;
     mockState.maxActiveExecs = Math.max(mockState.maxActiveExecs, mockState.activeExecs);
 
     try {
-      const result = mockState.codexResults.shift() ?? buildMockCodexResult(options.prompt);
+      const result = mockState.codexResults.shift() ?? (await buildMockCodexResult(options));
       if (result.delayMs !== undefined) {
         await new Promise((resolve) => setTimeout(resolve, result.delayMs));
       }
@@ -62,13 +72,16 @@ describe("runTriggerEval", () => {
     mockState.maxActiveExecs = 0;
     mockState.codexHomes = [];
     mockState.workspacePaths = [];
+    mockState.sandboxModes = [];
+    mockState.stopWhenPredicates = [];
   });
 
-  it("fails cases when codex exec errors even if invocation expectation matches", async () => {
+  it("passes cases when invocation expectation matches even if codex exec errors", async () => {
     const repoRoot = await writeRepoFixture();
     mockState.codexResults.push({
       exitCode: 1,
       finalMessage: "",
+      stdout: "",
       stderr: "",
       stdoutPath: "/tmp/stdout.jsonl",
       stderrPath: "/tmp/stderr.log",
@@ -87,9 +100,11 @@ describe("runTriggerEval", () => {
       caseId: "skip-case",
       expect: "skip",
       invoked: false,
-      passed: false,
+      passed: true,
       error: "codex exec exited with code 1.",
     });
+    expect(result.durationMs).toBeGreaterThanOrEqual(result.results[0]?.durationMs ?? 0);
+    expect(result.results[0]?.durationMs).toBeGreaterThanOrEqual(0);
   });
 
   it("runs cases concurrently while preserving fixture order", async () => {
@@ -115,8 +130,33 @@ describe("runTriggerEval", () => {
       "case-d",
     ]);
     expect(result.results.every((caseResult) => caseResult.passed)).toBe(true);
+    expect(result.results.every((caseResult) => caseResult.durationMs >= 0)).toBe(true);
+    expect(result.durationMs).toBeGreaterThanOrEqual(
+      Math.max(...result.results.map((caseResult) => caseResult.durationMs)),
+    );
     expect(mockState.maxActiveExecs).toBe(2);
     expect(new Set(mockState.codexHomes).size).toBe(4);
+    expect(new Set(mockState.sandboxModes)).toEqual(new Set(["read-only"]));
+    expect(
+      mockState.stopWhenPredicates[0]?.({
+        stdout: "",
+        stderr: "codex.skill.injected demo:auto-skill",
+      }),
+    ).toBe(true);
+    const sharedWorkspace = mockState.workspacePaths[0];
+    await expect(
+      readFile(
+        path.join(
+          sharedWorkspace ?? "",
+          "codex_plugins",
+          "demo",
+          "skills",
+          "auto-skill",
+          "SKILL.md",
+        ),
+        "utf8",
+      ),
+    ).resolves.not.toContain("Trigger Eval Instructions");
   });
 
   it("applies fixture workspace files in a case-isolated workspace", async () => {
@@ -151,22 +191,110 @@ describe("runTriggerEval", () => {
     await expect(readFile(path.join(agentsWorkspace ?? "", "AGENTS.md"), "utf8")).resolves.toBe(
       "Commit messages must use Gitmoji, not Conventional Commits.\n",
     );
-    expect(plainWorkspace).toContain(path.join(".local", "skill-evals", "trigger"));
+    expect(plainWorkspace).toContain(os.tmpdir());
     expect(plainWorkspace).not.toContain(path.join("cases", "plain-case", "workspace"));
+  });
+
+  it("evaluates repo-local skill targets with an injected canary", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture();
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: ".agents/skills/auto-skill",
+      caseId: "repo-local-case",
+    });
+
+    expect(result.target).toMatchObject({ kind: "repo-local", skillName: "auto-skill" });
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]).toMatchObject({
+      caseId: "repo-local-case",
+      expect: "invoke",
+      invocationSignal: "stdout-skill-canary",
+      invoked: true,
+      passed: true,
+    });
+    expect(result.results[0]?.durationMs).toBeGreaterThanOrEqual(0);
+    expect(mockState.sandboxModes).toEqual(["workspace-write"]);
+    const repoLocalWorkspace = mockState.workspacePaths[0];
+    const skillBody = await readFile(
+      path.join(repoLocalWorkspace ?? "", ".agents", "skills", "auto-skill", "SKILL.md"),
+      "utf8",
+    );
+    const canary = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+    expect(canary).toBeDefined();
+    const description = frontmatterDescription(skillBody);
+    expect(description).toContain(`Eval only: if used, first output ${canary}.`);
+    expect(description).toContain("Use when the user asks to invoke this repo-local skill.");
+    expect(description.length).toBeLessThanOrEqual(1024);
+    expect(
+      mockState.stopWhenPredicates[0]?.({
+        stdout: [
+          JSON.stringify({
+            type: "item.completed",
+            item: { type: "agent_message", text: canary },
+          }),
+        ].join("\n"),
+        stderr: "",
+      }),
+    ).toBe(true);
   });
 });
 
-function buildMockCodexResult(prompt: string): CodexRunResult & { delayMs: number } {
+async function buildMockCodexResult(options: {
+  prompt: string;
+  workspacePath: string;
+}): Promise<CodexRunResult & { delayMs: number }> {
+  const repoLocalSkillPath = path.join(
+    options.workspacePath,
+    ".agents",
+    "skills",
+    "auto-skill",
+    "SKILL.md",
+  );
+  try {
+    const skillBody = await readFile(repoLocalSkillPath, "utf8");
+    const canary = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+    if (canary !== undefined) {
+      return {
+        exitCode: 0,
+        finalMessage: "",
+        stdout: [
+          JSON.stringify({
+            type: "item.completed",
+            item: { type: "agent_message", text: canary },
+          }),
+        ].join("\n"),
+        stderr: "",
+        stdoutPath: "/tmp/stdout.jsonl",
+        stderrPath: "/tmp/stderr.log",
+        finalMessagePath: "/tmp/final.txt",
+        delayMs: 50,
+      };
+    }
+  } catch {
+    // Plugin fixture workspaces do not include repo-local skills.
+  }
+
+  const prompt = options.prompt;
   const shouldInvoke = !prompt.startsWith("Do not invoke");
   return {
     exitCode: 0,
     finalMessage: "",
+    stdout: "",
     stderr: shouldInvoke ? "codex.skill.injected demo:auto-skill" : "",
     stdoutPath: "/tmp/stdout.jsonl",
     stderrPath: "/tmp/stderr.log",
     finalMessagePath: "/tmp/final.txt",
     delayMs: 50,
   };
+}
+
+function frontmatterDescription(content: string): string {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  expect(match?.[1]).toBeDefined();
+  const metadata = parseYaml(match?.[1] ?? "") as { description?: unknown };
+  expect(typeof metadata.description).toBe("string");
+  return metadata.description as string;
 }
 
 async function writeRepoFixture(
@@ -205,6 +333,44 @@ async function writeRepoFixture(
           { id: "skip-case", expect: "skip" },
         ],
       ),
+      "",
+    ].join("\n"),
+  );
+
+  return repoRoot;
+}
+
+async function writeRepoLocalSkillFixture(): Promise<string> {
+  const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
+  const skillPath = path.join(repoRoot, ".agents", "skills", "auto-skill");
+
+  await mkdir(path.join(skillPath, "agents"), { recursive: true });
+  await mkdir(path.join(skillPath, "evals"), { recursive: true });
+  await writeFile(
+    path.join(skillPath, "SKILL.md"),
+    [
+      "---",
+      "name: auto-skill",
+      "description: Use when the user asks to invoke this repo-local skill.",
+      "---",
+      "",
+    ].join("\n"),
+  );
+  await writeFile(
+    path.join(skillPath, "agents", "openai.yaml"),
+    "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
+  );
+  await writeFile(
+    path.join(skillPath, "evals", "triggers.yaml"),
+    [
+      "version: 1",
+      "cases:",
+      "  - id: repo-local-case",
+      "    prompt: Invoke the skill.",
+      "    expect: invoke",
+      "  - id: skip-case",
+      "    prompt: Do not invoke the skill.",
+      "    expect: skip",
       "",
     ].join("\n"),
   );

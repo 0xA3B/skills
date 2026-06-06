@@ -4,4 +4,4 @@ interface:
   short_description: "Add a skill to a plugin"
   default_prompt: "Use $add-skill to add a skill to an existing marketplace plugin."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

@@ -56,4 +56,21 @@ describe("prepareCodexHome", () => {
     expect(config).not.toContain("unknown_setting");
     expect(config).toContain("plugins = true");
   });
+
+  it("omits marketplace config when evaluating repo-local skills", async () => {
+    const sourceCodexHome = await mkdtemp(path.join(os.tmpdir(), "source-codex-home-"));
+    const codexHome = await mkdtemp(path.join(os.tmpdir(), "eval-codex-home-"));
+    await writeFile(path.join(sourceCodexHome, "auth.json"), "{}");
+
+    await prepareCodexHome({
+      codexHome,
+      sourceCodexHome,
+      workspacePath: "/tmp/workspace",
+    });
+
+    const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
+    expect(config).toContain('[projects."/tmp/workspace"]');
+    expect(config).not.toContain("[marketplaces.");
+    expect(config).not.toContain("[plugins.");
+  });
 });

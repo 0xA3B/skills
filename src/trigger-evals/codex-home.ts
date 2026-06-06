@@ -6,8 +6,8 @@ type CodexHomeOptions = {
   codexHome: string;
   sourceCodexHome?: string;
   workspacePath: string;
-  marketplaceName: string;
-  pluginName: string;
+  marketplaceName?: string;
+  pluginName?: string;
 };
 
 const TOP_LEVEL_CONFIG_KEYS = new Set([
@@ -70,10 +70,10 @@ async function buildEvalConfig(
   options: CodexHomeOptions,
 ): Promise<string> {
   const sourceConfigPath = path.join(sourceCodexHome, "config.toml");
-  const lines = await readTopLevelConfigLines(sourceConfigPath);
+  const inheritedLines = await readTopLevelConfigLines(sourceConfigPath);
 
-  return [
-    ...lines,
+  const configLines = [
+    ...inheritedLines,
     'approval_policy = "never"',
     'sandbox_mode = "read-only"',
     "",
@@ -87,14 +87,21 @@ async function buildEvalConfig(
     `[projects.${tomlString(options.workspacePath)}]`,
     'trust_level = "trusted"',
     "",
-    `[marketplaces.${tomlString(options.marketplaceName)}]`,
-    'source_type = "local"',
-    `source = ${tomlString(options.workspacePath)}`,
-    "",
-    `[plugins.${tomlString(`${options.pluginName}@${options.marketplaceName}`)}]`,
-    "enabled = true",
-    "",
-  ].join("\n");
+  ];
+
+  if (options.marketplaceName !== undefined && options.pluginName !== undefined) {
+    configLines.push(
+      `[marketplaces.${tomlString(options.marketplaceName)}]`,
+      'source_type = "local"',
+      `source = ${tomlString(options.workspacePath)}`,
+      "",
+      `[plugins.${tomlString(`${options.pluginName}@${options.marketplaceName}`)}]`,
+      "enabled = true",
+      "",
+    );
+  }
+
+  return configLines.join("\n");
 }
 
 async function readTopLevelConfigLines(configPath: string): Promise<string[]> {

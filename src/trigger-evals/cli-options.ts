@@ -12,9 +12,7 @@ export function parseTriggerEvalCliOptions(argv: string[]): RunTriggerEvalOption
 
   const [skillPath, extra] = parsed.positionals;
   if (skillPath === undefined || extra !== undefined) {
-    throw new Error(
-      "Usage: pnpm eval:trigger -- <codex_plugins/<plugin>/skills/<skill>> [options]",
-    );
+    throw new Error("Usage: pnpm eval:trigger -- <skill-path> [options]");
   }
 
   if (parsed.values.fixture !== undefined) {
@@ -50,13 +48,17 @@ export class HelpRequested extends Error {
 
 export function usage(): string {
   return [
-    "Usage: pnpm eval:trigger -- <codex_plugins/<plugin>/skills/<skill>> [options]",
+    "Usage: pnpm eval:trigger -- <skill-path> [options]",
+    "",
+    "Skill paths:",
+    "  codex_plugins/<plugin>/skills/<skill>",
+    "  .agents/skills/<skill>",
     "",
     "Options:",
     "  --fixture <path>      Use a fixture file other than evals/triggers.yaml.",
     "  --case <id>           Run one trigger fixture case.",
     "  --model <model>       Override the Codex model for the eval run.",
-    "  --timeout-ms <ms>     Per-case timeout. Defaults to 120000.",
+    "  --timeout-ms <ms>     Per-case timeout. Defaults to 60000.",
     "  --concurrency <n>     Number of cases to run in parallel. Defaults to 3.",
     "  --codex-home <path>   Source Codex home to copy auth/config from. Defaults to ~/.codex.",
     "  --force               Run even when allow_implicit_invocation is false.",

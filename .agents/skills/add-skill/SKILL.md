@@ -1,15 +1,21 @@
 ---
 name: add-skill
 description:
-  Adds a new skill to an existing Codex marketplace plugin in this repository. Use when the user
-  asks to add another skill, workflow, or reusable capability under an existing plugin; pair with
-  the built-in skill-creator guidance for general skill authoring.
+  Adds a new plugin skill to an existing Codex marketplace plugin in this repository. Use when the
+  user asks to add another skill, workflow skill, or reusable capability under an existing plugin in
+  codex_plugins/. This repo-local skill intentionally wraps the built-in skill-creator guidance with
+  this repository's plugin layout, metadata, versioning, and validation conventions. Do not use for
+  creating new plugins, creating repo-local skills under .agents/skills, editing existing skills,
+  adding trigger evals or tests to existing skills, plugin metadata-only changes, conceptual skill
+  questions, or skill installation. Never use for requests that target repo-local skills,
+  .agents/skills, or trigger fixture maintenance instead of adding a new plugin skill under
+  codex_plugins/.
 license: MIT
 ---
 
 # Add Skill
 
-Repo-local wrapper for adding a skill under `codex_plugins/<plugin-name>/skills/`.
+Repo-local wrapper for adding a plugin skill under `codex_plugins/<plugin-name>/skills/`.
 
 Use the built-in `skill-creator` guidance for drafting or materially revising `SKILL.md`. Use this
 skill for this repository's plugin placement, metadata, documentation, invocation-policy, and
