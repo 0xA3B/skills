@@ -1,0 +1,9 @@
+version: 1
+interface:
+  display_name: "Dependency Maintenance"
+  short_description: "Review dependency PRs and file follow-ups"
+  default_prompt:
+    "Use $engineering-workflows:dependency-maintenance to review dependency update PRs, merge ready
+    ones, sync local state, and create linked follow-up issues."
+policy:
+  allow_implicit_invocation: false

@@ -31,24 +31,29 @@ Skills for drafting and creating Conventional Commits.
 
 ### `engineering-workflows`
 
-Engineering workflow skills for brainstorming, adversarial design review, disposable prototyping,
-building, TDD, diagnosis, architecture review, durable terminology, codebase orientation, and visual
-presentation artifacts. Some skills are adapted from Matt Pocock's MIT-licensed
-[`mattpocock/skills`](https://github.com/mattpocock/skills) repository with source attribution
-preserved in each adapted skill's Agent Skills frontmatter metadata.
+Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance,
+disposable prototyping, building, TDD, diagnosis, architecture review, durable terminology, codebase
+orientation, and visual presentation artifacts. Some skills are adapted from Matt Pocock's
+MIT-licensed [`mattpocock/skills`](https://github.com/mattpocock/skills) repository with source
+attribution preserved in each adapted skill's Agent Skills frontmatter metadata.
 
 Typical implementation flow: `brainstorm` when solution direction is unclear, `grill-me` once a
 direction is selected and needs interrogation, `prototype` when a question needs disposable
 executable evidence, then `build` for greenfield or high-churn implementation and `tdd` for stable
 behavior. Use `terminology` when stable domain language needs a focused create, update, or review
 pass. `diagnose`, `zoom-out`, and `improve-codebase-architecture` are ad hoc workflows for specific
-needs. `visualize` is a manual presentation workflow for turning session output into a temporary
-visual artifact without changing the underlying analysis.
+needs. Use `dependency-maintenance` when dependency update PRs need evidence-backed triage, safe
+merges, local sync, and linked follow-up issues for migration or feature work. `visualize` is a
+manual presentation workflow for turning session output into a temporary visual artifact without
+changing the underlying analysis.
 
 - [`engineering-workflows:brainstorm`](./codex_plugins/engineering-workflows/skills/brainstorm/):
   Researches and compares solution options before adversarial review.
 - [`engineering-workflows:build`](./codex_plugins/engineering-workflows/skills/build/): Implements
   working slices with pragmatic validation.
+- [`engineering-workflows:dependency-maintenance`](./codex_plugins/engineering-workflows/skills/dependency-maintenance/):
+  Reviews dependency update PRs, merges ready ones, syncs local state, and files linked follow-up
+  issues.
 - [`engineering-workflows:diagnose`](./codex_plugins/engineering-workflows/skills/diagnose/): Runs a
   disciplined diagnosis loop for bugs, flaky behavior, and performance regressions.
 - [`engineering-workflows:prototype`](./codex_plugins/engineering-workflows/skills/prototype/):
