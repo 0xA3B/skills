@@ -29,7 +29,8 @@ The repository's dependency update queue is triaged with clear evidence:
 ## Boundaries
 
 - Do not write application, library, configuration, or tooling code to adapt to dependency changes.
-- Do not create implementation branches or PRs unless the user explicitly expands the scope.
+- Do not create implementation branches or PRs for migration or adaptation work unless the user
+  explicitly expands the scope.
 - Do not merge a dependency PR with unresolved breaking changes, unexplained validation failures, or
   unclear diff scope.
 - Do not invent repository labels by default. Discover existing labels first and use the closest
@@ -37,7 +38,8 @@ The repository's dependency update queue is triaged with clear evidence:
 - Do not update user-global tools or machine-wide package managers unless the user explicitly asks.
 
 Allowed side effects are limited to dependency PR review, safe dependency PR merges, local
-fast-forward and install/runtime refreshes, PR labels/comments, and follow-up issue creation.
+fast-forward and install/runtime refreshes, PR labels/comments, follow-up issue creation, and
+explicitly requested repo-pinned tooling update PRs.
 
 ## Workflow
 
@@ -136,6 +138,11 @@ Merge only through the repository's normal forge path and merge strategy. Before
 - Required checks and reviews are passing or explicitly not required by repo policy.
 - No linked blocker, migration issue, or release-note finding makes the PR unsafe as-is.
 
+Merge ready PRs serially. After each successful merge, expect the base branch to move; wait for the
+next PR's mergeability and required checks to recalculate, then re-verify it before merging. Do not
+merge multiple PRs in parallel unless the forge has an explicit merge queue or batching mechanism
+that owns that recalculation.
+
 If merge permissions fail, inspect authentication and repository permissions before considering any
 local workaround. Do not merge locally unless the user explicitly asks for that fallback.
 
@@ -164,9 +171,20 @@ For a full maintenance pass, inspect repo-pinned tools that dependency bots may 
   repository-local updater policy.
 - Existing dependency bot coverage to avoid duplicating work.
 
-Do not update these tools in this workflow. If an update appears useful or necessary, create a
-follow-up issue with the current version, available version, ownership surface, reason to update,
-and suggested validation.
+Do not update these tools in the default workflow. If the user explicitly asks for repo-pinned
+tooling updates as part of the maintenance pass, do that work after dependency PR decisions and
+merges are complete, keep it in a separate local-change phase, and validate it through the
+repository's canonical install and check workflow.
+
+When an explicitly requested tooling update changes tracked project state, include every generated
+manifest, version-pin, lockfile, and related metadata change needed to make the update reproducible.
+Create a small maintenance PR through the repository's normal branch, commit, and forge workflow,
+then merge it after its required checks pass and the diff remains limited to the requested local
+update. If local validation, PR creation, checks, or merge permissions fail, leave the PR or branch
+with durable blocker context instead of forcing the change through another path.
+
+If an update merely appears useful or necessary, create a follow-up issue with the current version,
+available version, ownership surface, reason to update, and suggested validation.
 
 ## Final Report
 
@@ -177,6 +195,7 @@ Report:
 - Release-note findings for major/minor bumps, including breaking changes and concrete useful
   features.
 - Local sync and validation results, including commands run and failures.
-- Tooling updates discovered and any follow-up issues created.
+- Tooling updates discovered, any local-update PRs created or merged, and any follow-up issues
+  created.
 
 Always state when no unsafe or blocked PRs remain.
