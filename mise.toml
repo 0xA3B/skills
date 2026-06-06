@@ -3,5 +3,5 @@ lockfile = true
 minimum_release_age = "7d"
 
 [tools]
-node = "26"
 pnpm = "11"
+node = "26"
