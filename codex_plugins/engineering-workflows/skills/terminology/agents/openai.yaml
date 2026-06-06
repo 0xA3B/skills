@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Terminology"
+  short_description: "Create, update, or review durable project terminology"
+  default_prompt:
+    "Use $engineering-workflows:terminology to review and update this project's durable terminology."
+policy:
+  allow_implicit_invocation: false

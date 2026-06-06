@@ -66,7 +66,7 @@ Build loosely on test timing, not on design quality.
 - Avoid shallow pass-through modules; move behavior behind interfaces that simplify callers.
 - Use real seams for external systems, slow dependencies, filesystem boundaries, network calls, and
   process execution.
-- Keep domain names aligned with `AGENTS.md ## Glossary` when present.
+- Keep domain names aligned with `AGENTS.md ## Terminology` when present.
 
 If interface or module shape becomes the main risk, pause and use
 `engineering-workflows:improve-codebase-architecture` or `engineering-workflows:grill-me` before

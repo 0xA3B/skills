@@ -39,7 +39,7 @@ constraint:
 - Design C: "Optimise for the most common caller — make the default case trivial."
 - Design D (if applicable): "Design around ports & adapters for cross-seam dependencies."
 
-Include both [LANGUAGE.md](LANGUAGE.md) vocabulary and `AGENTS.md ## Glossary` vocabulary so each
+Include both [LANGUAGE.md](LANGUAGE.md) vocabulary and `AGENTS.md ## Terminology` vocabulary so each
 design names things consistently with the architecture language and the project's domain language.
 
 Each design should include:

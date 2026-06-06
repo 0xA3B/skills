@@ -73,7 +73,7 @@ Then inspect the codebase using normal Codex tools. Follow the friction:
 - Where do tightly coupled modules leak across seams?
 - Which parts are untested or hard to test through the current interface?
 - Which names in code fail to match the domain language?
-- Which terms are vague, overloaded, or missing from `AGENTS.md ## Glossary`?
+- Which terms are vague, overloaded, or missing from `AGENTS.md ## Terminology`?
 
 Apply the deletion test to suspected shallow modules.
 
@@ -88,9 +88,14 @@ Present a numbered list of deepening opportunities. For each candidate include:
 - **Risks**: migration cost, compatibility issues, or uncertainty.
 - **Evidence**: the concrete code or doc evidence that supports the candidate.
 
-Use the project's domain language from `AGENTS.md ## Glossary` when available. If an idea conflicts
-with established glossary language, surface the mismatch and recommend whether to rename the code,
-update the glossary, or defer the terminology decision.
+Use the project's domain language from `AGENTS.md ## Terminology` when available. If an idea
+conflicts with established terminology, surface the mismatch and recommend whether to rename the
+code, update the terminology, defer the terminology decision, or hand off to
+`engineering-workflows:terminology` for a focused pass.
+
+When handing off to another engineering workflow skill, include why this workflow is stopping, the
+context to carry forward, and the exact `$engineering-workflows:<skill>` prompt for the user to
+invoke.
 
 Do not implement the refactor during this first pass unless the user explicitly asked for changes.
 Ask which candidate they want to explore or implement.
@@ -105,7 +110,7 @@ Once the user picks a candidate, run a focused planning loop:
 - What data, errors, ordering, or configuration are part of the interface?
 - Which compatibility or migration constraints matter?
 
-If new stable domain terms emerge, update the `## Glossary` section in `AGENTS.md`. Create the
+If new stable domain terms emerge, update the `## Terminology` section in `AGENTS.md`. Create the
 section if needed. Prefer canonical terms, one-sentence definitions, aliases to avoid, and useful
 relationships between terms. Skip generic programming terms and incidental class, function, or
 module names unless they are part of the domain language.

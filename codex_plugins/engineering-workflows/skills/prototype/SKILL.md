@@ -123,5 +123,9 @@ End with:
 - Whether the prototype should be deleted, kept briefly for user inspection, or folded into real
   implementation work.
 
+If the next step is a real implementation workflow, include a handoff note with why prototype work
+is stopping, the decision and evidence to carry forward, and the exact
+`$engineering-workflows:build` or `$engineering-workflows:tdd` prompt for the user to invoke.
+
 Stop when the prototype answers the question, when the user chooses a direction, or when realistic
 evidence requires setup or access that is unavailable.

@@ -38,13 +38,13 @@ evaluated, and improved over time. Changes should preserve these outcomes:
   notes or details that may go stale quickly.
 - Treat `AGENTS.md` as canonical agent guidance; keep sibling `CLAUDE.md` files as symlinks to it.
 
-## Glossary
+## Terminology
 
 Use this section for durable domain terms that should guide future work in this repository. Add or
 update entries when a term becomes stable during adversarial review, architecture review, or
 implementation.
 
-When maintaining the glossary:
+When maintaining the terminology:
 
 - Prefer the canonical term used by domain experts or project maintainers.
 - Define what the term is in one tight sentence.
@@ -70,6 +70,7 @@ When maintaining the glossary:
 | **Invocation policy**   | The `policy.allow_implicit_invocation` setting that decides whether Codex may load a skill automatically.                 | trigger policy            |
 | **Manual-only skill**   | A skill with `allow_implicit_invocation: false`; it should be invoked explicitly by the user.                             | disabled skill            |
 | **Implicit invocation** | Codex automatically injecting a skill because the user prompt matches the skill description.                              | auto-trigger              |
+| **Hand off**            | A workflow boundary where the current skill stops, summarizes transfer context, and recommends the next explicit skill.   | auto-invoke, delegate     |
 | **Trigger fixture**     | A committed YAML file of positive and negative cases used to evaluate implicit invocation behavior.                       | skill test                |
 | **Trigger eval**        | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case. | validation gate           |
 | **Invocation signal**   | The observed evidence that Codex invoked the target skill, using plugin telemetry or an eval-only repo-local canary.      | canary                    |
@@ -94,6 +95,8 @@ Relationships:
 - A **Marketplace entry** points to one **Plugin**.
 - A **Plugin** owns one **Plugin manifest** and zero or more **Plugin skills**.
 - A **Plugin skill** owns one **Skill body** and one **Codex UI metadata** file.
+- A **Hand off** recommends an explicit **Manual-only skill** invocation; it does not automatically
+  load another skill.
 - **Brainstorm** and **Grill Me** can hand off unresolved executable questions to **Prototype**.
 - **Prototype** can hand off a validated decision to **Build** or **TDD**.
 - **Brainstorm** can hand off a preferred direction to **Grill Me**; **Grill Me** can hand off a
