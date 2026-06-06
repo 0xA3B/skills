@@ -12,7 +12,9 @@ metadata:
 
 # Diagnose
 
-Use a disciplined loop for hard bugs. Skip phases only when explicitly justified by evidence.
+Use a disciplined loop for hard bugs. Skip phases only when explicitly justified by evidence. Do not
+propose or stack fixes before the reproduced symptom, ranked hypothesis, and supporting evidence
+identify a likely root cause.
 
 When exploring the codebase, use the project's domain language from `AGENTS.md`, README files,
 nearby docs, and code names. Use project-specific test, lint, run, and reproduction workflows over
@@ -96,6 +98,10 @@ Discard or sharpen any hypothesis that does not make a prediction.
 Share the ranked list when it would help the user apply domain knowledge, but do not block progress
 when the next probe is low risk and the user is not available.
 
+Do not include fixes in the hypothesis list unless each one is tied to a falsifiable prediction.
+"Try changing X" is not a hypothesis until it says what observable result would prove or disprove
+the cause.
+
 ## Phase 4: Instrument
 
 Each probe must map to a prediction from Phase 3.
@@ -131,6 +137,15 @@ The fix should:
 If no correct regression seam exists, note that as an architecture or testability finding and still
 prove the fix with the best available loop.
 
+If the fix does not work, return to the loop instead of adding another patch on top. Update the
+hypotheses with the new evidence and test one variable at a time.
+
+If three plausible fix attempts fail, stop and reassess the architecture or mental model before
+trying a fourth. Repeated failed fixes usually mean the system boundary, ownership model, test seam,
+or original reproduction is misunderstood. Summarize what each failed attempt proved, then either
+ask the user about the architectural decision or hand off to
+`engineering-workflows:improve-codebase-architecture` when the code shape is the blocker.
+
 ## Phase 6: Regression-Test
 
 Convert the feedback loop into a durable regression check when practical. Use the smallest stable
@@ -154,3 +169,5 @@ End with:
 - Fix summary.
 - Regression coverage.
 - Validation commands and results.
+- Any temporary instrumentation or throwaway harnesses removed, kept as durable tooling, or still
+  requiring cleanup.

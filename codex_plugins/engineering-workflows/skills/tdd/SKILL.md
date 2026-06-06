@@ -56,6 +56,33 @@ repeat
 
 Each slice should respond to what the previous cycle revealed.
 
+## Discipline Checks
+
+Tests written after implementation are useful regression coverage, but they are not TDD. Do not
+claim a slice followed red-green-refactor unless the test failed for the expected reason before the
+implementation existed.
+
+When implementation code is written before RED during this workflow, stop the slice and recover
+without destroying user work:
+
+- If the untested code is yours and safe to discard, set it aside or revert that slice, then write
+  the failing behavior test first.
+- If the code is user-authored or unsafe to discard, leave it intact and be explicit that the next
+  work is adding characterization or regression coverage, not continuing a pure TDD cycle.
+- Do not adapt the implementation-shaped test to fit code that already exists. Tighten the public
+  behavior expectation first, then change code only to satisfy that expectation.
+
+Watch for rationalizations:
+
+- "This is too small to test."
+- "I'll write the tests right after."
+- "The test would be obvious."
+- "Manual testing proves the same thing."
+- "This is just a refactor, so RED does not matter."
+
+These are signals to reduce the slice size, find a cheaper seam, or switch honestly to
+`engineering-workflows:build` if test-first work is the wrong feedback loop for this task.
+
 ## Workflow
 
 ### 1. Plan The Test Surface
@@ -81,14 +108,16 @@ Use [interface-design.md](references/interface-design.md) and
 
 Write one failing test for one behavior.
 
-Run the targeted test and confirm it fails for the expected reason. If it passes, the test is not
-proving the missing behavior. Tighten it before writing implementation.
+Run the targeted test and read the output. Confirm it fails for the expected reason, not because of
+syntax errors, missing setup, or the wrong assertion. If it passes, the test is not proving the
+missing behavior. Tighten it before writing implementation.
 
 ### 3. Green
 
 Write the smallest implementation that makes the test pass. Avoid speculative generalization.
 
-Run the targeted test until it passes.
+Run the targeted test until it passes. If unrelated tests fail, stop and understand whether the
+green step exposed a real regression before moving on.
 
 ### 4. Refactor
 
@@ -123,6 +152,8 @@ When the requested behavior is implemented:
 - Report the red-green-refactor sequence at a high level.
 - Name the tests added or changed.
 - Note any behavior that remains intentionally untested and why.
+- State validation evidence from fresh command output. Avoid success claims based on expectation or
+  earlier runs.
 
 Stop when the requested behavior is implemented and validation passes, or when the next slice is
 blocked by an ambiguous interface, missing dependency, or failing project setup that cannot be
