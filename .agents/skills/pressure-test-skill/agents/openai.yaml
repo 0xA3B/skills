@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Pressure Test Skill"
+  short_description: "Pressure-test skill behavior"
+  default_prompt: "Use $pressure-test-skill to pressure test a skill's behavior."
+policy:
+  allow_implicit_invocation: false

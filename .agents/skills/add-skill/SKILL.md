@@ -63,19 +63,36 @@ is not clearly caused by this change, report the blocker and the safest next act
    `interface.default_prompt` include the explicit `$plugin-name:skill-name` callout. Use
    `policy.allow_implicit_invocation: false` unless the skill is clearly designed for implicit
    invocation from the start.
-6. If `policy.allow_implicit_invocation: true`, add positive and negative trigger fixtures:
+6. If the skill is behavior-shaping, run a lightweight behavior pressure test before treating the
+   draft as ready:
+   - Write one to three temporary pressure prompts that make a fresh agent want to skip, soften, or
+     rationalize around the skill's intended behavior. Combine realistic pressures such as apparent
+     simplicity, sunk cost, time pressure, user pressure, or "just this once" framing.
+   - Run the prompt in an isolated context: a fresh chat, a subagent with only the needed files and
+     explicit `$plugin-name:skill-name` invocation, or a Codex CLI run in a temporary workspace.
+   - Evaluate the output manually. Passing means the agent follows the loaded skill, names the
+     relevant constraint, and does not invent loopholes. Failing means it skips the behavior, asks
+     to violate it, proposes a hybrid workaround, or rationalizes around the rule.
+   - Tighten `SKILL.md` for meaningful failures and rerun the prompt when the failure exposed a real
+     loophole. Keep prompts and notes under `.local/` if saved at all; do not commit behavior
+     pressure prompts or add a harness unless the user explicitly wants repeatable regression
+     coverage.
+   - Use `$pressure-test-skill` when the pressure test needs more than a quick manual check.
+
+7. If `policy.allow_implicit_invocation: true`, add positive and negative trigger fixtures:
 
    ```text
    codex_plugins/<plugin-name>/skills/<skill-name>/evals/triggers.yaml
    ```
 
-7. Update the plugin README and root `README.md` when the new skill should be visible to plugin
+8. Update the plugin README and root `README.md` when the new skill should be visible to plugin
    users.
-8. Update Codex plugin default prompts when the skill should be visible from plugin-level prompt
+9. Update Codex plugin default prompts when the skill should be visible from plugin-level prompt
    examples. Keep `interface.defaultPrompt` to three prompts or fewer, choose the most useful entry
    points, and include explicit `$plugin-name:skill-name` callouts for manual-only skills.
-9. Bump the target plugin manifest patch version so Codex treats the installed skill set as changed.
-10. Run the skill-creator validator when `uv` is available:
+10. Bump the target plugin manifest patch version so Codex treats the installed skill set as
+    changed.
+11. Run the skill-creator validator when `uv` is available:
 
 ```bash
 mise exec -- uv run --with pyyaml python \
@@ -86,13 +103,13 @@ mise exec -- uv run --with pyyaml python \
 If `uv` or Python with PyYAML is unavailable, skip this optional validator and rely on the
 repository validation below.
 
-11. If implicit invocation is enabled, run trigger validation:
+12. If implicit invocation is enabled, run trigger validation:
 
 ```bash
 mise exec -- pnpm eval:trigger -- codex_plugins/<plugin-name>/skills/<skill-name>
 ```
 
-12. Run repository validation:
+13. Run repository validation:
 
 ```bash
 mise exec -- pnpm lint:plugins

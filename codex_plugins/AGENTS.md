@@ -72,8 +72,27 @@ These instructions apply to plugin directories under `codex_plugins/`.
   - put templates, images, icons, fonts, or other output resources in `assets/`
 - Prefer imperative workflow instructions over broad explanatory documentation.
 - Add examples only when they materially reduce ambiguity for the agent using the skill.
-- For non-trivial workflows, check the draft against realistic prompts before treating the skill as
-  ready.
+- For non-trivial behavior-shaping skills, check the draft with temporary behavior pressure tests
+  before treating it as ready. Behavior-shaping skills are skills that ask the agent to resist a
+  tempting shortcut, spend extra effort, stop before acting, preserve a safety boundary, or follow a
+  workflow that may feel slower than the immediate user request.
+- To run a behavior pressure test, write one to three temporary pressure prompts that make a fresh
+  agent want to skip, soften, or rationalize around the intended workflow. Use concrete stakes such
+  as time pressure, sunk cost, user or reviewer pressure, exhaustion, apparent simplicity, or "just
+  this once" framing.
+- Run pressure prompts in an isolated agent context: a fresh chat, a subagent with only the needed
+  files and explicit skill invocation, or a Codex CLI run with a temporary workspace. The test is
+  only meaningful if the model is not relying on the current session's explanation of the desired
+  answer.
+- Evaluate behavior pressure tests manually. Passing means the agent follows the loaded skill's
+  intended behavior, names the relevant constraint, and avoids loopholes. Failing means the agent
+  skips the behavior, asks to violate it, invents a hybrid workaround, or rationalizes around the
+  rule. Use failures to tighten concrete wording in `SKILL.md`.
+- Keep behavior pressure prompts and notes temporary. Put saved scratch under `.local/` or discard
+  it. Do not add committed fixtures, eval output, or a harness unless the behavior needs repeatable
+  regression coverage and the user explicitly wants that investment.
+- For non-trivial pressure testing, use the repo-local `$pressure-test-skill` workflow to keep the
+  methodology consistent. It remains a review workflow, not a required validation gate.
 
 ## Validation
 
