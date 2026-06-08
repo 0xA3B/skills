@@ -1,0 +1,26 @@
+{
+  "name": "claudex",
+  "version": "1.0.0",
+  "description": "Run Claude Code from Codex for adversarial review, feedback triage, and in-scope fixes.",
+  "author": {
+    "name": "Alex Baker"
+  },
+  "homepage": "https://github.com/0xA3B/skills/blob/main/codex_plugins/claudex/README.md",
+  "repository": "https://github.com/0xA3B/skills",
+  "keywords": ["claude", "claude-code", "review", "adversarial-review"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Claudex",
+    "shortDescription": "Ask Claude Code to adversarially review Codex changes.",
+    "longDescription": "A Codex plugin for invoking Claude Code as a read-only adversarial reviewer, triaging findings as external feedback, applying accepted in-scope fixes, and validating the result.",
+    "developerName": "Alex Baker",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Ask Claude to adversarially review my current changes.",
+      "Run a Claude Code review of this branch."
+    ]
+  }
+}

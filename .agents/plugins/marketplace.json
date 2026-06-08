@@ -17,6 +17,18 @@
       "category": "Productivity"
     },
     {
+      "name": "claudex",
+      "source": {
+        "source": "local",
+        "path": "./codex_plugins/claudex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
       "name": "engineering-workflows",
       "source": {
         "source": "local",

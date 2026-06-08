@@ -20,6 +20,14 @@ After adding or upgrading the marketplace, install the desired plugins from Code
 
 ## Codex Plugins
 
+### `claudex`
+
+Runs Claude Code from Codex for adversarial code review, feedback triage, and in-scope fixes.
+
+- [`claudex:adversarial-review`](./codex_plugins/claudex/skills/adversarial-review/): Invokes Claude
+  Code as a read-only adversarial reviewer, triages findings as external feedback, and applies
+  accepted in-scope fixes for current working-tree changes.
+
 ### `conventional-commits`
 
 Skills for drafting and creating Conventional Commits.

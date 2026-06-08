@@ -1,0 +1,63 @@
+version: 1
+cases:
+  - id: claude-adversarial-current-changes
+    prompt: >-
+      Ask Claude to adversarially review my current changes.
+    expect: invoke
+    rationale:
+      The user explicitly asks for Claude to perform an adversarial review of current changes.
+
+  - id: claude-code-review-working-tree
+    prompt: >-
+      Have Claude Code review the working tree before I commit.
+    expect: invoke
+    rationale: The user explicitly asks Claude Code to review the default working-tree scope.
+
+  - id: claude-review-branch
+    prompt: >-
+      Run a Claude review of this branch against main.
+    expect: invoke
+    rationale: The user explicitly asks Claude to review branch scope.
+
+  - id: claude-review-pr
+    prompt: >-
+      Ask Claude to review PR #42 and challenge anything risky.
+    expect: invoke
+    rationale: The user explicitly asks Claude to review a pull request.
+
+  - id: claude-review-with-model-override
+    prompt: >-
+      Use Claude Code with sonnet to review these changes.
+    expect: invoke
+    rationale: The user explicitly asks Claude Code to review and supplies a model override.
+
+  - id: generic-review-current-changes
+    prompt: >-
+      Review my current changes before I commit.
+    expect: skip
+    rationale: The user asks for review but does not explicitly name Claude or Claude Code.
+
+  - id: generic-adversarial-review
+    prompt: >-
+      Run an adversarial review of my current changes.
+    expect: skip
+    rationale:
+      The user uses adversarial review wording but does not explicitly name Claude or Claude Code.
+
+  - id: codex-review-request
+    prompt: >-
+      Use Codex to review my branch against main.
+    expect: skip
+    rationale: The user names Codex, not Claude or Claude Code.
+
+  - id: architecture-review-request
+    prompt: >-
+      Review this codebase architecture and suggest module boundaries.
+    expect: skip
+    rationale: The request is for architecture review, not a Claude or Claude Code code review.
+
+  - id: ask-claude-conceptual-question
+    prompt: >-
+      Ask Claude what an adversarial code review is.
+    expect: skip
+    rationale: The user names Claude but asks a conceptual question, not for Claude to review code.
