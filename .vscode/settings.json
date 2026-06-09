@@ -1,4 +1,7 @@
 {
+  "files.associations": {
+    "mise.lock": "toml"
+  },
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
