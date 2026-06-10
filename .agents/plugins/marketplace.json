@@ -1,7 +1,7 @@
 {
   "name": "0xa3b-marketplace",
   "interface": {
-    "displayName": "0xA3B Marketplace"
+    "displayName": "0xA3B Skills"
   },
   "plugins": [
     {
