@@ -51,6 +51,8 @@ the user wants commit message text without staging or committing.
   config, docs, or the user.
 - Stop gathering context once the changed units, applicable commit rules, and safety constraints are
   clear enough to commit.
+- When release tooling is present, inspect its config or repository docs enough to know which commit
+  types, scopes, and breaking-change markers affect changelogs and version bumps.
 - Do not keep searching for alternative scopes or message phrasings after the commit plan is
   defensible.
 
@@ -60,6 +62,10 @@ the user wants commit message text without staging or committing.
 - Prefer repository-specific commit rules over this default profile.
 - Use `feat` for features, `fix` for bug fixes, and the most specific conventional type for other
   work: `docs`, `refactor`, `test`, `perf`, `style`, `build`, `ci`, `chore`, or `revert`.
+- Treat type and breaking-change markers as release-affecting when the repository uses
+  semantic-release, release-please, conventional-changelog, or similar tooling.
+- Choose `feat`, `fix`, `!`, and `BREAKING CHANGE:` according to the repository's release rules, not
+  just the apparent size of the diff.
 - Choose scope by intent or stable repository vocabulary rather than blindly mirroring folder names.
 - Use an imperative, lowercase subject with no trailing period unless repository rules say
   otherwise.
@@ -69,6 +75,8 @@ the user wants commit message text without staging or committing.
   when release tooling or reviewers need structured detail.
 - Return warnings only for assumptions that could change type, scope, body, footer, breaking-change
   handling, or commit partitioning.
+- If release tooling is present and the release impact is ambiguous, report the assumption before
+  committing.
 
 ## Commit Partitioning Rules
 

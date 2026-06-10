@@ -38,6 +38,8 @@ user wants changes staged and committed.
 - Prefer user-provided summaries or diffs when they are specific enough.
 - When inspecting the repository, read only the requested diff, current change summary, and nearby
   commit rules needed to draft confidently.
+- When release tooling is present, inspect its config or repository docs enough to know which commit
+  types, scopes, and breaking-change markers affect changelogs and version bumps.
 - Stop gathering context once the message unit(s), intent, and applicable rules are clear.
 - Do not keep searching for alternate wording after the message satisfies the requested output
   shape.
@@ -48,12 +50,18 @@ user wants changes staged and committed.
 - Prefer repository-specific commit rules over this default profile.
 - Use `feat` for features, `fix` for bug fixes, and the most specific conventional type for other
   work: `docs`, `refactor`, `test`, `perf`, `style`, `build`, `ci`, `chore`, or `revert`.
+- Treat type and breaking-change markers as release-affecting when the repository uses
+  semantic-release, release-please, conventional-changelog, or similar tooling.
+- Choose `feat`, `fix`, `!`, and `BREAKING CHANGE:` according to the repository's release rules, not
+  just the apparent size of the diff.
 - Choose scope by intent or stable repository vocabulary rather than blindly mirroring folder names.
 - Use an imperative, lowercase subject with no trailing period unless repository rules say
   otherwise.
 - Use a body for non-trivial refactors, high-risk fixes, performance work, and breaking changes.
 - Use `!` and/or a `BREAKING CHANGE: <description>` footer for breaking changes; include the footer
   when structured detail would help release tooling or reviewers.
+- If release tooling is present and the release impact is ambiguous, state the assumption instead of
+  hiding it.
 - Split message drafts when changes differ by type, scope, purpose, or rollback boundary.
 
 ## Default Workflow
