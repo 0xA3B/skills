@@ -105,9 +105,9 @@ Keep together when changes are jointly required for one behavior and should be r
 
 ## Minimal-Interaction Policy
 
-- MUST proceed without questions when intent is clear.
-- MUST treat "run commit" with no extra context as "commit all current changes."
-- MAY ask one short blocking question only when safe execution is impossible:
+- Proceed without questions when intent is clear.
+- Treat "run commit" with no extra context as "commit all current changes."
+- Surface blockers only when safe execution is impossible:
   - merge conflicts or rebase in progress
   - ambiguous overlapping hunks that cannot be safely split
   - empty working tree
@@ -123,7 +123,7 @@ If user provides extra context, apply it without switching to high-interaction m
 
 ## Safety Rules
 
-- MUST NOT use `git commit --no-verify` unless explicitly requested.
-- MUST NOT include ignored/local artifact paths unless explicitly requested.
-- MUST stop and report if conflicts prevent safe commit execution.
-- MUST keep staging and commit commands serialized.
+- Do not use `git commit --no-verify` unless explicitly requested.
+- Do not include ignored/local artifact paths unless explicitly requested.
+- Stop and report if conflicts prevent safe commit execution.
+- Keep staging and commit commands serialized.
