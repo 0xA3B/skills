@@ -1,7 +1,7 @@
 {
   "name": "engineering-workflows",
-  "version": "1.2.0",
-  "description": "Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance, durable terminology, disposable prototyping, building, TDD, diagnosis, architecture review, codebase orientation, and visual presentation artifacts.",
+  "version": "1.2.1",
+  "description": "Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance, durable terminology, disposable prototyping, building, TDD, diagnosis, architecture review, code review, codebase orientation, and visual presentation artifacts.",
   "author": {
     "name": "Alex Baker"
   },
@@ -15,6 +15,7 @@
     "build",
     "tdd",
     "architecture",
+    "review",
     "planning",
     "visualization",
     "terminology"
@@ -23,7 +24,7 @@
   "interface": {
     "displayName": "Engineering Workflows",
     "shortDescription": "Brainstorm, stress-test, maintain dependencies and terminology, prototype, build, diagnose, test, review, and visualize work.",
-    "longDescription": "Workflow skills for evidence-backed brainstorming, adversarial design review, dependency maintenance, durable project terminology, disposable prototyping, pragmatic building, disciplined debugging, test-driven development, architecture review, high-level codebase orientation, and temporary visual presentation artifacts. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
+    "longDescription": "Workflow skills for evidence-backed brainstorming, adversarial design review, dependency maintenance, durable project terminology, disposable prototyping, pragmatic building, disciplined debugging, test-driven development, architecture review, scoped code review, feedback triage, high-level codebase orientation, and temporary visual presentation artifacts. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],

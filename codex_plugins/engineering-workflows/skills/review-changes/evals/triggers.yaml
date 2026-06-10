@@ -1,0 +1,49 @@
+version: 1
+cases:
+  - id: review-current-changes
+    prompt: >-
+      Review my current changes before I commit.
+    expect: invoke
+    rationale: The user asks for a pre-commit review of current changes.
+
+  - id: review-worktree
+    prompt: >-
+      Review the worktree and fix anything valid.
+    expect: invoke
+    rationale: Worktree review is the default scope for this skill.
+
+  - id: review-staged-changes
+    prompt: >-
+      Review the staged changes before I commit them.
+    expect: invoke
+    rationale: Staged changes are a narrow pre-commit review target.
+
+  - id: review-what-we-changed
+    prompt: >-
+      We just finished coding. Review what we changed and clean up accepted issues.
+    expect: invoke
+    rationale: The user asks for post-session review of current changes.
+
+  - id: branch-review
+    prompt: >-
+      Review this branch against main before merge.
+    expect: skip
+    rationale: Branch review belongs to review-branch.
+
+  - id: pr-review
+    prompt: >-
+      Review PR #42 before it merges.
+    expect: skip
+    rationale: PR and branch review belong to review-branch.
+
+  - id: review-feedback
+    prompt: >-
+      Triage these reviewer comments and fix the valid ones.
+    expect: skip
+    rationale: Handling existing feedback belongs to review-feedback.
+
+  - id: conceptual-question
+    prompt: >-
+      What should a pre-commit review check for?
+    expect: skip
+    rationale: The user asks a conceptual question, not for a review workflow.

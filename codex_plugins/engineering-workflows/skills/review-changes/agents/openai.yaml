@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Review Changes"
+  short_description: "Review and fix current worktree changes"
+  default_prompt: "Review my current changes before I commit."
+policy:
+  allow_implicit_invocation: true

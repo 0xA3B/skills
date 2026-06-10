@@ -41,19 +41,22 @@ Skills for drafting and creating Conventional Commits.
 
 Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance,
 disposable prototyping, building, TDD, diagnosis, architecture review, durable terminology, codebase
-orientation, and visual presentation artifacts. Some skills are adapted from Matt Pocock's
-MIT-licensed [`mattpocock/skills`](https://github.com/mattpocock/skills) repository with source
-attribution preserved in each adapted skill's Agent Skills frontmatter metadata.
+orientation, scoped code review, review-feedback triage, and visual presentation artifacts. Some
+skills are adapted from Matt Pocock's MIT-licensed
+[`mattpocock/skills`](https://github.com/mattpocock/skills) repository with source attribution
+preserved in each adapted skill's Agent Skills frontmatter metadata.
 
 Typical implementation flow: `brainstorm` when solution direction is unclear, `grill-me` once a
 direction is selected and needs interrogation, `prototype` when a question needs disposable
 executable evidence, then `build` for greenfield or high-churn implementation and `tdd` for stable
 behavior. Use `terminology` when stable domain language needs a focused create, update, or review
-pass. `diagnose`, `zoom-out`, and `improve-codebase-architecture` are ad hoc workflows for specific
-needs. Use `dependency-maintenance` when dependency update PRs need evidence-backed triage, safe
-merges, local sync, and linked follow-up issues for migration or feature work. `visualize` is a
-manual presentation workflow for turning session output into a temporary visual artifact without
-changing the underlying analysis.
+pass. Use `review-changes` for worktree review before commit and `review-branch` for pre-merge
+branch review. `review-feedback` handles existing reviewer feedback. `diagnose`, `zoom-out`, and
+`improve-codebase-architecture` are ad hoc workflows for specific needs. Use
+`dependency-maintenance` when dependency update PRs need evidence-backed triage, safe merges, local
+sync, and linked follow-up issues for migration or feature work. `visualize` is a manual
+presentation workflow for turning session output into a temporary visual artifact without changing
+the underlying analysis.
 
 - [`engineering-workflows:brainstorm`](./codex_plugins/engineering-workflows/skills/brainstorm/):
   Researches and compares solution options before adversarial review.
@@ -66,6 +69,12 @@ changing the underlying analysis.
   disciplined diagnosis loop for bugs, flaky behavior, and performance regressions.
 - [`engineering-workflows:prototype`](./codex_plugins/engineering-workflows/skills/prototype/):
   Creates disposable exploratory code to answer a design question.
+- [`engineering-workflows:review-branch`](./codex_plugins/engineering-workflows/skills/review-branch/):
+  Reviews a branch, PR, or MR before merge.
+- [`engineering-workflows:review-changes`](./codex_plugins/engineering-workflows/skills/review-changes/):
+  Reviews and fixes current worktree changes before commit.
+- [`engineering-workflows:review-feedback`](./codex_plugins/engineering-workflows/skills/review-feedback/):
+  Triages and responds to existing review feedback.
 - [`engineering-workflows:tdd`](./codex_plugins/engineering-workflows/skills/tdd/): Builds features
   or fixes with a red-green-refactor loop.
 - [`engineering-workflows:grill-me`](./codex_plugins/engineering-workflows/skills/grill-me/):

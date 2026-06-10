@@ -1,0 +1,49 @@
+version: 1
+cases:
+  - id: handle-review-comments
+    prompt: >-
+      Address these review comments and fix the valid ones.
+    expect: invoke
+    rationale: The user asks to handle existing review comments.
+
+  - id: triage-sub-agent-findings
+    prompt: >-
+      Triage these sub-agent findings, push back where needed, and apply accepted fixes.
+    expect: invoke
+    rationale: The user asks to handle findings returned by reviewers.
+
+  - id: respond-to-pr-comments
+    prompt: >-
+      Respond to the PR comments and make the changes that are actually valid.
+    expect: invoke
+    rationale: PR comments are review feedback that needs triage before action.
+
+  - id: handle-claude-findings
+    prompt: >-
+      Claude returned these findings. Verify them and fix anything valid.
+    expect: invoke
+    rationale: Claude findings are external review feedback.
+
+  - id: review-my-code
+    prompt: >-
+      Review my current changes before I commit.
+    expect: skip
+    rationale: The user asks to generate a review, not handle existing feedback.
+
+  - id: bug-report
+    prompt: >-
+      The login flow crashes when I click save. Please fix it.
+    expect: skip
+    rationale: This is a first-party bug report, not reviewer feedback.
+
+  - id: implementation-request
+    prompt: >-
+      Add pagination to this endpoint.
+    expect: skip
+    rationale: This is an implementation request with no feedback artifact.
+
+  - id: conceptual-review-question
+    prompt: >-
+      What makes code review feedback useful?
+    expect: skip
+    rationale: The user asks a conceptual question, not to triage feedback.

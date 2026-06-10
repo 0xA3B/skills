@@ -26,6 +26,17 @@ external reviewer whose findings are suggestions to evaluate, not authoritative 
 - Once the user explicitly asks for Claude review, run `claude -p` without an interactive preflight.
   If Claude is unavailable, unauthenticated, or fails, report the failure and stop.
 
+## Review Workflow Integration
+
+Other review workflows may use this skill as the Claude reviewer adapter after the user explicitly
+asks for Claude or Claude Code. In that mode, the caller owns the review target, scope, and
+lane-specific review contract. This skill still owns Claude CLI invocation, read-only permissions,
+schema use, session follow-ups, and trust boundaries.
+
+Do not add Claude to another review workflow unless the user explicitly requested Claude or Claude
+Code. Treat each Claude process as an external reviewer whose findings must be verified and triaged
+before they are accepted.
+
 ## Trust Boundary
 
 - Claude is a read-only reviewer by instruction. The command grants Bash for broad exploration, so

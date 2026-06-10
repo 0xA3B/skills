@@ -1,0 +1,49 @@
+version: 1
+cases:
+  - id: review-branch-against-main
+    prompt: >-
+      Review this branch against main before merge.
+    expect: invoke
+    rationale: The user asks for branch-vs-base review.
+
+  - id: pre-merge-review
+    prompt: >-
+      Run a pre-merge review of the current branch.
+    expect: invoke
+    rationale: Pre-merge review maps to branch review.
+
+  - id: review-pr
+    prompt: >-
+      Review PR #42 before it merges.
+    expect: invoke
+    rationale: PR review is branch review scope.
+
+  - id: review-mr
+    prompt: >-
+      Review this merge request against trunk.
+    expect: invoke
+    rationale: MR review with an explicit base is branch review scope.
+
+  - id: review-current-changes
+    prompt: >-
+      Review my current changes before I commit.
+    expect: skip
+    rationale: Current worktree review belongs to review-changes.
+
+  - id: review-worktree
+    prompt: >-
+      Review the worktree and clean up accepted findings.
+    expect: skip
+    rationale: Worktree review belongs to review-changes.
+
+  - id: review-feedback
+    prompt: >-
+      Handle these sub-agent findings from the review.
+    expect: skip
+    rationale: Handling existing feedback belongs to review-feedback.
+
+  - id: architecture-review
+    prompt: >-
+      Review this codebase architecture and suggest better module boundaries.
+    expect: skip
+    rationale: Full architecture review belongs to improve-codebase-architecture.

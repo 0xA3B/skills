@@ -2,17 +2,19 @@
 
 Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance,
 disposable prototyping, building, TDD, diagnosis, architecture review, durable terminology, codebase
-orientation, and visual presentation artifacts.
+orientation, scoped code review, review-feedback triage, and visual presentation artifacts.
 
 Typical implementation flow: `brainstorm` when solution direction is unclear, `grill-me` once a
 direction is selected and needs interrogation, `prototype` when a question needs disposable
 executable evidence, then `build` for greenfield or high-churn implementation and `tdd` for stable
 behavior. Use `terminology` when stable domain language needs a focused create, update, or review
-pass. `diagnose`, `zoom-out`, and `improve-codebase-architecture` are ad hoc workflows for specific
-needs. Use `dependency-maintenance` when dependency update PRs need evidence-backed triage, safe
-merges, local sync, and linked follow-up issues for migration or feature work. `visualize` is a
-manual presentation workflow for turning session output into a temporary visual artifact without
-changing the underlying analysis.
+pass. Use `review-changes` for worktree review before commit and `review-branch` for pre-merge
+branch review. `review-feedback` handles existing reviewer feedback. `diagnose`, `zoom-out`, and
+`improve-codebase-architecture` are ad hoc workflows for specific needs. Use
+`dependency-maintenance` when dependency update PRs need evidence-backed triage, safe merges, local
+sync, and linked follow-up issues for migration or feature work. `visualize` is a manual
+presentation workflow for turning session output into a temporary visual artifact without changing
+the underlying analysis.
 
 Some skills are adapted from Matt Pocock's MIT-licensed
 [`mattpocock/skills`](https://github.com/mattpocock/skills) repository. Adapted skills include Agent
@@ -29,6 +31,9 @@ MIT license notice from the source repository is preserved in [LICENSE](./LICENS
 - `engineering-workflows:diagnose`: Run a disciplined diagnosis loop for bugs, flaky behavior, and
   performance regressions.
 - `engineering-workflows:prototype`: Create disposable exploratory code to answer a design question.
+- `engineering-workflows:review-branch`: Review a branch, PR, or MR before merge.
+- `engineering-workflows:review-changes`: Review and fix current worktree changes before commit.
+- `engineering-workflows:review-feedback`: Triage and respond to existing review feedback.
 - `engineering-workflows:tdd`: Build features or fixes with a red-green-refactor loop.
 - `engineering-workflows:grill-me`: Stress-test an approach through adversarial questioning.
 - `engineering-workflows:terminology`: Create, update, or review durable project terminology.

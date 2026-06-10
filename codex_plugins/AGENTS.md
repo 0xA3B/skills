@@ -98,5 +98,9 @@ These instructions apply to plugin directories under `codex_plugins/`.
 
 - Run `pnpm lint:plugins` after adding or changing plugin manifests, marketplace entries, skill
   frontmatter, or `agents/openai.yaml`.
+- Run trigger evals when changing an implicitly invokable skill's `SKILL.md` frontmatter
+  `description`, `agents/openai.yaml` invocation policy, or trigger fixtures. The `description` is
+  the trigger contract; body-only `SKILL.md` changes affect behavior after invocation and do not
+  require trigger evals.
 - Run `pnpm format:check` when Markdown, JSON, YAML, or TypeScript files changed.
 - Run `pnpm lint` and `pnpm typecheck` when TypeScript validation tooling changed.
