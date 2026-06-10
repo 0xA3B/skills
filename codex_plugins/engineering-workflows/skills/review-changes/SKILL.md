@@ -1,10 +1,10 @@
 ---
 name: review-changes
 description: >-
-  Review current worktree or narrow pre-commit changes after a coding session. Use when the user
-  asks to review current changes, worktree changes, staged changes, or review before committing.
-  Runs simplification and code-review lanes, triages findings, and applies accepted in-scope fixes.
-  Do not use for conceptual questions about review criteria.
+  Review current worktree, WIP, or narrow pre-commit changes after a coding session. Use when the
+  user asks to review current changes, worktree changes, staged changes, work-in-progress changes,
+  or review before committing. Runs simplification and code-review lanes, triages findings, and
+  applies accepted in-scope fixes. Do not use for conceptual questions about review criteria.
 ---
 
 # Review Changes
@@ -29,6 +29,10 @@ Do not use this workflow for conceptual questions about what review should check
 Read `../../references/review-lanes.md` before launching reviewers. Run the required
 `simplification` and `code review` lanes over the current worktree target, and add extra lanes only
 when the changed surface would otherwise overload the required lanes.
+
+If the user explicitly asks to review the worktree against a provided spec, issue, acceptance
+criteria, or similar source of intended behavior, add a lightweight `spec adherence` lane instead of
+folding that review into the general `code review` lane.
 
 ## Sub-Agent Policy
 

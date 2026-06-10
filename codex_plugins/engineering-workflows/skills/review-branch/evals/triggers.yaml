@@ -24,11 +24,23 @@ cases:
     expect: invoke
     rationale: MR review with an explicit base is branch review scope.
 
+  - id: review-wip-branch
+    prompt: >-
+      Review this WIP branch before merge.
+    expect: invoke
+    rationale: WIP branch review before merge is branch review scope.
+
   - id: review-current-changes
     prompt: >-
       Review my current changes before I commit.
     expect: skip
     rationale: Current worktree review belongs to review-changes.
+
+  - id: review-current-wip
+    prompt: >-
+      Review my current WIP.
+    expect: skip
+    rationale: Current WIP without branch scope belongs to review-changes.
 
   - id: review-worktree
     prompt: >-

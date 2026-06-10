@@ -1,9 +1,10 @@
 ---
 name: review-branch
 description: >-
-  Review a branch, PR, MR, or branch-vs-base diff before merge. Use when the user asks for branch
-  review, pre-merge review, PR review, MR review, or review against a base branch. Runs review
-  lanes, triages findings decision-first, and applies approved fixes after triage when appropriate.
+  Review a branch, WIP branch, PR, MR, or branch-vs-base diff before merge. Use when the user asks
+  for branch review, pre-merge review, PR review, MR review, or review against a base branch. Runs
+  review lanes, triages findings decision-first, and applies approved fixes after triage when
+  appropriate.
 ---
 
 # Review Branch
@@ -41,6 +42,12 @@ relevant; call out that they are included.
 Read `../../references/review-lanes.md` before launching reviewers. Run the required
 `simplification` and `code review` lanes over the branch target, and add extra lanes when branch
 size or risk justifies them.
+
+If the user provides a spec, PRD, issue, acceptance criteria, design doc, or similar source of
+intended behavior, add a separate `spec adherence` lane. Keep it separate from the general
+`code review` lane so implementation bugs, missing requirements, contradictory behavior, and scope
+creep are triaged without blurring the evidence source. Require the lane to cite the spec source for
+each finding.
 
 ## Sub-Agent Policy
 

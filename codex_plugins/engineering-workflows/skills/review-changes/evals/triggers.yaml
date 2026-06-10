@@ -24,11 +24,29 @@ cases:
     expect: invoke
     rationale: The user asks for post-session review of current changes.
 
+  - id: review-current-wip
+    prompt: >-
+      Review my current WIP.
+    expect: invoke
+    rationale: Current WIP maps to current worktree or pre-commit changes.
+
+  - id: review-wip-changes
+    prompt: >-
+      Can you review these work-in-progress changes before I commit?
+    expect: invoke
+    rationale: Work-in-progress changes before commit are review-changes scope.
+
   - id: branch-review
     prompt: >-
       Review this branch against main before merge.
     expect: skip
     rationale: Branch review belongs to review-branch.
+
+  - id: review-wip-branch
+    prompt: >-
+      Review this WIP branch before merge.
+    expect: skip
+    rationale: Branch-scoped WIP review belongs to review-branch.
 
   - id: pr-review
     prompt: >-
