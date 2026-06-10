@@ -25,9 +25,8 @@ After adding or upgrading the marketplace, install the desired plugins from Code
 
 Runs Claude Code from Codex for adversarial code review, feedback triage, and in-scope fixes.
 
-> [!WARNING]
-> This runs Claude non-interactively (`claude -p`) and may consume credits rather than Claude
-> subscription usage.
+> [!WARNING] This runs Claude non-interactively (`claude -p`) and may consume credits rather than
+> Claude subscription usage.
 
 - [`claudex:adversarial-review`](./codex_plugins/claudex/skills/adversarial-review/): Invokes Claude
   Code as a read-only adversarial reviewer, triages findings as external feedback, and applies
