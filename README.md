@@ -1,6 +1,7 @@
 # Skills
 
-Personal skills and workflows for AI agents.
+These are my skills and workflows for AI agents. You can use them directly or just explore for
+inspiration.
 
 ## Install
 
@@ -23,6 +24,10 @@ After adding or upgrading the marketplace, install the desired plugins from Code
 ### `claudex`
 
 Runs Claude Code from Codex for adversarial code review, feedback triage, and in-scope fixes.
+
+> [!WARNING]
+> This runs Claude non-interactively (`claude -p`) and may consume credits rather than Claude
+> subscription usage.
 
 - [`claudex:adversarial-review`](./codex_plugins/claudex/skills/adversarial-review/): Invokes Claude
   Code as a read-only adversarial reviewer, triages findings as external feedback, and applies
