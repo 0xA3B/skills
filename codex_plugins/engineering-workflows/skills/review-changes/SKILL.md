@@ -3,8 +3,9 @@ name: review-changes
 description: >-
   Review current worktree, WIP, or narrow pre-commit changes after a coding session. Use when the
   user asks to review current changes, worktree changes, staged changes, work-in-progress changes,
-  or review before committing. Runs simplification and code-review lanes, triages findings, and
-  applies accepted in-scope fixes. Do not use for conceptual questions about review criteria.
+  or review before committing. Calibrates review depth to change risk, triages findings, and applies
+  accepted in-scope fixes. Do not use for conceptual questions about review criteria or this skill's
+  design.
 ---
 
 # Review Changes
@@ -24,11 +25,26 @@ provides a path or narrow target, review only that target. If there are no workt
 and ask whether to review a commit or branch range instead; do not silently become a branch review.
 Do not use this workflow for conceptual questions about what review should check.
 
+## Review Depth
+
+Calibrate review depth to risk and user intent before launching lanes.
+
+For small, low-risk diffs such as docs wording, comments, metadata text, or narrow configuration
+edits, do a lightweight review in the main thread: inspect the diff, check for obvious behavior or
+policy regressions, run the smallest relevant validation, and report concise findings.
+
+Use the full lane workflow when the change is non-trivial, behavior-affecting, cross-cutting,
+security-sensitive, release-affecting, or when the user explicitly asks for a full review.
+
+Use sub-agents only when permitted by the current environment and justified by authorship bias,
+risk, or review size. If sub-agents are unavailable or not permitted, report that limitation and
+complete the strongest safe local review instead of stopping on low-risk changes.
+
 ## Review Lanes
 
-Read `../../references/review-lanes.md` before launching reviewers. Run the required
-`simplification` and `code review` lanes over the current worktree target, and add extra lanes only
-when the changed surface would otherwise overload the required lanes.
+For full reviews, read `../../references/review-lanes.md` before launching reviewers. Run the
+required `simplification` and `code review` lanes over the current worktree target, and add extra
+lanes only when the changed surface would otherwise overload the required lanes.
 
 If the user explicitly asks to review the worktree against a provided spec, issue, acceptance
 criteria, or similar source of intended behavior, add a lightweight `spec adherence` lane instead of
@@ -36,19 +52,19 @@ folding that review into the general `code review` lane.
 
 ## Sub-Agent Policy
 
-If this chat session wrote or substantially edited the code under review, the main agent must not
-own a required review lane. Spawn one sub-agent per required lane and keep the main agent as
-coordinator, triager, fixer, and validator.
+For full reviews, if this chat session wrote or substantially edited the code under review, the main
+agent should not own a required review lane when sub-agents are permitted. Spawn one sub-agent per
+required lane and keep the main agent as coordinator, triager, fixer, and validator.
 
-Do not waive this authorship-bias rule because the review seems small, the user wants to save time,
-or the user asks the main agent to personally handle every lane. In that situation, state the
-constraint and use sub-agents when review can proceed. If sub-agents are unavailable, stop and
-report that the required independent-lane review cannot be completed in this session.
+Do not waive authorship-bias concerns merely because the user wants to save time or asks the main
+agent to personally handle every lane. In that situation, state the limitation and use sub-agents
+when review can proceed. If sub-agents are unavailable or not permitted, complete a local review
+that is honest about that limitation instead of pretending the review was independent.
 
 If this is a fresh session or the main agent did not author the reviewed changes, the main agent may
-own one lane and spawn at least one sub-agent for the other lane. For large, cross-cutting,
-security-sensitive, migration-heavy, or high-risk changes, keep the main agent as coordinator and
-spawn all required lanes plus any extra lanes that risk justifies.
+own one lane and spawn at least one sub-agent for the other lane when the environment permits it.
+For large, cross-cutting, security-sensitive, migration-heavy, or high-risk changes, keep the main
+agent as coordinator and spawn all required lanes plus any extra lanes that risk justifies.
 
 ## Optional Claude Review
 

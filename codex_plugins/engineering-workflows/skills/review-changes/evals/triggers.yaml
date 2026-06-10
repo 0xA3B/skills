@@ -36,6 +36,12 @@ cases:
     expect: invoke
     rationale: Work-in-progress changes before commit are review-changes scope.
 
+  - id: casual-review-current-edits
+    prompt: >-
+      I made a couple refinements. Let me know what you think.
+    expect: invoke
+    rationale: The user asks for review of current worktree edits in a conversational way.
+
   - id: branch-review
     prompt: >-
       Review this branch against main before merge.
@@ -65,3 +71,9 @@ cases:
       What should a pre-commit review check for?
     expect: skip
     rationale: The user asks a conceptual question, not for a review workflow.
+
+  - id: review-changes-skill-design
+    prompt: >-
+      What do you think about the review-changes skill trigger behavior?
+    expect: skip
+    rationale: The user asks about skill design, not for a worktree review.
