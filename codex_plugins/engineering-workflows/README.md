@@ -12,9 +12,9 @@ pass. Use `review-changes` for worktree review before commit and `review-branch`
 branch review. `review-feedback` handles existing reviewer feedback. `diagnose`, `zoom-out`, and
 `improve-codebase-architecture` are ad hoc workflows for specific needs. Use
 `dependency-maintenance` when dependency update PRs need evidence-backed triage, safe merges, local
-sync, and linked follow-up issues for migration or feature work. `visualize` is a manual
-presentation workflow for turning session output into a temporary visual artifact without changing
-the underlying analysis.
+sync, repo-pinned tooling refreshes, and linked follow-up issues for migration or feature work.
+`visualize` is a manual presentation workflow for turning session output into a temporary visual
+artifact without changing the underlying analysis.
 
 Some skills are adapted from Matt Pocock's MIT-licensed
 [`mattpocock/skills`](https://github.com/mattpocock/skills) repository. Adapted skills include Agent
@@ -27,7 +27,7 @@ MIT license notice from the source repository is preserved in [LICENSE](./LICENS
   review.
 - `engineering-workflows:build`: Implement working slices with pragmatic validation.
 - `engineering-workflows:dependency-maintenance`: Review dependency update PRs, merge ready ones,
-  sync local state, and file linked follow-up issues.
+  sync local state, refresh repo-pinned tooling, and file linked follow-up issues.
 - `engineering-workflows:diagnose`: Run a disciplined diagnosis loop for bugs, flaky behavior, and
   performance regressions.
 - `engineering-workflows:prototype`: Create disposable exploratory code to answer a design question.

@@ -1,9 +1,10 @@
 version: 1
 interface:
   display_name: "Dependency Maintenance"
-  short_description: "Review dependency PRs and file follow-ups"
+  short_description: "Merge safe dependency PRs and refresh repo pins"
   default_prompt:
     "Use $engineering-workflows:dependency-maintenance to review dependency update PRs, merge ready
-    ones, sync local state, and create linked follow-up issues."
+    ones, sync local state, refresh repo-pinned tooling, and create linked follow-up issues for
+    blocked work."
 policy:
   allow_implicit_invocation: false
