@@ -2,17 +2,18 @@
 name: dependency-maintenance
 description: >-
   Review dependency update PRs across package managers and forges, decide whether they are safe to
-  merge, merge only ready updates, sync local dependency state, and create linked follow-up issues
-  for breaking changes, validation failures, or useful new features. Use when the user asks to
-  review Dependabot, Renovate, lockfile maintenance, security, runtime, package-manager, or other
-  dependency update PRs.
+  merge, merge only ready updates, sync local dependency state, refresh repo-pinned tooling through
+  small maintenance PRs, and create linked follow-up issues for breaking changes, validation
+  failures, or useful new features. Use when the user asks to review Dependabot, Renovate, lockfile
+  maintenance, security, runtime, package-manager, or other dependency update PRs.
 license: MIT
 ---
 
 # Dependency Maintenance
 
-Review dependency update PRs, merge only updates that are ready as-is, and leave durable follow-up
-state for anything that needs code, migration, or product judgment.
+Review dependency update PRs, merge only updates that are ready as-is, refresh repo-pinned
+dependency tooling, and leave durable follow-up state for anything that needs code, migration, or
+product judgment.
 
 ## Outcome
 
@@ -21,6 +22,8 @@ The repository's dependency update queue is triaged with clear evidence:
 - Safe, green dependency PRs are merged through the repo's normal forge workflow.
 - Local state is fast-forwarded and refreshed when the worktree is clean and the user asked for a
   full maintenance pass.
+- Repo-pinned runtime, package-manager, and updater tool pins that dependency bots do not cover are
+  refreshed through a small maintenance PR when validation and forge checks pass.
 - PRs that are not ready have durable state: labels, comments, or linked issues that explain the
   blocker and next action.
 - Breaking changes, required migrations, failed validation, and concrete feature opportunities are
@@ -35,11 +38,15 @@ The repository's dependency update queue is triaged with clear evidence:
   unclear diff scope.
 - Do not invent repository labels by default. Discover existing labels first and use the closest
   existing state labels when helpful.
-- Do not update user-global tools or machine-wide package managers unless the user explicitly asks.
+- Do not update user-global tools or machine-wide package managers. Keep tooling updates scoped to
+  tracked, repo-pinned project state unless the user explicitly asks for a separate global-tool
+  task.
+- Do not change runtime majors, package-manager policy, or CI setup behavior as a drive-by tooling
+  refresh when the release notes or diff indicate migration work is needed.
 
 Allowed side effects are limited to dependency PR review, safe dependency PR merges, local
 fast-forward and install/runtime refreshes, PR labels/comments, follow-up issue creation, and
-explicitly requested repo-pinned tooling update PRs.
+repo-pinned tooling update PRs for full maintenance passes.
 
 ## Workflow
 
@@ -163,28 +170,31 @@ Keep local environment refresh separate from source edits. If install or validat
 the failing command, classify the remaining work, and create durable follow-up state when
 appropriate.
 
-### 8. Inspect Local Tooling Updates
+### 8. Refresh Repo-Pinned Tooling
 
-For a full maintenance pass, inspect repo-pinned tools that dependency bots may not cover:
+Treat an explicit invocation of this skill as a full maintenance pass unless the user narrows the
+scope. In a full maintenance pass, inspect and refresh repo-pinned tools that dependency bots may
+not cover:
 
 - Runtime pins, package-manager pins, tool lockfiles, CI setup actions, plugin versions, and
   repository-local updater policy.
 - Existing dependency bot coverage to avoid duplicating work.
 
-Do not update these tools in the default workflow. If the user explicitly asks for repo-pinned
-tooling updates as part of the maintenance pass, do that work after dependency PR decisions and
-merges are complete, keep it in a separate local-change phase, and validate it through the
-repository's canonical install and check workflow.
+If the user narrows scope to dependency PR triage only, skip tooling updates and say what was
+skipped. Otherwise, do this work after dependency PR decisions and merges are complete, keep it in a
+separate local-change phase, and validate it through the repository's canonical install and check
+workflow.
 
-When an explicitly requested tooling update changes tracked project state, include every generated
-manifest, version-pin, lockfile, and related metadata change needed to make the update reproducible.
-Create a small maintenance PR through the repository's normal branch, commit, and forge workflow,
-then merge it after its required checks pass and the diff remains limited to the requested local
-update. If local validation, PR creation, checks, or merge permissions fail, leave the PR or branch
-with durable blocker context instead of forcing the change through another path.
+When a tooling update changes tracked project state, include every generated manifest, version-pin,
+lockfile, and related metadata change needed to make the update reproducible. Create a small
+maintenance PR through the repository's normal branch, commit, and forge workflow, then merge it
+after its required checks pass and the diff remains limited to the repo-pinned tooling update. If
+local validation, PR creation, checks, or merge permissions fail, leave the PR or branch with
+durable blocker context instead of forcing the change through another path.
 
-If an update merely appears useful or necessary, create a follow-up issue with the current version,
-available version, ownership surface, reason to update, and suggested validation.
+If an update would require migration, policy changes, major runtime changes, or unrelated source
+edits, create a follow-up issue with the current version, available version, ownership surface,
+reason to update, and suggested validation instead of broadening the maintenance PR.
 
 ## Final Report
 
