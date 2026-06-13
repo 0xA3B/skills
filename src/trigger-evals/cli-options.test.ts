@@ -4,7 +4,7 @@ import { HelpRequested, parseTriggerEvalCliOptions } from "./cli-options.js";
 
 describe("parseTriggerEvalCliOptions", () => {
   it("accepts just a skill path", () => {
-    expect(parseTriggerEvalCliOptions(["codex_plugins/foo/skills/bar"])).toEqual({
+    expect(parseTriggerEvalCliOptions(["codex_plugins/foo/skills/bar"])).toStrictEqual({
       skillPath: "codex_plugins/foo/skills/bar",
     });
   });
@@ -27,7 +27,7 @@ describe("parseTriggerEvalCliOptions", () => {
         "/tmp/codex",
         "--force",
       ]),
-    ).toEqual({
+    ).toStrictEqual({
       skillPath: "codex_plugins/foo/skills/bar",
       fixturePath: "custom.yaml",
       caseId: "case-a",
@@ -40,7 +40,7 @@ describe("parseTriggerEvalCliOptions", () => {
   });
 
   it("ignores the package-manager argument separator", () => {
-    expect(parseTriggerEvalCliOptions(["--", "codex_plugins/foo/skills/bar"])).toEqual({
+    expect(parseTriggerEvalCliOptions(["--", "codex_plugins/foo/skills/bar"])).toStrictEqual({
       skillPath: "codex_plugins/foo/skills/bar",
     });
   });

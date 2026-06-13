@@ -4,11 +4,13 @@ import { parseCliOptions } from "./cli-options.js";
 
 describe("CLI option parsing", () => {
   it("accepts the external validation flag", () => {
-    expect(parseCliOptions(["--external"])).toEqual({ externalValidationEnabled: true });
+    expect(parseCliOptions(["--external"])).toStrictEqual({ externalValidationEnabled: true });
   });
 
   it("ignores the package-manager argument separator", () => {
-    expect(parseCliOptions(["--", "--external"])).toEqual({ externalValidationEnabled: true });
+    expect(parseCliOptions(["--", "--external"])).toStrictEqual({
+      externalValidationEnabled: true,
+    });
   });
 
   it("rejects unknown options", () => {

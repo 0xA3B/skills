@@ -50,7 +50,7 @@ describe("lint runner", () => {
       const result = await lintPlugins({ repoRoot });
 
       expect(result.errorCount).toBe(2);
-      expect(ruleIds(result.context)).toEqual(
+      expect(ruleIds(result.context)).toStrictEqual(
         expect.arrayContaining(["coverage/manifest-listed", "parse/json"]),
       );
     });
@@ -71,8 +71,8 @@ describe("lint runner", () => {
         }),
       });
       const previousExitCode = process.exitCode;
-      const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-      const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const log = vi.spyOn(console, "log").mockReturnValue(undefined);
+      const error = vi.spyOn(console, "error").mockReturnValue(undefined);
 
       try {
         await runLintPlugins({ repoRoot });

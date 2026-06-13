@@ -1,8 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { warning } from "./diagnostics.js";
-import type { ValidationContext } from "./diagnostics.js";
+import { type ValidationContext, warning } from "./diagnostics.js";
 import { isObject } from "./schema.js";
 import type { Catalog, JsonObject } from "./types.js";
 import { parseHttpUrlString } from "./urls.js";

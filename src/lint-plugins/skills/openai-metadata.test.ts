@@ -50,7 +50,7 @@ describe("OpenAI skill metadata validation", () => {
 
       await validateOpenAiMetadata(context, "hello", metadataPath);
 
-      expect(context.diagnostics).toEqual([]);
+      expect(context.diagnostics).toStrictEqual([]);
     });
   });
 
@@ -77,7 +77,7 @@ describe("OpenAI skill metadata validation", () => {
 
       await validateOpenAiMetadata(context, "hello", metadataPath);
 
-      expect(ruleIds(context)).toEqual(
+      expect(ruleIds(context)).toStrictEqual(
         expect.arrayContaining([
           "repo/openai-metadata-version",
           "openai-metadata/key",

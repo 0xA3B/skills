@@ -2,8 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 
 import { parse as parseYaml } from "yaml";
 
-import { error } from "./diagnostics.js";
-import type { ValidationContext } from "./diagnostics.js";
+import { error, type ValidationContext } from "./diagnostics.js";
 import { isObject } from "./schema.js";
 import type { JsonObject } from "./types.js";
 import { errorMessage } from "./utils.js";

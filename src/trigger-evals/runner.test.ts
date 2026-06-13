@@ -27,7 +27,7 @@ const mockState = vi.hoisted(() => ({
   stopWhenPredicates: [] as Array<(output: { stdout: string; stderr: string }) => boolean>,
 }));
 
-vi.mock("./codex-exec.js", () => ({
+vi.mock(import("./codex-exec.js"), () => ({
   runCodexExec: vi.fn<
     (options: {
       codexHome: string;
@@ -58,7 +58,7 @@ vi.mock("./codex-exec.js", () => ({
   }),
 }));
 
-vi.mock("./codex-home.js", () => ({
+vi.mock(import("./codex-home.js"), () => ({
   prepareCodexHome: vi.fn<() => Promise<void>>(async () => undefined),
   removeCopiedAuth: vi.fn<() => Promise<void>>(async () => undefined),
 }));
@@ -123,7 +123,7 @@ describe("runTriggerEval", () => {
       concurrency: 2,
     });
 
-    expect(result.results.map((caseResult) => caseResult.caseId)).toEqual([
+    expect(result.results.map((caseResult) => caseResult.caseId)).toStrictEqual([
       "case-a",
       "case-b",
       "case-c",
@@ -136,7 +136,7 @@ describe("runTriggerEval", () => {
     );
     expect(mockState.maxActiveExecs).toBe(2);
     expect(new Set(mockState.codexHomes).size).toBe(4);
-    expect(new Set(mockState.sandboxModes)).toEqual(new Set(["read-only"]));
+    expect(new Set(mockState.sandboxModes)).toStrictEqual(new Set(["read-only"]));
     expect(
       mockState.stopWhenPredicates[0]?.({
         stdout: "",
@@ -214,7 +214,7 @@ describe("runTriggerEval", () => {
       passed: true,
     });
     expect(result.results[0]?.durationMs).toBeGreaterThanOrEqual(0);
-    expect(mockState.sandboxModes).toEqual(["workspace-write"]);
+    expect(mockState.sandboxModes).toStrictEqual(["workspace-write"]);
     const repoLocalWorkspace = mockState.workspacePaths[0];
     const skillBody = await readFile(
       path.join(repoLocalWorkspace ?? "", ".agents", "skills", "auto-skill", "SKILL.md"),
@@ -290,10 +290,10 @@ async function buildMockCodexResult(options: {
 }
 
 function frontmatterDescription(content: string): string {
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  expect(match?.[1]).toBeDefined();
-  const metadata = parseYaml(match?.[1] ?? "") as { description?: unknown };
-  expect(typeof metadata.description).toBe("string");
+  const match = content.match(/^---\r?\n(?<frontmatter>[\s\S]*?)\r?\n---/);
+  expect(match?.groups?.["frontmatter"]).toBeDefined();
+  const metadata = parseYaml(match?.groups?.["frontmatter"] ?? "") as { description?: unknown };
+  expect(metadata.description).toBeTypeOf("string");
   return metadata.description as string;
 }
 

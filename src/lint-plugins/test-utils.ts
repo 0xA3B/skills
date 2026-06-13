@@ -4,8 +4,7 @@ import path from "node:path";
 
 import { stringify as stringifyYaml } from "yaml";
 
-import type { Diagnostic, ValidationContext } from "./diagnostics.js";
-import { createValidationContext } from "./diagnostics.js";
+import { createValidationContext, type Diagnostic, type ValidationContext } from "./diagnostics.js";
 import type { JsonObject, LocalCatalogEntry } from "./types.js";
 
 type MarketplacePlugin = {

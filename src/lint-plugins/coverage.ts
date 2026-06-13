@@ -1,8 +1,7 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { error, warning } from "./diagnostics.js";
-import type { ValidationContext } from "./diagnostics.js";
+import { error, type ValidationContext, warning } from "./diagnostics.js";
 import { readJsonObject } from "./files.js";
 import type { Catalog } from "./types.js";
 

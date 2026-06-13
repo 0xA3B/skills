@@ -29,7 +29,7 @@ describe("plugin manifest validation", () => {
 
       await validatePlugin(context, validLocalCatalogEntry(repoRoot));
 
-      expect(context.diagnostics).toEqual([]);
+      expect(context.diagnostics).toStrictEqual([]);
     });
   });
 
@@ -53,7 +53,7 @@ describe("plugin manifest validation", () => {
 
       await validatePlugin(context, validLocalCatalogEntry(repoRoot));
 
-      expect(ruleIds(context)).toEqual(
+      expect(ruleIds(context)).toStrictEqual(
         expect.arrayContaining([
           "alignment/name",
           "alignment/directory-name",

@@ -33,7 +33,7 @@ describe("Agent Skills frontmatter validation", () => {
 
       await validateSkillFrontmatter(context, "hello", skillPath);
 
-      expect(context.diagnostics).toEqual([]);
+      expect(context.diagnostics).toStrictEqual([]);
     });
   });
 
@@ -56,7 +56,7 @@ describe("Agent Skills frontmatter validation", () => {
 
       await validateSkillFrontmatter(context, "Bad--Name", skillPath);
 
-      expect(ruleIds(context)).toEqual(
+      expect(ruleIds(context)).toStrictEqual(
         expect.arrayContaining([
           "agentskills/body",
           "agentskills/frontmatter-key",
@@ -92,7 +92,7 @@ describe("Agent Skills frontmatter validation", () => {
 
       await validateSkillFrontmatter(context, "fenced", skillPath);
 
-      expect(context.diagnostics).toEqual([]);
+      expect(context.diagnostics).toStrictEqual([]);
     });
   });
 
@@ -114,7 +114,7 @@ describe("Agent Skills frontmatter validation", () => {
 
       await validateSkillFrontmatter(context, "manual", skillPath);
 
-      expect(ruleIds(context)).toEqual(["repo/unsupported-skill-key"]);
+      expect(ruleIds(context)).toStrictEqual(["repo/unsupported-skill-key"]);
     });
   });
 
@@ -137,7 +137,7 @@ describe("Agent Skills frontmatter validation", () => {
 
       await validateSkillFrontmatter(context, longName, skillPath);
 
-      expect(ruleIds(context)).toEqual(
+      expect(ruleIds(context)).toStrictEqual(
         expect.arrayContaining([
           "agentskills/name-format",
           "agentskills/description-length",
@@ -170,7 +170,7 @@ describe("Agent Skills frontmatter validation", () => {
 
       await validateSkillFrontmatter(context, "large", skillPath);
 
-      expect(ruleIds(context)).toEqual(["agentskills/body-lines", "agentskills/body-tokens"]);
+      expect(ruleIds(context)).toStrictEqual(["agentskills/body-lines", "agentskills/body-tokens"]);
       expect(diagnosticByRule(context, "agentskills/body-lines")?.severity).toBe("warning");
       expect(diagnosticByRule(context, "agentskills/body-tokens")?.severity).toBe("warning");
     });
@@ -196,7 +196,7 @@ describe("Agent Skills frontmatter validation", () => {
 
       await validateSkillFrontmatter(context, "limit", skillPath);
 
-      expect(context.diagnostics).toEqual([]);
+      expect(context.diagnostics).toStrictEqual([]);
     });
   });
 });

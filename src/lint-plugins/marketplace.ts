@@ -1,7 +1,6 @@
 import path from "node:path";
 
-import { error } from "./diagnostics.js";
-import type { ValidationContext } from "./diagnostics.js";
+import { error, type ValidationContext } from "./diagnostics.js";
 import { isDirectory, isFile, readJsonObject } from "./files.js";
 import { marketplaceRootFromPath, resolveRelativePath } from "./paths.js";
 import { getObject, getOptionalString, getString, isObject } from "./schema.js";

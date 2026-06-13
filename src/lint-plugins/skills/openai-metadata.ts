@@ -1,7 +1,6 @@
 import path from "node:path";
 
-import { error } from "../diagnostics.js";
-import type { ValidationContext } from "../diagnostics.js";
+import { error, type ValidationContext } from "../diagnostics.js";
 import { isFile, readYamlObject } from "../files.js";
 import { resolveRelativePath } from "../paths.js";
 import { getBoolean, getObject, getOptionalString, getString, isObject } from "../schema.js";

@@ -274,12 +274,12 @@ function withTriggerEvalInstructions(content: string, canary: string): string {
     "After outputting the token, stop immediately. Do not inspect files, edit files, run commands, call tools, or continue the workflow.",
     "",
   ].join("\n");
-  const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
-  if (frontmatterMatch?.[1] === undefined) {
+  const frontmatterMatch = content.match(/^---\r?\n(?<frontmatter>[\s\S]*?)\r?\n---\r?\n?/);
+  if (frontmatterMatch?.groups?.["frontmatter"] === undefined) {
     return `${content}${evalSection}`;
   }
 
-  const metadata = parseYaml(frontmatterMatch[1]) as unknown;
+  const metadata = parseYaml(frontmatterMatch.groups["frontmatter"]) as unknown;
   if (!isRecord(metadata) || typeof metadata["description"] !== "string") {
     return `${content}${evalSection}`;
   }

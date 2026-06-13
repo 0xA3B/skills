@@ -1,5 +1,4 @@
-import { error } from "./diagnostics.js";
-import type { ValidationContext } from "./diagnostics.js";
+import { error, type ValidationContext } from "./diagnostics.js";
 
 export function parseHttpUrlString(
   context: ValidationContext,

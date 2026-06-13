@@ -121,14 +121,18 @@ function normalizeParseArgsError(caught: unknown): Error {
   }
 
   if (caught.code === "ERR_PARSE_ARGS_INVALID_OPTION_VALUE") {
-    const optionName = caught.message.match(/^Option '([^ ]+)/)?.[1];
+    const optionName = caught.message.match(/^Option '(?<optionName>[^ ]+)/)?.groups?.[
+      "optionName"
+    ];
     if (optionName !== undefined) {
       return new Error(`Missing value for ${optionName}.`);
     }
   }
 
   if (caught.code === "ERR_PARSE_ARGS_UNKNOWN_OPTION") {
-    const optionName = caught.message.match(/^Unknown option '([^']+)'/)?.[1];
+    const optionName = caught.message.match(/^Unknown option '(?<optionName>[^']+)'/)?.groups?.[
+      "optionName"
+    ];
     if (optionName !== undefined) {
       return new Error(`Unknown option: ${optionName}`);
     }

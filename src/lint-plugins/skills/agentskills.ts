@@ -2,8 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import { parse as parseYaml } from "yaml";
 
-import { error, warning } from "../diagnostics.js";
-import type { ValidationContext } from "../diagnostics.js";
+import { error, type ValidationContext, warning } from "../diagnostics.js";
 import { getOptionalString, getString, isObject } from "../schema.js";
 import { AGENT_SKILL_FRONTMATTER_KEYS } from "../specs.js";
 import { errorMessage } from "../utils.js";

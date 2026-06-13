@@ -1,6 +1,9 @@
 import { validateCatalogCoverage, validateLocalRepositoryAlignment } from "./coverage.js";
-import { createValidationContext } from "./diagnostics.js";
-import type { ValidationContext, ValidationOptions } from "./diagnostics.js";
+import {
+  createValidationContext,
+  type ValidationContext,
+  type ValidationOptions,
+} from "./diagnostics.js";
 import { validateExternalReferences } from "./external.js";
 import { validateMarketplace } from "./marketplace.js";
 import { printDiagnostics } from "./output.js";

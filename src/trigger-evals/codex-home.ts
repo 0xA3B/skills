@@ -123,8 +123,8 @@ async function readTopLevelConfigLines(configPath: string): Promise<string[]> {
       break;
     }
 
-    const match = line.match(/^([A-Za-z0-9_]+)\s*=/);
-    if (match?.[1] !== undefined && TOP_LEVEL_CONFIG_KEYS.has(match[1])) {
+    const match = line.match(/^(?<key>[A-Za-z0-9_]+)\s*=/);
+    if (match?.groups?.["key"] !== undefined && TOP_LEVEL_CONFIG_KEYS.has(match.groups["key"])) {
       lines.push(line);
     }
   }

@@ -18,8 +18,8 @@ describe("marketplace catalog validation", () => {
 
       const catalog = await validateMarketplace(context);
 
-      expect(context.diagnostics).toEqual([]);
-      expect([...catalog.localEntries.keys()]).toEqual(["demo-plugin"]);
+      expect(context.diagnostics).toStrictEqual([]);
+      expect([...catalog.localEntries.keys()]).toStrictEqual(["demo-plugin"]);
     });
   });
 
@@ -46,7 +46,7 @@ describe("marketplace catalog validation", () => {
 
       await validateMarketplace(context);
 
-      expect(ruleIds(context)).toEqual(
+      expect(ruleIds(context)).toStrictEqual(
         expect.arrayContaining([
           "marketplace/duplicate-name",
           "marketplace/source-path",

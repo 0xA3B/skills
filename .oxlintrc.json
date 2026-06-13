@@ -10,7 +10,14 @@
     "perf": "error"
   },
   "rules": {
-    "no-await-in-loop": "off"
+    "method-signature-style": "error",
+    "no-await-in-loop": "off",
+    "no-duplicate-imports": "error",
+    "prefer-named-capture-group": "error",
+    "vitest/prefer-expect-type-of": "error",
+    "vitest/prefer-import-in-mock": "error",
+    "vitest/prefer-mock-return-shorthand": "error",
+    "vitest/prefer-strict-equal": "error"
   },
   "ignorePatterns": ["dist", "node_modules", ".local", ".cache"]
 }
