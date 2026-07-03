@@ -36,7 +36,8 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 - Keep README user-facing and lightweight.
 - Keep AGENTS files agent-facing, lightweight, and focused on durable guidance. Avoid temporary
   notes or details that may go stale quickly.
-- Treat `AGENTS.md` as canonical agent guidance; keep sibling `CLAUDE.md` files as symlinks to it.
+- Treat `AGENTS.md` as canonical agent guidance; sibling `CLAUDE.md` files must import `@AGENTS.md`
+  and may add Claude-specific guidance only when it doesn't belong in `AGENTS.md`.
 
 ## Terminology
 
