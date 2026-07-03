@@ -1,7 +1,4 @@
 {
-  "files.associations": {
-    "mise.lock": "toml"
-  },
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
@@ -40,11 +37,13 @@
   },
   "[markdown]": {
     "editor.defaultFormatter": "oxc.oxc-vscode",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "files.trimTrailingWhitespace": false
   },
   "[skill]": {
     "editor.defaultFormatter": "oxc.oxc-vscode",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "files.trimTrailingWhitespace": false
   },
   "[ignore]": {
     "editor.formatOnSave": false
