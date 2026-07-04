@@ -9,6 +9,7 @@ license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8/skills/productivity/grill-me
+disable-model-invocation: true
 ---
 
 # Grill Me

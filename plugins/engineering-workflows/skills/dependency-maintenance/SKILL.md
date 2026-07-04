@@ -7,6 +7,7 @@ description: >-
   failures, or useful new features. Use when the user asks to review Dependabot, Renovate, lockfile
   maintenance, security, runtime, package-manager, or other dependency update PRs.
 license: MIT
+disable-model-invocation: true
 ---
 
 # Dependency Maintenance
