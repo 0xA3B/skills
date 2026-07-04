@@ -41,7 +41,7 @@ const DEFAULT_CONCURRENCY = 3;
 // correctly on a smaller model usually holds on larger ones. Override with --model/--effort.
 export const DEFAULT_EVAL_MODELS: Record<TriggerEvalAgent, string> = {
   claude: "sonnet",
-  codex: "gpt-5.6-luna",
+  codex: "gpt-5.6-terra",
 };
 export const DEFAULT_EVAL_EFFORT = "medium";
 
