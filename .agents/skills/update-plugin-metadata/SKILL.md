@@ -5,6 +5,7 @@ description:
   this repository. Use when the user asks to revise plugin descriptions, prompts, authorship,
   categories, keywords, versions, or metadata consistency.
 license: MIT
+disable-model-invocation: true
 ---
 
 # Update Plugin Metadata

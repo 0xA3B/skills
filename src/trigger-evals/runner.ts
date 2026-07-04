@@ -54,7 +54,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   const target = resolveSkillTarget(repoRoot, options.skillPath);
   if (agent === "claude" && target.kind === "repo-local") {
     throw new Error(
-      "Claude trigger evals support plugin skills only; repo-local skills under .agents/skills are Codex-only workflows.",
+      "Claude trigger evals support plugin skills only; the eval harness stages repo-local skills for Codex only.",
     );
   }
   const model = options.model ?? DEFAULT_EVAL_MODELS[agent];

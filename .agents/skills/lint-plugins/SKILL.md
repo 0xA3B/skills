@@ -5,6 +5,7 @@ description:
   checks in this repository. Use when the user asks to check a plugin, verify metadata, run plugin
   linting, or confirm plugin changes are ready.
 license: MIT
+disable-model-invocation: true
 ---
 
 # Lint Plugins
