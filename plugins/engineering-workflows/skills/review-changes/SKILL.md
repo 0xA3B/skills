@@ -67,17 +67,6 @@ own one lane and spawn at least one sub-agent for the other lane when the enviro
 For large, cross-cutting, security-sensitive, migration-heavy, or high-risk changes, keep the main
 agent as coordinator and spawn all required lanes plus any extra lanes that risk justifies.
 
-## Optional Claude Review
-
-Do not include Claude by default. If the user explicitly asks for Claude or Claude Code as part of
-the worktree review, use `claudex:adversarial-review` as the Claude reviewer adapter for Claude CLI
-invocation, permissions, read-only constraints, schema use, session follow-ups, and trust boundary.
-
-For `review-changes`, default to one Claude review pass over the current worktree target. Use
-lane-specific Claude reviewers only when the user asks for them or the changed surface is risky
-enough to justify the extra review. Treat Claude findings like external reviewer feedback and
-normalize them into the same triage flow as sub-agent findings before accepting or fixing them.
-
 ## Feedback Triage And Fixes
 
 Use `engineering-workflows:review-feedback` discipline for all reviewer findings:

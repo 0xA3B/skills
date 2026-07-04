@@ -61,20 +61,6 @@ own one lane and spawn at least one sub-agent for the other lane. For large, cro
 security-sensitive, migration-heavy, or high-risk branches, keep the main agent as coordinator and
 spawn all required lanes plus any extra lanes that risk justifies.
 
-## Optional Claude Review
-
-Do not include Claude by default. If the user explicitly asks for Claude or Claude Code as part of
-the branch review, use `claudex:adversarial-review` as the Claude reviewer adapter for Claude CLI
-invocation, permissions, read-only constraints, schema use, session follow-ups, and trust boundary.
-
-The review lanes still own the lane prompts and scope. Add matching Claude reviewers for the two
-required lanes when explicitly requested. For optional extra lanes, add Claude reviewers only when
-the lane is high-risk enough to justify the extra review. Treat each Claude process like another
-lane reviewer and triage its findings with the same feedback discipline as Codex sub-agent findings.
-Claude adapter output may use the `claudex` schema instead of the shared review-lane schema; the
-coordinator normalizes Claude findings into the merged finding set before deduping or presenting
-them.
-
 ## Decision-First, Edit-Second Triage
 
 Use `engineering-workflows:review-feedback` discipline for all reviewer findings:
@@ -112,7 +98,7 @@ the branch review scope. Present those as gated or deferred.
 End with:
 
 - review scope and base;
-- lanes run, including Codex and optional Claude reviewers;
+- lanes run and the sub-agent reviewers used;
 - auto-accepted, accepted, gated, deferred, and rejected finding counts;
 - fixes applied and validation results;
 - findings left for user or follow-up decisions.
