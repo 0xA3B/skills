@@ -103,7 +103,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
    timeout is 60 seconds because trigger evals measure whether the skill is invoked, not whether the
    requested workflow completes.
 
-   Evals pin smaller default models for cost and reproducibility: `gpt-5.6-luna` for Codex and
+   Evals pin smaller default models for cost and reproducibility: `gpt-5.6-terra` for Codex and
    `sonnet` for Claude Code, both at `medium` reasoning effort. A description that triggers
    correctly on a smaller model usually holds on larger ones. Use `--model` and `--effort` to
    spot-check a contentious description change on a production-class model.

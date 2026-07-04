@@ -196,7 +196,7 @@ describe("runTriggerEval", () => {
     expect(mockState.maxActiveExecs).toBe(2);
     expect(new Set(mockState.codexHomes).size).toBe(4);
     expect(new Set(mockState.sandboxModes)).toStrictEqual(new Set(["read-only"]));
-    expect(new Set(mockState.codexHomeModels)).toStrictEqual(new Set(["gpt-5.6-luna"]));
+    expect(new Set(mockState.codexHomeModels)).toStrictEqual(new Set(["gpt-5.6-terra"]));
     expect(new Set(mockState.codexHomeEfforts)).toStrictEqual(new Set(["medium"]));
     expect(
       mockState.stopWhenPredicates[0]?.({

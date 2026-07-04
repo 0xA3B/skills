@@ -87,7 +87,7 @@ export function usage(): string {
     "  --agent <agent>            Agent(s) to evaluate: codex, claude, or both. Defaults to codex.",
     "  --fixture <path>           Use a fixture file other than evals/triggers.yaml.",
     "  --case <id>                Run one trigger fixture case.",
-    "  --model <model>            Model override. Defaults: codex gpt-5.6-luna, claude sonnet.",
+    "  --model <model>            Model override. Defaults: codex gpt-5.6-terra, claude sonnet.",
     "  --effort <effort>          Reasoning effort override. Defaults to medium.",
     "  --timeout-ms <ms>          Per-case timeout. Defaults to 60000.",
     "  --concurrency <n>          Number of cases to run in parallel. Defaults to 3.",
