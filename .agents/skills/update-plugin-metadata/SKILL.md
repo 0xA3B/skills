@@ -22,13 +22,13 @@ report the remaining work instead of guessing.
 
 ## Source Of Truth
 
-- Follow `codex_plugins/AGENTS.md` for manifest conventions and skill metadata placement.
-- Plugin metadata lives in `codex_plugins/<plugin-name>/.codex-plugin/plugin.json`.
+- Follow `plugins/AGENTS.md` for manifest conventions and skill metadata placement.
+- Plugin metadata lives in `plugins/<plugin-name>/.codex-plugin/plugin.json`.
 - Marketplace entries live in `.agents/plugins/marketplace.json`.
 - Skill-level Codex UI metadata lives in
-  `codex_plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml`.
+  `plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml`.
 - Plugin README files carry user-facing plugin summaries.
-- Plugin version changes follow the version policy in `codex_plugins/AGENTS.md`.
+- Plugin version changes follow the version policy in `plugins/AGENTS.md`.
 
 ## Workflow
 
@@ -65,7 +65,7 @@ report the remaining work instead of guessing.
   manual-only skill.
 - Keep skill-level `agents/openai.yaml` `interface.default_prompt` concise and include explicit
   `$plugin-name:skill-name` callouts for manual-only skills.
-- Keep README skill lists aligned with actual `codex_plugins/<plugin-name>/skills/` directories.
+- Keep README skill lists aligned with actual `plugins/<plugin-name>/skills/` directories.
 - Do not add Codex-only policy keys to `SKILL.md` frontmatter.
 - Do not bump versions for content-only metadata edits that preserve installed skills, invocation
   names, capability policy, and expected workflow behavior.

@@ -91,7 +91,7 @@ describe("runTriggerEval", () => {
 
     const result = await runTriggerEval({
       repoRoot,
-      skillPath: "codex_plugins/demo/skills/auto-skill",
+      skillPath: "plugins/demo/skills/auto-skill",
       caseId: "skip-case",
     });
 
@@ -119,7 +119,7 @@ describe("runTriggerEval", () => {
 
     const result = await runTriggerEval({
       repoRoot,
-      skillPath: "codex_plugins/demo/skills/auto-skill",
+      skillPath: "plugins/demo/skills/auto-skill",
       concurrency: 2,
     });
 
@@ -146,14 +146,7 @@ describe("runTriggerEval", () => {
     const sharedWorkspace = mockState.workspacePaths[0];
     await expect(
       readFile(
-        path.join(
-          sharedWorkspace ?? "",
-          "codex_plugins",
-          "demo",
-          "skills",
-          "auto-skill",
-          "SKILL.md",
-        ),
+        path.join(sharedWorkspace ?? "", "plugins", "demo", "skills", "auto-skill", "SKILL.md"),
         "utf8",
       ),
     ).resolves.not.toContain("Trigger Eval Instructions");
@@ -175,7 +168,7 @@ describe("runTriggerEval", () => {
 
     await runTriggerEval({
       repoRoot,
-      skillPath: "codex_plugins/demo/skills/auto-skill",
+      skillPath: "plugins/demo/skills/auto-skill",
       concurrency: 2,
     });
 
@@ -307,7 +300,7 @@ async function writeRepoFixture(
   } = {},
 ): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
-  const pluginPath = path.join(repoRoot, "codex_plugins", "demo");
+  const pluginPath = path.join(repoRoot, "plugins", "demo");
   const skillPath = path.join(pluginPath, "skills", "auto-skill");
 
   await mkdir(path.join(pluginPath, ".codex-plugin"), { recursive: true });

@@ -51,7 +51,7 @@ export function usage(): string {
     "Usage: pnpm eval:trigger -- <skill-path> [options]",
     "",
     "Skill paths:",
-    "  codex_plugins/<plugin>/skills/<skill>",
+    "  plugins/<plugin>/skills/<skill>",
     "  .agents/skills/<skill>",
     "",
     "Options:",

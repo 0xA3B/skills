@@ -250,7 +250,7 @@ function copiedSkillFilePath(workspacePath: string, target: SkillTarget): string
   if (target.kind === "plugin") {
     return path.join(
       workspacePath,
-      "codex_plugins",
+      "plugins",
       target.pluginName,
       "skills",
       target.skillName,

@@ -24,8 +24,8 @@ skill's intended trigger boundary.
 
 ## Target Scope
 
-- Target repo plugin skills under `codex_plugins/<plugin>/skills/<skill>/` or repo-local skills
-  under `.agents/skills/<skill>/`.
+- Target repo plugin skills under `plugins/<plugin>/skills/<skill>/` or repo-local skills under
+  `.agents/skills/<skill>/`.
 - Use this workflow only for skills with `agents/openai.yaml`
   `policy.allow_implicit_invocation: true`.
 - If the target skill is manual-only, warn the user and do not optimize trigger behavior unless they
@@ -37,7 +37,7 @@ skill's intended trigger boundary.
 Trigger fixtures live at:
 
 ```text
-codex_plugins/<plugin>/skills/<skill>/evals/triggers.yaml
+plugins/<plugin>/skills/<skill>/evals/triggers.yaml
 .agents/skills/<skill>/evals/triggers.yaml
 ```
 
@@ -90,7 +90,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
 4. Run:
 
    ```bash
-   mise exec -- pnpm eval:trigger -- codex_plugins/<plugin>/skills/<skill>
+   mise exec -- pnpm eval:trigger -- plugins/<plugin>/skills/<skill>
    mise exec -- pnpm eval:trigger -- .agents/skills/<skill>
    ```
 

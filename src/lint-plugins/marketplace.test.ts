@@ -38,7 +38,7 @@ describe("marketplace catalog validation", () => {
             category: "workflow",
             name: "demo-plugin",
             policy: { authentication: "ON_INSTALL", installation: "AVAILABLE" },
-            source: { path: "./codex_plugins/missing", source: "local" },
+            source: { path: "./plugins/missing", source: "local" },
           },
         ],
       });
