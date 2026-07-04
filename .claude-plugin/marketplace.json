@@ -1,0 +1,17 @@
+{
+  "name": "0xa3b-marketplace",
+  "description": "Reusable agent skills packaged as Claude Code plugins.",
+  "owner": {
+    "name": "Alex Baker"
+  },
+  "plugins": [
+    {
+      "name": "conventional-commits",
+      "source": "./plugins/conventional-commits"
+    },
+    {
+      "name": "engineering-workflows",
+      "source": "./plugins/engineering-workflows"
+    }
+  ]
+}
