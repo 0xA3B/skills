@@ -37,11 +37,13 @@ export type RunTriggerEvalOptions = {
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_CONCURRENCY = 3;
 
-// Trigger evals default to smaller models: they are cheaper, and a description that triggers
-// correctly on a smaller model usually holds on larger ones. Override with --model/--effort.
+// Trigger evals default to the models this repository's skills are used with day to day, so
+// results predict real invocation behavior. Full-sweep comparisons showed trigger boundaries are
+// model-specific, so proxying with smaller models measures the wrong thing. Override with
+// --model/--effort to spot-check other models.
 export const DEFAULT_EVAL_MODELS: Record<TriggerEvalAgent, string> = {
-  claude: "sonnet",
-  codex: "gpt-5.6-terra",
+  claude: "opus",
+  codex: "gpt-5.6-sol",
 };
 export const DEFAULT_EVAL_EFFORT = "medium";
 

@@ -103,10 +103,11 @@ cases where loaded repository instructions should affect the trigger boundary, s
    timeout is 60 seconds because trigger evals measure whether the skill is invoked, not whether the
    requested workflow completes.
 
-   Evals pin smaller default models for cost and reproducibility: `gpt-5.6-terra` for Codex and
-   `sonnet` for Claude Code, both at `medium` reasoning effort. A description that triggers
-   correctly on a smaller model usually holds on larger ones. Use `--model` and `--effort` to
-   spot-check a contentious description change on a production-class model.
+   Evals pin the default models to the ones this repository's skills are used with day to day:
+   `gpt-5.6-sol` for Codex and `opus` for Claude Code, both at `medium` reasoning effort. Trigger
+   boundaries are model-specific, so the defaults measure real invocation behavior instead of a
+   smaller-model proxy. Use `--model` and `--effort` to spot-check other models or match a different
+   working setup.
 
 5. Read the report and failed case outputs under `.local/skill-evals/trigger/`.
 6. For false negatives, make the description more explicit about the missing user intent.
@@ -129,18 +130,20 @@ cases where loaded repository instructions should affect the trigger boundary, s
 - Cases with `workspace_files` run in a case-specific copy of the isolated workspace, then write the
   listed safe relative paths before invoking Codex.
 - The committed `description` remains the trigger surface under test.
-- For repo-local skill cases, the runner appends eval-only instructions to the copied target
-  `SKILL.md` telling the model to output a per-case token and stop immediately after invocation.
-  This keeps positive cases focused on trigger classification instead of workflow completion.
-- The runner also stops `codex exec` as soon as it observes the invocation signal, so positive cases
-  do not need to finish the requested workflow.
-- For plugin skills on Codex, the runner classifies invocation from Codex CLI stderr telemetry
-  containing `codex.skill.injected` for the target skill.
+- The runner appends eval-only instructions to the staged skill copies telling the model to output a
+  canary token and stop immediately after invocation. This keeps positive cases focused on trigger
+  classification instead of workflow completion.
+- The runner also stops the agent CLI as soon as it observes the invocation signal, so positive
+  cases do not need to finish the requested workflow.
+- For plugin skills on Codex, the canary section is body-only so the frontmatter description under
+  test stays byte-identical to the committed skill; invocation is classified when the assistant
+  outputs the token. Older Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary
+  signal.
+- For repo-local skills, the runner additionally rewrites the copied description to reference the
+  canary because Codex surfaces repo-local skills without any other observable signal.
 - For plugin skills on Claude Code, the runner launches `claude -p` against the staged plugin copy
   via `--plugin-dir` with a read-only tool surface, and classifies invocation from Skill tool events
   referencing `<plugin>:<skill>` in the stream-json output.
-- For repo-local skills, Codex currently does not emit the same plugin injection telemetry; the
-  runner classifies invocation only when the assistant outputs the exact eval-only token.
 - Case pass/fail is based on matching the expected invoke or skip classification. Exec errors and
   timeouts remain in the report because trigger evals do not validate workflow completion.
 - The runner removes copied `auth.json` from the temporary Codex home after the run.
