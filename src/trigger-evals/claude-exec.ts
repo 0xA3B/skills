@@ -9,8 +9,9 @@ type ClaudeRunOptions = {
   prompt: string;
   caseDir: string;
   timeoutMs: number;
+  model: string;
+  effort: string;
   stopWhen?: (output: StreamingCliOutput) => boolean;
-  model?: string;
   configDir?: string;
   abortSignal?: AbortSignal;
 };
@@ -49,11 +50,11 @@ export async function runClaudeExec(options: ClaudeRunOptions): Promise<ClaudeRu
     "project",
     "--plugin-dir",
     options.pluginDir,
+    "--model",
+    options.model,
+    "--effort",
+    options.effort,
   ];
-
-  if (options.model !== undefined) {
-    args.push("--model", options.model);
-  }
 
   args.push(options.prompt);
 

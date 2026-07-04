@@ -103,6 +103,11 @@ cases where loaded repository instructions should affect the trigger boundary, s
    timeout is 60 seconds because trigger evals measure whether the skill is invoked, not whether the
    requested workflow completes.
 
+   Evals pin smaller default models for cost and reproducibility: `gpt-5.6-luna` for Codex and
+   `sonnet` for Claude Code, both at `medium` reasoning effort. A description that triggers
+   correctly on a smaller model usually holds on larger ones. Use `--model` and `--effort` to
+   spot-check a contentious description change on a production-class model.
+
 5. Read the report and failed case outputs under `.local/skill-evals/trigger/`.
 6. For false negatives, make the description more explicit about the missing user intent.
 7. For false positives, narrow the description with clearer ownership boundaries or exclusions.

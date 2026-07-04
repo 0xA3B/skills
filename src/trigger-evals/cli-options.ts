@@ -30,6 +30,9 @@ export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOption
   if (parsed.values.model !== undefined) {
     options.model = readStringOption(parsed.values.model, "--model");
   }
+  if (parsed.values.effort !== undefined) {
+    options.effort = readStringOption(parsed.values.effort, "--effort");
+  }
   if (parsed.values["timeout-ms"] !== undefined) {
     options.timeoutMs = parseTimeoutMs(parsed.values["timeout-ms"]);
   }
@@ -84,7 +87,8 @@ export function usage(): string {
     "  --agent <agent>            Agent(s) to evaluate: codex, claude, or both. Defaults to codex.",
     "  --fixture <path>           Use a fixture file other than evals/triggers.yaml.",
     "  --case <id>                Run one trigger fixture case.",
-    "  --model <model>            Override the agent model for the eval run.",
+    "  --model <model>            Model override. Defaults: codex gpt-5.6-luna, claude sonnet.",
+    "  --effort <effort>          Reasoning effort override. Defaults to medium.",
     "  --timeout-ms <ms>          Per-case timeout. Defaults to 60000.",
     "  --concurrency <n>          Number of cases to run in parallel. Defaults to 3.",
     "  --codex-home <path>        Source Codex home to copy auth/config from. Defaults to ~/.codex.",
@@ -103,6 +107,7 @@ function parseTriggerArgs(argv: string[]) {
         fixture: { type: "string" },
         case: { type: "string" },
         model: { type: "string" },
+        effort: { type: "string" },
         "timeout-ms": { type: "string" },
         concurrency: { type: "string" },
         "codex-home": { type: "string" },
