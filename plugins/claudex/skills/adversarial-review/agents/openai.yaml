@@ -5,4 +5,4 @@ interface:
   default_prompt:
     "Use $claudex:adversarial-review to have Claude adversarially review my current changes."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
