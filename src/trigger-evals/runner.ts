@@ -26,6 +26,7 @@ export type RunTriggerEvalOptions = {
   fixturePath?: string;
   caseId?: string;
   model?: string;
+  effort?: string;
   force?: boolean;
   timeoutMs?: number;
   concurrency?: number;
@@ -37,6 +38,14 @@ export type RunTriggerEvalOptions = {
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_CONCURRENCY = 3;
 
+// Trigger evals default to smaller models: they are cheaper, and a description that triggers
+// correctly on a smaller model usually holds on larger ones. Override with --model/--effort.
+export const DEFAULT_EVAL_MODELS: Record<TriggerEvalAgent, string> = {
+  claude: "sonnet",
+  codex: "gpt-5.6-luna",
+};
+export const DEFAULT_EVAL_EFFORT = "medium";
+
 export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<TriggerEvalResult> {
   const runStartedAt = Date.now();
   const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
@@ -47,6 +56,8 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
       "Claude trigger evals support plugin skills only; repo-local skills under .agents/skills are Codex-only workflows.",
     );
   }
+  const model = options.model ?? DEFAULT_EVAL_MODELS[agent];
+  const effort = options.effort ?? DEFAULT_EVAL_EFFORT;
   const allowImplicitInvocation = await readAllowImplicitInvocation(target);
 
   if (!allowImplicitInvocation && options.force !== true) {
@@ -100,9 +111,10 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           prompt: testCase.prompt,
           caseDir,
           timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+          model,
+          effort,
           stopWhen: (output: { stdout: string; stderr: string }) =>
             detectInvocation(output, target, caseWorkspace.canary, agent) !== "none",
-          ...(options.model === undefined ? {} : { model: options.model }),
           ...(options.claudeConfigDir === undefined ? {} : { configDir: options.claudeConfigDir }),
           ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
         };
@@ -123,6 +135,8 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
       await prepareCodexHome({
         codexHome,
         workspacePath: caseWorkspace.workspacePath,
+        model,
+        effort,
         ...(target.kind === "plugin"
           ? { marketplaceName: EVAL_MARKETPLACE_NAME, pluginName: target.pluginName }
           : {}),
@@ -147,7 +161,6 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         sandboxMode,
         stopWhen: (output: { stdout: string; stderr: string }) =>
           detectInvocation(output, target, caseWorkspace.canary, agent) !== "none",
-        ...(options.model === undefined ? {} : { model: options.model }),
         ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
       };
 

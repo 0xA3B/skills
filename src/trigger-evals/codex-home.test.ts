@@ -16,17 +16,20 @@ describe("prepareCodexHome", () => {
       codexHome,
       sourceCodexHome,
       workspacePath: "/tmp/workspace",
+      model: "gpt-5.6-luna",
+      effort: "medium",
       marketplaceName: "trigger-eval",
       pluginName: "demo-plugin",
     });
 
     await expect(readFile(path.join(codexHome, "auth.json"), "utf8")).resolves.toBe("{}");
-    await expect(readFile(path.join(codexHome, "config.toml"), "utf8")).resolves.toContain(
-      '[marketplaces."trigger-eval"]',
-    );
+    const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
+    expect(config).toContain('[marketplaces."trigger-eval"]');
+    expect(config).toContain('model = "gpt-5.6-luna"');
+    expect(config).toContain('model_reasoning_effort = "medium"');
   });
 
-  it("inherits supported top-level settings before generated eval settings", async () => {
+  it("pins the eval model instead of inheriting it from the source config", async () => {
     const sourceCodexHome = await mkdtemp(path.join(os.tmpdir(), "source-codex-home-"));
     const codexHome = await mkdtemp(path.join(os.tmpdir(), "eval-codex-home-"));
     await mkdir(sourceCodexHome, { recursive: true });
@@ -35,6 +38,8 @@ describe("prepareCodexHome", () => {
       path.join(sourceCodexHome, "config.toml"),
       [
         'model = "gpt-5.5"',
+        'model_reasoning_effort = "xhigh"',
+        'web_search = "enabled"',
         'unknown_setting = "ignored"',
         "",
         "[features]",
@@ -47,12 +52,18 @@ describe("prepareCodexHome", () => {
       codexHome,
       sourceCodexHome,
       workspacePath: "/tmp/workspace",
+      model: "gpt-5.6-luna",
+      effort: "medium",
       marketplaceName: "trigger-eval",
       pluginName: "demo-plugin",
     });
 
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
-    expect(config).toContain('model = "gpt-5.5"');
+    expect(config).toContain('model = "gpt-5.6-luna"');
+    expect(config).toContain('model_reasoning_effort = "medium"');
+    expect(config).not.toContain('model = "gpt-5.5"');
+    expect(config).not.toContain('model_reasoning_effort = "xhigh"');
+    expect(config).toContain('web_search = "enabled"');
     expect(config).not.toContain("unknown_setting");
     expect(config).toContain("plugins = true");
   });
@@ -66,6 +77,8 @@ describe("prepareCodexHome", () => {
       codexHome,
       sourceCodexHome,
       workspacePath: "/tmp/workspace",
+      model: "gpt-5.6-luna",
+      effort: "medium",
     });
 
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");

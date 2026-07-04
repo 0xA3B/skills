@@ -27,6 +27,10 @@ const mockState = vi.hoisted(() => ({
   stopWhenPredicates: [] as Array<(output: { stdout: string; stderr: string }) => boolean>,
   claudePluginDirs: [] as string[],
   claudeWorkspacePaths: [] as string[],
+  claudeModels: [] as string[],
+  claudeEfforts: [] as string[],
+  codexHomeModels: [] as string[],
+  codexHomeEfforts: [] as string[],
 }));
 
 vi.mock(import("./codex-exec.js"), () => ({
@@ -61,13 +65,24 @@ vi.mock(import("./codex-exec.js"), () => ({
 }));
 
 vi.mock(import("./codex-home.js"), () => ({
-  prepareCodexHome: vi.fn<() => Promise<void>>(async () => undefined),
+  prepareCodexHome: vi.fn<(options: { model: string; effort: string }) => Promise<void>>(
+    async (options) => {
+      mockState.codexHomeModels.push(options.model);
+      mockState.codexHomeEfforts.push(options.effort);
+    },
+  ),
   removeCopiedAuth: vi.fn<() => Promise<void>>(async () => undefined),
 }));
 
 vi.mock(import("./claude-exec.js"), () => ({
   runClaudeExec: vi.fn<
-    (options: { pluginDir: string; prompt: string; workspacePath: string }) => Promise<{
+    (options: {
+      pluginDir: string;
+      prompt: string;
+      workspacePath: string;
+      model: string;
+      effort: string;
+    }) => Promise<{
       exitCode: number | null;
       finalMessage: string;
       stdout: string;
@@ -79,6 +94,8 @@ vi.mock(import("./claude-exec.js"), () => ({
   >(async (options) => {
     mockState.claudePluginDirs.push(options.pluginDir);
     mockState.claudeWorkspacePaths.push(options.workspacePath);
+    mockState.claudeModels.push(options.model);
+    mockState.claudeEfforts.push(options.effort);
     const shouldInvoke = !options.prompt.startsWith("Do not invoke");
     return {
       exitCode: 0,
@@ -112,6 +129,10 @@ describe("runTriggerEval", () => {
     mockState.stopWhenPredicates = [];
     mockState.claudePluginDirs = [];
     mockState.claudeWorkspacePaths = [];
+    mockState.claudeModels = [];
+    mockState.claudeEfforts = [];
+    mockState.codexHomeModels = [];
+    mockState.codexHomeEfforts = [];
   });
 
   it("passes cases when invocation expectation matches even if codex exec errors", async () => {
@@ -175,6 +196,8 @@ describe("runTriggerEval", () => {
     expect(mockState.maxActiveExecs).toBe(2);
     expect(new Set(mockState.codexHomes).size).toBe(4);
     expect(new Set(mockState.sandboxModes)).toStrictEqual(new Set(["read-only"]));
+    expect(new Set(mockState.codexHomeModels)).toStrictEqual(new Set(["gpt-5.6-luna"]));
+    expect(new Set(mockState.codexHomeEfforts)).toStrictEqual(new Set(["medium"]));
     expect(
       mockState.stopWhenPredicates[0]?.({
         stdout: "",
@@ -252,6 +275,8 @@ describe("runTriggerEval", () => {
       passed: true,
     });
     expect(mockState.codexHomes).toStrictEqual([]);
+    expect(new Set(mockState.claudeModels)).toStrictEqual(new Set(["sonnet"]));
+    expect(new Set(mockState.claudeEfforts)).toStrictEqual(new Set(["medium"]));
     expect(mockState.claudePluginDirs).toHaveLength(2);
     expect(mockState.claudePluginDirs[0]).toContain(path.join("plugins", "demo"));
     expect(mockState.claudePluginDirs[0]).toContain(

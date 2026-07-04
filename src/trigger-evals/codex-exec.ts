@@ -11,7 +11,6 @@ type CodexRunOptions = {
   timeoutMs: number;
   sandboxMode: "read-only" | "workspace-write";
   stopWhen?: (output: { stdout: string; stderr: string }) => boolean;
-  model?: string;
   abortSignal?: AbortSignal;
 };
 
@@ -49,10 +48,6 @@ export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunRe
     "-o",
     finalMessagePath,
   ];
-
-  if (options.model !== undefined) {
-    args.push("--model", options.model);
-  }
 
   args.push("--", options.prompt);
 

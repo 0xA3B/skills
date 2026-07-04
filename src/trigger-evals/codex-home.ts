@@ -6,13 +6,15 @@ type CodexHomeOptions = {
   codexHome: string;
   sourceCodexHome?: string;
   workspacePath: string;
+  model: string;
+  effort: string;
   marketplaceName?: string;
   pluginName?: string;
 };
 
+// The eval pins model and model_reasoning_effort explicitly so trigger results stay reproducible
+// across machines; those keys are deliberately not inherited from the source config.
 const TOP_LEVEL_CONFIG_KEYS = new Set([
-  "model",
-  "model_reasoning_effort",
   "model_reasoning_summary",
   "model_verbosity",
   "hide_agent_reasoning",
@@ -74,6 +76,8 @@ async function buildEvalConfig(
 
   const configLines = [
     ...inheritedLines,
+    `model = ${tomlString(options.model)}`,
+    `model_reasoning_effort = ${tomlString(options.effort)}`,
     'approval_policy = "never"',
     'sandbox_mode = "read-only"',
     "",
