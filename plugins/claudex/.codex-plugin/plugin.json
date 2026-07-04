@@ -1,6 +1,6 @@
 {
   "name": "claudex",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Run Claude Code from Codex for adversarial review, feedback triage, and in-scope fixes.",
   "author": {
     "name": "Alex Baker"
@@ -19,8 +19,8 @@
     "composerIcon": "./assets/logo.svg",
     "logo": "./assets/logo.svg",
     "defaultPrompt": [
-      "Ask Claude to adversarially review my current changes.",
-      "Run a Claude Code review of this branch."
+      "Use $claudex:adversarial-review to have Claude adversarially review my current changes.",
+      "Use $claudex:adversarial-review to run a Claude Code review of this branch."
     ]
   }
 }

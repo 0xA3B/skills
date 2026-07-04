@@ -5,6 +5,7 @@ description: >-
   for branch review, pre-merge review, PR review, MR review, or review against a base branch. Runs
   review lanes, triages findings decision-first, and applies approved fixes after triage when
   appropriate.
+disable-model-invocation: true
 ---
 
 # Review Branch

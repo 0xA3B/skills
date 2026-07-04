@@ -8,6 +8,7 @@ license: MIT
 compatibility:
   Requires Codex with shell command access and Claude Code CLI on PATH, authenticated and able to
   run non-interactively with network access.
+disable-model-invocation: true
 ---
 
 # Adversarial Review

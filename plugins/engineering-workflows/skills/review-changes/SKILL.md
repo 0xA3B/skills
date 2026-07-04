@@ -6,6 +6,7 @@ description: >-
   or review before committing. Calibrates review depth to change risk, triages findings, and applies
   accepted in-scope fixes. Do not use for conceptual questions about review criteria or this skill's
   design.
+disable-model-invocation: true
 ---
 
 # Review Changes

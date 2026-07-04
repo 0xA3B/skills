@@ -2,6 +2,7 @@ version: 1
 interface:
   display_name: "Review Changes"
   short_description: "Review and fix current worktree changes"
-  default_prompt: "Review my current changes before I commit."
+  default_prompt:
+    "Use $engineering-workflows:review-changes to review my current changes before I commit."
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false
