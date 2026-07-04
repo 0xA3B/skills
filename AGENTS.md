@@ -81,7 +81,8 @@ When maintaining the terminology:
 | **Hand off**                 | A workflow boundary where the current skill stops, summarizes transfer context, and recommends the next explicit skill.                                                                                       | auto-invoke, delegate     |
 | **Trigger fixture**          | A committed YAML file of positive and negative cases used to evaluate implicit invocation behavior.                                                                                                           | skill test                |
 | **Trigger eval**             | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code).                                          | validation gate           |
-| **Invocation signal**        | The observed evidence that the agent invoked the target skill: Codex plugin telemetry, an eval-only repo-local canary, or Claude Code Skill tool events.                                                      | canary                    |
+| **Invocation signal**        | The observed evidence that the agent invoked the target skill: an eval canary in Codex output, Claude Code Skill tool events, or legacy Codex skill-injection telemetry as a secondary signal.                | telemetry                 |
+| **Eval canary**              | An eval-only token injected into a staged skill copy so its appearance in agent output proves invocation: body-only for plugin skills, description-rewrite for repo-local skills on Codex.                    | invocation signal         |
 | **Eval artifact**            | Generated trigger-eval output under `.local/skill-evals/`, not committed project state.                                                                                                                       | fixture                   |
 | **Behavior pressure test**   | A manual or ad hoc check that runs a loaded skill against realistic shortcut pressure to see whether the skill changes agent behavior.                                                                        | trigger eval, fixture     |
 | **Pressure prompt**          | A temporary prompt used in a behavior pressure test to make an agent want to skip, soften, or rationalize around a workflow rule.                                                                             | trigger fixture           |
@@ -117,6 +118,8 @@ Relationships:
 - **Prototype** can hand off a validated decision to **Build** or **TDD**.
 - **Brainstorm** can hand off a preferred direction to **Grill Me**; **Grill Me** can hand off a
   sufficiently resolved approach to **Build** or **TDD**.
+- A **Repo-local skill** is exposed to Claude Code as a project skill through the `.claude/skills`
+  symlink.
 - A **Trigger eval** runs **Trigger fixtures** against one implicitly invokable **Plugin skill** or
   **Repo-local skill** on one agent; **Trigger fixtures** are shared across agents.
 - **Eval artifacts** are generated under `.local/` and should not be committed.
