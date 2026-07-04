@@ -2,8 +2,7 @@ import crypto from "node:crypto";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
-
+import { appendEvalSectionToFile, createCanary, withTriggerEvalInstructions } from "./canary.js";
 import { runClaudeExec } from "./claude-exec.js";
 import { runCodexExec } from "./codex-exec.js";
 import { prepareCodexHome, removeCopiedAuth } from "./codex-home.js";
@@ -100,6 +99,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         target,
         testCase,
       });
+      const canary = caseWorkspace.canary ?? harness.pluginCanary;
 
       if (agent === "claude") {
         if (target.kind !== "plugin") {
@@ -114,7 +114,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           model,
           effort,
           stopWhen: (output: { stdout: string; stderr: string }) =>
-            detectInvocation(output, target, caseWorkspace.canary, agent) !== "none",
+            detectInvocation(output, target, canary, agent) !== "none",
           ...(options.claudeConfigDir === undefined ? {} : { configDir: options.claudeConfigDir }),
           ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
         };
@@ -124,7 +124,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           testCase,
           codexResult: claudeResult,
           target,
-          canary: caseWorkspace.canary,
+          canary,
           durationMs: Date.now() - caseStartedAt,
           agent,
         });
@@ -145,10 +145,15 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           : { sourceCodexHome: options.sourceCodexHome }),
       });
       if (target.kind === "plugin") {
-        if (harness.pluginVersion === undefined) {
-          throw new Error("Plugin trigger eval target is missing a plugin version.");
+        if (harness.pluginVersion === undefined || harness.pluginCanary === undefined) {
+          throw new Error("Plugin trigger eval target is missing a plugin version or canary.");
         }
-        await prepareCasePluginCache(codexHome, target, harness.pluginVersion);
+        await prepareCasePluginCache(
+          codexHome,
+          target,
+          harness.pluginVersion,
+          harness.pluginCanary,
+        );
       }
       const sandboxMode: "read-only" | "workspace-write" =
         target.kind === "repo-local" ? "workspace-write" : "read-only";
@@ -160,7 +165,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
         sandboxMode,
         stopWhen: (output: { stdout: string; stderr: string }) =>
-          detectInvocation(output, target, caseWorkspace.canary, agent) !== "none",
+          detectInvocation(output, target, canary, agent) !== "none",
         ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
       };
 
@@ -171,7 +176,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           testCase,
           codexResult,
           target,
-          canary: caseWorkspace.canary,
+          canary,
           durationMs: Date.now() - caseStartedAt,
           agent,
         });
@@ -290,7 +295,7 @@ async function prepareCaseWorkspace(options: {
   }
 
   if (options.target.kind === "repo-local") {
-    const canary = `trigger-eval-canary-${crypto.randomUUID()}`;
+    const canary = createCanary();
     await injectSkillEvalInstructions(workspacePath, options.target, canary);
     return { workspacePath, canary };
   }
@@ -323,41 +328,6 @@ function copiedSkillFilePath(workspacePath: string, target: SkillTarget): string
   return path.join(workspacePath, ".agents", "skills", target.skillName, "SKILL.md");
 }
 
-function withTriggerEvalInstructions(content: string, canary: string): string {
-  const evalSection = [
-    "",
-    "",
-    "## Trigger Eval Instructions",
-    "",
-    "If these skill instructions are loaded during this trigger eval, include this exact token at the start of your next assistant message:",
-    "",
-    `\`${canary}\``,
-    "",
-    "After outputting the token, stop immediately. Do not inspect files, edit files, run commands, call tools, or continue the workflow.",
-    "",
-  ].join("\n");
-  const frontmatterMatch = content.match(/^---\r?\n(?<frontmatter>[\s\S]*?)\r?\n---\r?\n?/);
-  if (frontmatterMatch?.groups?.["frontmatter"] === undefined) {
-    return `${content}${evalSection}`;
-  }
-
-  const metadata = parseYaml(frontmatterMatch.groups["frontmatter"]) as unknown;
-  if (!isRecord(metadata) || typeof metadata["description"] !== "string") {
-    return `${content}${evalSection}`;
-  }
-
-  const description = metadata["description"];
-  metadata["description"] = `Eval only: if used, first output ${canary}. ${description}`;
-  const body = content.slice(frontmatterMatch[0].length);
-  return [
-    "---",
-    stringifyYaml(metadata).trimEnd(),
-    "---",
-    body.trimStart(),
-    evalSection.trimStart(),
-  ].join("\n");
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -366,6 +336,7 @@ async function prepareCasePluginCache(
   codexHome: string,
   target: PluginSkillTarget,
   pluginVersion: string,
+  canary: string,
 ): Promise<void> {
   const cachedPluginPath = path.join(
     codexHome,
@@ -377,6 +348,11 @@ async function prepareCasePluginCache(
   );
   await mkdir(path.dirname(cachedPluginPath), { recursive: true });
   await cp(target.pluginPath, cachedPluginPath, { recursive: true });
+  // Codex reads the skill body from the plugin cache, so the canary must be present there too.
+  await appendEvalSectionToFile(
+    path.join(cachedPluginPath, "skills", target.skillName, "SKILL.md"),
+    canary,
+  );
 }
 
 async function createRunDir(
@@ -404,9 +380,9 @@ function sanitize(value: string): string {
   return value.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-// Codex plugin skills expose a stderr telemetry canary, and Codex repo-local skills use an
-// eval-only canary appended to the copied SKILL.md. Claude Code invokes skills through the Skill
-// tool, which is visible directly in the stream-json events.
+// Claude Code invokes skills through the Skill tool, which is visible directly in the stream-json
+// events. Codex evals rely on an eval-only canary appended to the staged skill copies; older Codex
+// CLIs also emitted codex.skill.injected stderr telemetry, which is kept as a secondary signal.
 function detectInvocation(
   codexResult: { stdout: string; stderr: string },
   target: SkillTarget,
@@ -428,11 +404,7 @@ function detectInvocation(
     return "stderr-skill-injected";
   }
 
-  if (
-    target.kind === "repo-local" &&
-    canary !== undefined &&
-    stdoutContainsCanary(codexResult.stdout, canary)
-  ) {
+  if (canary !== undefined && stdoutContainsCanary(codexResult.stdout, canary)) {
     return "stdout-skill-canary";
   }
 
