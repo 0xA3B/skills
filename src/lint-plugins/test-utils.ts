@@ -5,7 +5,7 @@ import path from "node:path";
 import { stringify as stringifyYaml } from "yaml";
 
 import { createValidationContext, type Diagnostic, type ValidationContext } from "./diagnostics.js";
-import type { JsonObject, LocalCatalogEntry } from "./types.js";
+import type { ClaudeCatalogEntry, JsonObject, LocalCatalogEntry } from "./types.js";
 
 type MarketplacePlugin = {
   category: string;
@@ -41,7 +41,21 @@ type OpenAiMetadataFixture = JsonObject & {
   policy: JsonObject;
 };
 
+type ClaudeMarketplaceFixture = JsonObject & {
+  name: string;
+  owner: JsonObject;
+  plugins: JsonObject[];
+};
+
+type ClaudePluginManifestFixture = JsonObject & {
+  description: string;
+  name: string;
+  version: string;
+};
+
 type PluginRepoFixture = {
+  claudeManifest?: ClaudePluginManifestFixture | false;
+  claudeMarketplace?: ClaudeMarketplaceFixture | false;
   marketplace?: MarketplaceFixture;
   manifest?: PluginManifestFixture;
   openAiMetadata?: OpenAiMetadataFixture | string;
@@ -139,6 +153,7 @@ export function validSkillMarkdown(overrides: Partial<SkillMarkdownFixture> = {}
     body: "# Hello\n\nFollow the test fixture instructions.",
     frontmatter: {
       description: "Use when a test needs a valid skill fixture.",
+      "disable-model-invocation": true,
       metadata: { source: "fixture" },
       name: "hello",
     },
@@ -146,6 +161,44 @@ export function validSkillMarkdown(overrides: Partial<SkillMarkdownFixture> = {}
   };
 
   return `---\n${toYaml(fixture.frontmatter)}---\n${fixture.body ?? ""}\n`;
+}
+
+export function validClaudeMarketplace(
+  overrides: Partial<ClaudeMarketplaceFixture> = {},
+): ClaudeMarketplaceFixture {
+  return {
+    name: "test-marketplace",
+    owner: { name: "Test Developer" },
+    plugins: [
+      {
+        name: "demo-plugin",
+        source: "./plugins/demo-plugin",
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function validClaudePluginManifest(
+  overrides: Partial<ClaudePluginManifestFixture> = {},
+): ClaudePluginManifestFixture {
+  return {
+    description: "Demo plugin",
+    displayName: "Demo Plugin",
+    name: "demo-plugin",
+    version: "1.0.0",
+    ...overrides,
+  };
+}
+
+export function validClaudeCatalogEntry(repoRoot: string): ClaudeCatalogEntry {
+  return {
+    manifestPath: path.join(repoRoot, "plugins/demo-plugin/.claude-plugin/plugin.json"),
+    name: "demo-plugin",
+    pluginPath: path.join(repoRoot, "plugins/demo-plugin"),
+    pointer: "/plugins/0",
+    sourcePath: "./plugins/demo-plugin",
+  };
 }
 
 export function validOpenAiMetadata(
@@ -191,6 +244,22 @@ export async function writeValidPluginRepo(
     "plugins/demo-plugin/.codex-plugin/plugin.json",
     fixture.manifest ?? validPluginManifest(),
   );
+
+  if (fixture.claudeMarketplace !== false) {
+    await writeJson(
+      repoRoot,
+      ".claude-plugin/marketplace.json",
+      fixture.claudeMarketplace ?? validClaudeMarketplace(),
+    );
+  }
+
+  if (fixture.claudeManifest !== false) {
+    await writeJson(
+      repoRoot,
+      "plugins/demo-plugin/.claude-plugin/plugin.json",
+      fixture.claudeManifest ?? validClaudePluginManifest(),
+    );
+  }
 
   await writeText(
     repoRoot,

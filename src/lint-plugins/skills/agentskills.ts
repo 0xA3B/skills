@@ -3,25 +3,31 @@ import { readFile } from "node:fs/promises";
 import { parse as parseYaml } from "yaml";
 
 import { error, type ValidationContext, warning } from "../diagnostics.js";
-import { getOptionalString, getString, isObject } from "../schema.js";
-import { AGENT_SKILL_FRONTMATTER_KEYS } from "../specs.js";
+import { getOptionalBoolean, getOptionalString, getString, isObject } from "../schema.js";
+import { AGENT_SKILL_FRONTMATTER_KEYS, CLAUDE_SKILL_FRONTMATTER_KEYS } from "../specs.js";
 import { errorMessage } from "../utils.js";
 
 const MAX_RECOMMENDED_BODY_LINES = 500;
 const MAX_RECOMMENDED_BODY_TOKENS = 5_000;
 const ESTIMATED_CHARS_PER_TOKEN = 4;
 
+export type SkillFrontmatterSummary = {
+  disableModelInvocation: boolean | undefined;
+};
+
+const EMPTY_SUMMARY: SkillFrontmatterSummary = { disableModelInvocation: undefined };
+
 export async function validateSkillFrontmatter(
   context: ValidationContext,
   skillName: string,
   skillFilePath: string,
-): Promise<void> {
+): Promise<SkillFrontmatterSummary> {
   const content = await readFile(skillFilePath, "utf8");
   const frontmatter = extractYamlFrontmatter(content);
 
   if (frontmatter === undefined) {
     error(context, "agentskills/frontmatter", skillFilePath, "Missing YAML frontmatter.");
-    return;
+    return EMPTY_SUMMARY;
   }
 
   if (frontmatter.body.trim().length === 0) {
@@ -46,7 +52,7 @@ export async function validateSkillFrontmatter(
       `Unable to parse YAML frontmatter: ${errorMessage(parseError)}`,
       "/frontmatter",
     );
-    return;
+    return EMPTY_SUMMARY;
   }
 
   if (!isObject(parsed)) {
@@ -56,15 +62,11 @@ export async function validateSkillFrontmatter(
       skillFilePath,
       "Expected frontmatter to be an object.",
     );
-    return;
+    return EMPTY_SUMMARY;
   }
 
   for (const key of Object.keys(parsed)) {
-    if (key === "disable-model-invocation") {
-      continue;
-    }
-
-    if (!AGENT_SKILL_FRONTMATTER_KEYS.has(key)) {
+    if (!AGENT_SKILL_FRONTMATTER_KEYS.has(key) && !CLAUDE_SKILL_FRONTMATTER_KEYS.has(key)) {
       error(
         context,
         "agentskills/frontmatter-key",
@@ -159,15 +161,13 @@ export async function validateSkillFrontmatter(
     );
   }
 
-  if (Object.hasOwn(parsed, "disable-model-invocation")) {
-    error(
-      context,
-      "repo/unsupported-skill-key",
-      skillFilePath,
-      'Unsupported frontmatter key "disable-model-invocation"; use agents/openai.yaml policy.allow_implicit_invocation instead.',
-      "/frontmatter/disable-model-invocation",
-    );
-  }
+  const disableModelInvocation = getOptionalBoolean(
+    context,
+    parsed,
+    "disable-model-invocation",
+    skillFilePath,
+    "/frontmatter/disable-model-invocation",
+  );
 
   const metadata = parsed["metadata"];
   if (metadata !== undefined) {
@@ -179,7 +179,7 @@ export async function validateSkillFrontmatter(
         'Expected frontmatter "metadata" to be an object when provided.',
         "/frontmatter/metadata",
       );
-      return;
+      return { disableModelInvocation };
     }
 
     for (const [key, value] of Object.entries(metadata)) {
@@ -194,6 +194,8 @@ export async function validateSkillFrontmatter(
       }
     }
   }
+
+  return { disableModelInvocation };
 }
 
 function extractYamlFrontmatter(content: string): { yaml: string; body: string } | undefined {

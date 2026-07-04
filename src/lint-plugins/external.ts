@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 
 import { type ValidationContext, warning } from "./diagnostics.js";
 import { isObject } from "./schema.js";
-import type { Catalog, JsonObject } from "./types.js";
+import type { Catalog, ClaudeCatalog, JsonObject } from "./types.js";
 import { parseHttpUrlString } from "./urls.js";
 
 const execFileAsync = promisify(execFile);
@@ -11,6 +11,7 @@ const execFileAsync = promisify(execFile);
 export async function validateExternalReferences(
   context: ValidationContext,
   catalog: Catalog,
+  claudeCatalog: ClaudeCatalog,
   manifestsByPath: Map<string, JsonObject>,
 ): Promise<void> {
   if (!context.externalValidationEnabled) {
@@ -76,6 +77,23 @@ export async function validateExternalReferences(
           ),
         );
       }
+    }
+  }
+
+  for (const entry of claudeCatalog.localEntries.values()) {
+    const manifest = manifestsByPath.get(entry.manifestPath);
+    if (manifest === undefined) {
+      continue;
+    }
+
+    tasks.push(
+      validateReachableUrl(context, manifest["repository"], entry.manifestPath, "/repository"),
+      validateReachableUrl(context, manifest["homepage"], entry.manifestPath, "/homepage"),
+    );
+
+    const author = isObject(manifest["author"]) ? manifest["author"] : undefined;
+    if (author !== undefined) {
+      tasks.push(validateReachableUrl(context, author["url"], entry.manifestPath, "/author/url"));
     }
   }
 

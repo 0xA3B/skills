@@ -3,43 +3,82 @@ import path from "node:path";
 
 import { error, type ValidationContext, warning } from "./diagnostics.js";
 import { readJsonObject } from "./files.js";
-import type { Catalog } from "./types.js";
+import type { Catalog, ClaudeCatalog } from "./types.js";
 
 export async function validateCatalogCoverage(
   context: ValidationContext,
   catalog: Catalog,
 ): Promise<void> {
-  const catalogPaths = new Set(
-    [...catalog.localEntries.values()].map((entry) => path.resolve(entry.pluginPath)),
-  );
-  const catalogNames = new Set([
-    ...catalog.localEntries.keys(),
-    ...catalog.remoteEntries.map((entry) => entry.name),
-  ]);
-  const manifests = await findPluginManifests(context.repoRoot);
+  await validateManifestCoverage(context, {
+    catalogLabel: "Codex marketplace catalog",
+    catalogNames: new Set([
+      ...catalog.localEntries.keys(),
+      ...catalog.remoteEntries.map((entry) => entry.name),
+    ]),
+    catalogPaths: new Set(
+      [...catalog.localEntries.values()].map((entry) => path.resolve(entry.pluginPath)),
+    ),
+    manifestDirName: ".codex-plugin",
+    missingCatalogHint: "",
+  });
+}
+
+export async function validateClaudeCatalogCoverage(
+  context: ValidationContext,
+  catalog: ClaudeCatalog,
+): Promise<void> {
+  await validateManifestCoverage(context, {
+    catalogLabel: "Claude marketplace catalog",
+    catalogNames: new Set(catalog.localEntries.keys()),
+    catalogPaths: new Set(
+      [...catalog.localEntries.values()].map((entry) => path.resolve(entry.pluginPath)),
+    ),
+    manifestDirName: ".claude-plugin",
+    missingCatalogHint: catalog.present
+      ? ""
+      : " Add .claude-plugin/marketplace.json to expose Claude plugins.",
+  });
+}
+
+type ManifestCoverageOptions = {
+  catalogLabel: string;
+  catalogNames: Set<string>;
+  catalogPaths: Set<string>;
+  manifestDirName: string;
+  missingCatalogHint: string;
+};
+
+async function validateManifestCoverage(
+  context: ValidationContext,
+  options: ManifestCoverageOptions,
+): Promise<void> {
+  const manifests = await findPluginManifests(context.repoRoot, options.manifestDirName);
 
   for (const manifestPath of manifests) {
     const pluginPath = path.dirname(path.dirname(manifestPath));
-    if (!catalogPaths.has(pluginPath)) {
+    if (!options.catalogPaths.has(pluginPath)) {
       const manifest = await readJsonObject(context, manifestPath);
       const manifestName =
         manifest !== undefined && typeof manifest["name"] === "string"
           ? manifest["name"]
           : path.basename(pluginPath);
-      const nameHint = catalogNames.has(manifestName)
+      const nameHint = options.catalogNames.has(manifestName)
         ? ` Marketplace has "${manifestName}", but it points somewhere else.`
         : "";
       error(
         context,
         "coverage/manifest-listed",
         manifestPath,
-        `Plugin manifest is missing from the marketplace catalog.${nameHint}`,
+        `Plugin manifest is missing from the ${options.catalogLabel}.${nameHint}${options.missingCatalogHint}`,
       );
     }
   }
 }
 
-export async function findPluginManifests(searchRoot: string): Promise<string[]> {
+export async function findPluginManifests(
+  searchRoot: string,
+  manifestDirName = ".codex-plugin",
+): Promise<string[]> {
   const skippedDirectoryNames = new Set([".cache", ".git", ".local", "node_modules"]);
   const manifests: string[] = [];
 
@@ -53,7 +92,7 @@ export async function findPluginManifests(searchRoot: string): Promise<string[]>
         }
         await visit(entryPath);
       } else if (entry.isFile() && entry.name === "plugin.json") {
-        if (path.basename(path.dirname(entryPath)) === ".codex-plugin") {
+        if (path.basename(path.dirname(entryPath)) === manifestDirName) {
           manifests.push(entryPath);
         }
       }

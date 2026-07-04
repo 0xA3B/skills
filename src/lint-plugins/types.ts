@@ -21,6 +21,25 @@ export type Catalog = {
   remoteEntries: RemoteCatalogEntry[];
 };
 
+export type ClaudeCatalogEntry = {
+  manifestPath: string;
+  name: string;
+  pluginPath: string;
+  pointer: string;
+  sourcePath: string;
+};
+
+export type ClaudeCatalog = {
+  localEntries: Map<string, ClaudeCatalogEntry>;
+  marketplacePath: string;
+  present: boolean;
+};
+
+export type PluginTargets = {
+  claude: boolean;
+  codex: boolean;
+};
+
 export type ComponentPathRule = {
   expectedKind: "directory" | "file";
   fieldName: string;

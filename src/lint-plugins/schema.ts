@@ -99,6 +99,33 @@ export function getOptionalString(
   return value;
 }
 
+export function getOptionalBoolean(
+  context: ValidationContext,
+  parent: JsonObject,
+  key: string,
+  filePath: string,
+  pointer: string,
+): boolean | undefined {
+  const value = parent[key];
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "boolean") {
+    error(
+      context,
+      "schema/boolean",
+      filePath,
+      `Expected "${key}" to be a boolean when provided.`,
+      pointer,
+    );
+    return undefined;
+  }
+
+  return value;
+}
+
 export function getBoolean(
   context: ValidationContext,
   parent: JsonObject,
