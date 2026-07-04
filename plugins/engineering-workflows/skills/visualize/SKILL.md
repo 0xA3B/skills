@@ -27,10 +27,10 @@ created.
 - Create temporary files outside tracked project state.
 - Create files under `.local/` only when the user wants the artifact near the repository.
 - Use Tailwind, Mermaid, image generation, or remote assets when they improve the artifact.
-- Open a generated HTML artifact in the Codex in-app Browser when that capability is available,
-  preferably through a temporary loopback server.
+- Present a generated HTML artifact locally: a harness built-in browser, the OS opener, or the
+  reported file path.
 - Start and stop a temporary localhost server for an HTML artifact when that is the most reliable
-  way to present it in the in-app Browser.
+  way to present it in an in-app browser.
 - Do not stage, commit, publish, or persist the artifact as project documentation unless the user
   explicitly asks.
 
@@ -66,10 +66,22 @@ artifact.
    minimal and avoid app-style state unless interaction is necessary.
 6. For generated images, create or request the image asset first, then embed it in HTML or present
    it alongside the summary.
-7. Present the HTML artifact in the in-app Browser when available, using the browser presentation
-   workflow below. Otherwise, report the absolute path and how to open it.
+7. Present the HTML artifact using the presentation surface guidance below.
 
-## Browser Presentation
+## Presentation Surface
+
+Keep the artifact local by default. Use the strongest local presentation surface the harness
+provides:
+
+- If the harness has a built-in browser or preview surface, present the artifact there. For the
+  Codex in-app Browser, use the loopback-server workflow below.
+- Otherwise, open the file with the OS opener (`open` on macOS, `xdg-open` on Linux) when the
+  environment allows launching it, and always report the absolute `file://` path ready to copy.
+- Publish to a hosted artifact surface only when the user explicitly asks; hosting uploads session
+  content off the machine. Hosted surfaces typically block remote requests, so inline all CSS and
+  JavaScript, embed images as data URIs, and style for both light and dark viewer themes.
+
+### Codex In-App Browser
 
 Prefer a temporary local server over direct `file://` navigation when opening HTML in the Codex
 in-app Browser. Browser Use may reject agent-driven `file://` navigation even when the user can open
