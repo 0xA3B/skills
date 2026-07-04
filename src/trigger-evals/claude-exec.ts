@@ -1,21 +1,21 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { spawnStreamingCli } from "./exec.js";
+import { spawnStreamingCli, type StreamingCliOutput } from "./exec.js";
 
-type CodexRunOptions = {
-  codexHome: string;
+type ClaudeRunOptions = {
   workspacePath: string;
+  pluginDir: string;
   prompt: string;
   caseDir: string;
   timeoutMs: number;
-  sandboxMode: "read-only" | "workspace-write";
-  stopWhen?: (output: { stdout: string; stderr: string }) => boolean;
+  stopWhen?: (output: StreamingCliOutput) => boolean;
   model?: string;
+  configDir?: string;
   abortSignal?: AbortSignal;
 };
 
-export type CodexRunResult = {
+export type ClaudeRunResult = {
   exitCode: number | null;
   finalMessage: string;
   stdout: string;
@@ -26,41 +26,45 @@ export type CodexRunResult = {
   error?: string;
 };
 
-export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunResult> {
+// Read-only tool surface: trigger evals only observe whether the Skill tool fires, but the model
+// may need to inspect fixture workspace files before deciding.
+const EVAL_TOOLS = "Skill,Read,Glob,Grep";
+
+export async function runClaudeExec(options: ClaudeRunOptions): Promise<ClaudeRunResult> {
   await mkdir(options.caseDir, { recursive: true });
   const stdoutPath = path.join(options.caseDir, "events.jsonl");
   const stderrPath = path.join(options.caseDir, "stderr.log");
   const finalMessagePath = path.join(options.caseDir, "final.txt");
 
   const args = [
-    "-a",
-    "never",
-    "-s",
-    options.sandboxMode,
-    "exec",
-    "--json",
-    "--ephemeral",
-    "--skip-git-repo-check",
-    "--ignore-rules",
-    "--color",
-    "never",
-    "-C",
-    options.workspacePath,
-    "-o",
-    finalMessagePath,
+    "-p",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--permission-mode",
+    "dontAsk",
+    "--tools",
+    EVAL_TOOLS,
+    "--setting-sources",
+    "project",
+    "--plugin-dir",
+    options.pluginDir,
   ];
 
   if (options.model !== undefined) {
     args.push("--model", options.model);
   }
 
-  args.push("--", options.prompt);
+  args.push(options.prompt);
 
-  const result = await spawnStreamingCli("codex", args, {
+  const result = await spawnStreamingCli("claude", args, {
     cwd: options.workspacePath,
-    env: { ...process.env, CODEX_HOME: options.codexHome },
+    env: {
+      ...process.env,
+      ...(options.configDir === undefined ? {} : { CLAUDE_CONFIG_DIR: options.configDir }),
+    },
     timeoutMs: options.timeoutMs,
-    label: "codex exec",
+    label: "claude -p",
     ...(options.stopWhen === undefined ? {} : { stopWhen: options.stopWhen }),
     ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
   });
@@ -68,7 +72,9 @@ export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunRe
   await writeFile(stdoutPath, result.stdout);
   await writeFile(stderrPath, result.stderr);
 
-  const finalMessage = await readFinalMessage(finalMessagePath, result.stdout);
+  const finalMessage = parseResultText(result.stdout);
+  await writeFile(finalMessagePath, finalMessage);
+
   const baseResult = {
     exitCode: result.exitCode,
     finalMessage,
@@ -85,19 +91,11 @@ export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunRe
 
   return {
     ...baseResult,
-    error: result.error ?? `codex exec exited with code ${result.exitCode}.`,
+    error: result.error ?? `claude -p exited with code ${result.exitCode}.`,
   };
 }
 
-async function readFinalMessage(finalMessagePath: string, stdout: string): Promise<string> {
-  try {
-    return await readFile(finalMessagePath, "utf8");
-  } catch {
-    return parseLastAgentMessage(stdout);
-  }
-}
-
-function parseLastAgentMessage(stdout: string): string {
+function parseResultText(stdout: string): string {
   let finalMessage = "";
   for (const line of stdout.split(/\r?\n/)) {
     if (!line.startsWith("{")) {
@@ -105,9 +103,9 @@ function parseLastAgentMessage(stdout: string): string {
     }
 
     try {
-      const parsed = JSON.parse(line) as { type?: string; item?: { type?: string; text?: string } };
-      if (parsed.type === "item.completed" && parsed.item?.type === "agent_message") {
-        finalMessage = parsed.item.text ?? "";
+      const parsed = JSON.parse(line) as { type?: string; result?: unknown };
+      if (parsed.type === "result" && typeof parsed.result === "string") {
+        finalMessage = parsed.result;
       }
     } catch {
       // Ignore non-event output.

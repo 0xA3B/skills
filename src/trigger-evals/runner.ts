@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
+import { runClaudeExec } from "./claude-exec.js";
 import { runCodexExec } from "./codex-exec.js";
 import { prepareCodexHome, removeCopiedAuth } from "./codex-home.js";
 import { loadTriggerFixture } from "./fixtures.js";
@@ -14,12 +15,14 @@ import type {
   SkillTarget,
   TriggerCase,
   TriggerCaseResult,
+  TriggerEvalAgent,
   TriggerEvalResult,
 } from "./types.js";
 
 export type RunTriggerEvalOptions = {
   repoRoot?: string;
   skillPath: string;
+  agent?: TriggerEvalAgent;
   fixturePath?: string;
   caseId?: string;
   model?: string;
@@ -27,6 +30,7 @@ export type RunTriggerEvalOptions = {
   timeoutMs?: number;
   concurrency?: number;
   sourceCodexHome?: string;
+  claudeConfigDir?: string;
   abortSignal?: AbortSignal;
 };
 
@@ -36,17 +40,24 @@ const DEFAULT_CONCURRENCY = 3;
 export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<TriggerEvalResult> {
   const runStartedAt = Date.now();
   const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
+  const agent: TriggerEvalAgent = options.agent ?? "codex";
   const target = resolveSkillTarget(repoRoot, options.skillPath);
+  if (agent === "claude" && target.kind === "repo-local") {
+    throw new Error(
+      "Claude trigger evals support plugin skills only; repo-local skills under .agents/skills are Codex-only workflows.",
+    );
+  }
   const allowImplicitInvocation = await readAllowImplicitInvocation(target);
 
   if (!allowImplicitInvocation && options.force !== true) {
-    const runDir = await createRunDir(repoRoot, target.skillName);
+    const runDir = await createRunDir(repoRoot, target.skillName, agent);
     const skippedReason = `${skillTargetLabel(target)} has policy.allow_implicit_invocation: false. Trigger optimization is intended for implicitly invokable skills.`;
     const reportPath = path.join(runDir, "report.json");
     const result = {
       runDir,
       reportPath,
       target,
+      agent,
       durationMs: Date.now() - runStartedAt,
       results: [],
       skippedReason,
@@ -60,7 +71,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     options.fixturePath ?? target.fixturePath,
     fixtureOptions,
   );
-  const runDir = await createRunDir(repoRoot, target.skillName);
+  const runDir = await createRunDir(repoRoot, target.skillName, agent);
   const harness = await prepareHarness(runDir, target);
 
   const results: Array<TriggerCaseResult | undefined> = new Array(fixture.cases.length);
@@ -71,7 +82,6 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         return;
       }
       const caseDir = path.join(runDir, "cases", testCase.id);
-      const codexHome = path.join(runDir, "codex-home", "cases", testCase.id);
       const caseWorkspace = await prepareCaseWorkspace({
         baseWorkspacePath: harness.workspacePath,
         workspaceRoot: harness.workspaceRoot,
@@ -79,6 +89,37 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         target,
         testCase,
       });
+
+      if (agent === "claude") {
+        if (target.kind !== "plugin") {
+          throw new Error("Claude trigger evals support plugin skills only.");
+        }
+        const claudeRunOptions = {
+          workspacePath: caseWorkspace.workspacePath,
+          pluginDir: path.join(caseWorkspace.workspacePath, "plugins", target.pluginName),
+          prompt: testCase.prompt,
+          caseDir,
+          timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+          stopWhen: (output: { stdout: string; stderr: string }) =>
+            detectInvocation(output, target, caseWorkspace.canary, agent) !== "none",
+          ...(options.model === undefined ? {} : { model: options.model }),
+          ...(options.claudeConfigDir === undefined ? {} : { configDir: options.claudeConfigDir }),
+          ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
+        };
+        const caseStartedAt = Date.now();
+        const claudeResult = await runClaudeExec(claudeRunOptions);
+        results[index] = buildCaseResult({
+          testCase,
+          codexResult: claudeResult,
+          target,
+          canary: caseWorkspace.canary,
+          durationMs: Date.now() - caseStartedAt,
+          agent,
+        });
+        return;
+      }
+
+      const codexHome = path.join(runDir, "codex-home", "cases", testCase.id);
       await prepareCodexHome({
         codexHome,
         workspacePath: caseWorkspace.workspacePath,
@@ -105,7 +146,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
         sandboxMode,
         stopWhen: (output: { stdout: string; stderr: string }) =>
-          detectInvocation(output, target, caseWorkspace.canary) !== "none",
+          detectInvocation(output, target, caseWorkspace.canary, agent) !== "none",
         ...(options.model === undefined ? {} : { model: options.model }),
         ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
       };
@@ -119,6 +160,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           target,
           canary: caseWorkspace.canary,
           durationMs: Date.now() - caseStartedAt,
+          agent,
         });
       } finally {
         await removeCopiedAuth(codexHome);
@@ -133,6 +175,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     runDir,
     reportPath,
     target,
+    agent,
     durationMs: Date.now() - runStartedAt,
     results: results.filter(isDefined),
   };
@@ -154,8 +197,14 @@ function buildCaseResult(options: {
   target: SkillTarget;
   canary: string | undefined;
   durationMs: number;
+  agent: TriggerEvalAgent;
 }): TriggerCaseResult {
-  const invocationSignal = detectInvocation(options.codexResult, options.target, options.canary);
+  const invocationSignal = detectInvocation(
+    options.codexResult,
+    options.target,
+    options.canary,
+    options.agent,
+  );
   const invoked = invocationSignal !== "none";
   const matchedExpectation = options.testCase.expect === "invoke" ? invoked : !invoked;
   const passed = matchedExpectation;
@@ -317,7 +366,11 @@ async function prepareCasePluginCache(
   await cp(target.pluginPath, cachedPluginPath, { recursive: true });
 }
 
-async function createRunDir(repoRoot: string, skillName: string): Promise<string> {
+async function createRunDir(
+  repoRoot: string,
+  skillName: string,
+  agent: TriggerEvalAgent,
+): Promise<string> {
   const timestamp = new Date()
     .toISOString()
     .replaceAll(":", "-")
@@ -328,7 +381,7 @@ async function createRunDir(repoRoot: string, skillName: string): Promise<string
     ".local",
     "skill-evals",
     "trigger",
-    `${timestamp}-${sanitize(skillName)}-${suffix}`,
+    `${timestamp}-${sanitize(skillName)}-${agent}-${suffix}`,
   );
   await mkdir(runDir, { recursive: true });
   return runDir;
@@ -338,14 +391,22 @@ function sanitize(value: string): string {
   return value.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-// Plugin skills expose a stderr telemetry canary. Repo-local skills currently do not, so the runner
-// appends an eval-only canary instruction to the copied SKILL.md and checks assistant output.
+// Codex plugin skills expose a stderr telemetry canary, and Codex repo-local skills use an
+// eval-only canary appended to the copied SKILL.md. Claude Code invokes skills through the Skill
+// tool, which is visible directly in the stream-json events.
 function detectInvocation(
   codexResult: { stdout: string; stderr: string },
   target: SkillTarget,
   canary: string | undefined,
-): "stderr-skill-injected" | "stdout-skill-canary" | "none" {
+  agent: TriggerEvalAgent,
+): "stderr-skill-injected" | "stdout-skill-canary" | "stream-skill-tool-use" | "none" {
   const skillLabel = skillTargetLabel(target);
+  if (agent === "claude") {
+    return streamContainsSkillToolUse(codexResult.stdout, skillLabel)
+      ? "stream-skill-tool-use"
+      : "none";
+  }
+
   if (
     target.kind === "plugin" &&
     codexResult.stderr.includes("codex.skill.injected") &&
@@ -363,6 +424,36 @@ function detectInvocation(
   }
 
   return "none";
+}
+
+export function streamContainsSkillToolUse(stdout: string, skillLabel: string): boolean {
+  for (const line of stdout.split(/\r?\n/)) {
+    if (!line.startsWith("{")) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(line) as { message?: { content?: unknown } };
+      const content = parsed.message?.content;
+      if (!Array.isArray(content)) {
+        continue;
+      }
+      for (const block of content) {
+        if (
+          isRecord(block) &&
+          block["type"] === "tool_use" &&
+          block["name"] === "Skill" &&
+          JSON.stringify(block["input"] ?? {}).includes(skillLabel)
+        ) {
+          return true;
+        }
+      }
+    } catch {
+      // Ignore non-event output.
+    }
+  }
+
+  return false;
 }
 
 function stdoutContainsCanary(stdout: string, canary: string): boolean {

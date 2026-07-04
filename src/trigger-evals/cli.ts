@@ -27,12 +27,19 @@ async function main(): Promise<void> {
   }
 
   if (options !== undefined) {
+    const { agents, ...runOptions } = options;
     try {
-      const result = await runTriggerEval({
-        ...options,
-        abortSignal: abortController.signal,
-      });
-      printTriggerEvalResult(result);
+      for (const agent of agents) {
+        if (abortController.signal.aborted) {
+          break;
+        }
+        const result = await runTriggerEval({
+          ...runOptions,
+          agent,
+          abortSignal: abortController.signal,
+        });
+        printTriggerEvalResult(result);
+      }
     } catch (caught: unknown) {
       console.error(caught instanceof Error ? caught.message : String(caught));
       process.exitCode = 1;
