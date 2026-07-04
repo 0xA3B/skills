@@ -1,0 +1,25 @@
+{
+  "name": "engineering-workflows",
+  "displayName": "Engineering Workflows",
+  "version": "1.2.2",
+  "description": "Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance, durable terminology, disposable prototyping, building, TDD, diagnosis, architecture review, code review, codebase orientation, and visual presentation artifacts.",
+  "author": {
+    "name": "Alex Baker"
+  },
+  "homepage": "https://github.com/0xA3B/skills/blob/main/plugins/engineering-workflows/README.md",
+  "repository": "https://github.com/0xA3B/skills",
+  "license": "MIT",
+  "keywords": [
+    "engineering",
+    "dependencies",
+    "debugging",
+    "prototyping",
+    "build",
+    "tdd",
+    "architecture",
+    "review",
+    "planning",
+    "visualization",
+    "terminology"
+  ]
+}
