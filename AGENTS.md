@@ -21,7 +21,8 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 - Keep plugin packaging under `plugins/`. Agent-specific metadata lives in each plugin's
   `.claude-plugin/` and `.codex-plugin/` manifests and in per-skill `agents/openai.yaml`; skill
   bodies stay agent-agnostic.
-- Keep repo-local maintenance workflows under `.agents/skills/` if they are added in the future.
+- Keep repo-local maintenance workflows under `.agents/skills/`; the `.claude/skills` symlink
+  exposes them to Claude Code sessions in this checkout.
 - Keep generated eval output and local working artifacts under `.local/`, not tracked project state.
 
 ## Project Conventions
@@ -110,6 +111,8 @@ Relationships:
   targets Codex.
 - A **Hand off** recommends an explicit **Manual-only skill** invocation; it does not automatically
   load another skill.
+- A **Skill body** may direct the model to use another skill only when the referenced skill is
+  implicitly invokable; manual-only skills are referenced through a **Hand off** instead.
 - **Brainstorm** and **Grill Me** can hand off unresolved executable questions to **Prototype**.
 - **Prototype** can hand off a validated decision to **Build** or **TDD**.
 - **Brainstorm** can hand off a preferred direction to **Grill Me**; **Grill Me** can hand off a

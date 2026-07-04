@@ -64,6 +64,11 @@ These instructions apply to plugin directories under `plugins/`.
 - For manual-only skills, set `policy.allow_implicit_invocation: false` in `agents/openai.yaml` and
   `disable-model-invocation: true` in `SKILL.md` frontmatter. Implicitly invokable skills omit
   `disable-model-invocation`. The linter enforces this parity (`repo/invocation-policy-parity`).
+- A skill body may direct the model to use another skill only when the referenced skill is
+  implicitly invokable. On Claude Code, `disable-model-invocation` blocks model invocation even when
+  the user asks in prose, and this repository keeps invocation behavior identical across agents even
+  though Codex can fall back to reading installed skill files. Reference manual-only skills only as
+  hand offs that recommend an explicit user invocation.
 
 ## Skill Authoring Baseline
 

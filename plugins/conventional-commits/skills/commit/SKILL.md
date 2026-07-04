@@ -3,13 +3,13 @@ name: commit
 description:
   Creates git commits using Conventional Commit messages after reviewing current changes and
   splitting logical units. Use when the user asks to commit current work, create commits, batch
-  commits, or run a fast commit workflow, and neither the prompt nor loaded repository instructions
-  require a different commit-message standard. Also use when no repository convention is specified,
-  because Conventional Commits are this plugin's default. Do not use for message-only drafting,
-  syntax validation, split guidance without commit execution, conceptual commit questions, history
-  inspection, user prompts or loaded repository instructions that reject Conventional Commits or
-  request Gitmoji or another commit-message standard, or ordinary-language uses of "commit" such as
-  committing to a plan.
+  commits, commit only a selected scope or subset of the changes, or run a fast commit workflow, and
+  neither the prompt nor loaded repository instructions require a different commit-message standard.
+  Also use when no repository convention is specified, because Conventional Commits are this
+  plugin's default. Do not use for message-only drafting, syntax validation, split guidance without
+  commit execution, conceptual commit questions, history inspection, user prompts or loaded
+  repository instructions that reject Conventional Commits or request Gitmoji or another
+  commit-message standard, or ordinary-language uses of "commit" such as committing to a plan.
 license: MIT
 ---
 
