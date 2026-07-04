@@ -12,7 +12,7 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
 
   const failures = result.results.filter((caseResult) => !caseResult.passed);
   console.log(
-    `Trigger eval completed for ${skillTargetLabel(result.target)}: ${result.results.length - failures.length}/${result.results.length} passed in ${formatDuration(result.durationMs)}.`,
+    `Trigger eval completed for ${skillTargetLabel(result.target)} on ${result.agent}: ${result.results.length - failures.length}/${result.results.length} passed in ${formatDuration(result.durationMs)}.`,
   );
 
   for (const caseResult of result.results) {

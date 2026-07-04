@@ -25,6 +25,8 @@ const mockState = vi.hoisted(() => ({
   workspacePaths: [] as string[],
   sandboxModes: [] as string[],
   stopWhenPredicates: [] as Array<(output: { stdout: string; stderr: string }) => boolean>,
+  claudePluginDirs: [] as string[],
+  claudeWorkspacePaths: [] as string[],
 }));
 
 vi.mock(import("./codex-exec.js"), () => ({
@@ -63,7 +65,41 @@ vi.mock(import("./codex-home.js"), () => ({
   removeCopiedAuth: vi.fn<() => Promise<void>>(async () => undefined),
 }));
 
-import { runTriggerEval } from "./runner.js";
+vi.mock(import("./claude-exec.js"), () => ({
+  runClaudeExec: vi.fn<
+    (options: { pluginDir: string; prompt: string; workspacePath: string }) => Promise<{
+      exitCode: number | null;
+      finalMessage: string;
+      stdout: string;
+      stderr: string;
+      stdoutPath: string;
+      stderrPath: string;
+      finalMessagePath: string;
+    }>
+  >(async (options) => {
+    mockState.claudePluginDirs.push(options.pluginDir);
+    mockState.claudeWorkspacePaths.push(options.workspacePath);
+    const shouldInvoke = !options.prompt.startsWith("Do not invoke");
+    return {
+      exitCode: 0,
+      finalMessage: "",
+      stdout: shouldInvoke
+        ? JSON.stringify({
+            type: "assistant",
+            message: {
+              content: [{ type: "tool_use", name: "Skill", input: { command: "demo:auto-skill" } }],
+            },
+          })
+        : "",
+      stderr: "",
+      stdoutPath: "/tmp/events.jsonl",
+      stderrPath: "/tmp/stderr.log",
+      finalMessagePath: "/tmp/final.txt",
+    };
+  }),
+}));
+
+import { runTriggerEval, streamContainsSkillToolUse } from "./runner.js";
 
 describe("runTriggerEval", () => {
   beforeEach(() => {
@@ -74,6 +110,8 @@ describe("runTriggerEval", () => {
     mockState.workspacePaths = [];
     mockState.sandboxModes = [];
     mockState.stopWhenPredicates = [];
+    mockState.claudePluginDirs = [];
+    mockState.claudeWorkspacePaths = [];
   });
 
   it("passes cases when invocation expectation matches even if codex exec errors", async () => {
@@ -188,6 +226,51 @@ describe("runTriggerEval", () => {
     expect(plainWorkspace).not.toContain(path.join("cases", "plain-case", "workspace"));
   });
 
+  it("evaluates plugin skills on Claude via the Skill tool stream signal", async () => {
+    const repoRoot = await writeRepoFixture();
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+    });
+
+    expect(result.agent).toBe("claude");
+    expect(result.runDir).toContain("-claude-");
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0]).toMatchObject({
+      caseId: "invoke-case",
+      expect: "invoke",
+      invocationSignal: "stream-skill-tool-use",
+      invoked: true,
+      passed: true,
+    });
+    expect(result.results[1]).toMatchObject({
+      caseId: "skip-case",
+      expect: "skip",
+      invoked: false,
+      passed: true,
+    });
+    expect(mockState.codexHomes).toStrictEqual([]);
+    expect(mockState.claudePluginDirs).toHaveLength(2);
+    expect(mockState.claudePluginDirs[0]).toContain(path.join("plugins", "demo"));
+    expect(mockState.claudePluginDirs[0]).toContain(
+      mockState.claudeWorkspacePaths[0] ?? "missing-workspace",
+    );
+  });
+
+  it("rejects Claude evals for repo-local skill targets", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture();
+
+    await expect(
+      runTriggerEval({
+        repoRoot,
+        skillPath: ".agents/skills/auto-skill",
+        agent: "claude",
+      }),
+    ).rejects.toThrow("Claude trigger evals support plugin skills only");
+  });
+
   it("evaluates repo-local skill targets with an injected canary", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
 
@@ -230,6 +313,43 @@ describe("runTriggerEval", () => {
         stderr: "",
       }),
     ).toBe(true);
+  });
+});
+
+describe("streamContainsSkillToolUse", () => {
+  it("matches Skill tool_use blocks that reference the skill label", () => {
+    const stdout = [
+      "non-json noise",
+      JSON.stringify({ type: "system", subtype: "init" }),
+      JSON.stringify({
+        type: "assistant",
+        message: {
+          content: [
+            { type: "text", text: "Loading the skill." },
+            { type: "tool_use", name: "Skill", input: { command: "demo:auto-skill" } },
+          ],
+        },
+      }),
+    ].join("\n");
+
+    expect(streamContainsSkillToolUse(stdout, "demo:auto-skill")).toBe(true);
+    expect(streamContainsSkillToolUse(stdout, "demo:other-skill")).toBe(false);
+  });
+
+  it("ignores other tool_use blocks and assistant text mentioning the label", () => {
+    const stdout = [
+      JSON.stringify({
+        type: "assistant",
+        message: {
+          content: [
+            { type: "text", text: "I could use demo:auto-skill here." },
+            { type: "tool_use", name: "Read", input: { file_path: "demo:auto-skill" } },
+          ],
+        },
+      }),
+    ].join("\n");
+
+    expect(streamContainsSkillToolUse(stdout, "demo:auto-skill")).toBe(false);
   });
 });
 

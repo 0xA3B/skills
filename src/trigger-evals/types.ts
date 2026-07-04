@@ -1,5 +1,7 @@
 export type TriggerExpectation = "invoke" | "skip";
 
+export type TriggerEvalAgent = "claude" | "codex";
+
 export type TriggerCase = {
   id: string;
   prompt: string;
@@ -37,7 +39,11 @@ export type SkillTarget = PluginSkillTarget | RepoLocalSkillTarget;
 export type TriggerCaseResult = {
   caseId: string;
   expect: TriggerExpectation;
-  invocationSignal: "stderr-skill-injected" | "stdout-skill-canary" | "none";
+  invocationSignal:
+    | "stderr-skill-injected"
+    | "stdout-skill-canary"
+    | "stream-skill-tool-use"
+    | "none";
   invoked: boolean;
   passed: boolean;
   durationMs: number;
@@ -52,6 +58,7 @@ export type TriggerEvalResult = {
   runDir: string;
   reportPath: string;
   target: SkillTarget;
+  agent: TriggerEvalAgent;
   durationMs: number;
   results: TriggerCaseResult[];
   skippedReason?: string;

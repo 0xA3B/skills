@@ -5,6 +5,7 @@ import { HelpRequested, parseTriggerEvalCliOptions } from "./cli-options.js";
 describe("parseTriggerEvalCliOptions", () => {
   it("accepts just a skill path", () => {
     expect(parseTriggerEvalCliOptions(["plugins/foo/skills/bar"])).toStrictEqual({
+      agents: ["codex"],
       skillPath: "plugins/foo/skills/bar",
     });
   });
@@ -13,6 +14,8 @@ describe("parseTriggerEvalCliOptions", () => {
     expect(
       parseTriggerEvalCliOptions([
         "plugins/foo/skills/bar",
+        "--agent",
+        "claude",
         "--fixture",
         "custom.yaml",
         "--case",
@@ -25,9 +28,12 @@ describe("parseTriggerEvalCliOptions", () => {
         "4",
         "--codex-home",
         "/tmp/codex",
+        "--claude-config-dir",
+        "/tmp/claude-config",
         "--force",
       ]),
     ).toStrictEqual({
+      agents: ["claude"],
       skillPath: "plugins/foo/skills/bar",
       fixturePath: "custom.yaml",
       caseId: "case-a",
@@ -35,12 +41,29 @@ describe("parseTriggerEvalCliOptions", () => {
       timeoutMs: 5000,
       concurrency: 4,
       sourceCodexHome: "/tmp/codex",
+      claudeConfigDir: "/tmp/claude-config",
       force: true,
     });
   });
 
+  it("expands --agent both into codex and claude runs", () => {
+    expect(parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--agent", "both"])).toStrictEqual(
+      {
+        agents: ["codex", "claude"],
+        skillPath: "plugins/foo/skills/bar",
+      },
+    );
+  });
+
+  it("rejects unknown agents", () => {
+    expect(() =>
+      parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--agent", "gemini"]),
+    ).toThrow('--agent must be "codex", "claude", or "both".');
+  });
+
   it("ignores the package-manager argument separator", () => {
     expect(parseTriggerEvalCliOptions(["--", "plugins/foo/skills/bar"])).toStrictEqual({
+      agents: ["codex"],
       skillPath: "plugins/foo/skills/bar",
     });
   });

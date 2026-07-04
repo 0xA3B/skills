@@ -1,8 +1,13 @@
 import { parseArgs } from "node:util";
 
 import type { RunTriggerEvalOptions } from "./runner.js";
+import type { TriggerEvalAgent } from "./types.js";
 
-export function parseTriggerEvalCliOptions(argv: string[]): RunTriggerEvalOptions {
+export type TriggerEvalCliOptions = RunTriggerEvalOptions & {
+  agents: TriggerEvalAgent[];
+};
+
+export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOptions {
   const parsed = parseTriggerArgs(argv);
   const options: Partial<RunTriggerEvalOptions> = {};
 
@@ -15,6 +20,7 @@ export function parseTriggerEvalCliOptions(argv: string[]): RunTriggerEvalOption
     throw new Error("Usage: pnpm eval:trigger -- <skill-path> [options]");
   }
 
+  const agents = parseAgents(parsed.values.agent);
   if (parsed.values.fixture !== undefined) {
     options.fixturePath = readStringOption(parsed.values.fixture, "--fixture");
   }
@@ -33,11 +39,31 @@ export function parseTriggerEvalCliOptions(argv: string[]): RunTriggerEvalOption
   if (parsed.values["codex-home"] !== undefined) {
     options.sourceCodexHome = readStringOption(parsed.values["codex-home"], "--codex-home");
   }
+  if (parsed.values["claude-config-dir"] !== undefined) {
+    options.claudeConfigDir = readStringOption(
+      parsed.values["claude-config-dir"],
+      "--claude-config-dir",
+    );
+  }
   if (parsed.values.force === true) {
     options.force = true;
   }
 
-  return { ...options, skillPath };
+  return { ...options, agents, skillPath };
+}
+
+function parseAgents(value: string | undefined): TriggerEvalAgent[] {
+  if (value === undefined || value === "codex") {
+    return ["codex"];
+  }
+  if (value === "claude") {
+    return ["claude"];
+  }
+  if (value === "both") {
+    return ["codex", "claude"];
+  }
+
+  throw new Error('--agent must be "codex", "claude", or "both".');
 }
 
 export class HelpRequested extends Error {
@@ -55,13 +81,15 @@ export function usage(): string {
     "  .agents/skills/<skill>",
     "",
     "Options:",
-    "  --fixture <path>      Use a fixture file other than evals/triggers.yaml.",
-    "  --case <id>           Run one trigger fixture case.",
-    "  --model <model>       Override the Codex model for the eval run.",
-    "  --timeout-ms <ms>     Per-case timeout. Defaults to 60000.",
-    "  --concurrency <n>     Number of cases to run in parallel. Defaults to 3.",
-    "  --codex-home <path>   Source Codex home to copy auth/config from. Defaults to ~/.codex.",
-    "  --force               Run even when allow_implicit_invocation is false.",
+    "  --agent <agent>            Agent(s) to evaluate: codex, claude, or both. Defaults to codex.",
+    "  --fixture <path>           Use a fixture file other than evals/triggers.yaml.",
+    "  --case <id>                Run one trigger fixture case.",
+    "  --model <model>            Override the agent model for the eval run.",
+    "  --timeout-ms <ms>          Per-case timeout. Defaults to 60000.",
+    "  --concurrency <n>          Number of cases to run in parallel. Defaults to 3.",
+    "  --codex-home <path>        Source Codex home to copy auth/config from. Defaults to ~/.codex.",
+    "  --claude-config-dir <path> CLAUDE_CONFIG_DIR for Claude runs. Defaults to the ambient value.",
+    "  --force                    Run even when allow_implicit_invocation is false.",
   ].join("\n");
 }
 
@@ -71,12 +99,14 @@ function parseTriggerArgs(argv: string[]) {
       args: argv.filter((arg) => arg !== "--"),
       allowPositionals: true,
       options: {
+        agent: { type: "string" },
         fixture: { type: "string" },
         case: { type: "string" },
         model: { type: "string" },
         "timeout-ms": { type: "string" },
         concurrency: { type: "string" },
         "codex-home": { type: "string" },
+        "claude-config-dir": { type: "string" },
         force: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
