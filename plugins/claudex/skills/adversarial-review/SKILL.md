@@ -73,11 +73,15 @@ Claude's findings but ask the user before editing.
 
 ## Claude Invocation
 
-Use `claude` from `PATH`; do not hard-code a machine-specific absolute path. Default to Opus with
-extra-high effort unless the user explicitly requests another model or effort.
+Use `claude` from `PATH`; do not hard-code a machine-specific absolute path. Default to
+`--model opus`, an alias that resolves to the latest Opus model. Use another model only when the
+user explicitly requests one, such as asking for a Fable or Sonnet review.
 
-Opus with extra-high effort can take several minutes, even for small review targets. Be patient and
-let Claude finish unless the process is clearly hung or the user asks to stop.
+Choose `--effort` (`medium`, `high`, or `xhigh`) based on the scope and depth of the requested
+review; when in doubt, use `high`. Honor an explicit user effort request.
+
+Higher effort levels can take several minutes, even for small review targets. Be patient and let
+Claude finish unless the process is clearly hung or the user asks to stop.
 
 Do not treat non-fatal Claude CLI warnings as review failures. Continue when Claude still produces a
 usable result, adjust later Claude commands if the warning identifies a bad option, and include the
@@ -90,7 +94,7 @@ Use this command shape for the initial review:
 ```bash
 claude -p "$PROMPT" \
   --model "${MODEL:-opus}" \
-  --effort "${EFFORT:-xhigh}" \
+  --effort "${EFFORT:-high}" \
   --permission-mode dontAsk \
   --tools "Read,Glob,Grep,Bash" \
   --disallowedTools "Edit,Write,NotebookEdit" \
@@ -107,7 +111,7 @@ apply the review schema to conversational turns:
 ```bash
 claude -p "$FOLLOW_UP_PROMPT" --resume "$SESSION_ID" \
   --model "${MODEL:-opus}" \
-  --effort "${EFFORT:-xhigh}" \
+  --effort "${EFFORT:-high}" \
   --permission-mode dontAsk \
   --tools "Read,Glob,Grep,Bash" \
   --disallowedTools "Edit,Write,NotebookEdit" \
@@ -119,7 +123,7 @@ For re-review turns that ask Claude to produce a fresh finding set, use the sche
 ```bash
 claude -p "$REVIEW_PROMPT" --resume "$SESSION_ID" \
   --model "${MODEL:-opus}" \
-  --effort "${EFFORT:-xhigh}" \
+  --effort "${EFFORT:-high}" \
   --permission-mode dontAsk \
   --tools "Read,Glob,Grep,Bash" \
   --disallowedTools "Edit,Write,NotebookEdit" \
