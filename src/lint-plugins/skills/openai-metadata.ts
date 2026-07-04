@@ -12,15 +12,20 @@ import {
 import type { JsonObject } from "../types.js";
 import { validateUrlString } from "../urls.js";
 
+export type OpenAiMetadataSummary = {
+  allowImplicitInvocation: boolean | undefined;
+};
+
 export async function validateOpenAiMetadata(
   context: ValidationContext,
   skillName: string,
   metadataPath: string,
-): Promise<void> {
+): Promise<OpenAiMetadataSummary> {
   const metadata = await readYamlObject(context, metadataPath);
+  let allowImplicitInvocation: boolean | undefined;
 
   if (metadata === undefined) {
-    return;
+    return { allowImplicitInvocation };
   }
 
   for (const key of Object.keys(metadata)) {
@@ -102,7 +107,7 @@ export async function validateOpenAiMetadata(
       "/policy",
       "policy",
     );
-    getBoolean(
+    allowImplicitInvocation = getBoolean(
       context,
       policy,
       "allow_implicit_invocation",
@@ -122,6 +127,8 @@ export async function validateOpenAiMetadata(
       `Metadata path does not match skill directory "${skillName}".`,
     );
   }
+
+  return { allowImplicitInvocation };
 }
 
 export function validateOpenAiMetadataObjectKeys(

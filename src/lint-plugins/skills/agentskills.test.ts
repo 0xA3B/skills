@@ -96,7 +96,7 @@ describe("Agent Skills frontmatter validation", () => {
     });
   });
 
-  it("keeps repo-specific invocation policy out of SKILL.md", async () => {
+  it("accepts Claude Code invocation policy in SKILL.md frontmatter", async () => {
     await withTempRepo(async (repoRoot) => {
       const skillPath = await writeText(
         repoRoot,
@@ -105,16 +105,40 @@ describe("Agent Skills frontmatter validation", () => {
           body: "# Manual",
           frontmatter: {
             "disable-model-invocation": true,
-            description: "Use when a test needs an invalid repo policy key.",
+            description: "Use when a test needs a manual-only skill fixture.",
             name: "manual",
           },
         }),
       );
       const context = createTestContext(repoRoot);
 
-      await validateSkillFrontmatter(context, "manual", skillPath);
+      const summary = await validateSkillFrontmatter(context, "manual", skillPath);
 
-      expect(ruleIds(context)).toStrictEqual(["repo/unsupported-skill-key"]);
+      expect(context.diagnostics).toStrictEqual([]);
+      expect(summary.disableModelInvocation).toBe(true);
+    });
+  });
+
+  it("requires disable-model-invocation to be a boolean", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const skillPath = await writeText(
+        repoRoot,
+        "skills/manual/SKILL.md",
+        validSkillMarkdown({
+          body: "# Manual",
+          frontmatter: {
+            "disable-model-invocation": "yes",
+            description: "Use when a test needs an invalid policy value.",
+            name: "manual",
+          },
+        }),
+      );
+      const context = createTestContext(repoRoot);
+
+      const summary = await validateSkillFrontmatter(context, "manual", skillPath);
+
+      expect(ruleIds(context)).toStrictEqual(["schema/boolean"]);
+      expect(summary.disableModelInvocation).toBeUndefined();
     });
   });
 

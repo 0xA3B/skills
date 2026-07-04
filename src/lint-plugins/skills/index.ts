@@ -4,21 +4,26 @@ import path from "node:path";
 import { error, type ValidationContext } from "../diagnostics.js";
 import { isDirectory, pathExists } from "../files.js";
 import { resolveRelativePath } from "../paths.js";
-import type { JsonObject, LocalCatalogEntry } from "../types.js";
+import type { JsonObject, PluginTargets } from "../types.js";
 import { validateSkillFrontmatter } from "./agentskills.js";
 import { validateOpenAiMetadata } from "./openai-metadata.js";
 
-export async function validateSkillsForEntry(
+export async function validateSkillsForPlugin(
   context: ValidationContext,
-  entry: LocalCatalogEntry,
-  manifest: JsonObject,
+  pluginPath: string,
+  manifestPath: string,
+  codexManifest: JsonObject | undefined,
+  targets: PluginTargets,
 ): Promise<void> {
-  const skillsReference = typeof manifest["skills"] === "string" ? manifest["skills"] : "./skills/";
+  const skillsReference =
+    codexManifest !== undefined && typeof codexManifest["skills"] === "string"
+      ? codexManifest["skills"]
+      : "./skills/";
   const skillsPath = resolveRelativePath(
     context,
     skillsReference,
-    entry.pluginPath,
-    entry.manifestPath,
+    pluginPath,
+    manifestPath,
     "/skills",
     "manifest/path",
   );
@@ -27,12 +32,23 @@ export async function validateSkillsForEntry(
     return;
   }
 
-  await validateSkills(context, skillsPath);
+  if (targets.claude && skillsPath !== path.resolve(pluginPath, "skills")) {
+    error(
+      context,
+      "claude-manifest/skills-discovery",
+      manifestPath,
+      `Claude Code discovers skills at ./skills/; Claude-targeted plugins must keep skills there, found "${skillsReference}".`,
+      "/skills",
+    );
+  }
+
+  await validateSkills(context, skillsPath, targets);
 }
 
 export async function validateSkills(
   context: ValidationContext,
   skillsPath: string,
+  targets: PluginTargets,
 ): Promise<void> {
   const entries = await readdir(skillsPath, { withFileTypes: true });
   const skillDirs = entries
@@ -46,7 +62,7 @@ export async function validateSkills(
 
   for (const skillName of skillDirs) {
     const skillPath = path.join(skillsPath, skillName);
-    await validateSkill(context, skillName, skillPath);
+    await validateSkill(context, skillName, skillPath, targets);
   }
 }
 
@@ -54,6 +70,7 @@ export async function validateSkill(
   context: ValidationContext,
   skillName: string,
   skillPath: string,
+  targets: PluginTargets,
 ): Promise<void> {
   const skillFilePath = path.join(skillPath, "SKILL.md");
   if (!(await pathExists(skillFilePath))) {
@@ -61,17 +78,33 @@ export async function validateSkill(
     return;
   }
 
-  await validateSkillFrontmatter(context, skillName, skillFilePath);
+  const frontmatter = await validateSkillFrontmatter(context, skillName, skillFilePath);
   const metadataPath = path.join(skillPath, "agents", "openai.yaml");
   if (!(await pathExists(metadataPath))) {
-    error(
-      context,
-      "repo/openai-metadata-required",
-      metadataPath,
-      "Missing agents/openai.yaml. This Codex plugin repository requires OpenAI skill metadata for every skill.",
-    );
+    if (targets.codex) {
+      error(
+        context,
+        "repo/openai-metadata-required",
+        metadataPath,
+        "Missing agents/openai.yaml. Codex-targeted plugins require OpenAI skill metadata for every skill.",
+      );
+    }
     return;
   }
 
-  await validateOpenAiMetadata(context, skillName, metadataPath);
+  const metadata = await validateOpenAiMetadata(context, skillName, metadataPath);
+
+  if (metadata.allowImplicitInvocation !== undefined) {
+    const expected = !metadata.allowImplicitInvocation;
+    const actual = frontmatter.disableModelInvocation ?? false;
+    if (actual !== expected) {
+      error(
+        context,
+        "repo/invocation-policy-parity",
+        skillFilePath,
+        `Frontmatter "disable-model-invocation" (${String(frontmatter.disableModelInvocation ?? "absent")}) must mirror agents/openai.yaml "policy.allow_implicit_invocation" (${String(metadata.allowImplicitInvocation)}). Manual-only skills need "disable-model-invocation: true"; implicitly invokable skills must omit the key or set it to false.`,
+        "/frontmatter/disable-model-invocation",
+      );
+    }
+  }
 }
