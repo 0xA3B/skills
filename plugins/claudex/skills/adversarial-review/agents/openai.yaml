@@ -2,6 +2,7 @@ version: 1
 interface:
   display_name: "Adversarial Review"
   short_description: "Use Claude Code to adversarially review Codex changes"
-  default_prompt: "Ask Claude to adversarially review my current changes."
+  default_prompt:
+    "Use $claudex:adversarial-review to have Claude adversarially review my current changes."
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

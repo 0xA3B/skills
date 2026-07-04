@@ -2,6 +2,7 @@ version: 1
 interface:
   display_name: "Review Branch"
   short_description: "Review a branch or PR before merge"
-  default_prompt: "Review this branch against main before merge."
+  default_prompt:
+    "Use $engineering-workflows:review-branch to review this branch against main before merge."
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false
