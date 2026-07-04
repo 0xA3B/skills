@@ -66,7 +66,7 @@ Read the project's domain language first when these sources exist:
 - `AGENTS.md`, README files, and nearby module docs
 - code names in the area under review
 
-Then inspect the codebase using normal Codex tools. Follow the friction:
+Then inspect the codebase with normal repository inspection tools. Follow the friction:
 
 - Where does understanding one concept require bouncing through many small modules?
 - Where are modules shallow?
