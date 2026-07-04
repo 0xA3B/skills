@@ -205,12 +205,23 @@ describe("runTriggerEval", () => {
       }),
     ).toBe(true);
     const sharedWorkspace = mockState.workspacePaths[0];
-    await expect(
-      readFile(
-        path.join(sharedWorkspace ?? "", "plugins", "demo", "skills", "auto-skill", "SKILL.md"),
-        "utf8",
-      ),
-    ).resolves.not.toContain("Trigger Eval Instructions");
+    const stagedSkill = await readFile(
+      path.join(sharedWorkspace ?? "", "plugins", "demo", "skills", "auto-skill", "SKILL.md"),
+      "utf8",
+    );
+    expect(stagedSkill).toContain("Trigger Eval Instructions");
+    expect(stagedSkill).not.toContain("Eval only:");
+    const canary = stagedSkill.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+    expect(canary).toBeDefined();
+    expect(
+      mockState.stopWhenPredicates[0]?.({
+        stdout: JSON.stringify({
+          type: "item.completed",
+          item: { type: "agent_message", text: canary },
+        }),
+        stderr: "",
+      }),
+    ).toBe(true);
   });
 
   it("applies fixture workspace files in a case-isolated workspace", async () => {

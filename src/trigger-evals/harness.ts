@@ -2,6 +2,7 @@ import { cp, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import { appendEvalSectionToFile, createCanary } from "./canary.js";
 import type { PluginSkillTarget, SkillTarget } from "./types.js";
 
 export const EVAL_MARKETPLACE_NAME = "trigger-eval";
@@ -11,6 +12,7 @@ export type HarnessPaths = {
   workspaceRoot: string;
   codexHome: string;
   pluginVersion?: string;
+  pluginCanary?: string;
 };
 
 export async function prepareHarness(runDir: string, target: SkillTarget): Promise<HarnessPaths> {
@@ -28,11 +30,21 @@ export async function prepareHarness(runDir: string, target: SkillTarget): Promi
       JSON.stringify(buildMarketplace(target), null, 2),
     );
 
+    // Codex no longer emits skill-injection telemetry, so plugin evals detect invocation with a
+    // body-only canary that the model sees once the skill instructions load. One canary per run is
+    // enough because each case scans only its own output.
+    const pluginCanary = createCanary();
+    await appendEvalSectionToFile(
+      path.join(copiedPluginPath, "skills", target.skillName, "SKILL.md"),
+      pluginCanary,
+    );
+
     return {
       workspacePath,
       workspaceRoot,
       codexHome,
       pluginVersion,
+      pluginCanary,
     };
   }
 
