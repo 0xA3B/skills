@@ -44,7 +44,7 @@ there is no meaningful rule for the agent to rationalize around.
 
 Read the target skill body, metadata, and nearby repo guidance:
 
-- plugin skills: `codex_plugins/<plugin>/skills/<skill>/SKILL.md` and `agents/openai.yaml`
+- plugin skills: `plugins/<plugin>/skills/<skill>/SKILL.md` and `agents/openai.yaml`
 - repo-local skills: `.agents/skills/<skill>/SKILL.md` and `agents/openai.yaml`
 - relevant `AGENTS.md` files
 

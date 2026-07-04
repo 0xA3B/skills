@@ -28,7 +28,7 @@ product decision, report it without broadening the change.
 - `mise exec -- pnpm lint` runs Oxlint on TypeScript.
 - `mise exec -- pnpm typecheck` runs TypeScript type checking.
 - `mise exec -- pnpm check` runs the full format, lint, typecheck, and plugin linting gate.
-- `codex_plugins/AGENTS.md` defines plugin structure and compatibility rules.
+- `plugins/AGENTS.md` defines plugin structure and compatibility rules.
 
 ## Workflow
 

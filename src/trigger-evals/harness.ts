@@ -18,7 +18,7 @@ export async function prepareHarness(runDir: string, target: SkillTarget): Promi
   const workspacePath = path.join(workspaceRoot, "workspace");
   const codexHome = path.join(runDir, "codex-home");
   if (target.kind === "plugin") {
-    const copiedPluginPath = path.join(workspacePath, "codex_plugins", target.pluginName);
+    const copiedPluginPath = path.join(workspacePath, "plugins", target.pluginName);
     const pluginVersion = await readPluginVersion(target);
     await mkdir(path.join(workspacePath, ".agents", "plugins"), { recursive: true });
     await mkdir(path.dirname(copiedPluginPath), { recursive: true });
@@ -58,7 +58,7 @@ function buildMarketplace(target: PluginSkillTarget): unknown {
         name: target.pluginName,
         source: {
           source: "local",
-          path: `./codex_plugins/${target.pluginName}`,
+          path: `./plugins/${target.pluginName}`,
         },
         policy: {
           installation: "AVAILABLE",

@@ -9,13 +9,13 @@ describe("resolveSkillTarget", () => {
     const repoRoot = "/repo";
 
     expect(
-      resolveSkillTarget(repoRoot, "codex_plugins/conventional-commits/skills/commit"),
+      resolveSkillTarget(repoRoot, "plugins/conventional-commits/skills/commit"),
     ).toMatchObject({
       kind: "plugin",
       repoRoot,
       pluginName: "conventional-commits",
       skillName: "commit",
-      pluginPath: path.join(repoRoot, "codex_plugins", "conventional-commits"),
+      pluginPath: path.join(repoRoot, "plugins", "conventional-commits"),
     });
   });
 

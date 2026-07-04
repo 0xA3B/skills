@@ -6,8 +6,8 @@ This repository maintains reusable AI-agent skills and workflow guidance that ca
 evaluated, and improved over time. Changes should preserve these outcomes:
 
 - Skill instructions remain portable, durable, and useful across agent sessions.
-- Codex-facing distribution stays valid through plugin bundles under `codex_plugins/` and the
-  marketplace catalog under `.agents/plugins/marketplace.json`.
+- Codex-facing distribution stays valid through plugin bundles under `plugins/` and the marketplace
+  catalog under `.agents/plugins/marketplace.json`.
 - Repository-local validation catches broken plugin manifests, skill metadata, and trigger behavior
   before skills are published or reused.
 - Documentation explains how to use and maintain the skills without duplicating temporary workflow
@@ -16,7 +16,7 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 ## Repository Model
 
 - This is a skills repository first; Codex plugins are the current distribution format.
-- Keep Codex-specific packaging under `codex_plugins/`.
+- Keep Codex-specific packaging under `plugins/`.
 - Keep repo-local maintenance workflows under `.agents/skills/` if they are added in the future.
 - Keep generated eval output and local working artifacts under `.local/`, not tracked project state.
 
@@ -60,10 +60,10 @@ When maintaining the terminology:
 | **Skills repository**      | This repository, which maintains reusable agent skills and publishes the current Codex distribution surface.                                 | plugin repo, package      |
 | **Marketplace**            | The Codex marketplace distribution surface exposed by this repository.                                                                       | skills repository         |
 | **Marketplace catalog**    | `.agents/plugins/marketplace.json`, the root list of plugins exposed by the marketplace.                                                     | manifest, registry        |
-| **Plugin**                 | A distributable bundle under `codex_plugins/<plugin-name>/` with a `.codex-plugin/plugin.json` manifest.                                     | skill pack                |
+| **Plugin**                 | A distributable bundle under `plugins/<plugin-name>/` with a `.codex-plugin/plugin.json` manifest.                                           | skill pack                |
 | **Plugin manifest**        | `.codex-plugin/plugin.json`, the plugin-level metadata consumed by Codex.                                                                    | marketplace entry         |
 | **Marketplace entry**      | One plugin listing inside `.agents/plugins/marketplace.json`.                                                                                | plugin manifest           |
-| **Plugin skill**           | A shipped skill under `codex_plugins/<plugin>/skills/<skill>/`.                                                                              | repo-local skill          |
+| **Plugin skill**           | A shipped skill under `plugins/<plugin>/skills/<skill>/`.                                                                                    | repo-local skill          |
 | **Plugin version**         | The `.codex-plugin/plugin.json` version used for plugin install, cache, and compatibility decisions.                                         | package version           |
 | **Repo-local skill**       | A maintenance workflow under `.agents/skills/` used only while working in this checkout.                                                     | plugin skill              |
 | **Skill body**             | `SKILL.md`, the runtime instructions and frontmatter for a skill.                                                                            | metadata, prompt metadata |

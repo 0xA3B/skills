@@ -58,4 +58,4 @@ cases:
     prompt: >-
       Add a new repo-local maintenance skill under .agents/skills.
     expect: skip
-    rationale: Current add-skill scope is plugin skills under codex_plugins, not repo-local skills.
+    rationale: Current add-skill scope is plugin skills under plugins, not repo-local skills.

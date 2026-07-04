@@ -34,7 +34,7 @@ export function resolveSkillTarget(repoRoot: string, skillPathArgument: string):
 
   if (!isPluginSkillPath(relativeParts)) {
     throw new Error(
-      `Expected a skill path like codex_plugins/<plugin>/skills/<skill> or .agents/skills/<skill>; received ${skillPathArgument}.`,
+      `Expected a skill path like plugins/<plugin>/skills/<skill> or .agents/skills/<skill>; received ${skillPathArgument}.`,
     );
   }
 
@@ -49,7 +49,7 @@ export function resolveSkillTarget(repoRoot: string, skillPathArgument: string):
     repoRoot,
     pluginName,
     skillName,
-    pluginPath: path.join(repoRoot, "codex_plugins", pluginName),
+    pluginPath: path.join(repoRoot, "plugins", pluginName),
     skillPath,
     skillFilePath: path.join(skillPath, "SKILL.md"),
     metadataPath: path.join(skillPath, "agents", "openai.yaml"),
@@ -59,9 +59,7 @@ export function resolveSkillTarget(repoRoot: string, skillPathArgument: string):
 
 function isPluginSkillPath(relativeParts: string[]): boolean {
   return (
-    relativeParts.length === 4 &&
-    relativeParts[0] === "codex_plugins" &&
-    relativeParts[2] === "skills"
+    relativeParts.length === 4 && relativeParts[0] === "plugins" && relativeParts[2] === "skills"
   );
 }
 

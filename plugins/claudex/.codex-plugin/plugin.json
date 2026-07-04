@@ -5,7 +5,7 @@
   "author": {
     "name": "Alex Baker"
   },
-  "homepage": "https://github.com/0xA3B/skills/blob/main/codex_plugins/claudex/README.md",
+  "homepage": "https://github.com/0xA3B/skills/blob/main/plugins/claudex/README.md",
   "repository": "https://github.com/0xA3B/skills",
   "keywords": ["claude", "claude-code", "review", "adversarial-review"],
   "skills": "./skills/",

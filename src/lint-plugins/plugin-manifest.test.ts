@@ -13,7 +13,7 @@ import {
 describe("plugin manifest validation", () => {
   it("accepts a Codex plugin manifest with skills path and interface metadata", async () => {
     await withTempRepo(async (repoRoot) => {
-      await writeJson(repoRoot, "codex_plugins/demo-plugin/.codex-plugin/plugin.json", {
+      await writeJson(repoRoot, "plugins/demo-plugin/.codex-plugin/plugin.json", {
         ...validPluginManifest(),
         interface: {
           capabilities: ["skills"],
@@ -24,7 +24,7 @@ describe("plugin manifest validation", () => {
           shortDescription: "Short description",
         },
       });
-      await writeJson(repoRoot, "codex_plugins/demo-plugin/skills/.keep", {});
+      await writeJson(repoRoot, "plugins/demo-plugin/skills/.keep", {});
       const context = createTestContext(repoRoot);
 
       await validatePlugin(context, validLocalCatalogEntry(repoRoot));
@@ -35,7 +35,7 @@ describe("plugin manifest validation", () => {
 
   it("reports repo alignment and path kind problems", async () => {
     await withTempRepo(async (repoRoot) => {
-      await writeJson(repoRoot, "codex_plugins/demo-plugin/.codex-plugin/plugin.json", {
+      await writeJson(repoRoot, "plugins/demo-plugin/.codex-plugin/plugin.json", {
         ...validPluginManifest(),
         interface: {
           brandColor: "blue",
@@ -68,7 +68,7 @@ describe("plugin manifest validation", () => {
 
   it("reports plugin default prompt arrays that exceed the Codex UI limit", async () => {
     await withTempRepo(async (repoRoot) => {
-      await writeJson(repoRoot, "codex_plugins/demo-plugin/.codex-plugin/plugin.json", {
+      await writeJson(repoRoot, "plugins/demo-plugin/.codex-plugin/plugin.json", {
         ...validPluginManifest(),
         interface: {
           ...validPluginManifest().interface,
@@ -80,7 +80,7 @@ describe("plugin manifest validation", () => {
           ],
         },
       });
-      await writeJson(repoRoot, "codex_plugins/demo-plugin/skills/.keep", {});
+      await writeJson(repoRoot, "plugins/demo-plugin/skills/.keep", {});
       const context = createTestContext(repoRoot);
 
       await validatePlugin(context, validLocalCatalogEntry(repoRoot));

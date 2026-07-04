@@ -8,7 +8,7 @@
       "name": "conventional-commits",
       "source": {
         "source": "local",
-        "path": "./codex_plugins/conventional-commits"
+        "path": "./plugins/conventional-commits"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -20,7 +20,7 @@
       "name": "claudex",
       "source": {
         "source": "local",
-        "path": "./codex_plugins/claudex"
+        "path": "./plugins/claudex"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -32,7 +32,7 @@
       "name": "engineering-workflows",
       "source": {
         "source": "local",
-        "path": "./codex_plugins/engineering-workflows"
+        "path": "./plugins/engineering-workflows"
       },
       "policy": {
         "installation": "AVAILABLE",
