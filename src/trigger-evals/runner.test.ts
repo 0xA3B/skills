@@ -196,7 +196,7 @@ describe("runTriggerEval", () => {
     expect(mockState.maxActiveExecs).toBe(2);
     expect(new Set(mockState.codexHomes).size).toBe(4);
     expect(new Set(mockState.sandboxModes)).toStrictEqual(new Set(["read-only"]));
-    expect(new Set(mockState.codexHomeModels)).toStrictEqual(new Set(["gpt-5.6-terra"]));
+    expect(new Set(mockState.codexHomeModels)).toStrictEqual(new Set(["gpt-5.6-sol"]));
     expect(new Set(mockState.codexHomeEfforts)).toStrictEqual(new Set(["medium"]));
     expect(
       mockState.stopWhenPredicates[0]?.({
@@ -286,7 +286,7 @@ describe("runTriggerEval", () => {
       passed: true,
     });
     expect(mockState.codexHomes).toStrictEqual([]);
-    expect(new Set(mockState.claudeModels)).toStrictEqual(new Set(["sonnet"]));
+    expect(new Set(mockState.claudeModels)).toStrictEqual(new Set(["opus"]));
     expect(new Set(mockState.claudeEfforts)).toStrictEqual(new Set(["medium"]));
     expect(mockState.claudePluginDirs).toHaveLength(2);
     expect(mockState.claudePluginDirs[0]).toContain(path.join("plugins", "demo"));
