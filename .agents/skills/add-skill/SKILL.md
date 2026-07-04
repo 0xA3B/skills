@@ -101,7 +101,7 @@ is not clearly caused by this change, report the blocker and the safest next act
 
 ```bash
 mise exec -- uv run --with pyyaml python \
-  /Users/alebaker/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
+  ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
   plugins/<plugin-name>/skills/<skill-name>
 ```
 
