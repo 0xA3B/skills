@@ -6,8 +6,9 @@ This repository maintains reusable AI-agent skills and workflow guidance that ca
 evaluated, and improved over time. Changes should preserve these outcomes:
 
 - Skill instructions remain portable, durable, and useful across agent sessions.
-- Codex-facing distribution stays valid through plugin bundles under `plugins/` and the marketplace
-  catalog under `.agents/plugins/marketplace.json`.
+- Plugin distribution stays valid for both Claude Code and Codex through plugin bundles under
+  `plugins/` and the marketplace catalogs under `.claude-plugin/marketplace.json` (Claude Code) and
+  `.agents/plugins/marketplace.json` (Codex).
 - Repository-local validation catches broken plugin manifests, skill metadata, and trigger behavior
   before skills are published or reused.
 - Documentation explains how to use and maintain the skills without duplicating temporary workflow
@@ -15,8 +16,11 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 
 ## Repository Model
 
-- This is a skills repository first; Codex plugins are the current distribution format.
-- Keep Codex-specific packaging under `plugins/`.
+- This is a skills repository first; Claude Code and Codex plugins are the current distribution
+  formats.
+- Keep plugin packaging under `plugins/`. Agent-specific metadata lives in each plugin's
+  `.claude-plugin/` and `.codex-plugin/` manifests and in per-skill `agents/openai.yaml`; skill
+  bodies stay agent-agnostic.
 - Keep repo-local maintenance workflows under `.agents/skills/` if they are added in the future.
 - Keep generated eval output and local working artifacts under `.local/`, not tracked project state.
 
@@ -55,50 +59,55 @@ When maintaining the terminology:
 - Skip generic programming terms and incidental class, function, or module names unless they are
   part of the domain language.
 
-| Term                       | Definition                                                                                                                                   | Aliases to Avoid          |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| **Skills repository**      | This repository, which maintains reusable agent skills and publishes the current Codex distribution surface.                                 | plugin repo, package      |
-| **Marketplace**            | The Codex marketplace distribution surface exposed by this repository.                                                                       | skills repository         |
-| **Marketplace catalog**    | `.agents/plugins/marketplace.json`, the root list of plugins exposed by the marketplace.                                                     | manifest, registry        |
-| **Plugin**                 | A distributable bundle under `plugins/<plugin-name>/` with a `.codex-plugin/plugin.json` manifest.                                           | skill pack                |
-| **Plugin manifest**        | `.codex-plugin/plugin.json`, the plugin-level metadata consumed by Codex.                                                                    | marketplace entry         |
-| **Marketplace entry**      | One plugin listing inside `.agents/plugins/marketplace.json`.                                                                                | plugin manifest           |
-| **Plugin skill**           | A shipped skill under `plugins/<plugin>/skills/<skill>/`.                                                                                    | repo-local skill          |
-| **Plugin version**         | The `.codex-plugin/plugin.json` version used for plugin install, cache, and compatibility decisions.                                         | package version           |
-| **Repo-local skill**       | A maintenance workflow under `.agents/skills/` used only while working in this checkout.                                                     | plugin skill              |
-| **Skill body**             | `SKILL.md`, the runtime instructions and frontmatter for a skill.                                                                            | metadata, prompt metadata |
-| **Codex UI metadata**      | `agents/openai.yaml`, the skill-level display metadata and invocation policy for Codex.                                                      | skill frontmatter         |
-| **Invocation policy**      | The `policy.allow_implicit_invocation` setting that decides whether Codex may load a skill automatically.                                    | trigger policy            |
-| **Manual-only skill**      | A skill with `allow_implicit_invocation: false`; it should be invoked explicitly by the user.                                                | disabled skill            |
-| **Implicit invocation**    | Codex automatically injecting a skill because the user prompt matches the skill description.                                                 | auto-trigger              |
-| **Hand off**               | A workflow boundary where the current skill stops, summarizes transfer context, and recommends the next explicit skill.                      | auto-invoke, delegate     |
-| **Trigger fixture**        | A committed YAML file of positive and negative cases used to evaluate implicit invocation behavior.                                          | skill test                |
-| **Trigger eval**           | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case.                    | validation gate           |
-| **Invocation signal**      | The observed evidence that Codex invoked the target skill, using plugin telemetry or an eval-only repo-local canary.                         | canary                    |
-| **Eval artifact**          | Generated trigger-eval output under `.local/skill-evals/`, not committed project state.                                                      | fixture                   |
-| **Behavior pressure test** | A manual or ad hoc check that runs a loaded skill against realistic shortcut pressure to see whether the skill changes agent behavior.       | trigger eval, fixture     |
-| **Pressure prompt**        | A temporary prompt used in a behavior pressure test to make an agent want to skip, soften, or rationalize around a workflow rule.            | trigger fixture           |
-| **Plugin linter**          | The local validator behind `pnpm lint:plugins`, covering marketplace, manifest, skill, and metadata consistency.                             | validator                 |
-| **External validation**    | Opt-in network or remote URL checks run separately from default local plugin linting.                                                        | normal linting            |
-| **Review lane**            | A focused review pass over the same target with one intent, such as simplification, correctness, security, test coverage, or spec adherence. | review scope              |
-| **Brainstorm**             | A read-only exploration workflow that researches and compares solution directions before adversarial review.                                 | idea list                 |
-| **Grill Me**               | A convergence workflow that stress-tests a chosen direction through adversarial questioning before implementation.                           | plan                      |
-| **Prototype**              | A disposable executable artifact used to answer one design question before real implementation.                                              | build, spike              |
-| **Build**                  | The implementation workflow that delivers working vertical slices with pragmatic validation while interfaces settle.                         | prototype                 |
-| **TDD**                    | The implementation workflow that delivers behavior through red-green-refactor cycles.                                                        | testing phase             |
-| **Diagnostic**             | A structured plugin-linter finding with a code, file, message, and pointer.                                                                  | error string              |
-| **Validation context**     | The shared lint-run state passed through plugin-linter checks instead of module-level mutable globals.                                       | globals                   |
-| **Metadata surface**       | Any file that exposes plugin or skill metadata and must stay aligned with adjacent surfaces.                                                 | docs                      |
-| **Default prompt**         | A suggested prompt shown by Codex for invoking a plugin or skill.                                                                            | description               |
-| **Trigger contract**       | The `description` text that defines when a skill should be implicitly invoked.                                                               | skill summary             |
+| Term                         | Definition                                                                                                                                                                                                    | Aliases to Avoid          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| **Skills repository**        | This repository, which maintains reusable agent skills and publishes the current Claude Code and Codex distribution surfaces.                                                                                 | plugin repo, package      |
+| **Plugin target**            | An agent a plugin ships to (Claude Code or Codex), declared by shipping that agent's plugin manifest and marketplace entry.                                                                                   | platform, harness         |
+| **Marketplace**              | A per-target marketplace distribution surface exposed by this repository.                                                                                                                                     | skills repository         |
+| **Marketplace catalog**      | The root list of plugins a marketplace exposes: `.claude-plugin/marketplace.json` for Claude Code, `.agents/plugins/marketplace.json` for Codex.                                                              | manifest, registry        |
+| **Plugin**                   | A distributable bundle under `plugins/<plugin-name>/` with one plugin manifest per plugin target.                                                                                                             | skill pack                |
+| **Plugin manifest**          | Per-target plugin metadata: `.claude-plugin/plugin.json` for Claude Code, `.codex-plugin/plugin.json` for Codex.                                                                                              | marketplace entry         |
+| **Marketplace entry**        | One plugin listing inside a marketplace catalog.                                                                                                                                                              | plugin manifest           |
+| **Plugin skill**             | A shipped skill under `plugins/<plugin>/skills/<skill>/`.                                                                                                                                                     | repo-local skill          |
+| **Plugin version**           | The version kept in lockstep across a plugin's manifests, used for install, cache, and compatibility decisions.                                                                                               | package version           |
+| **Repo-local skill**         | A maintenance workflow under `.agents/skills/` used only while working in this checkout.                                                                                                                      | plugin skill              |
+| **Skill body**               | `SKILL.md`, the runtime instructions and frontmatter for a skill.                                                                                                                                             | metadata, prompt metadata |
+| **Codex UI metadata**        | `agents/openai.yaml`, the skill-level display metadata and invocation policy for Codex.                                                                                                                       | skill frontmatter         |
+| **Invocation policy**        | The paired settings deciding whether an agent may load a skill automatically: `allow_implicit_invocation` (Codex, `agents/openai.yaml`) and `disable-model-invocation` (Claude Code, `SKILL.md` frontmatter). | trigger policy            |
+| **Invocation policy parity** | The linter-enforced rule that a skill's Codex and Claude Code invocation policies express the same decision.                                                                                                  | policy sync               |
+| **Manual-only skill**        | A skill with `allow_implicit_invocation: false` and `disable-model-invocation: true`; it should be invoked explicitly by the user.                                                                            | disabled skill            |
+| **Implicit invocation**      | An agent automatically loading a skill because the user prompt matches the skill description.                                                                                                                 | auto-trigger              |
+| **Hand off**                 | A workflow boundary where the current skill stops, summarizes transfer context, and recommends the next explicit skill.                                                                                       | auto-invoke, delegate     |
+| **Trigger fixture**          | A committed YAML file of positive and negative cases used to evaluate implicit invocation behavior.                                                                                                           | skill test                |
+| **Trigger eval**             | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code).                                          | validation gate           |
+| **Invocation signal**        | The observed evidence that the agent invoked the target skill: Codex plugin telemetry, an eval-only repo-local canary, or Claude Code Skill tool events.                                                      | canary                    |
+| **Eval artifact**            | Generated trigger-eval output under `.local/skill-evals/`, not committed project state.                                                                                                                       | fixture                   |
+| **Behavior pressure test**   | A manual or ad hoc check that runs a loaded skill against realistic shortcut pressure to see whether the skill changes agent behavior.                                                                        | trigger eval, fixture     |
+| **Pressure prompt**          | A temporary prompt used in a behavior pressure test to make an agent want to skip, soften, or rationalize around a workflow rule.                                                                             | trigger fixture           |
+| **Plugin linter**            | The local validator behind `pnpm lint:plugins`, covering marketplace, manifest, skill, and metadata consistency.                                                                                              | validator                 |
+| **External validation**      | Opt-in network or remote URL checks run separately from default local plugin linting.                                                                                                                         | normal linting            |
+| **Review lane**              | A focused review pass over the same target with one intent, such as simplification, correctness, security, test coverage, or spec adherence.                                                                  | review scope              |
+| **Brainstorm**               | A read-only exploration workflow that researches and compares solution directions before adversarial review.                                                                                                  | idea list                 |
+| **Grill Me**                 | A convergence workflow that stress-tests a chosen direction through adversarial questioning before implementation.                                                                                            | plan                      |
+| **Prototype**                | A disposable executable artifact used to answer one design question before real implementation.                                                                                                               | build, spike              |
+| **Build**                    | The implementation workflow that delivers working vertical slices with pragmatic validation while interfaces settle.                                                                                          | prototype                 |
+| **TDD**                      | The implementation workflow that delivers behavior through red-green-refactor cycles.                                                                                                                         | testing phase             |
+| **Diagnostic**               | A structured plugin-linter finding with a code, file, message, and pointer.                                                                                                                                   | error string              |
+| **Validation context**       | The shared lint-run state passed through plugin-linter checks instead of module-level mutable globals.                                                                                                        | globals                   |
+| **Metadata surface**         | Any file that exposes plugin or skill metadata and must stay aligned with adjacent surfaces.                                                                                                                  | docs                      |
+| **Default prompt**           | A suggested prompt shown by Codex for invoking a plugin or skill.                                                                                                                                             | description               |
+| **Trigger contract**         | The `description` text that defines when a skill should be implicitly invoked.                                                                                                                                | skill summary             |
 
 Relationships:
 
+- The repository exposes one **Marketplace** per **Plugin target**.
 - A **Marketplace** contains one **Marketplace catalog**.
 - A **Marketplace catalog** contains one or more **Marketplace entries**.
 - A **Marketplace entry** points to one **Plugin**.
-- A **Plugin** owns one **Plugin manifest** and zero or more **Plugin skills**.
-- A **Plugin skill** owns one **Skill body** and one **Codex UI metadata** file.
+- A **Plugin** owns one **Plugin manifest** per **Plugin target** and zero or more **Plugin
+  skills**.
+- A **Plugin skill** owns one **Skill body**, plus one **Codex UI metadata** file when the plugin
+  targets Codex.
 - A **Hand off** recommends an explicit **Manual-only skill** invocation; it does not automatically
   load another skill.
 - **Brainstorm** and **Grill Me** can hand off unresolved executable questions to **Prototype**.
@@ -106,7 +115,7 @@ Relationships:
 - **Brainstorm** can hand off a preferred direction to **Grill Me**; **Grill Me** can hand off a
   sufficiently resolved approach to **Build** or **TDD**.
 - A **Trigger eval** runs **Trigger fixtures** against one implicitly invokable **Plugin skill** or
-  **Repo-local skill**.
+  **Repo-local skill** on one agent; **Trigger fixtures** are shared across agents.
 - **Eval artifacts** are generated under `.local/` and should not be committed.
 - A **Behavior pressure test** evaluates behavior after a skill is loaded; it does not evaluate
   whether the skill should load.

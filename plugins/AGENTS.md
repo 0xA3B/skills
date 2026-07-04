@@ -7,11 +7,20 @@ These instructions apply to plugin directories under `plugins/`.
 ## Plugin Rules
 
 - Plugin names use lowercase kebab-case and match the plugin directory name.
-- Each plugin must include `.codex-plugin/plugin.json`.
-- Keep plugin manifests pointed at `./skills/`; do not add per-skill manifest paths.
-- Codex marketplace entries belong in `.agents/plugins/marketplace.json`.
-- When adding or renaming a plugin, keep the marketplace entry, plugin directory, and manifest
-  `name` aligned.
+- Plugins target both Claude Code and Codex by default. A plugin targets an agent by shipping that
+  agent's manifest and marketplace entry; omit both to keep a plugin single-agent (for example,
+  `claudex` is Codex-only because it exists to drive Claude Code from Codex).
+- Codex-targeted plugins include `.codex-plugin/plugin.json` and an entry in
+  `.agents/plugins/marketplace.json`.
+- Claude-targeted plugins include `.claude-plugin/plugin.json` and an entry in
+  `.claude-plugin/marketplace.json`.
+- Keep Codex plugin manifests pointed at `./skills/`; do not add per-skill manifest paths.
+- Do not set a `skills` path in Claude plugin manifests. Claude Code auto-discovers `./skills/`, and
+  the field adds extra skill paths instead of replacing the default.
+- When adding or renaming a plugin, keep the marketplace entries, plugin directory, and manifest
+  `name` values aligned across every targeted agent.
+- Keep `version` identical across a plugin's Claude and Codex manifests; the linter enforces
+  lockstep versions.
 
 ## Default Prompt Policy
 
@@ -40,27 +49,34 @@ These instructions apply to plugin directories under `plugins/`.
 - Reserve major version bumps for maintainer discretion when compatibility, trust boundaries, or the
   packaging model changes significantly.
 - When in doubt, choose the smallest bump that reflects user-visible compatibility risk.
+- Apply every version bump to all of the plugin's agent manifests in the same change.
 
 ## Skill Rules
 
 - Skill names use lowercase kebab-case and match the skill directory name.
-- Each skill must include `SKILL.md` and `agents/openai.yaml`.
-- Use `SKILL.md` for runtime instructions and skill frontmatter.
-- Use `agents/openai.yaml` for Codex UI metadata and invocation policy.
-- Do not add Codex invocation policy keys to `SKILL.md` frontmatter.
-- For manual-only skills, set `policy.allow_implicit_invocation: false` in `agents/openai.yaml`.
+- Each skill must include `SKILL.md`. Skills in Codex-targeted plugins must also include
+  `agents/openai.yaml`.
+- Use `SKILL.md` for runtime instructions and Agent Skills frontmatter. The only agent-specific
+  frontmatter key is Claude Code's `disable-model-invocation`; both agents ignore the other's
+  metadata surface, so skill bodies stay shared.
+- Use `agents/openai.yaml` for Codex UI metadata and Codex invocation policy. Do not add other Codex
+  policy keys to `SKILL.md` frontmatter.
+- For manual-only skills, set `policy.allow_implicit_invocation: false` in `agents/openai.yaml` and
+  `disable-model-invocation: true` in `SKILL.md` frontmatter. Implicitly invokable skills omit
+  `disable-model-invocation`. The linter enforces this parity (`repo/invocation-policy-parity`).
 
 ## Skill Authoring Baseline
 
-- Optimize Codex skills and prompts for GPT-5.5 by describing the outcome, success criteria,
-  constraints, allowed side effects, evidence rules, and final output shape.
+- Skills ship to both Claude Code (Claude) and Codex (GPT-5.5). Write instructions that hold up on
+  both models by describing the outcome, success criteria, constraints, allowed side effects,
+  evidence rules, and final output shape.
 - Prefer outcome-first instructions over step-by-step procedures. Keep exact sequences only when
   repository safety, file placement, validation, or command ordering requires them.
 - Use absolute instructions such as "must" or "do not" only for true invariants. For judgment calls,
   provide decision rules and missing-evidence behavior.
 - Add explicit stopping conditions for tool-heavy workflows: stop when validation passes, when the
   requested artifact is complete, or when a blocker prevents safe execution.
-- Remove contradictory or overlapping instructions during prompt review. GPT-5.5 follows literal
+- Remove contradictory or overlapping instructions during prompt review. Both models follow literal
   instructions closely, so stale or vague guidance can cause unnecessary work.
 - Treat the `description` as the trigger contract: describe what the skill does and when agents
   should use it.
@@ -99,8 +115,9 @@ These instructions apply to plugin directories under `plugins/`.
 - Run `pnpm lint:plugins` after adding or changing plugin manifests, marketplace entries, skill
   frontmatter, or `agents/openai.yaml`.
 - Run trigger evals when changing an implicitly invokable skill's `SKILL.md` frontmatter
-  `description`, `agents/openai.yaml` invocation policy, or trigger fixtures. The `description` is
-  the trigger contract; body-only `SKILL.md` changes affect behavior after invocation and do not
-  require trigger evals.
+  `description`, invocation policy, or trigger fixtures. The `description` is the trigger contract
+  shared by both agents; use `pnpm eval:trigger -- <skill-path> --agent both` to check that a
+  description change triggers correctly on Codex and Claude Code. Body-only `SKILL.md` changes
+  affect behavior after invocation and do not require trigger evals.
 - Run `pnpm format:check` when Markdown, JSON, YAML, or TypeScript files changed.
 - Run `pnpm lint` and `pnpm typecheck` when TypeScript validation tooling changed.

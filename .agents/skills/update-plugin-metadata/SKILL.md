@@ -1,15 +1,16 @@
 ---
 name: update-plugin-metadata
 description:
-  Updates Codex marketplace plugin metadata, marketplace entries, README files, and skill UI
-  metadata in this repository. Use when the user asks to revise plugin descriptions, prompts,
-  authorship, categories, keywords, versions, or metadata consistency.
+  Updates marketplace plugin metadata, marketplace entries, README files, and skill UI metadata in
+  this repository. Use when the user asks to revise plugin descriptions, prompts, authorship,
+  categories, keywords, versions, or metadata consistency.
 license: MIT
 ---
 
 # Update Plugin Metadata
 
-Repo-local workflow for keeping plugin metadata consistent across the Codex marketplace.
+Repo-local workflow for keeping plugin metadata consistent across the Claude Code and Codex
+marketplaces.
 
 ## Outcome
 
@@ -23,10 +24,14 @@ report the remaining work instead of guessing.
 ## Source Of Truth
 
 - Follow `plugins/AGENTS.md` for manifest conventions and skill metadata placement.
-- Plugin metadata lives in `plugins/<plugin-name>/.codex-plugin/plugin.json`.
-- Marketplace entries live in `.agents/plugins/marketplace.json`.
+- Codex plugin metadata lives in `plugins/<plugin-name>/.codex-plugin/plugin.json`; Claude Code
+  plugin metadata lives in `plugins/<plugin-name>/.claude-plugin/plugin.json`.
+- Codex marketplace entries live in `.agents/plugins/marketplace.json`; Claude Code marketplace
+  entries live in `.claude-plugin/marketplace.json`.
 - Skill-level Codex UI metadata lives in
   `plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml`.
+- Skill-level Claude Code invocation policy lives in `SKILL.md` frontmatter
+  (`disable-model-invocation`).
 - Plugin README files carry user-facing plugin summaries.
 - Plugin version changes follow the version policy in `plugins/AGENTS.md`.
 
@@ -56,7 +61,9 @@ report the remaining work instead of guessing.
 ## Consistency Rules
 
 - Keep plugin `name`, `version`, `description`, `author`, `repository`, `keywords`, and `skills`
-  aligned with the marketplace catalog and plugin directory.
+  aligned with the marketplace catalogs and plugin directory.
+- Keep `name` and `version` identical across a plugin's `.claude-plugin/plugin.json` and
+  `.codex-plugin/plugin.json`; the linter enforces lockstep versions.
 - Keep plugin-level `interface.defaultPrompt` to three prompts or fewer because the Codex UI
   surfaces only the first three.
 - Use plugin-level prompts to highlight the most useful or interesting entry points instead of
@@ -66,7 +73,8 @@ report the remaining work instead of guessing.
 - Keep skill-level `agents/openai.yaml` `interface.default_prompt` concise and include explicit
   `$plugin-name:skill-name` callouts for manual-only skills.
 - Keep README skill lists aligned with actual `plugins/<plugin-name>/skills/` directories.
-- Do not add Codex-only policy keys to `SKILL.md` frontmatter.
+- Keep `SKILL.md` `disable-model-invocation` mirrored with `agents/openai.yaml`
+  `policy.allow_implicit_invocation`; do not add other agent policy keys to `SKILL.md` frontmatter.
 - Do not bump versions for content-only metadata edits that preserve installed skills, invocation
   names, capability policy, and expected workflow behavior.
 - Treat new skills as patch-version changes and deleted or renamed skills as minor-version changes.
