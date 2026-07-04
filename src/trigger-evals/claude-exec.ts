@@ -5,7 +5,7 @@ import { spawnStreamingCli, type StreamingCliOutput } from "./exec.js";
 
 type ClaudeRunOptions = {
   workspacePath: string;
-  pluginDir: string;
+  pluginDir?: string;
   prompt: string;
   caseDir: string;
   timeoutMs: number;
@@ -48,13 +48,15 @@ export async function runClaudeExec(options: ClaudeRunOptions): Promise<ClaudeRu
     EVAL_TOOLS,
     "--setting-sources",
     "project",
-    "--plugin-dir",
-    options.pluginDir,
     "--model",
     options.model,
     "--effort",
     options.effort,
   ];
+
+  if (options.pluginDir !== undefined) {
+    args.push("--plugin-dir", options.pluginDir);
+  }
 
   args.push(options.prompt);
 

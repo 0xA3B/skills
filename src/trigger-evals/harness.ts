@@ -52,6 +52,13 @@ export async function prepareHarness(runDir: string, target: SkillTarget): Promi
   await mkdir(path.dirname(copiedSkillPath), { recursive: true });
   await cp(target.skillPath, copiedSkillPath, { recursive: true });
 
+  // Claude Code discovers repo-local skills as project skills from .claude/skills. This copy stays
+  // canary-free so the Claude lane tests the committed description; Claude invocation is detected
+  // from Skill tool events instead.
+  const claudeSkillPath = path.join(workspacePath, ".claude", "skills", target.skillName);
+  await mkdir(path.dirname(claudeSkillPath), { recursive: true });
+  await cp(target.skillPath, claudeSkillPath, { recursive: true });
+
   return {
     workspacePath,
     workspaceRoot,

@@ -92,13 +92,13 @@ cases where loaded repository instructions should affect the trigger boundary, s
 
    ```bash
    mise exec -- pnpm eval:trigger -- plugins/<plugin>/skills/<skill> --agent both
-   mise exec -- pnpm eval:trigger -- .agents/skills/<skill>
+   mise exec -- pnpm eval:trigger -- .agents/skills/<skill> --agent both
    ```
 
-   The `description` is one trigger contract shared by both agents, so plugin skills should pass on
-   both. Use `--agent codex` or `--agent claude` to iterate on one agent at a time. Repo-local skill
-   evals run on Codex only; live Claude Code sessions load repo-local skills through the
-   `.claude/skills` symlink, but the eval harness stages repo-local targets for Codex.
+   The `description` is one trigger contract shared by both agents, so skills should pass on both.
+   Use `--agent codex` or `--agent claude` to iterate on one agent at a time. The harness stages
+   repo-local skills under `.agents/skills/` for Codex and `.claude/skills/` for Claude Code,
+   mirroring how the checkout's `.claude/skills` symlink exposes them in live sessions.
 
    Trigger cases run with bounded parallelism by default. Use `--concurrency <n>` when the target
    fixture needs a slower or faster run than the default concurrency of 3. The default per-case
@@ -141,11 +141,12 @@ cases where loaded repository instructions should affect the trigger boundary, s
   test stays byte-identical to the committed skill; invocation is classified when the assistant
   outputs the token. Older Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary
   signal.
-- For repo-local skills, the runner additionally rewrites the copied description to reference the
-  canary because Codex surfaces repo-local skills without any other observable signal.
-- For plugin skills on Claude Code, the runner launches `claude -p` against the staged plugin copy
-  via `--plugin-dir` with a read-only tool surface, and classifies invocation from Skill tool events
-  referencing `<plugin>:<skill>` in the stream-json output.
+- For repo-local skills on Codex, the runner additionally rewrites the copied description to
+  reference the canary because Codex surfaces repo-local skills without any other observable signal.
+- On Claude Code, the runner launches `claude -p` with a read-only tool surface and classifies
+  invocation from Skill tool events in the stream-json output. Plugin skills load from the staged
+  plugin copy via `--plugin-dir`; repo-local skills load as pristine project skills from the staged
+  `.claude/skills/` copy, so the committed description is tested unmodified on Claude.
 - Case pass/fail is based on matching the expected invoke or skip classification. Exec errors and
   timeouts remain in the report because trigger evals do not validate workflow completion.
 - The runner removes copied `auth.json` from the temporary Codex home after the run.

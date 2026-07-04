@@ -77,7 +77,7 @@ vi.mock(import("./codex-home.js"), () => ({
 vi.mock(import("./claude-exec.js"), () => ({
   runClaudeExec: vi.fn<
     (options: {
-      pluginDir: string;
+      pluginDir?: string;
       prompt: string;
       workspacePath: string;
       model: string;
@@ -92,7 +92,7 @@ vi.mock(import("./claude-exec.js"), () => ({
       finalMessagePath: string;
     }>
   >(async (options) => {
-    mockState.claudePluginDirs.push(options.pluginDir);
+    mockState.claudePluginDirs.push(options.pluginDir ?? "(none)");
     mockState.claudeWorkspacePaths.push(options.workspacePath);
     mockState.claudeModels.push(options.model);
     mockState.claudeEfforts.push(options.effort);
@@ -295,16 +295,43 @@ describe("runTriggerEval", () => {
     );
   });
 
-  it("rejects Claude evals for repo-local skill targets", async () => {
+  it("evaluates repo-local skill targets on Claude as pristine project skills", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
 
-    await expect(
-      runTriggerEval({
-        repoRoot,
-        skillPath: ".agents/skills/auto-skill",
-        agent: "claude",
-      }),
-    ).rejects.toThrow("Claude trigger evals support plugin skills only");
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: ".agents/skills/auto-skill",
+      agent: "claude",
+    });
+
+    expect(result.agent).toBe("claude");
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0]).toMatchObject({
+      caseId: "repo-local-case",
+      expect: "invoke",
+      invocationSignal: "stream-skill-tool-use",
+      invoked: true,
+      passed: true,
+    });
+    expect(result.results[1]).toMatchObject({
+      caseId: "skip-case",
+      expect: "skip",
+      invoked: false,
+      passed: true,
+    });
+    expect(mockState.claudePluginDirs).toStrictEqual(["(none)", "(none)"]);
+    const stagedProjectSkill = await readFile(
+      path.join(
+        mockState.claudeWorkspacePaths[0] ?? "",
+        ".claude",
+        "skills",
+        "auto-skill",
+        "SKILL.md",
+      ),
+      "utf8",
+    );
+    expect(stagedProjectSkill).not.toContain("Eval only:");
+    expect(stagedProjectSkill).not.toContain("Trigger Eval Instructions");
   });
 
   it("evaluates repo-local skill targets with an injected canary", async () => {

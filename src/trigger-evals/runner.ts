@@ -52,11 +52,6 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
   const agent: TriggerEvalAgent = options.agent ?? "codex";
   const target = resolveSkillTarget(repoRoot, options.skillPath);
-  if (agent === "claude" && target.kind === "repo-local") {
-    throw new Error(
-      "Claude trigger evals support plugin skills only; the eval harness stages repo-local skills for Codex only.",
-    );
-  }
   const model = options.model ?? DEFAULT_EVAL_MODELS[agent];
   const effort = options.effort ?? DEFAULT_EVAL_EFFORT;
   const allowImplicitInvocation = await readAllowImplicitInvocation(target);
@@ -104,12 +99,8 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
       const canary = caseWorkspace.canary ?? harness.pluginCanary;
 
       if (agent === "claude") {
-        if (target.kind !== "plugin") {
-          throw new Error("Claude trigger evals support plugin skills only.");
-        }
         const claudeRunOptions = {
           workspacePath: caseWorkspace.workspacePath,
-          pluginDir: path.join(caseWorkspace.workspacePath, "plugins", target.pluginName),
           prompt: testCase.prompt,
           caseDir,
           timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
@@ -117,6 +108,11 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           effort,
           stopWhen: (output: { stdout: string; stderr: string }) =>
             detectInvocation(output, target, canary, agent) !== "none",
+          ...(target.kind === "plugin"
+            ? {
+                pluginDir: path.join(caseWorkspace.workspacePath, "plugins", target.pluginName),
+              }
+            : {}),
           ...(options.claudeConfigDir === undefined ? {} : { configDir: options.claudeConfigDir }),
           ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
         };
