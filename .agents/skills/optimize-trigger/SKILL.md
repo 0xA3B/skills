@@ -2,8 +2,8 @@
 name: optimize-trigger
 description: >-
   Evaluate and improve automatic invocation behavior for one repo plugin skill by running committed
-  trigger fixtures through an isolated Codex CLI harness. Use when the user asks to optimize, tune,
-  or evaluate when a skill is implicitly triggered.
+  trigger fixtures through isolated Codex and Claude Code CLI harnesses. Use when the user asks to
+  optimize, tune, or evaluate when a skill is implicitly triggered.
 license: MIT
 ---
 
@@ -90,9 +90,13 @@ cases where loaded repository instructions should affect the trigger boundary, s
 4. Run:
 
    ```bash
-   mise exec -- pnpm eval:trigger -- plugins/<plugin>/skills/<skill>
+   mise exec -- pnpm eval:trigger -- plugins/<plugin>/skills/<skill> --agent both
    mise exec -- pnpm eval:trigger -- .agents/skills/<skill>
    ```
+
+   The `description` is one trigger contract shared by both agents, so plugin skills should pass on
+   both. Use `--agent codex` or `--agent claude` to iterate on one agent at a time. Repo-local
+   skills run on Codex only because Claude Code never loads `.agents/skills/`.
 
    Trigger cases run with bounded parallelism by default. Use `--concurrency <n>` when the target
    fixture needs a slower or faster run than the default concurrency of 3. The default per-case
@@ -125,8 +129,11 @@ cases where loaded repository instructions should affect the trigger boundary, s
   This keeps positive cases focused on trigger classification instead of workflow completion.
 - The runner also stops `codex exec` as soon as it observes the invocation signal, so positive cases
   do not need to finish the requested workflow.
-- For plugin skills, the runner still classifies invocation from Codex CLI stderr telemetry
+- For plugin skills on Codex, the runner classifies invocation from Codex CLI stderr telemetry
   containing `codex.skill.injected` for the target skill.
+- For plugin skills on Claude Code, the runner launches `claude -p` against the staged plugin copy
+  via `--plugin-dir` with a read-only tool surface, and classifies invocation from Skill tool events
+  referencing `<plugin>:<skill>` in the stream-json output.
 - For repo-local skills, Codex currently does not emit the same plugin injection telemetry; the
   runner classifies invocation only when the assistant outputs the exact eval-only token.
 - Case pass/fail is based on matching the expected invoke or skip classification. Exec errors and

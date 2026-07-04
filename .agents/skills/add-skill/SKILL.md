@@ -1,8 +1,8 @@
 ---
 name: add-skill
 description:
-  Adds a new plugin skill to an existing Codex marketplace plugin in this repository. Use when the
-  user asks to add another skill, workflow skill, or reusable capability under an existing plugin in
+  Adds a new plugin skill to an existing marketplace plugin in this repository. Use when the user
+  asks to add another skill, workflow skill, or reusable capability under an existing plugin in
   plugins/. This repo-local skill intentionally wraps the built-in skill-creator guidance with this
   repository's plugin layout, metadata, versioning, and validation conventions. Do not use for
   creating new plugins, creating repo-local skills under .agents/skills, editing existing skills,
@@ -23,8 +23,8 @@ validation conventions.
 
 ## Outcome
 
-Create a complete skill in an existing plugin with the expected repo layout, Codex metadata,
-plugin-facing docs when useful, and passing plugin validation.
+Create a complete skill in an existing plugin with the expected repo layout, agent metadata for
+every plugin target, plugin-facing docs when useful, and passing plugin validation.
 
 Stop when the new skill is present, relevant metadata/docs are updated, and validation has passed.
 If the target plugin is ambiguous, the skill already exists, or validation fails for a reason that
@@ -40,7 +40,9 @@ is not clearly caused by this change, report the blocker and the safest next act
 - Follow the plugin version policy in `plugins/AGENTS.md`; adding a new skill requires a patch
   version bump unless the user explicitly asks to test same-version behavior.
 - Keep runtime instructions in `SKILL.md`.
-- Keep Codex UI metadata and invocation policy in `agents/openai.yaml`.
+- Keep Codex UI metadata and Codex invocation policy in `agents/openai.yaml`; keep Claude Code
+  invocation policy in `SKILL.md` frontmatter (`disable-model-invocation`). The linter enforces
+  parity between the two.
 - Bias new skills toward manual invocation. Allow implicit invocation only when the skill has a
   clear trigger contract, the user intent boundary is narrow enough to avoid surprising activation,
   and trigger fixtures are added and validated as part of the workflow.
@@ -62,7 +64,9 @@ is not clearly caused by this change, report the blocker and the safest next act
    `interface.default_prompt`, and `policy.allow_implicit_invocation`. For manual-only skills, make
    `interface.default_prompt` include the explicit `$plugin-name:skill-name` callout. Use
    `policy.allow_implicit_invocation: false` unless the skill is clearly designed for implicit
-   invocation from the start.
+   invocation from the start. For manual-only skills, also set `disable-model-invocation: true` in
+   `SKILL.md` frontmatter so Claude Code applies the same policy; omit the key for implicitly
+   invokable skills.
 6. If the skill is behavior-shaping, run a lightweight behavior pressure test before treating the
    draft as ready:
    - Write one to three temporary pressure prompts that make a fresh agent want to skip, soften, or
@@ -90,8 +94,9 @@ is not clearly caused by this change, report the blocker and the safest next act
 9. Update Codex plugin default prompts when the skill should be visible from plugin-level prompt
    examples. Keep `interface.defaultPrompt` to three prompts or fewer, choose the most useful entry
    points, and include explicit `$plugin-name:skill-name` callouts for manual-only skills.
-10. Bump the target plugin manifest patch version so Codex treats the installed skill set as
-    changed.
+10. Bump the patch version in every plugin manifest the plugin ships (`.codex-plugin/plugin.json`
+    and `.claude-plugin/plugin.json`) so both agents treat the installed skill set as changed. The
+    linter requires the versions to stay in lockstep.
 11. Run the skill-creator validator when `uv` is available:
 
 ```bash
@@ -101,12 +106,14 @@ mise exec -- uv run --with pyyaml python \
 ```
 
 If `uv` or Python with PyYAML is unavailable, skip this optional validator and rely on the
-repository validation below.
+repository validation below. This validator only knows the core Agent Skills frontmatter keys, so
+ignore its "Unexpected key" finding for `disable-model-invocation` on manual-only skills; the
+repository linter validates that key.
 
-12. If implicit invocation is enabled, run trigger validation:
+12. If implicit invocation is enabled, run trigger validation on both agents:
 
 ```bash
-mise exec -- pnpm eval:trigger -- plugins/<plugin-name>/skills/<skill-name>
+mise exec -- pnpm eval:trigger -- plugins/<plugin-name>/skills/<skill-name> --agent both
 ```
 
 13. Run repository validation:

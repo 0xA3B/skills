@@ -1,7 +1,7 @@
 ---
 name: lint-plugins
 description:
-  Lints Codex marketplace plugin structure, manifests, skill metadata, formatting, linting, and type
+  Lints marketplace plugin structure, manifests, skill metadata, formatting, linting, and type
   checks in this repository. Use when the user asks to check a plugin, verify metadata, run plugin
   linting, or confirm plugin changes are ready.
 license: MIT
@@ -21,8 +21,9 @@ product decision, report it without broadening the change.
 
 ## Source Of Truth
 
-- `mise exec -- pnpm lint:plugins` lints the marketplace catalog, plugin manifests, skill
-  frontmatter, skill `agents/openai.yaml` metadata, and plugin default prompt limits.
+- `mise exec -- pnpm lint:plugins` lints both marketplace catalogs (Claude Code and Codex), plugin
+  manifests for every plugin target, cross-manifest version lockstep, skill frontmatter, skill
+  `agents/openai.yaml` metadata, invocation-policy parity, and plugin default prompt limits.
 - `mise exec -- pnpm format:check` validates supported Markdown, JSON, YAML, and TypeScript
   formatting.
 - `mise exec -- pnpm lint` runs Oxlint on TypeScript.

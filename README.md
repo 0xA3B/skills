@@ -5,7 +5,12 @@ inspiration.
 
 ## Install
 
-Add marketplace to Codex:
+Plugins install from this repository in both Codex and Claude Code. Every plugin is available to
+both agents unless its section below says otherwise.
+
+### Codex
+
+Add the marketplace to Codex:
 
 ```bash
 codex plugin marketplace add 0xA3B/skills
@@ -19,9 +24,29 @@ codex plugin marketplace upgrade 0xa3b-marketplace
 
 After adding or upgrading the marketplace, install the desired plugins from Codex.
 
-## Codex Plugins
+### Claude Code
+
+Add the marketplace inside Claude Code:
+
+```text
+/plugin marketplace add 0xA3B/skills
+```
+
+Then install the desired plugins:
+
+```text
+/plugin install conventional-commits@0xa3b-marketplace
+/plugin install engineering-workflows@0xa3b-marketplace
+```
+
+Update the marketplace later with `/plugin marketplace update 0xa3b-marketplace`.
+
+## Plugins
 
 ### `claudex`
+
+> Codex-only: this plugin exists to drive Claude Code from Codex, so it is not published to the
+> Claude Code marketplace.
 
 Runs Claude Code from Codex for adversarial code review, feedback triage, and in-scope fixes.
 
