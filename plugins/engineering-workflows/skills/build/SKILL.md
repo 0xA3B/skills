@@ -51,22 +51,20 @@ bug fixes, stable public seams, or well-defined behavior that should be test-fir
 
 ## Architecture Rules
 
-Build loosely on test timing, not on design quality.
+This workflow is loose about test timing, not about design quality.
 
-- Treat a **module** as anything with an interface and an implementation.
-- Treat the **interface** as everything a caller must know: types, invariants, error modes,
-  ordering, configuration, and command behavior.
-- Prefer **deep modules**: a small interface that hides useful behavior. Avoid shallow modules that
-  expose nearly as much complexity as they hide.
-- Use **seams** where behavior may need to change without editing callers in place.
-- Add **adapters** at real external boundaries, not just because an abstraction might be useful
-  someday.
-- Prefer small vertical slices that produce a runnable result.
-- Define the smallest useful public interface or command surface before wiring internals.
+- Treat a **module** as anything with an interface and an implementation, and the **interface** as
+  everything a caller must know: types, invariants, error modes, ordering, configuration, and
+  command behavior.
+- Prefer **deep modules**: a small interface that hides useful behavior. Avoid shallow pass-through
+  modules that expose nearly as much complexity as they hide; move behavior behind interfaces that
+  simplify callers.
+- Use real **seams** for external systems, slow dependencies, filesystem boundaries, network calls,
+  and process execution. Add **adapters** at real external boundaries, not because an abstraction
+  might be useful someday.
+- Prefer small vertical slices that produce a runnable result, and define the smallest useful public
+  interface or command surface before wiring internals.
 - Keep interfaces easy to change until they prove useful.
-- Avoid shallow pass-through modules; move behavior behind interfaces that simplify callers.
-- Use real seams for external systems, slow dependencies, filesystem boundaries, network calls, and
-  process execution.
 - Keep domain names aligned with `AGENTS.md ## Terminology` when present.
 
 If interface or module shape becomes the main risk, pause and use
