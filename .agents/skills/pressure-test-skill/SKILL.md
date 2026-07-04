@@ -6,6 +6,7 @@ description: >-
   the user asks to pressure test a skill, validate behavior under realistic pressure, or check
   whether skill wording prevents rationalization.
 license: MIT
+disable-model-invocation: true
 ---
 
 # Pressure Test Skill

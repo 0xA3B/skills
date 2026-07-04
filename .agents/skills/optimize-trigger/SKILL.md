@@ -5,6 +5,7 @@ description: >-
   trigger fixtures through isolated Codex and Claude Code CLI harnesses. Use when the user asks to
   optimize, tune, or evaluate when a skill is implicitly triggered.
 license: MIT
+disable-model-invocation: true
 ---
 
 # Optimize Trigger
@@ -95,8 +96,9 @@ cases where loaded repository instructions should affect the trigger boundary, s
    ```
 
    The `description` is one trigger contract shared by both agents, so plugin skills should pass on
-   both. Use `--agent codex` or `--agent claude` to iterate on one agent at a time. Repo-local
-   skills run on Codex only because Claude Code never loads `.agents/skills/`.
+   both. Use `--agent codex` or `--agent claude` to iterate on one agent at a time. Repo-local skill
+   evals run on Codex only; live Claude Code sessions load repo-local skills through the
+   `.claude/skills` symlink, but the eval harness stages repo-local targets for Codex.
 
    Trigger cases run with bounded parallelism by default. Use `--concurrency <n>` when the target
    fixture needs a slower or faster run than the default concurrency of 3. The default per-case
