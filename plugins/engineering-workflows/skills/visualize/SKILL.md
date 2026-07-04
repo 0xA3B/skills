@@ -8,6 +8,7 @@ description: >-
 license: MIT
 metadata:
   original_author: Alex Baker
+disable-model-invocation: true
 ---
 
 # Visualize

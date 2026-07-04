@@ -5,6 +5,7 @@ description:
   committing. Use when the user asks for a commit message, wants to review a message before
   committing, or needs Conventional Commit wording only.
 license: MIT
+disable-model-invocation: true
 ---
 
 # Draft Message
