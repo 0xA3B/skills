@@ -77,7 +77,7 @@ direction is selected and needs interrogation, `prototype` when a question needs
 executable evidence, then `build` for greenfield or high-churn implementation and `tdd` for stable
 behavior. Use `terminology` when stable domain language needs a focused create, update, or review
 pass. Use `review-changes` for worktree review before commit and `review-branch` for pre-merge
-branch review. `review-feedback` handles existing reviewer feedback. `diagnose`, `zoom-out`, and
+branch review. `receiving-feedback` handles existing reviewer feedback. `diagnose`, `zoom-out`, and
 `improve-codebase-architecture` are ad hoc workflows for specific needs. Use
 `dependency-maintenance` when dependency update PRs need evidence-backed triage, safe merges, local
 sync, and linked follow-up issues for migration or feature work. `visualize` is a manual
@@ -99,7 +99,7 @@ the underlying analysis.
   Reviews a branch, PR, or MR before merge.
 - [`engineering-workflows:review-changes`](./plugins/engineering-workflows/skills/review-changes/):
   Reviews and fixes current worktree changes before commit.
-- [`engineering-workflows:review-feedback`](./plugins/engineering-workflows/skills/review-feedback/):
+- [`engineering-workflows:receiving-feedback`](./plugins/engineering-workflows/skills/receiving-feedback/):
   Triages and responds to existing review feedback.
 - [`engineering-workflows:tdd`](./plugins/engineering-workflows/skills/tdd/): Builds features or
   fixes with a red-green-refactor loop.

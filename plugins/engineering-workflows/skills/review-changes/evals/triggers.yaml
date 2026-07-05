@@ -60,11 +60,11 @@ cases:
     expect: skip
     rationale: PR and branch review belong to review-branch.
 
-  - id: review-feedback
+  - id: receiving-feedback
     prompt: >-
       Triage these reviewer comments and fix the valid ones.
     expect: skip
-    rationale: Handling existing feedback belongs to review-feedback.
+    rationale: Handling existing feedback belongs to receiving-feedback.
 
   - id: conceptual-question
     prompt: >-

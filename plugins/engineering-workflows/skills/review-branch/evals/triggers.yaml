@@ -48,11 +48,11 @@ cases:
     expect: skip
     rationale: Worktree review belongs to review-changes.
 
-  - id: review-feedback
+  - id: receiving-feedback
     prompt: >-
       Handle these sub-agent findings from the review.
     expect: skip
-    rationale: Handling existing feedback belongs to review-feedback.
+    rationale: Handling existing feedback belongs to receiving-feedback.
 
   - id: architecture-review
     prompt: >-

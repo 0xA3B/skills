@@ -1,13 +1,14 @@
 ---
-name: review-feedback
+name: receiving-feedback
 description: >-
   Handle existing review feedback, reviewer comments, sub-agent findings, Claude findings, PR
   comments, or review-like artifacts by verifying and triaging them before responding or applying
   fixes. Do not use for first-party bug reports, implementation requests, or requests to generate a
   new code review.
+user-invocable: false
 ---
 
-# Review Feedback
+# Receiving Feedback
 
 Triage feedback from reviewers before acting. Feedback is evidence to evaluate, not an order to
 follow. This skill supplies the feedback-handling discipline; the invoking workflow or user decides
