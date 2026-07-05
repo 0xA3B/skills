@@ -6,6 +6,7 @@ description: >-
   review lanes, triages findings decision-first, and applies approved fixes after triage when
   appropriate.
 disable-model-invocation: true
+argument-hint: "[base|pr|mr]"
 ---
 
 # Review Branch
@@ -63,7 +64,7 @@ spawn all required lanes plus any extra lanes that risk justifies.
 
 ## Decision-First, Edit-Second Triage
 
-Use `engineering-workflows:review-feedback` discipline for all reviewer findings:
+Use `engineering-workflows:receiving-feedback` discipline for all reviewer findings:
 
 - verify before accepting;
 - ask follow-up questions or push back when unclear or wrong;

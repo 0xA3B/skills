@@ -9,7 +9,7 @@ direction is selected and needs interrogation, `prototype` when a question needs
 executable evidence, then `build` for greenfield or high-churn implementation and `tdd` for stable
 behavior. Use `terminology` when stable domain language needs a focused create, update, or review
 pass. Use `review-changes` for worktree review before commit and `review-branch` for pre-merge
-branch review. `review-feedback` handles existing reviewer feedback. `diagnose`, `zoom-out`, and
+branch review. `receiving-feedback` handles existing reviewer feedback. `diagnose`, `zoom-out`, and
 `improve-codebase-architecture` are ad hoc workflows for specific needs. Use
 `dependency-maintenance` when dependency update PRs need evidence-backed triage, safe merges, local
 sync, repo-pinned tooling refreshes, and linked follow-up issues for migration or feature work.
@@ -33,7 +33,7 @@ MIT license notice from the source repository is preserved in [LICENSE](./LICENS
 - `engineering-workflows:prototype`: Create disposable exploratory code to answer a design question.
 - `engineering-workflows:review-branch`: Review a branch, PR, or MR before merge.
 - `engineering-workflows:review-changes`: Review and fix current worktree changes before commit.
-- `engineering-workflows:review-feedback`: Triage and respond to existing review feedback.
+- `engineering-workflows:receiving-feedback`: Triage and respond to existing review feedback.
 - `engineering-workflows:tdd`: Build features or fixes with a red-green-refactor loop.
 - `engineering-workflows:grill-me`: Stress-test an approach through adversarial questioning.
 - `engineering-workflows:terminology`: Create, update, or review durable project terminology.

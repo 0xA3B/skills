@@ -1,6 +1,6 @@
 version: 1
 interface:
-  display_name: "Review Feedback"
+  display_name: "Receiving Feedback"
   short_description: "Triage and respond to existing review feedback"
   default_prompt: "Triage this review feedback and handle the accepted items."
 policy:

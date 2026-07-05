@@ -7,6 +7,7 @@ description: >-
   accepted in-scope fixes. Do not use for conceptual questions about review criteria or this skill's
   design.
 disable-model-invocation: true
+argument-hint: "[path]"
 ---
 
 # Review Changes
@@ -69,7 +70,7 @@ agent as coordinator and spawn all required lanes plus any extra lanes that risk
 
 ## Feedback Triage And Fixes
 
-Use `engineering-workflows:review-feedback` discipline for all reviewer findings:
+Use `engineering-workflows:receiving-feedback` discipline for all reviewer findings:
 
 - verify before accepting;
 - ask follow-up questions or push back when unclear or wrong;
