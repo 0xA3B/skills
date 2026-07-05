@@ -6,6 +6,7 @@ description:
   categories, keywords, versions, or metadata consistency.
 license: MIT
 disable-model-invocation: true
+argument-hint: "[plugin]"
 ---
 
 # Update Plugin Metadata

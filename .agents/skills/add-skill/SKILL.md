@@ -11,6 +11,7 @@ description:
   .agents/skills, or trigger fixture maintenance instead of adding a new plugin skill under
   plugins/.
 license: MIT
+argument-hint: "[skill-name]"
 ---
 
 # Add Skill
@@ -49,7 +50,9 @@ is not clearly caused by this change, report the blocker and the safest next act
 
 ## Workflow
 
-1. Identify the target plugin and normalize the skill name to lowercase kebab-case.
+1. Identify the target plugin and normalize the skill name to lowercase kebab-case. Use an
+   imperative verb phrase for user-invocable skills and a state or discipline phrase (typically a
+   gerund, such as `receiving-feedback`) for `user-invocable: false` skills.
 2. Confirm the skill does not already exist at `plugins/<plugin-name>/skills/<skill-name>/`.
 3. Create:
 
@@ -66,7 +69,8 @@ is not clearly caused by this change, report the blocker and the safest next act
    `policy.allow_implicit_invocation: false` unless the skill is clearly designed for implicit
    invocation from the start. For manual-only skills, also set `disable-model-invocation: true` in
    `SKILL.md` frontmatter so Claude Code applies the same policy; omit the key for implicitly
-   invokable skills.
+   invokable skills. Add `argument-hint` when the skill takes meaningful invocation arguments;
+   follow `plugins/AGENTS.md` for the other Claude Code frontmatter keys.
 6. If the skill is behavior-shaping, run a lightweight behavior pressure test before treating the
    draft as ready:
    - Write one to three temporary pressure prompts that make a fresh agent want to skip, soften, or

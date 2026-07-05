@@ -9,6 +9,7 @@ metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/aaf2453fbdfe7a15c07f11d861224f34ab4b53cb/skills/engineering/prototype
 disable-model-invocation: true
+argument-hint: "[design-question]"
 ---
 
 # Prototype
