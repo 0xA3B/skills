@@ -3,8 +3,21 @@ import { readFile } from "node:fs/promises";
 import { parse as parseYaml } from "yaml";
 
 import { error, type ValidationContext, warning } from "../diagnostics.js";
-import { getOptionalBoolean, getOptionalString, getString, isObject } from "../schema.js";
-import { AGENT_SKILL_FRONTMATTER_KEYS, CLAUDE_SKILL_FRONTMATTER_KEYS } from "../specs.js";
+import {
+  getOptionalBoolean,
+  getOptionalObject,
+  getOptionalString,
+  getString,
+  isObject,
+} from "../schema.js";
+import {
+  AGENT_SKILL_FRONTMATTER_KEYS,
+  CLAUDE_SKILL_CONTEXT_VALUES,
+  CLAUDE_SKILL_EFFORT_VALUES,
+  CLAUDE_SKILL_FRONTMATTER_KEYS,
+  CLAUDE_SKILL_LISTING_MAX_LENGTH,
+  CLAUDE_SKILL_SHELL_VALUES,
+} from "../specs.js";
 import { errorMessage } from "../utils.js";
 
 const MAX_RECOMMENDED_BODY_LINES = 500;
@@ -169,6 +182,8 @@ export async function validateSkillFrontmatter(
     "/frontmatter/disable-model-invocation",
   );
 
+  validateClaudeFrontmatter(context, parsed, skillFilePath, description, disableModelInvocation);
+
   const metadata = parsed["metadata"];
   if (metadata !== undefined) {
     if (!isObject(metadata)) {
@@ -196,6 +211,130 @@ export async function validateSkillFrontmatter(
   }
 
   return { disableModelInvocation };
+}
+
+function validateClaudeFrontmatter(
+  context: ValidationContext,
+  parsed: Record<string, unknown>,
+  skillFilePath: string,
+  description: string | undefined,
+  disableModelInvocation: boolean | undefined,
+): void {
+  const whenToUse = getOptionalString(
+    context,
+    parsed,
+    "when_to_use",
+    skillFilePath,
+    "/frontmatter/when_to_use",
+  );
+  getOptionalString(context, parsed, "argument-hint", skillFilePath, "/frontmatter/argument-hint");
+  getOptionalString(context, parsed, "model", skillFilePath, "/frontmatter/model");
+  getOptionalObject(context, parsed, "hooks", skillFilePath, "/frontmatter/hooks");
+
+  // Claude Code accepts YAML lists for these keys, but this repository keeps them as delimited
+  // strings so the same frontmatter stays portable across Agent Skills consumers.
+  getOptionalString(
+    context,
+    parsed,
+    "disallowed-tools",
+    skillFilePath,
+    "/frontmatter/disallowed-tools",
+  );
+  getOptionalString(context, parsed, "paths", skillFilePath, "/frontmatter/paths");
+  getOptionalString(context, parsed, "arguments", skillFilePath, "/frontmatter/arguments");
+
+  if (parsed["arguments"] !== undefined) {
+    warning(
+      context,
+      "repo/skill-arguments",
+      skillFilePath,
+      'Frontmatter "arguments" powers Claude-only $name substitution; skill bodies must stay agent-agnostic, so prefer prose argument handling.',
+      "/frontmatter/arguments",
+    );
+  }
+
+  validateEnumValue(context, parsed, "effort", CLAUDE_SKILL_EFFORT_VALUES, skillFilePath);
+  const skillContext = validateEnumValue(
+    context,
+    parsed,
+    "context",
+    CLAUDE_SKILL_CONTEXT_VALUES,
+    skillFilePath,
+  );
+  validateEnumValue(context, parsed, "shell", CLAUDE_SKILL_SHELL_VALUES, skillFilePath);
+
+  const agent = getOptionalString(context, parsed, "agent", skillFilePath, "/frontmatter/agent");
+  if (agent !== undefined && skillContext !== "fork") {
+    error(
+      context,
+      "claude-skill/agent-requires-fork",
+      skillFilePath,
+      'Frontmatter "agent" only applies when "context: fork" is set.',
+      "/frontmatter/agent",
+    );
+  }
+
+  const userInvocable = getOptionalBoolean(
+    context,
+    parsed,
+    "user-invocable",
+    skillFilePath,
+    "/frontmatter/user-invocable",
+  );
+  if (disableModelInvocation === true && userInvocable === false) {
+    error(
+      context,
+      "claude-skill/uninvocable",
+      skillFilePath,
+      'Setting both "disable-model-invocation: true" and "user-invocable: false" leaves the skill with no way to be invoked.',
+      "/frontmatter/user-invocable",
+    );
+  }
+
+  if (whenToUse !== undefined && disableModelInvocation === true) {
+    warning(
+      context,
+      "claude-skill/when-to-use-hidden",
+      skillFilePath,
+      '"when_to_use" is never surfaced when "disable-model-invocation: true" removes the skill listing from context.',
+      "/frontmatter/when_to_use",
+    );
+  }
+
+  if (
+    whenToUse !== undefined &&
+    description !== undefined &&
+    description.length + whenToUse.length > CLAUDE_SKILL_LISTING_MAX_LENGTH
+  ) {
+    warning(
+      context,
+      "claude-skill/listing-length",
+      skillFilePath,
+      `Combined "description" and "when_to_use" exceed ${CLAUDE_SKILL_LISTING_MAX_LENGTH} characters; Claude Code truncates the skill listing beyond that.`,
+      "/frontmatter/when_to_use",
+    );
+  }
+}
+
+function validateEnumValue(
+  context: ValidationContext,
+  parsed: Record<string, unknown>,
+  key: string,
+  allowed: ReadonlySet<string>,
+  skillFilePath: string,
+): string | undefined {
+  const value = getOptionalString(context, parsed, key, skillFilePath, `/frontmatter/${key}`);
+  if (value !== undefined && !allowed.has(value)) {
+    error(
+      context,
+      "claude-skill/enum",
+      skillFilePath,
+      `Frontmatter "${key}" must be one of: ${[...allowed].join(", ")}.`,
+      `/frontmatter/${key}`,
+    );
+    return undefined;
+  }
+  return value;
 }
 
 function extractYamlFrontmatter(content: string): { yaml: string; body: string } | undefined {

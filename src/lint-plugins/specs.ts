@@ -7,7 +7,29 @@ export const AGENT_SKILL_FRONTMATTER_KEYS = new Set([
   "name",
 ]);
 
-export const CLAUDE_SKILL_FRONTMATTER_KEYS = new Set(["disable-model-invocation"]);
+export const CLAUDE_SKILL_FRONTMATTER_KEYS = new Set([
+  "agent",
+  "argument-hint",
+  "arguments",
+  "context",
+  "disable-model-invocation",
+  "disallowed-tools",
+  "effort",
+  "hooks",
+  "model",
+  "paths",
+  "shell",
+  "user-invocable",
+  "when_to_use",
+]);
+
+export const CLAUDE_SKILL_EFFORT_VALUES = new Set(["low", "medium", "high", "xhigh", "max"]);
+
+export const CLAUDE_SKILL_CONTEXT_VALUES = new Set(["fork"]);
+
+export const CLAUDE_SKILL_SHELL_VALUES = new Set(["bash", "powershell"]);
+
+export const CLAUDE_SKILL_LISTING_MAX_LENGTH = 1536;
 
 export const CLAUDE_MARKETPLACE_ROOT_KEYS = new Set([
   "$schema",
