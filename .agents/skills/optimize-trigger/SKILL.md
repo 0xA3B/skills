@@ -6,6 +6,7 @@ description: >-
   optimize, tune, or evaluate when a skill is implicitly triggered.
 license: MIT
 disable-model-invocation: true
+argument-hint: "[skill-path]"
 ---
 
 # Optimize Trigger
@@ -113,7 +114,11 @@ cases where loaded repository instructions should affect the trigger boundary, s
 
 5. Read the report and failed case outputs under `.local/skill-evals/trigger/`.
 6. For false negatives, make the description more explicit about the missing user intent.
-7. For false positives, narrow the description with clearer ownership boundaries or exclusions.
+7. For false positives, narrow the description with clearer ownership boundaries or exclusions. When
+   only Claude Code needs different tuning, prefer adding or adjusting the Claude-only `when_to_use`
+   frontmatter key over forking the shared `description`: Claude appends `when_to_use` to the
+   description in its skill listing (combined text truncated at 1,536 characters), while Codex
+   ignores the key entirely.
 8. Rerun the same eval after edits.
 9. Run repository validation for changed files:
 

@@ -7,6 +7,7 @@ description: >-
   whether skill wording prevents rationalization.
 license: MIT
 disable-model-invocation: true
+argument-hint: "[skill-path]"
 ---
 
 # Pressure Test Skill

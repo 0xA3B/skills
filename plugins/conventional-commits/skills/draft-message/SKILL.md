@@ -6,6 +6,7 @@ description:
   committing, or needs Conventional Commit wording only.
 license: MIT
 disable-model-invocation: true
+argument-hint: "[instructions]"
 ---
 
 # Draft Message

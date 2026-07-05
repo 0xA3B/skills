@@ -49,6 +49,9 @@ These instructions apply to plugin directories under `plugins/`.
 - Reserve major version bumps for maintainer discretion when compatibility, trust boundaries, or the
   packaging model changes significantly.
 - When in doubt, choose the smallest bump that reflects user-visible compatibility risk.
+- Apply at most one version bump per plugin per branch. If the branch already bumps the plugin
+  version relative to the merge base, fold later changes into that bump, upgrading its size when a
+  later change needs a larger bump (for example patch to minor), instead of stacking bumps.
 - Apply every version bump to all of the plugin's agent manifests in the same change.
 
 ## Skill Rules
@@ -56,9 +59,26 @@ These instructions apply to plugin directories under `plugins/`.
 - Skill names use lowercase kebab-case and match the skill directory name.
 - Each skill must include `SKILL.md`. Skills in Codex-targeted plugins must also include
   `agents/openai.yaml`.
-- Use `SKILL.md` for runtime instructions and Agent Skills frontmatter. The only agent-specific
-  frontmatter key is Claude Code's `disable-model-invocation`; both agents ignore the other's
-  metadata surface, so skill bodies stay shared.
+- Use `SKILL.md` for runtime instructions and Agent Skills frontmatter. Claude Code-specific
+  frontmatter keys (`disable-model-invocation`, `user-invocable`, `when_to_use`, `argument-hint`,
+  and the rest of the official frontmatter reference) are allowed because Codex ignores unsupported
+  keys; skill bodies stay shared.
+- Keep `allowed-tools`, `disallowed-tools`, and `paths` as space- or comma-delimited strings, not
+  YAML lists, so the frontmatter stays portable across Agent Skills consumers.
+- Do not use the `arguments` frontmatter key. It powers Claude-only `$name` substitution in the
+  skill body, which breaks agent-agnostic bodies on Codex; handle arguments in prose instead. The
+  linter warns on use (`repo/skill-arguments`).
+- Add `argument-hint` when a skill takes meaningful arguments on invocation; skip it for zero-arg
+  skills rather than writing filler hints.
+- Use `when_to_use` only when Claude Code needs different trigger tuning than the shared
+  `description`; it is appended to the description in Claude's skill listing and the combined text
+  is truncated at 1,536 characters. It is never surfaced on manual-only skills.
+- Set `user-invocable: false` only for background-discipline skills users should not invoke as a
+  command. Never combine it with `disable-model-invocation: true`; the linter rejects the pairing
+  (`claude-skill/uninvocable`).
+- Name user-invocable skills with an imperative verb phrase (`commit`, `visualize`, `build`). Name
+  `user-invocable: false` skills as a state or discipline, typically a gerund phrase
+  (`receiving-feedback`), so the model reads them as applicable knowledge rather than an action.
 - Use `agents/openai.yaml` for Codex UI metadata and Codex invocation policy. Do not add other Codex
   policy keys to `SKILL.md` frontmatter.
 - For manual-only skills, set `policy.allow_implicit_invocation: false` in `agents/openai.yaml` and

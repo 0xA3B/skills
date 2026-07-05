@@ -9,6 +9,7 @@ license: MIT
 metadata:
   original_author: Alex Baker
 disable-model-invocation: true
+argument-hint: "[topic]"
 ---
 
 # Brainstorm

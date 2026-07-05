@@ -11,6 +11,7 @@ description:
   repository instructions that reject Conventional Commits or request Gitmoji or another
   commit-message standard, or ordinary-language uses of "commit" such as committing to a plan.
 license: MIT
+argument-hint: "[instructions]"
 ---
 
 # Commit
