@@ -142,6 +142,149 @@ describe("Agent Skills frontmatter validation", () => {
     });
   });
 
+  it("accepts the recognized Claude Code frontmatter keys", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const skillPath = await writeText(
+        repoRoot,
+        "skills/claude/SKILL.md",
+        validSkillMarkdown({
+          body: "# Claude",
+          frontmatter: {
+            agent: "Explore",
+            "argument-hint": "[target] [format]",
+            context: "fork",
+            description: "Use when a test needs the Claude frontmatter surface.",
+            "disallowed-tools": "AskUserQuestion",
+            effort: "high",
+            hooks: { PostToolUse: [] },
+            model: "sonnet",
+            name: "claude",
+            paths: "plugins/**",
+            shell: "bash",
+            "user-invocable": true,
+            when_to_use: "Trigger phrases for the Claude listing.",
+          },
+        }),
+      );
+      const context = createTestContext(repoRoot);
+
+      await validateSkillFrontmatter(context, "claude", skillPath);
+
+      expect(context.diagnostics).toStrictEqual([]);
+    });
+  });
+
+  it("reports invalid Claude frontmatter enum values and list-typed keys", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const skillPath = await writeText(
+        repoRoot,
+        "skills/claude/SKILL.md",
+        validSkillMarkdown({
+          body: "# Claude",
+          frontmatter: {
+            context: "subagent",
+            description: "Use when a test needs invalid Claude frontmatter.",
+            "disallowed-tools": ["Edit", "Write"],
+            effort: "ultra",
+            name: "claude",
+            paths: ["plugins/**"],
+            shell: "fish",
+          },
+        }),
+      );
+      const context = createTestContext(repoRoot);
+
+      await validateSkillFrontmatter(context, "claude", skillPath);
+
+      expect(diagnosticPointers(context, "claude-skill/enum")).toStrictEqual([
+        "/frontmatter/effort",
+        "/frontmatter/context",
+        "/frontmatter/shell",
+      ]);
+      expect(diagnosticPointers(context, "schema/string")).toStrictEqual(
+        expect.arrayContaining(["/frontmatter/disallowed-tools", "/frontmatter/paths"]),
+      );
+    });
+  });
+
+  it("rejects an uninvocable skill and agent without fork", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const skillPath = await writeText(
+        repoRoot,
+        "skills/hidden/SKILL.md",
+        validSkillMarkdown({
+          body: "# Hidden",
+          frontmatter: {
+            agent: "Explore",
+            description: "Use when a test needs conflicting invocation policy.",
+            "disable-model-invocation": true,
+            name: "hidden",
+            "user-invocable": false,
+          },
+        }),
+      );
+      const context = createTestContext(repoRoot);
+
+      await validateSkillFrontmatter(context, "hidden", skillPath);
+
+      expect(ruleIds(context)).toStrictEqual(
+        expect.arrayContaining(["claude-skill/uninvocable", "claude-skill/agent-requires-fork"]),
+      );
+    });
+  });
+
+  it("warns about when_to_use on manual-only skills and oversized listings", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const skillPath = await writeText(
+        repoRoot,
+        "skills/manual/SKILL.md",
+        validSkillMarkdown({
+          body: "# Manual",
+          frontmatter: {
+            description: `Use when a test needs a long listing. ${"d".repeat(980)}`,
+            "disable-model-invocation": true,
+            name: "manual",
+            when_to_use: "w".repeat(600),
+          },
+        }),
+      );
+      const context = createTestContext(repoRoot);
+
+      await validateSkillFrontmatter(context, "manual", skillPath);
+
+      expect(ruleIds(context)).toStrictEqual(
+        expect.arrayContaining(["claude-skill/when-to-use-hidden", "claude-skill/listing-length"]),
+      );
+      expect(diagnosticByRule(context, "claude-skill/when-to-use-hidden")?.severity).toBe(
+        "warning",
+      );
+      expect(diagnosticByRule(context, "claude-skill/listing-length")?.severity).toBe("warning");
+    });
+  });
+
+  it("warns when a skill declares Claude-only arguments substitution", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const skillPath = await writeText(
+        repoRoot,
+        "skills/args/SKILL.md",
+        validSkillMarkdown({
+          body: "# Args",
+          frontmatter: {
+            arguments: "issue branch",
+            description: "Use when a test needs the arguments policy warning.",
+            name: "args",
+          },
+        }),
+      );
+      const context = createTestContext(repoRoot);
+
+      await validateSkillFrontmatter(context, "args", skillPath);
+
+      expect(ruleIds(context)).toStrictEqual(["repo/skill-arguments"]);
+      expect(diagnosticByRule(context, "repo/skill-arguments")?.severity).toBe("warning");
+    });
+  });
+
   it("reports frontmatter character limits from the official spec", async () => {
     await withTempRepo(async (repoRoot) => {
       const longName = `a${"a".repeat(64)}`;
