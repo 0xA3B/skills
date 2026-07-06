@@ -39,6 +39,9 @@ These instructions apply to plugin directories under `plugins/`.
 - Do not bump the plugin version for content-only updates to existing skills, references, README
   copy, descriptions, prompts, or metadata when the installed skill set, invocation names,
   capability policy, and expected workflow behavior stay the same.
+- Do not bump the plugin version for adding an agent target to an existing plugin. Installs on the
+  already-targeted agent see no change, and the new agent installs the plugin fresh at the current
+  version. If the same branch also makes a bump-worthy change, apply that bump as usual.
 - Bump the patch version when adding a skill, adding non-breaking visible capability, or expanding
   an existing skill without removing prior behavior. A new skill changes the installed skill set and
   needs a fresh plugin version for Codex cache and invocation behavior.
