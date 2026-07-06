@@ -295,6 +295,21 @@ describe("runTriggerEval", () => {
     );
   });
 
+  it("evaluates Claude-only plugins on the Claude lane without Codex metadata", async () => {
+    const repoRoot = await writeRepoFixture({ claudeOnly: true });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+    });
+
+    expect(result.agent).toBe("claude");
+    expect(result.results).toHaveLength(2);
+    expect(result.results.every((caseResult) => caseResult.passed)).toBe(true);
+    expect(mockState.codexHomes).toStrictEqual([]);
+  });
+
   it("evaluates repo-local skill targets on Claude as pristine project skills", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
 
@@ -480,24 +495,33 @@ async function writeRepoFixture(
       expect: "invoke" | "skip";
       workspaceFiles?: Record<string, string>;
     }>;
+    claudeOnly?: boolean;
   } = {},
 ): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
   const pluginPath = path.join(repoRoot, "plugins", "demo");
   const skillPath = path.join(pluginPath, "skills", "auto-skill");
 
-  await mkdir(path.join(pluginPath, ".codex-plugin"), { recursive: true });
-  await mkdir(path.join(skillPath, "agents"), { recursive: true });
   await mkdir(path.join(skillPath, "evals"), { recursive: true });
-  await writeFile(
-    path.join(pluginPath, ".codex-plugin", "plugin.json"),
-    JSON.stringify({ name: "demo", version: "1.0.0", skills: "./skills/" }),
-  );
+  if (options.claudeOnly === true) {
+    await mkdir(path.join(pluginPath, ".claude-plugin"), { recursive: true });
+    await writeFile(
+      path.join(pluginPath, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ name: "demo", version: "1.0.0", description: "Demo plugin" }),
+    );
+  } else {
+    await mkdir(path.join(pluginPath, ".codex-plugin"), { recursive: true });
+    await mkdir(path.join(skillPath, "agents"), { recursive: true });
+    await writeFile(
+      path.join(pluginPath, ".codex-plugin", "plugin.json"),
+      JSON.stringify({ name: "demo", version: "1.0.0", skills: "./skills/" }),
+    );
+    await writeFile(
+      path.join(skillPath, "agents", "openai.yaml"),
+      "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
+    );
+  }
   await writeFile(path.join(skillPath, "SKILL.md"), "---\nname: auto-skill\n---\n");
-  await writeFile(
-    path.join(skillPath, "agents", "openai.yaml"),
-    "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
-  );
   await writeFile(
     path.join(skillPath, "evals", "triggers.yaml"),
     [

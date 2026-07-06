@@ -90,11 +90,31 @@ function buildMarketplace(target: PluginSkillTarget): unknown {
 }
 
 async function readPluginVersion(target: PluginSkillTarget): Promise<string> {
-  const manifestPath = path.join(target.pluginPath, ".codex-plugin", "plugin.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as { version?: unknown };
-  if (typeof manifest.version !== "string" || manifest.version.length === 0) {
-    throw new Error(`${manifestPath}: expected plugin manifest version to be a non-empty string.`);
+  // Claude-only plugins ship no Codex manifest, so fall back to the Claude manifest for the
+  // staged plugin version.
+  const manifestPaths = [
+    path.join(target.pluginPath, ".codex-plugin", "plugin.json"),
+    path.join(target.pluginPath, ".claude-plugin", "plugin.json"),
+  ];
+  for (const manifestPath of manifestPaths) {
+    let content: string;
+    try {
+      content = await readFile(manifestPath, "utf8");
+    } catch {
+      continue;
+    }
+
+    const manifest = JSON.parse(content) as { version?: unknown };
+    if (typeof manifest.version !== "string" || manifest.version.length === 0) {
+      throw new Error(
+        `${manifestPath}: expected plugin manifest version to be a non-empty string.`,
+      );
+    }
+
+    return manifest.version;
   }
 
-  return manifest.version;
+  throw new Error(
+    `${target.pluginPath}: expected .codex-plugin/plugin.json or .claude-plugin/plugin.json to provide a plugin version.`,
+  );
 }

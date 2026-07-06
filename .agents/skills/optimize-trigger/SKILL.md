@@ -30,8 +30,10 @@ skill's intended trigger boundary.
 
 - Target repo plugin skills under `plugins/<plugin>/skills/<skill>/` or repo-local skills under
   `.agents/skills/<skill>/`.
-- Use this workflow only for skills with `agents/openai.yaml`
-  `policy.allow_implicit_invocation: true`.
+- Use this workflow only for implicitly invokable skills: `policy.allow_implicit_invocation: true`
+  in `agents/openai.yaml`, mirrored by SKILL.md frontmatter without `disable-model-invocation`.
+  Claude-only skills that ship no `agents/openai.yaml` are gated by the frontmatter key alone on the
+  Claude lane.
 - If the target skill is manual-only, warn the user and do not optimize trigger behavior unless they
   explicitly ask for advisory review.
 - Optimize trigger behavior only. Do not evaluate output quality in this workflow.
