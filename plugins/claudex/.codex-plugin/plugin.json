@@ -1,6 +1,6 @@
 {
   "name": "claudex",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Run Claude Code from Codex for adversarial review, feedback triage, and in-scope fixes.",
   "author": {
     "name": "Alex Baker"
