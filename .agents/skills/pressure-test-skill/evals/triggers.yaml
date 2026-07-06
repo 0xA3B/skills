@@ -1,0 +1,45 @@
+version: 1
+cases:
+  - id: pressure-test-request
+    prompt: >-
+      Pressure test the commit skill in engineering-workflows before we ship it.
+    expect: invoke
+    rationale: The user explicitly asks to pressure test a skill.
+
+  - id: behavior-under-pressure
+    prompt: >-
+      Check whether the tdd skill still makes an agent write the failing test first when the agent
+      is under deadline pressure to jump straight to implementation.
+    expect: invoke
+    rationale: Validating skill behavior under realistic shortcut pressure is this workflow.
+
+  - id: wording-rationalization-check
+    prompt: >-
+      I tightened the receiving-feedback skill wording. Verify the new wording actually stops an
+      agent from rationalizing around the triage rules.
+    expect: invoke
+    rationale: Checking whether skill wording prevents rationalization is this workflow.
+
+  - id: trigger-eval-request
+    prompt: >-
+      Which repo workflow should evaluate when the visualize skill gets implicitly invoked?
+    expect: skip
+    rationale: Implicit invocation boundaries belong to optimize-trigger, not pressure testing.
+
+  - id: conceptual-question
+    prompt: >-
+      What is a behavior pressure test and why would a skill need one?
+    expect: skip
+    rationale: A conceptual question about the methodology is not a request to run it.
+
+  - id: add-skill-request
+    prompt: >-
+      Add a new smoke-test skill to the engineering-workflows plugin.
+    expect: skip
+    rationale: Creating a new plugin skill belongs to add-skill.
+
+  - id: body-edit-request
+    prompt: >-
+      Update the diagnose skill instructions to mention flame graphs.
+    expect: skip
+    rationale: An ordinary skill content edit does not ask for behavior validation under pressure.

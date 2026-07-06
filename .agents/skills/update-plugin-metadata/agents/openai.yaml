@@ -4,4 +4,4 @@ interface:
   short_description: "Update plugin metadata"
   default_prompt: "Use $update-plugin-metadata to update marketplace plugin metadata."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

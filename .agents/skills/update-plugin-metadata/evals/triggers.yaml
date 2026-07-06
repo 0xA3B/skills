@@ -1,0 +1,44 @@
+version: 1
+cases:
+  - id: version-bump-request
+    prompt: >-
+      Bump the engineering-workflows plugin version for the skill we just added.
+    expect: invoke
+    rationale: Plugin version changes are metadata updates owned by this workflow.
+
+  - id: description-keywords-update
+    prompt: >-
+      Update the conventional-commits plugin description and keywords to mention message linting.
+    expect: invoke
+    rationale: Revising plugin descriptions and keywords is this workflow.
+
+  - id: default-prompt-update
+    prompt: >-
+      Revise the default prompts shown for the engineering-workflows plugin so they highlight the
+      review skills.
+    expect: invoke
+    rationale: Plugin default prompts are a metadata surface owned by this workflow.
+
+  - id: add-skill-request
+    prompt: >-
+      Add a new smoke-test skill to the engineering-workflows plugin.
+    expect: skip
+    rationale: Adding a new skill body belongs to add-skill.
+
+  - id: skill-body-edit
+    prompt: >-
+      Update the tdd skill's instructions to clarify the refactor step.
+    expect: skip
+    rationale: Skill body content is not a metadata surface.
+
+  - id: conceptual-question
+    prompt: >-
+      What is the difference between a plugin manifest and a marketplace entry?
+    expect: skip
+    rationale: A conceptual question about metadata surfaces is not an update request.
+
+  - id: trigger-tuning-request
+    prompt: >-
+      The visualize skill triggers too often; tune its description so it stops over-firing.
+    expect: skip
+    rationale: Skill descriptions as trigger contracts belong to optimize-trigger.
