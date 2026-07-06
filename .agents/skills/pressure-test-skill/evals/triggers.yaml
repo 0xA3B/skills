@@ -2,7 +2,7 @@ version: 1
 cases:
   - id: pressure-test-request
     prompt: >-
-      Pressure test the commit skill in engineering-workflows before we ship it.
+      Pressure test the commit skill in conventional-commits before we ship it.
     expect: invoke
     rationale: The user explicitly asks to pressure test a skill.
 
