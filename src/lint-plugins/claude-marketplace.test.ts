@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  validateClaudeMarketplace,
-  validateClaudeRepositoryAlignment,
-} from "./claude-marketplace.js";
+import { validateClaudeMarketplace } from "./claude-marketplace.js";
+import { validateLocalRepositoryAlignment } from "./coverage.js";
 import {
   createTestContext,
   ruleIds,
@@ -110,7 +108,7 @@ describe("Claude marketplace validation", () => {
       }
       entry.sourcePath = "./plugins/./demo-plugin";
 
-      validateClaudeRepositoryAlignment(context, catalog);
+      validateLocalRepositoryAlignment(context, catalog);
 
       expect(ruleIds(context)).toStrictEqual(["alignment/source-path"]);
     });

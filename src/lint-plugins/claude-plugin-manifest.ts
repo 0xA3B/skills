@@ -1,11 +1,9 @@
-import path from "node:path";
-
 import { error, type ValidationContext, warning } from "./diagnostics.js";
 import { readJsonObject } from "./files.js";
-import { getOptionalObject, getOptionalString, getString, validateStringArray } from "./schema.js";
+import { validateCommonManifestFields } from "./plugin-manifest.js";
+import { getOptionalString } from "./schema.js";
 import { CLAUDE_PLUGIN_AUTHOR_KEYS, CLAUDE_PLUGIN_MANIFEST_KEYS } from "./specs.js";
 import type { ClaudeCatalogEntry, JsonObject } from "./types.js";
-import { validateUrlString } from "./urls.js";
 
 export async function validateClaudePlugin(
   context: ValidationContext,
@@ -42,51 +40,9 @@ export async function validateClaudePlugin(
     );
   }
 
-  const manifestName = getString(context, manifest, "name", entry.manifestPath, "/name");
-  getString(context, manifest, "version", entry.manifestPath, "/version");
-  getString(context, manifest, "description", entry.manifestPath, "/description");
   getOptionalString(context, manifest, "displayName", entry.manifestPath, "/displayName");
-  getOptionalString(context, manifest, "license", entry.manifestPath, "/license");
 
-  const repository = getOptionalString(
-    context,
-    manifest,
-    "repository",
-    entry.manifestPath,
-    "/repository",
-  );
-  validateUrlString(context, repository, entry.manifestPath, "/repository", "url/http");
-
-  const homepage = getOptionalString(
-    context,
-    manifest,
-    "homepage",
-    entry.manifestPath,
-    "/homepage",
-  );
-  validateUrlString(context, homepage, entry.manifestPath, "/homepage", "url/http");
-
-  if (manifestName !== undefined && manifestName !== entry.name) {
-    error(
-      context,
-      "alignment/name",
-      entry.manifestPath,
-      `Manifest name "${manifestName}" does not match marketplace name "${entry.name}".`,
-      "/name",
-    );
-  }
-
-  if (manifestName !== undefined && path.basename(entry.pluginPath) !== manifestName) {
-    error(
-      context,
-      "alignment/directory-name",
-      entry.manifestPath,
-      `Plugin directory "${path.basename(entry.pluginPath)}" does not match manifest name "${manifestName}".`,
-      "/name",
-    );
-  }
-
-  const author = getOptionalObject(context, manifest, "author", entry.manifestPath, "/author");
+  const { author } = validateCommonManifestFields(context, manifest, entry);
   if (author !== undefined) {
     for (const key of Object.keys(author)) {
       if (!CLAUDE_PLUGIN_AUTHOR_KEYS.has(key)) {
@@ -99,15 +55,7 @@ export async function validateClaudePlugin(
         );
       }
     }
-    getString(context, author, "name", entry.manifestPath, "/author/name");
-    const authorUrl = getOptionalString(context, author, "url", entry.manifestPath, "/author/url");
-    validateUrlString(context, authorUrl, entry.manifestPath, "/author/url", "url/http");
-    getOptionalString(context, author, "email", entry.manifestPath, "/author/email");
   }
-
-  validateStringArray(context, manifest["keywords"], "keywords", entry.manifestPath, "/keywords", {
-    required: false,
-  });
 
   return manifest;
 }

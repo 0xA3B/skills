@@ -1,9 +1,6 @@
 import path from "node:path";
 
-import {
-  validateClaudeMarketplace,
-  validateClaudeRepositoryAlignment,
-} from "./claude-marketplace.js";
+import { validateClaudeMarketplace } from "./claude-marketplace.js";
 import { validateClaudePlugin, validateDualManifestAlignment } from "./claude-plugin-manifest.js";
 import {
   validateCatalogCoverage,
@@ -50,7 +47,7 @@ export async function lintPlugins(options: ValidationOptions = {}): Promise<Lint
   const claudeCatalog = await validateClaudeMarketplace(context);
   const manifestsByPath = new Map<string, JsonObject>();
   validateLocalRepositoryAlignment(context, catalog);
-  validateClaudeRepositoryAlignment(context, claudeCatalog);
+  validateLocalRepositoryAlignment(context, claudeCatalog);
   await validateCatalogCoverage(context, catalog);
   await validateClaudeCatalogCoverage(context, claudeCatalog);
 
