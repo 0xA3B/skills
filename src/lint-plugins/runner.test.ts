@@ -6,8 +6,11 @@ import { describe, expect, it, vi } from "vitest";
 import { lintPlugins, runLintPlugins } from "./runner.js";
 import {
   ruleIds,
+  toYaml,
   validClaudePluginManifest,
   validMarketplace,
+  validOpenAiMetadata,
+  validPluginManifest,
   validSkillMarkdown,
   withTempRepo,
   writeJson,
@@ -105,6 +108,53 @@ describe("lint runner", () => {
 
       expect(result.errorCount).toBe(1);
       expect(ruleIds(result.context)).toContain("alignment/dual-version");
+    });
+  });
+
+  it("reports Claude-targeted plugins whose Codex manifest moves skills away from ./skills/", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot, {
+        manifest: validPluginManifest({ skills: "./other-skills/" }),
+      });
+      await writeText(
+        repoRoot,
+        "plugins/demo-plugin/other-skills/hello/SKILL.md",
+        validSkillMarkdown(),
+      );
+      await writeText(
+        repoRoot,
+        "plugins/demo-plugin/other-skills/hello/agents/openai.yaml",
+        toYaml(validOpenAiMetadata()),
+      );
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(ruleIds(result.context)).toContain("claude-manifest/skills-discovery");
+    });
+  });
+
+  it("allows Codex-only plugins to relocate skills without the Claude discovery rule", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot, {
+        claudeManifest: false,
+        claudeMarketplace: false,
+        manifest: validPluginManifest({ skills: "./other-skills/" }),
+      });
+      await writeText(
+        repoRoot,
+        "plugins/demo-plugin/other-skills/hello/SKILL.md",
+        validSkillMarkdown(),
+      );
+      await writeText(
+        repoRoot,
+        "plugins/demo-plugin/other-skills/hello/agents/openai.yaml",
+        toYaml(validOpenAiMetadata()),
+      );
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.errorCount).toBe(0);
+      expect(ruleIds(result.context)).not.toContain("claude-manifest/skills-discovery");
     });
   });
 
