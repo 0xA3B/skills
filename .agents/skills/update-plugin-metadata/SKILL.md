@@ -3,9 +3,10 @@ name: update-plugin-metadata
 description:
   Updates marketplace plugin metadata, marketplace entries, README files, and skill UI metadata in
   this repository. Use when the user asks to revise plugin descriptions, prompts, authorship,
-  categories, keywords, versions, or metadata consistency.
+  categories, keywords, versions, or metadata consistency. Do not use for editing skill body
+  instructions in SKILL.md, or for tuning a skill description as a trigger contract; trigger
+  behavior belongs to optimize-trigger.
 license: MIT
-disable-model-invocation: true
 argument-hint: "[plugin]"
 ---
 
@@ -63,23 +64,10 @@ report the remaining work instead of guessing.
 ## Consistency Rules
 
 - Keep plugin `name`, `version`, `description`, `author`, `repository`, `keywords`, and `skills`
-  aligned with the marketplace catalogs and plugin directory.
-- Keep `name` and `version` identical across a plugin's `.claude-plugin/plugin.json` and
-  `.codex-plugin/plugin.json`; the linter enforces lockstep versions.
-- Keep plugin-level `interface.defaultPrompt` to three prompts or fewer because the Codex UI
-  surfaces only the first three.
-- Use plugin-level prompts to highlight the most useful or interesting entry points instead of
-  listing every skill.
-- Use plugin-qualified Codex prompts such as `$plugin-name:skill-name` when a prompt should invoke a
-  manual-only skill.
-- Keep skill-level `agents/openai.yaml` `interface.default_prompt` concise and include explicit
-  `$plugin-name:skill-name` callouts for manual-only skills.
+  aligned across the plugin manifests, marketplace catalogs, and plugin directory.
 - Keep README skill lists aligned with actual `plugins/<plugin-name>/skills/` directories.
-- Keep `SKILL.md` `disable-model-invocation` mirrored with `agents/openai.yaml`
-  `policy.allow_implicit_invocation`; do not add other agent policy keys to `SKILL.md` frontmatter.
-- Do not bump versions for content-only metadata edits that preserve installed skills, invocation
-  names, capability policy, and expected workflow behavior.
-- Treat new skills as patch-version changes and deleted or renamed skills as minor-version changes.
+- Apply the default prompt policy, invocation-policy parity rules, and plugin version policy from
+  `plugins/AGENTS.md` instead of restating or reinventing them here.
 
 ## Boundaries
 

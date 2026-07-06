@@ -1,11 +1,13 @@
 ---
 name: optimize-trigger
 description: >-
-  Evaluate and improve automatic invocation behavior for one repo plugin skill by running committed
-  trigger fixtures through isolated Codex and Claude Code CLI harnesses. Use when the user asks to
-  optimize, tune, or evaluate when a skill is implicitly triggered.
+  Evaluate and improve automatic invocation behavior for one repo plugin or repo-local skill by
+  running committed trigger fixtures through isolated Codex and Claude Code CLI harnesses. Use when
+  the user asks to optimize, tune, or evaluate when a skill is implicitly triggered, or reports a
+  skill triggering too often or failing to trigger. Do not use for pressure testing how a skill
+  behaves after it is invoked (that belongs to pressure-test-skill) or for conceptual questions
+  about trigger evals or the eval harness.
 license: MIT
-disable-model-invocation: true
 argument-hint: "[skill-path]"
 ---
 

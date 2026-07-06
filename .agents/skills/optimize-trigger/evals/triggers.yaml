@@ -1,0 +1,45 @@
+version: 1
+cases:
+  - id: tune-trigger-request
+    prompt: >-
+      Optimize when the visualize skill gets implicitly triggered; it fires too often on plain chart
+      requests.
+    expect: invoke
+    rationale: The user explicitly asks to tune a skill's implicit trigger behavior.
+
+  - id: not-triggering-report
+    prompt: >-
+      The commit skill isn't loading when I ask for a Conventional Commit message. Figure out why
+      and fix the trigger.
+    expect: invoke
+    rationale: Diagnosing and fixing a skill that fails to trigger is this workflow.
+
+  - id: run-evals-request
+    prompt: >-
+      Run the trigger evals for the brainstorm skill and fix any failures.
+    expect: invoke
+    rationale: Running trigger evals and interpreting failures is owned by this workflow.
+
+  - id: pressure-test-request
+    prompt: >-
+      Pressure test the commit skill to make sure it survives shortcut pressure.
+    expect: skip
+    rationale: Behavior under pressure after invocation belongs to pressure-test-skill.
+
+  - id: conceptual-question
+    prompt: >-
+      How do trigger evals classify invocation on Claude Code?
+    expect: skip
+    rationale: A conceptual question about the harness is not a request to tune a trigger.
+
+  - id: add-skill-request
+    prompt: >-
+      Add a new smoke-test skill to the engineering-workflows plugin.
+    expect: skip
+    rationale: Creating a new plugin skill belongs to add-skill.
+
+  - id: output-quality-request
+    prompt: >-
+      Improve the quality of the diagrams the visualize skill produces.
+    expect: skip
+    rationale: Output quality after invocation is out of scope; this workflow tunes triggers only.

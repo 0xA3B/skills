@@ -4,4 +4,4 @@ interface:
   short_description: "Pressure-test skill behavior"
   default_prompt: "Use $pressure-test-skill to pressure test a skill's behavior."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
