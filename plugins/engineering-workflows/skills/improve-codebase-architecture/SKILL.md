@@ -96,8 +96,8 @@ code, update the terminology, defer the terminology decision, or hand off to
 `engineering-workflows:terminology` for a focused pass.
 
 When handing off to another engineering workflow skill, include why this workflow is stopping, the
-context to carry forward, and the exact `$engineering-workflows:<skill>` prompt for the user to
-invoke.
+context to carry forward, and the exact `engineering-workflows:<skill>` skill for the user to invoke
+explicitly with their agent's skill-invocation syntax.
 
 Do not implement the refactor during this first pass unless the user explicitly asked for changes.
 Ask which candidate they want to explore or implement.

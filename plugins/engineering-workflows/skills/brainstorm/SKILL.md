@@ -79,5 +79,5 @@ When brainstorming is complete, summarize:
 - Suggested first interview question.
 
 If the next step is another engineering workflow skill, include a handoff note with why this
-workflow is stopping, the context to carry forward, and the exact `$engineering-workflows:<skill>`
-prompt for the user to invoke.
+workflow is stopping, the context to carry forward, and the exact `engineering-workflows:<skill>`
+skill for the user to invoke explicitly with their agent's skill-invocation syntax.
