@@ -29,12 +29,10 @@ These instructions apply to plugin directories under `plugins/`.
 - Use plugin-level prompts to highlight the most useful or interesting entry points, not every skill
   in the plugin.
 - Use concise action wording that fits the UI prompt card.
-- Include an explicit `$plugin-name:skill-name` callout when a prompt should invoke a skill with
-  `policy.allow_implicit_invocation: false`.
-- Skill-level `agents/openai.yaml` `interface.default_prompt` should normally include the explicit
-  `$plugin-name:skill-name` callout for manual-only skills.
-- Natural-language prompts are acceptable for implicitly invokable skills when the trigger contract
-  is clear, but explicit skill callouts are still fine when they improve determinism.
+- Include an explicit `$plugin-name:skill-name` callout in plugin-level prompts and in skill-level
+  `interface.default_prompt` when the target skill is manual-only. Natural-language prompts are
+  acceptable for implicitly invokable skills when the trigger contract is clear, though explicit
+  callouts are still fine when they improve determinism.
 
 ## Plugin Version Policy
 
@@ -85,10 +83,9 @@ These instructions apply to plugin directories under `plugins/`.
   `disable-model-invocation: true` in `SKILL.md` frontmatter. Implicitly invokable skills omit
   `disable-model-invocation`. The linter enforces this parity (`repo/invocation-policy-parity`).
 - A skill body may direct the model to use another skill only when the referenced skill is
-  implicitly invokable. On Claude Code, `disable-model-invocation` blocks model invocation even when
-  the user asks in prose, and this repository keeps invocation behavior identical across agents even
-  though Codex can fall back to reading installed skill files. Reference manual-only skills only as
-  hand offs that recommend an explicit user invocation.
+  implicitly invokable; `disable-model-invocation` blocks model invocation on Claude Code even when
+  the user asks in prose. Reference manual-only skills only as hand offs that recommend an explicit
+  user invocation.
 
 ## Skill Authoring Baseline
 
@@ -113,27 +110,15 @@ These instructions apply to plugin directories under `plugins/`.
   - put templates, images, icons, fonts, or other output resources in `assets/`
 - Prefer imperative workflow instructions over broad explanatory documentation.
 - Add examples only when they materially reduce ambiguity for the agent using the skill.
-- For non-trivial behavior-shaping skills, check the draft with temporary behavior pressure tests
-  before treating it as ready. Behavior-shaping skills are skills that ask the agent to resist a
-  tempting shortcut, spend extra effort, stop before acting, preserve a safety boundary, or follow a
-  workflow that may feel slower than the immediate user request.
-- To run a behavior pressure test, write one to three temporary pressure prompts that make a fresh
-  agent want to skip, soften, or rationalize around the intended workflow. Use concrete stakes such
-  as time pressure, sunk cost, user or reviewer pressure, exhaustion, apparent simplicity, or "just
-  this once" framing.
-- Run pressure prompts in an isolated agent context: a fresh chat, a subagent with only the needed
-  files and explicit skill invocation, or a Codex CLI run with a temporary workspace. The test is
-  only meaningful if the model is not relying on the current session's explanation of the desired
-  answer.
-- Evaluate behavior pressure tests manually. Passing means the agent follows the loaded skill's
-  intended behavior, names the relevant constraint, and avoids loopholes. Failing means the agent
-  skips the behavior, asks to violate it, invents a hybrid workaround, or rationalizes around the
-  rule. Use failures to tighten concrete wording in `SKILL.md`.
-- Keep behavior pressure prompts and notes temporary. Put saved scratch under `.local/` or discard
-  it. Do not add committed fixtures, eval output, or a harness unless the behavior needs repeatable
+- For non-trivial behavior-shaping skills, run temporary behavior pressure tests before treating the
+  draft as ready. Behavior-shaping skills ask the agent to resist a tempting shortcut, spend extra
+  effort, stop before acting, preserve a safety boundary, or follow a workflow that may feel slower
+  than the immediate user request.
+- The repo-local `$pressure-test-skill` workflow owns the pressure-test methodology: prompt design,
+  isolated execution, manual evaluation, and skill tightening. It is a review workflow, not a
+  required validation gate. Keep pressure prompts and notes temporary (under `.local/` or
+  discarded); do not commit fixtures, eval output, or a harness unless the behavior needs repeatable
   regression coverage and the user explicitly wants that investment.
-- For non-trivial pressure testing, use the repo-local `$pressure-test-skill` workflow to keep the
-  methodology consistent. It remains a review workflow, not a required validation gate.
 
 ## Validation
 
