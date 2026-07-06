@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { error, type ValidationContext, warning } from "./diagnostics.js";
+import { error, type ValidationContext } from "./diagnostics.js";
 import { isDirectory, isFile, readJsonObject } from "./files.js";
 import { resolveRelativePath } from "./paths.js";
 import { getObject, getOptionalString, getString, isObject } from "./schema.js";
@@ -170,21 +170,4 @@ export async function validateClaudeMarketplace(
   }
 
   return { localEntries, marketplacePath, present: true };
-}
-
-export function validateClaudeRepositoryAlignment(
-  context: ValidationContext,
-  catalog: ClaudeCatalog,
-): void {
-  for (const entry of catalog.localEntries.values()) {
-    if (entry.sourcePath !== `./plugins/${entry.name}`) {
-      warning(
-        context,
-        "alignment/source-path",
-        catalog.marketplacePath,
-        `Local source path usually matches "./plugins/<name>"; found "${entry.sourcePath}".`,
-        entry.pointer,
-      );
-    }
-  }
 }

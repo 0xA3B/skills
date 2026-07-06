@@ -13,16 +13,13 @@ import {
 import type { ComponentPathRule, JsonObject, LocalCatalogEntry } from "./types.js";
 import { validateUrlString } from "./urls.js";
 
-export async function validatePlugin(
+// The manifest-field contract shared by the Codex and Claude plugin manifests. Both validators
+// call this so field, alignment, and author rules cannot drift between the two targets.
+export function validateCommonManifestFields(
   context: ValidationContext,
-  entry: LocalCatalogEntry,
-): Promise<JsonObject | undefined> {
-  const manifest = await readJsonObject(context, entry.manifestPath);
-
-  if (manifest === undefined) {
-    return undefined;
-  }
-
+  manifest: JsonObject,
+  entry: { name: string; manifestPath: string; pluginPath: string },
+): { author?: JsonObject } {
   const manifestName = getString(context, manifest, "name", entry.manifestPath, "/name");
   getString(context, manifest, "version", entry.manifestPath, "/version");
   getString(context, manifest, "description", entry.manifestPath, "/description");
@@ -77,6 +74,21 @@ export async function validatePlugin(
   validateStringArray(context, manifest["keywords"], "keywords", entry.manifestPath, "/keywords", {
     required: false,
   });
+
+  return author === undefined ? {} : { author };
+}
+
+export async function validatePlugin(
+  context: ValidationContext,
+  entry: LocalCatalogEntry,
+): Promise<JsonObject | undefined> {
+  const manifest = await readJsonObject(context, entry.manifestPath);
+
+  if (manifest === undefined) {
+    return undefined;
+  }
+
+  validateCommonManifestFields(context, manifest, entry);
 
   const manifestInterface = getOptionalObject(
     context,

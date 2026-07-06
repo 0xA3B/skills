@@ -103,9 +103,15 @@ export async function findPluginManifests(
   return manifests.sort();
 }
 
+// Shared across the Codex and Claude catalogs; both entry shapes satisfy this structural type.
+type RepositoryAlignmentCatalog = {
+  marketplacePath: string;
+  localEntries: Map<string, { name: string; sourcePath: string; pointer: string }>;
+};
+
 export function validateLocalRepositoryAlignment(
   context: ValidationContext,
-  catalog: Catalog,
+  catalog: RepositoryAlignmentCatalog,
 ): void {
   for (const entry of catalog.localEntries.values()) {
     if (entry.sourcePath !== `./plugins/${entry.name}`) {
