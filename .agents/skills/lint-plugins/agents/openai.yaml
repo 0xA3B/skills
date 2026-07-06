@@ -1,7 +1,0 @@
-version: 1
-interface:
-  display_name: "Lint Plugins"
-  short_description: "Lint marketplace plugins"
-  default_prompt: "Use $lint-plugins to lint marketplace plugin changes."
-policy:
-  allow_implicit_invocation: false
