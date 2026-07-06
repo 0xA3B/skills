@@ -12,6 +12,25 @@ export type StreamingCliResult = {
   error?: string;
 };
 
+export type CliRunResult = {
+  exitCode: number | null;
+  finalMessage: string;
+  stdout: string;
+  stderr: string;
+  stdoutPath: string;
+  stderrPath: string;
+  finalMessagePath: string;
+  error?: string;
+};
+
+export function cliRunError(result: StreamingCliResult, label: string): string | undefined {
+  if (result.error === undefined && result.exitCode === 0) {
+    return undefined;
+  }
+
+  return result.error ?? `${label} exited with code ${result.exitCode}.`;
+}
+
 export type StreamingCliOptions = {
   cwd: string;
   env: NodeJS.ProcessEnv;

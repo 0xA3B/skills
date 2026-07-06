@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { parse as parseYaml } from "yaml";
 
+import { isRecord } from "./json.js";
 import type { TriggerCase, TriggerExpectation, TriggerFixture } from "./types.js";
 
 type FixtureOptions = {
@@ -157,8 +158,4 @@ function validateWorkspaceFilePath(filePath: string, fixturePath: string, index:
       `${fixturePath}: expected cases[${index}].workspace_files path "${filePath}" to be a safe relative path.`,
     );
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

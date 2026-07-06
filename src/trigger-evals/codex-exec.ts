@@ -1,7 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { spawnStreamingCli } from "./exec.js";
+import {
+  type CliRunResult,
+  cliRunError,
+  spawnStreamingCli,
+  type StreamingCliOutput,
+} from "./exec.js";
+import { isRecord, parseJsonlEvents } from "./json.js";
 
 type CodexRunOptions = {
   codexHome: string;
@@ -10,22 +16,11 @@ type CodexRunOptions = {
   caseDir: string;
   timeoutMs: number;
   sandboxMode: "read-only" | "workspace-write";
-  stopWhen?: (output: { stdout: string; stderr: string }) => boolean;
+  stopWhen?: (output: StreamingCliOutput) => boolean;
   abortSignal?: AbortSignal;
 };
 
-export type CodexRunResult = {
-  exitCode: number | null;
-  finalMessage: string;
-  stdout: string;
-  stderr: string;
-  stdoutPath: string;
-  stderrPath: string;
-  finalMessagePath: string;
-  error?: string;
-};
-
-export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunResult> {
+export async function runCodexExec(options: CodexRunOptions): Promise<CliRunResult> {
   await mkdir(options.caseDir, { recursive: true });
   const stdoutPath = path.join(options.caseDir, "events.jsonl");
   const stderrPath = path.join(options.caseDir, "stderr.log");
@@ -64,7 +59,8 @@ export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunRe
   await writeFile(stderrPath, result.stderr);
 
   const finalMessage = await readFinalMessage(finalMessagePath, result.stdout);
-  const baseResult = {
+  const error = cliRunError(result, "codex exec");
+  return {
     exitCode: result.exitCode,
     finalMessage,
     stdout: result.stdout,
@@ -72,15 +68,7 @@ export async function runCodexExec(options: CodexRunOptions): Promise<CodexRunRe
     stdoutPath,
     stderrPath,
     finalMessagePath,
-  };
-
-  if (result.error === undefined && result.exitCode === 0) {
-    return baseResult;
-  }
-
-  return {
-    ...baseResult,
-    error: result.error ?? `codex exec exited with code ${result.exitCode}.`,
+    ...(error === undefined ? {} : { error }),
   };
 }
 
@@ -94,18 +82,14 @@ async function readFinalMessage(finalMessagePath: string, stdout: string): Promi
 
 function parseLastAgentMessage(stdout: string): string {
   let finalMessage = "";
-  for (const line of stdout.split(/\r?\n/)) {
-    if (!line.startsWith("{")) {
+  for (const event of parseJsonlEvents(stdout)) {
+    if (!isRecord(event) || event["type"] !== "item.completed") {
       continue;
     }
 
-    try {
-      const parsed = JSON.parse(line) as { type?: string; item?: { type?: string; text?: string } };
-      if (parsed.type === "item.completed" && parsed.item?.type === "agent_message") {
-        finalMessage = parsed.item.text ?? "";
-      }
-    } catch {
-      // Ignore non-event output.
+    const item = event["item"];
+    if (isRecord(item) && item["type"] === "agent_message") {
+      finalMessage = typeof item["text"] === "string" ? item["text"] : "";
     }
   }
 

@@ -3,6 +3,8 @@ import { readFile, writeFile } from "node:fs/promises";
 
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
+import { isRecord } from "./json.js";
+
 export function createCanary(): string {
   return `trigger-eval-canary-${crypto.randomUUID()}`;
 }
@@ -53,8 +55,4 @@ export function withTriggerEvalInstructions(content: string, canary: string): st
     body.trimStart(),
     evalSection.trimStart(),
   ].join("\n");
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
