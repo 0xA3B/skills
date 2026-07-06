@@ -3,7 +3,8 @@ import path from "node:path";
 
 import { parse as parseYaml } from "yaml";
 
-import type { SkillTarget } from "./types.js";
+import { isRecord } from "./json.js";
+import type { SkillTarget, TriggerEvalAgent } from "./types.js";
 
 type OpenAiMetadata = {
   policy?: {
@@ -69,9 +70,41 @@ function isRepoLocalSkillPath(relativeParts: string[]): boolean {
   );
 }
 
-export async function readAllowImplicitInvocation(target: SkillTarget): Promise<boolean> {
-  const metadata = parseYaml(await readFile(target.metadataPath, "utf8")) as OpenAiMetadata;
+export async function readAllowImplicitInvocation(
+  target: SkillTarget,
+  agent: TriggerEvalAgent,
+): Promise<boolean> {
+  if (agent === "claude") {
+    return readClaudeAllowImplicitInvocation(target);
+  }
+
+  let content: string;
+  try {
+    content = await readFile(target.metadataPath, "utf8");
+  } catch (caught) {
+    throw new Error(
+      `${target.metadataPath} is missing or unreadable; Codex trigger evals require agents/openai.yaml. Use --agent claude for Claude-only plugins.`,
+      { cause: caught },
+    );
+  }
+
+  const metadata = parseYaml(content) as OpenAiMetadata;
   return metadata.policy?.allow_implicit_invocation === true;
+}
+
+// Claude Code derives invocability from SKILL.md frontmatter, and Claude-only plugins ship no
+// agents/openai.yaml, so the Claude lane reads the frontmatter directly. The linter's
+// invocation-policy parity rule keeps both policies equivalent for dual-target skills.
+async function readClaudeAllowImplicitInvocation(target: SkillTarget): Promise<boolean> {
+  const content = await readFile(target.skillFilePath, "utf8");
+  const frontmatterMatch = content.match(/^---\r?\n(?<frontmatter>[\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  const frontmatter = frontmatterMatch?.groups?.["frontmatter"];
+  if (frontmatter === undefined) {
+    return true;
+  }
+
+  const metadata = parseYaml(frontmatter) as unknown;
+  return !isRecord(metadata) || metadata["disable-model-invocation"] !== true;
 }
 
 export function skillTargetLabel(target: SkillTarget): string {
