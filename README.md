@@ -67,10 +67,10 @@ Skills for drafting and creating Conventional Commits.
 
 Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance,
 disposable prototyping, building, TDD, diagnosis, architecture review, durable terminology, codebase
-orientation, scoped code review, review-feedback triage, and visual presentation artifacts. Some
-skills are adapted from Matt Pocock's MIT-licensed
-[`mattpocock/skills`](https://github.com/mattpocock/skills) repository with source attribution
-preserved in each adapted skill's Agent Skills frontmatter metadata.
+orientation, scoped code review, feedback triage, and visual presentation artifacts. Some skills are
+adapted from Matt Pocock's MIT-licensed [`mattpocock/skills`](https://github.com/mattpocock/skills)
+repository with source attribution preserved in each adapted skill's Agent Skills frontmatter
+metadata.
 
 Typical implementation flow: `brainstorm` when solution direction is unclear, `grill-me` once a
 direction is selected and needs interrogation, `prototype` when a question needs disposable

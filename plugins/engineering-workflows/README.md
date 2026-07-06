@@ -2,7 +2,7 @@
 
 Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance,
 disposable prototyping, building, TDD, diagnosis, architecture review, durable terminology, codebase
-orientation, scoped code review, review-feedback triage, and visual presentation artifacts.
+orientation, scoped code review, feedback triage, and visual presentation artifacts.
 
 Typical implementation flow: `brainstorm` when solution direction is unclear, `grill-me` once a
 direction is selected and needs interrogation, `prototype` when a question needs disposable
