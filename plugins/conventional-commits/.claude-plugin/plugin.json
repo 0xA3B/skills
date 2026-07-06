@@ -1,7 +1,7 @@
 {
   "name": "conventional-commits",
   "displayName": "Conventional Commits",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Skills for drafting and creating Conventional Commits.",
   "author": {
     "name": "Alex Baker"
