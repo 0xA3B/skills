@@ -6,8 +6,10 @@ import { appendEvalSectionToFile, createCanary, withTriggerEvalInstructions } fr
 import { runClaudeExec } from "./claude-exec.js";
 import { runCodexExec } from "./codex-exec.js";
 import { prepareCodexHome, removeCopiedAuth } from "./codex-home.js";
+import type { CliRunResult, StreamingCliOutput } from "./exec.js";
 import { loadTriggerFixture } from "./fixtures.js";
 import { EVAL_MARKETPLACE_NAME, prepareHarness } from "./harness.js";
+import { isRecord, parseJsonlEvents } from "./json.js";
 import { readAllowImplicitInvocation, resolveSkillTarget, skillTargetLabel } from "./target.js";
 import type {
   PluginSkillTarget,
@@ -106,7 +108,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
           model,
           effort,
-          stopWhen: (output: { stdout: string; stderr: string }) =>
+          stopWhen: (output: StreamingCliOutput) =>
             detectInvocation(output, target, canary, agent) !== "none",
           ...(target.kind === "plugin"
             ? {
@@ -120,7 +122,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         const claudeResult = await runClaudeExec(claudeRunOptions);
         results[index] = buildCaseResult({
           testCase,
-          codexResult: claudeResult,
+          runResult: claudeResult,
           target,
           canary,
           durationMs: Date.now() - caseStartedAt,
@@ -130,49 +132,51 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
       }
 
       const codexHome = path.join(runDir, "codex-home", "cases", testCase.id);
-      await prepareCodexHome({
-        codexHome,
-        workspacePath: caseWorkspace.workspacePath,
-        model,
-        effort,
-        ...(target.kind === "plugin"
-          ? { marketplaceName: EVAL_MARKETPLACE_NAME, pluginName: target.pluginName }
-          : {}),
-        ...(options.sourceCodexHome === undefined
-          ? {}
-          : { sourceCodexHome: options.sourceCodexHome }),
-      });
-      if (target.kind === "plugin") {
-        if (harness.pluginVersion === undefined || harness.pluginCanary === undefined) {
-          throw new Error("Plugin trigger eval target is missing a plugin version or canary.");
-        }
-        await prepareCasePluginCache(
-          codexHome,
-          target,
-          harness.pluginVersion,
-          harness.pluginCanary,
-        );
-      }
-      const sandboxMode: "read-only" | "workspace-write" =
-        target.kind === "repo-local" ? "workspace-write" : "read-only";
-      const codexRunOptions = {
-        codexHome,
-        workspacePath: caseWorkspace.workspacePath,
-        prompt: testCase.prompt,
-        caseDir,
-        timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-        sandboxMode,
-        stopWhen: (output: { stdout: string; stderr: string }) =>
-          detectInvocation(output, target, canary, agent) !== "none",
-        ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
-      };
-
+      // The copied auth.json must be removed even when case setup fails after prepareCodexHome,
+      // so the whole setup-and-run sequence stays inside this try/finally.
       try {
+        await prepareCodexHome({
+          codexHome,
+          workspacePath: caseWorkspace.workspacePath,
+          model,
+          effort,
+          ...(target.kind === "plugin"
+            ? { marketplaceName: EVAL_MARKETPLACE_NAME, pluginName: target.pluginName }
+            : {}),
+          ...(options.sourceCodexHome === undefined
+            ? {}
+            : { sourceCodexHome: options.sourceCodexHome }),
+        });
+        if (target.kind === "plugin") {
+          if (harness.pluginVersion === undefined || harness.pluginCanary === undefined) {
+            throw new Error("Plugin trigger eval target is missing a plugin version or canary.");
+          }
+          await prepareCasePluginCache(
+            codexHome,
+            target,
+            harness.pluginVersion,
+            harness.pluginCanary,
+          );
+        }
+        const sandboxMode: "read-only" | "workspace-write" =
+          target.kind === "repo-local" ? "workspace-write" : "read-only";
+        const codexRunOptions = {
+          codexHome,
+          workspacePath: caseWorkspace.workspacePath,
+          prompt: testCase.prompt,
+          caseDir,
+          timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+          sandboxMode,
+          stopWhen: (output: StreamingCliOutput) =>
+            detectInvocation(output, target, canary, agent) !== "none",
+          ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
+        };
+
         const caseStartedAt = Date.now();
         const codexResult = await runCodexExec(codexRunOptions);
         results[index] = buildCaseResult({
           testCase,
-          codexResult,
+          runResult: codexResult,
           target,
           canary,
           durationMs: Date.now() - caseStartedAt,
@@ -201,22 +205,14 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
 
 function buildCaseResult(options: {
   testCase: { id: string; expect: "invoke" | "skip" };
-  codexResult: {
-    stdout: string;
-    stderr: string;
-    error?: string;
-    exitCode: number | null;
-    finalMessagePath: string;
-    stdoutPath: string;
-    stderrPath: string;
-  };
+  runResult: CliRunResult;
   target: SkillTarget;
   canary: string | undefined;
   durationMs: number;
   agent: TriggerEvalAgent;
 }): TriggerCaseResult {
   const invocationSignal = detectInvocation(
-    options.codexResult,
+    options.runResult,
     options.target,
     options.canary,
     options.agent,
@@ -231,11 +227,11 @@ function buildCaseResult(options: {
     invoked,
     passed,
     durationMs: options.durationMs,
-    exitCode: options.codexResult.exitCode,
-    finalMessagePath: options.codexResult.finalMessagePath,
-    stdoutPath: options.codexResult.stdoutPath,
-    stderrPath: options.codexResult.stderrPath,
-    ...(options.codexResult.error === undefined ? {} : { error: options.codexResult.error }),
+    exitCode: options.runResult.exitCode,
+    finalMessagePath: options.runResult.finalMessagePath,
+    stdoutPath: options.runResult.stdoutPath,
+    stderrPath: options.runResult.stderrPath,
+    ...(options.runResult.error === undefined ? {} : { error: options.runResult.error }),
   };
 }
 
@@ -326,10 +322,6 @@ function copiedSkillFilePath(workspacePath: string, target: SkillTarget): string
   return path.join(workspacePath, ".agents", "skills", target.skillName, "SKILL.md");
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 async function prepareCasePluginCache(
   codexHome: string,
   target: PluginSkillTarget,
@@ -382,27 +374,25 @@ function sanitize(value: string): string {
 // events. Codex evals rely on an eval-only canary appended to the staged skill copies; older Codex
 // CLIs also emitted codex.skill.injected stderr telemetry, which is kept as a secondary signal.
 function detectInvocation(
-  codexResult: { stdout: string; stderr: string },
+  output: StreamingCliOutput,
   target: SkillTarget,
   canary: string | undefined,
   agent: TriggerEvalAgent,
 ): "stderr-skill-injected" | "stdout-skill-canary" | "stream-skill-tool-use" | "none" {
   const skillLabel = skillTargetLabel(target);
   if (agent === "claude") {
-    return streamContainsSkillToolUse(codexResult.stdout, skillLabel)
-      ? "stream-skill-tool-use"
-      : "none";
+    return streamContainsSkillToolUse(output.stdout, skillLabel) ? "stream-skill-tool-use" : "none";
   }
 
   if (
     target.kind === "plugin" &&
-    codexResult.stderr.includes("codex.skill.injected") &&
-    codexResult.stderr.includes(skillLabel)
+    output.stderr.includes("codex.skill.injected") &&
+    output.stderr.includes(skillLabel)
   ) {
     return "stderr-skill-injected";
   }
 
-  if (canary !== undefined && stdoutContainsCanary(codexResult.stdout, canary)) {
+  if (canary !== undefined && stdoutContainsCanary(output.stdout, canary)) {
     return "stdout-skill-canary";
   }
 
@@ -410,29 +400,26 @@ function detectInvocation(
 }
 
 export function streamContainsSkillToolUse(stdout: string, skillLabel: string): boolean {
-  for (const line of stdout.split(/\r?\n/)) {
-    if (!line.startsWith("{")) {
+  for (const event of parseJsonlEvents(stdout)) {
+    if (!isRecord(event)) {
       continue;
     }
 
-    try {
-      const parsed = JSON.parse(line) as { message?: { content?: unknown } };
-      const content = parsed.message?.content;
-      if (!Array.isArray(content)) {
-        continue;
+    const message = event["message"];
+    const content = isRecord(message) ? message["content"] : undefined;
+    if (!Array.isArray(content)) {
+      continue;
+    }
+
+    for (const block of content) {
+      if (
+        isRecord(block) &&
+        block["type"] === "tool_use" &&
+        block["name"] === "Skill" &&
+        JSON.stringify(block["input"] ?? {}).includes(skillLabel)
+      ) {
+        return true;
       }
-      for (const block of content) {
-        if (
-          isRecord(block) &&
-          block["type"] === "tool_use" &&
-          block["name"] === "Skill" &&
-          JSON.stringify(block["input"] ?? {}).includes(skillLabel)
-        ) {
-          return true;
-        }
-      }
-    } catch {
-      // Ignore non-event output.
     }
   }
 
@@ -451,23 +438,17 @@ function stdoutContainsCanary(stdout: string, canary: string): boolean {
 
 function agentMessageTexts(stdout: string): string[] {
   const texts: string[] = [];
-  for (const line of stdout.split(/\r?\n/)) {
-    if (!line.startsWith("{")) {
+  for (const event of parseJsonlEvents(stdout)) {
+    if (!isRecord(event) || event["type"] !== "item.completed") {
       continue;
     }
 
-    try {
-      const parsed = JSON.parse(line) as { type?: string; item?: { type?: string; text?: string } };
-      if (parsed.type !== "item.completed") {
-        continue;
-      }
-      if (parsed.item?.type !== "agent_message") {
-        continue;
-      }
-      texts.push(parsed.item.text ?? "");
-    } catch {
-      // Ignore non-event output.
+    const item = event["item"];
+    if (!isRecord(item) || item["type"] !== "agent_message") {
+      continue;
     }
+
+    texts.push(typeof item["text"] === "string" ? item["text"] : "");
   }
 
   return texts;

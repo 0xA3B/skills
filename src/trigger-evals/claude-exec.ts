@@ -1,7 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { spawnStreamingCli, type StreamingCliOutput } from "./exec.js";
+import {
+  type CliRunResult,
+  cliRunError,
+  spawnStreamingCli,
+  type StreamingCliOutput,
+} from "./exec.js";
+import { isRecord, parseJsonlEvents } from "./json.js";
 
 type ClaudeRunOptions = {
   workspacePath: string;
@@ -16,22 +22,11 @@ type ClaudeRunOptions = {
   abortSignal?: AbortSignal;
 };
 
-export type ClaudeRunResult = {
-  exitCode: number | null;
-  finalMessage: string;
-  stdout: string;
-  stderr: string;
-  stdoutPath: string;
-  stderrPath: string;
-  finalMessagePath: string;
-  error?: string;
-};
-
 // Read-only tool surface: trigger evals only observe whether the Skill tool fires, but the model
 // may need to inspect fixture workspace files before deciding.
 const EVAL_TOOLS = "Skill,Read,Glob,Grep";
 
-export async function runClaudeExec(options: ClaudeRunOptions): Promise<ClaudeRunResult> {
+export async function runClaudeExec(options: ClaudeRunOptions): Promise<CliRunResult> {
   await mkdir(options.caseDir, { recursive: true });
   const stdoutPath = path.join(options.caseDir, "events.jsonl");
   const stderrPath = path.join(options.caseDir, "stderr.log");
@@ -78,7 +73,8 @@ export async function runClaudeExec(options: ClaudeRunOptions): Promise<ClaudeRu
   const finalMessage = parseResultText(result.stdout);
   await writeFile(finalMessagePath, finalMessage);
 
-  const baseResult = {
+  const error = cliRunError(result, "claude -p");
+  return {
     exitCode: result.exitCode,
     finalMessage,
     stdout: result.stdout,
@@ -86,32 +82,15 @@ export async function runClaudeExec(options: ClaudeRunOptions): Promise<ClaudeRu
     stdoutPath,
     stderrPath,
     finalMessagePath,
-  };
-
-  if (result.error === undefined && result.exitCode === 0) {
-    return baseResult;
-  }
-
-  return {
-    ...baseResult,
-    error: result.error ?? `claude -p exited with code ${result.exitCode}.`,
+    ...(error === undefined ? {} : { error }),
   };
 }
 
 function parseResultText(stdout: string): string {
   let finalMessage = "";
-  for (const line of stdout.split(/\r?\n/)) {
-    if (!line.startsWith("{")) {
-      continue;
-    }
-
-    try {
-      const parsed = JSON.parse(line) as { type?: string; result?: unknown };
-      if (parsed.type === "result" && typeof parsed.result === "string") {
-        finalMessage = parsed.result;
-      }
-    } catch {
-      // Ignore non-event output.
+  for (const event of parseJsonlEvents(stdout)) {
+    if (isRecord(event) && event["type"] === "result" && typeof event["result"] === "string") {
+      finalMessage = event["result"];
     }
   }
 

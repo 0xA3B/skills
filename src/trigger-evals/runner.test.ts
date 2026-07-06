@@ -5,7 +5,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { parse as parseYaml } from "yaml";
 
-import type { CodexRunResult } from "./codex-exec.js";
+import type { CliRunResult } from "./exec.js";
 
 const mockState = vi.hoisted(() => ({
   codexResults: [] as Array<{
@@ -41,7 +41,7 @@ vi.mock(import("./codex-exec.js"), () => ({
       workspacePath: string;
       sandboxMode: "read-only" | "workspace-write";
       stopWhen?: (output: { stdout: string; stderr: string }) => boolean;
-    }) => Promise<CodexRunResult>
+    }) => Promise<CliRunResult>
   >(async (options) => {
     mockState.codexHomes.push(options.codexHome);
     mockState.workspacePaths.push(options.workspacePath);
@@ -419,7 +419,7 @@ describe("streamContainsSkillToolUse", () => {
 async function buildMockCodexResult(options: {
   prompt: string;
   workspacePath: string;
-}): Promise<CodexRunResult & { delayMs: number }> {
+}): Promise<CliRunResult & { delayMs: number }> {
   const repoLocalSkillPath = path.join(
     options.workspacePath,
     ".agents",
