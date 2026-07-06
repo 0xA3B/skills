@@ -36,9 +36,12 @@ These instructions apply to plugin directories under `plugins/`.
 
 ## Plugin Version Policy
 
-- Do not bump the plugin version for content-only updates to existing skills, references, README
-  copy, descriptions, prompts, or metadata when the installed skill set, invocation names,
-  capability policy, and expected workflow behavior stay the same.
+- Bump at least the patch version for any plugin-directory change that should reach existing
+  installs, including skill instructions, descriptions, prompts, references, README copy, and
+  metadata. Claude Code pins installed plugins to the manifest version and ships updates only when
+  it changes, so an unbumped change never reaches existing Claude Code installs.
+- Development-only files that ship inside the plugin directory but do not affect installed behavior,
+  such as trigger fixtures, do not require a bump on their own.
 - Do not bump the plugin version for adding an agent target to an existing plugin. Installs on the
   already-targeted agent see no change, and the new agent installs the plugin fresh at the current
   version. If the same branch also makes a bump-worthy change, apply that bump as usual.
