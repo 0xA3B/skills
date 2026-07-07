@@ -77,6 +77,8 @@ skill's read-only recipe.
 
 Review-specific rules on top of that contract:
 
+- Prefer `--effort high` on review turns unless the user requests a different level; adversarial
+  review warrants more depth than the configured default may provide.
 - Read `references/review-output.schema.json` and pass its JSON content to `--json-schema` on the
   initial review turn and on any re-review turn that must produce a fresh finding set.
 - Capture the `session_id` from the initial review and keep the whole review in that session.

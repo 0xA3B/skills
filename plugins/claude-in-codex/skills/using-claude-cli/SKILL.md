@@ -20,10 +20,10 @@ Claude is asked to do, the scope, and how its output is used.
 ## CLI Basics
 
 - Use `claude` from `PATH`; do not hard-code a machine-specific absolute path.
-- Default to `--model opus`, an alias that resolves to the latest Opus model. Use another model only
-  when the user explicitly requests one, such as asking for a Fable or Sonnet run.
-- Choose `--effort` (`medium`, `high`, or `xhigh`) based on the scope and depth of the task; when in
-  doubt, use `high`. Honor an explicit user effort request.
+- Leave the model at the configured default. Add `--model` only when the user explicitly requests a
+  specific model, such as asking for a Fable or Sonnet run.
+- Leave reasoning effort at the configured default. Add `--effort` (`medium`, `high`, or `xhigh`)
+  only when the user requests a level or the calling workflow needs more depth than the default.
 - Higher effort levels can take several minutes, even for small targets. Be patient and let Claude
   finish unless the process is clearly hung or the user asks to stop.
 - Do not treat non-fatal Claude CLI warnings as failures. Continue when Claude still produces a
@@ -51,8 +51,6 @@ or research:
 
 ```bash
 claude -p "$PROMPT" \
-  --model "${MODEL:-opus}" \
-  --effort "${EFFORT:-high}" \
   --permission-mode dontAsk \
   --tools "Read,Glob,Grep,Bash" \
   --disallowedTools "Edit,Write,NotebookEdit" \
@@ -71,8 +69,6 @@ fix task:
 
 ```bash
 claude -p "$TASK_PROMPT" \
-  --model "${MODEL:-opus}" \
-  --effort "${EFFORT:-high}" \
   --permission-mode acceptEdits \
   --tools default \
   --output-format json
