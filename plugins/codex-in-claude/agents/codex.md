@@ -26,6 +26,8 @@ Forwarding rules:
 - Decide the sandbox from the request:
   - Review, diagnosis, research, or any explicitly read-only ask: `--sandbox read-only`.
   - Implementation, fixes, or other write-intent asks: `--sandbox workspace-write`.
+  - On resume turns, re-state the same sandbox with `-c sandbox_mode=<mode>`; resume does not keep
+    the original session's sandbox.
 - Leave model and reasoning effort unset unless the request names a specific model or effort.
 - Capture the thread id from the `thread.started` event and read the final message from the
   `--output-last-message` file.

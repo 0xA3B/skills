@@ -55,8 +55,10 @@ Codex enforces its sandbox at the OS level, so permissions are set by flag, not 
   use natural language for conversational follow-ups in the same session.
 - Resume a session with `codex exec resume "$THREAD_ID" "$PROMPT"` (same output flags apply). Use
   `codex exec resume --last` only when resuming the most recent Codex session is unambiguous.
-- Resumed turns keep the original session's sandbox mode; there is no `--sandbox` flag on resume, so
-  choose the sandbox correctly on the initial run.
+- Resumed turns do not keep the original session's sandbox mode: `codex exec resume` has no
+  `--sandbox` flag and falls back to the configured default, which may be more permissive than the
+  initial turn (verified on codex-cli 0.142.5). Re-state the sandbox on every resume turn with
+  `-c sandbox_mode=<mode>`.
 - Redirect stdin from `/dev/null`. When stdin is a non-TTY pipe, `codex exec` reads it as additional
   prompt input and hangs until the pipe closes, which never happens in most harnesses.
 - On resumed turns, send only the delta instruction instead of restating the whole prompt, unless
@@ -76,6 +78,7 @@ Follow-up shape:
 
 ```bash
 codex exec resume "$THREAD_ID" "$FOLLOW_UP_PROMPT" \
+  -c sandbox_mode=read-only \
   --json \
   --output-last-message "$RESULT_FILE" \
   < /dev/null
