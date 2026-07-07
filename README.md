@@ -43,16 +43,16 @@ Update the marketplace later with `/plugin marketplace update 0xa3b-marketplace`
 
 ## Plugins
 
-### `claudex`
+### `claude-in-codex`
 
 > Codex-only: this plugin exists to drive Claude Code from Codex, so it is not published to the
 > Claude Code marketplace.
 
 Runs Claude Code from Codex for adversarial code review, feedback triage, and in-scope fixes.
 
-- [`claudex:adversarial-review`](./plugins/claudex/skills/adversarial-review/): Invokes Claude Code
-  as a read-only adversarial reviewer, triages findings as external feedback, and applies accepted
-  in-scope fixes for current working-tree changes.
+- [`claude-in-codex:adversarial-review`](./plugins/claude-in-codex/skills/adversarial-review/):
+  Invokes Claude Code as a read-only adversarial reviewer, triages findings as external feedback,
+  and applies accepted in-scope fixes for current working-tree changes.
 
 ### `conventional-commits`
 

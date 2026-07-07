@@ -9,7 +9,7 @@ These instructions apply to plugin directories under `plugins/`.
 - Plugin names use lowercase kebab-case and match the plugin directory name.
 - Plugins target both Claude Code and Codex by default. A plugin targets an agent by shipping that
   agent's manifest and marketplace entry; omit both to keep a plugin single-agent (for example,
-  `claudex` is Codex-only because it exists to drive Claude Code from Codex).
+  `claude-in-codex` is Codex-only because it exists to drive Claude Code from Codex).
 - Codex-targeted plugins include `.codex-plugin/plugin.json` and an entry in
   `.agents/plugins/marketplace.json`.
 - Claude-targeted plugins include `.claude-plugin/plugin.json` and an entry in

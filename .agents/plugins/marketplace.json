@@ -17,10 +17,10 @@
       "category": "Productivity"
     },
     {
-      "name": "claudex",
+      "name": "claude-in-codex",
       "source": {
         "source": "local",
-        "path": "./plugins/claudex"
+        "path": "./plugins/claude-in-codex"
       },
       "policy": {
         "installation": "AVAILABLE",
