@@ -6,6 +6,7 @@ description: >-
   delegated task. Do not use when the user does not name Codex, and do not use for Codex code review
   requests — the adversarial-review skill owns that workflow.
 tools: Bash
+model: sonnet
 skills:
   - using-codex-cli
 ---

@@ -77,6 +77,9 @@ handling, warning handling, and command shapes. Every Codex turn in this workflo
 
 Review-specific rules on top of that contract:
 
+- Prefer high reasoning effort (`-c model_reasoning_effort=high`) on review turns unless the user
+  requests a different level; adversarial review warrants more depth than the configured default may
+  provide.
 - Pass `"${CLAUDE_PLUGIN_ROOT}/skills/adversarial-review/references/review-output.schema.json"` to
   `--output-schema` on the initial review turn and on any re-review turn that must produce a fresh
   finding set.
