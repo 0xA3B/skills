@@ -98,7 +98,8 @@ contract so it can inspect the repository with fresh context. Compose the prompt
 
 The prompt should tell Codex to:
 
-- act as an adversarial code reviewer trying to find reasons the change should not ship yet;
+- act as an adversarial code reviewer trying to falsify the change's readiness, report only material
+  findings, and treat zero findings as a valid result;
 - inspect the requested target itself using its read-only sandbox;
 - prioritize material correctness, reliability, security, data-safety, compatibility, migration,
   concurrency, and test-coverage risks;

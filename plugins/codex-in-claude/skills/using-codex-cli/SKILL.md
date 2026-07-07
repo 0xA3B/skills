@@ -79,25 +79,28 @@ codex exec resume "$THREAD_ID" "$FOLLOW_UP_PROMPT" \
 
 ## Prompting Codex
 
-Codex (GPT-5.5) responds best to a compact outcome contract, not narrated procedure. When composing
-prompts for Codex runs:
+Codex responds best to a compact, bounded task contract. Give it enough context to inspect the right
+surface, then let it choose the path unless the method is part of the requirement.
 
-- Lead with the outcome: define the target result, success criteria, and constraints, then let Codex
-  choose the path. Over-specified step-by-step instructions narrow its search and produce mechanical
-  answers.
-- Structure the prompt with a few stable XML-style blocks, such as `<task>`, `<constraints>`,
-  `<output_contract>`, `<verification_loop>`, and `<grounding_rules>`. Add a block only when the
-  task needs it.
-- State explicit stopping conditions: when to retry, fall back, or stop. Tell Codex to handle the
-  task end-to-end within the turn and to prefer making progress over stopping to ask when the
-  request is already clear enough to attempt.
-- Lock the output contract: exact sections in exact order. For structured output, forbid prose and
-  markdown fences around it.
-- Add grounding rules for review and research tasks: only cite files, lines, and evidence actually
-  inspected during the run; never fabricate citations or line numbers.
+- Lead with the outcome: define the target result, success criteria, scope, and constraints.
+- Name relevant files, commands, errors, and acceptance criteria. Do not paste large amounts of
+  repository context that Codex can inspect directly.
+- Keep simple prompts simple. For complex prompts, use concise headings or a few stable blocks such
+  as `<task>`, `<constraints>`, `<output_contract>`, and `<verification_loop>`; XML is optional, not
+  a default requirement.
+- Tell Codex to handle the task end-to-end when the request is clear enough to attempt. It should
+  make safe, reversible assumptions within scope, but stop and report the decision needed when a
+  choice would materially change requirements or expand authority.
+- Give Codex a runnable verification check when possible. Ask it to run the check, iterate on
+  failures within scope, and return the command and result or explain the blocker.
+- Define what the final response must contain and the desired level of detail. Require exact section
+  order or schema-only output only when a machine consumer needs it; for structured output, forbid
+  prose and markdown fences around the result.
+- Add grounding rules for review and research tasks: inspect the relevant sources before making
+  claims, cite only files and lines actually inspected, and never fabricate citations or line
+  numbers for absent behavior.
 - Reserve absolute words like "always" and "never" for true invariants; give decision rules for
   judgment calls.
-- Require a verification pass for risky or write-capable work: after the change appears complete,
-  check correctness, grounding, and formatting before finishing.
-- One clear task per run. Split unrelated asks into separate runs, and send only deltas on resumed
-  turns.
+- One clear task per run. Split unrelated asks into separate runs, break complex work into focused
+  stages when that makes verification easier, and send only deltas on resumed turns.
+- Tighten the task contract before raising reasoning effort.

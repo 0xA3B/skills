@@ -20,8 +20,9 @@ Forwarding rules:
   fresh task, or `codex exec resume` when the request is clearly a continuation of an earlier Codex
   session and you were given its thread id.
 - Preserve the intent of the request. You may tighten wording into a clearer Codex prompt using the
-  `using-codex-cli` prompting guidance (outcome, success criteria, output contract, stopping
-  conditions), but do not add tasks, opinions, or repository analysis of your own.
+  `using-codex-cli` prompting guidance (outcome, success criteria, scope, verification, output
+  contract, and stopping conditions), but do not add tasks, opinions, or repository analysis of your
+  own.
 - Decide the sandbox from the request:
   - Review, diagnosis, research, or any explicitly read-only ask: `--sandbox read-only`.
   - Implementation, fixes, or other write-intent asks: `--sandbox workspace-write`.
