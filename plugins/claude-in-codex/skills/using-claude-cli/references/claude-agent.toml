@@ -24,8 +24,8 @@ Forwarding rules:
 - Run exactly one `claude -p` command per request, plus follow-up `--resume` turns only when the
   request is clearly a continuation of an earlier Claude run you started.
 - Preserve the intent of the request. You may tighten wording into a clearer prompt (state the
-  goal, what done looks like, the scope boundary, and required evidence), but do not add tasks,
-  opinions, or context Claude did not need.
+  outcome, why it matters, success criteria, scope boundary, verification, return contract, and
+  required evidence), but do not add tasks, opinions, or context Claude did not need.
 - Decide the permission shape from the request:
   - Review, diagnosis, research, or any explicitly read-only ask: run Claude read-only with
     `--permission-mode dontAsk --tools "Read,Glob,Grep,Bash" --disallowedTools

@@ -85,25 +85,40 @@ claude -p "$TASK_PROMPT" \
 
 ## Prompting Claude
 
-Claude responds best to intent plus constraints, not step-by-step scripts. When composing prompts
-for Claude runs:
+Start with the outcome, relevant context, boundaries, success criteria, and return contract. Let
+Claude choose the method unless order or completeness is itself part of the requirement.
 
-- State the goal, why it matters, and what done looks like. Claude uses intent to make judgment
-  calls, so a sentence of motivation beats three sentences of procedure.
-- Role framing works well: "Act as an adversarial reviewer trying to find reasons this should not
-  ship" reliably shifts behavior.
-- Claude follows literal instructions closely. Remove stale, contradictory, or redundant
-  constraints; they cause unnecessary work rather than being ignored.
-- Prefer positive instructions over prohibition lists: say what to do and the boundary around it,
-  then add only the prohibitions that matter.
-- Use XML-style tags to separate long context from the task when the prompt is large; heavy block
-  scaffolding beyond that is unnecessary for Claude.
-- Demand evidence: ask for `file:line` citations, tell Claude to verify claims against the code
-  before reporting them, and to say it is unsure rather than guess.
-- Set an explicit scope boundary and stopping condition. Claude errs toward doing more, so state
-  what must not change and when to stop.
+### Claude-Specific Adjustments
+
+- Explain why a constraint matters. Claude uses motivation to make better judgment calls, so a
+  sentence of intent is often more useful than extra procedure.
+- Be explicit and literal. Remove stale, contradictory, redundant, or accidental absolute
+  instructions because Claude may follow them instead of silently resolving the conflict.
+- When sequence or completeness matters, use numbered steps. Otherwise avoid scripting Claude's
+  reasoning and let it choose how to reach the outcome.
+- For nuanced judgments or exact output conventions, provide a few representative and diverse
+  examples. Skip examples when a direct instruction or JSON Schema already defines the result.
+- For large mixed prompts, place source material first, separate context, examples, and instructions
+  with descriptive XML-style tags, and put the task near the end. Keep simple prompts simple.
+- Use task-specific role framing to establish perspective, not to force a conclusion. For review,
+  define the materiality threshold and state that zero findings is a valid result.
+- If the caller needs a summary after tool use, request it explicitly instead of assuming Claude
+  will narrate each action.
+
+### Delegated-Agent Contract
+
+- State what done looks like, what is outside scope, and which changes or actions are allowed.
+- Give Claude a runnable verification check when possible. Ask it to run the check, iterate on
+  failures within scope, and return the command and result or explain the blocker.
+- Require grounded evidence. Tell Claude to inspect referenced code before making claims and cite
+  `file:line` when applicable, without inventing line numbers for absent behavior or missing
+  coverage.
+- State how to handle material ambiguity: make safe, reversible assumptions within scope, but stop
+  and report the decision needed when a choice would change requirements or expand authority.
+- Prefer positive instructions that describe the desired behavior and boundary. Add prohibitions for
+  consequential failure modes, irreversible actions, or known temptations.
 - Tighten the prompt before raising `--effort`; effort is a last-mile knob, not a fix for a vague
-  prompt.
+  task contract.
 
 ## Claude as a Codex Subagent
 

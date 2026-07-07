@@ -93,7 +93,8 @@ contract so it can inspect the repository with fresh context.
 
 The prompt should tell Claude to:
 
-- act as an adversarial code reviewer trying to find reasons the change should not ship yet;
+- act as an adversarial code reviewer trying to falsify the change's readiness, report only material
+  findings, and treat zero findings as a valid result;
 - inspect the requested target itself using read-only tools;
 - use Bash only for read-only inspection; do not modify files, git state, or generated output, and
   do not run formatters;
