@@ -34,8 +34,6 @@ the user wants commit message text without staging or committing.
   require another commit-message standard such as Gitmoji, do not invoke this skill.
 - If the user uses "commit" to mean agree, decide, or commit to a plan, do not invoke this skill.
 - If the repository has documented commit conventions beyond Conventional Commits, follow them.
-- Load `references/conventional-commits.md` only when detailed specification rules, examples, footer
-  edge cases, or anti-patterns are needed.
 
 ## Success Criteria
 
@@ -59,25 +57,18 @@ the user wants commit message text without staging or committing.
 
 ## Commit Message Policy
 
-- Use the Conventional Commits shape: `<type>[optional scope][!]: <description>`.
+- Write standard Conventional Commit messages: `<type>[optional scope][!]: <description>` with an
+  imperative subject. Load `references/conventional-commits.md` for detailed specification rules,
+  examples, footer edge cases, or anti-patterns rather than guessing.
 - Prefer repository-specific commit rules over this default profile.
-- Use `feat` for features, `fix` for bug fixes, and the most specific conventional type for other
-  work: `docs`, `refactor`, `test`, `perf`, `style`, `build`, `ci`, `chore`, or `revert`.
-- Treat type and breaking-change markers as release-affecting when the repository uses
-  semantic-release, release-please, conventional-changelog, or similar tooling.
-- Choose `feat`, `fix`, `!`, and `BREAKING CHANGE:` according to the repository's release rules, not
-  just the apparent size of the diff.
+- Choose `feat`, `fix`, `!`, and `BREAKING CHANGE:` by release impact, not by the apparent size of
+  the diff: when semantic-release, release-please, conventional-changelog, or similar tooling is
+  present, its changelog and version-bump rules decide. If the release impact is ambiguous, report
+  the assumption before committing.
 - Choose scope by intent or stable repository vocabulary rather than blindly mirroring folder names.
-- Use an imperative, lowercase subject with no trailing period unless repository rules say
-  otherwise.
-- Keep headers near 72 characters when practical.
 - Use a body for non-trivial refactors, high-risk fixes, performance work, and breaking changes.
-- Use `!` and/or a `BREAKING CHANGE: <description>` footer for breaking changes; include the footer
-  when release tooling or reviewers need structured detail.
 - Return warnings only for assumptions that could change type, scope, body, footer, breaking-change
   handling, or commit partitioning.
-- If release tooling is present and the release impact is ambiguous, report the assumption before
-  committing.
 
 ## Commit Partitioning Rules
 
