@@ -41,11 +41,9 @@ before they are accepted.
 
 ## Trust Boundary
 
-- Claude is a read-only reviewer by instruction. The command grants Bash for broad exploration, so
-  Codex must tell Claude to use Bash only for read-only inspection and never to modify files, git
-  state, or generated output.
-- This workflow assumes the current working tree is recoverable if a command misfires. If that is
-  not true, commit, stash, or otherwise preserve important local work before running Claude review.
+- Claude is a read-only reviewer. Always run review turns with the read-only recipe from the
+  `using-claude-cli` skill, which enforces the boundary by instruction and documents its
+  working-tree recovery assumption. Never use that skill's write-capable recipe from this workflow.
 - Codex is the only actor allowed to write files.
 - Codex may write only after independently evaluating Claude's feedback and accepting a finding as
   valid, in scope, and worth fixing.
@@ -73,65 +71,17 @@ Claude's findings but ask the user before editing.
 
 ## Claude Invocation
 
-Use `claude` from `PATH`; do not hard-code a machine-specific absolute path. Default to
-`--model opus`, an alias that resolves to the latest Opus model. Use another model only when the
-user explicitly requests one, such as asking for a Fable or Sonnet review.
+Use the `using-claude-cli` skill for CLI mechanics: model and effort defaults, session handling,
+warning handling, and the read-only command recipe. Every Claude turn in this workflow uses that
+skill's read-only recipe.
 
-Choose `--effort` (`medium`, `high`, or `xhigh`) based on the scope and depth of the requested
-review; when in doubt, use `high`. Honor an explicit user effort request.
+Review-specific rules on top of that contract:
 
-Higher effort levels can take several minutes, even for small review targets. Be patient and let
-Claude finish unless the process is clearly hung or the user asks to stop.
-
-Do not treat non-fatal Claude CLI warnings as review failures. Continue when Claude still produces a
-usable result, adjust later Claude commands if the warning identifies a bad option, and include the
-warning in the final summary when it may affect future skill maintenance.
-
-Read `references/review-output.schema.json` and pass its JSON content to `--json-schema`.
-
-Use this command shape for the initial review:
-
-```bash
-claude -p "$PROMPT" \
-  --model "${MODEL:-opus}" \
-  --effort "${EFFORT:-high}" \
-  --permission-mode dontAsk \
-  --tools "Read,Glob,Grep,Bash" \
-  --disallowedTools "Edit,Write,NotebookEdit" \
-  --output-format json \
-  --json-schema "$REVIEW_SCHEMA_JSON"
-```
-
-Do not use `--no-session-persistence`. Capture and preserve the `session_id` from Claude's JSON
-output.
-
-For clarification or pushback follow-ups, use natural language in the same Claude session. Do not
-apply the review schema to conversational turns:
-
-```bash
-claude -p "$FOLLOW_UP_PROMPT" --resume "$SESSION_ID" \
-  --model "${MODEL:-opus}" \
-  --effort "${EFFORT:-high}" \
-  --permission-mode dontAsk \
-  --tools "Read,Glob,Grep,Bash" \
-  --disallowedTools "Edit,Write,NotebookEdit" \
-  --output-format json
-```
-
-For re-review turns that ask Claude to produce a fresh finding set, use the schema again:
-
-```bash
-claude -p "$REVIEW_PROMPT" --resume "$SESSION_ID" \
-  --model "${MODEL:-opus}" \
-  --effort "${EFFORT:-high}" \
-  --permission-mode dontAsk \
-  --tools "Read,Glob,Grep,Bash" \
-  --disallowedTools "Edit,Write,NotebookEdit" \
-  --output-format json \
-  --json-schema "$REVIEW_SCHEMA_JSON"
-```
-
-Use `--continue` only when resuming the most recent Claude session is unambiguous.
+- Read `references/review-output.schema.json` and pass its JSON content to `--json-schema` on the
+  initial review turn and on any re-review turn that must produce a fresh finding set.
+- Capture the `session_id` from the initial review and keep the whole review in that session.
+- For clarification or pushback follow-ups, use natural language `--resume` turns without the review
+  schema.
 
 ## Claude Prompt
 

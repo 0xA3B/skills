@@ -12,7 +12,7 @@
   "interface": {
     "displayName": "Claude in Codex",
     "shortDescription": "Ask Claude Code to adversarially review Codex changes.",
-    "longDescription": "A Codex plugin for invoking Claude Code as a read-only adversarial reviewer, triaging findings as external feedback, applying accepted in-scope fixes, and validating the result.",
+    "longDescription": "A Codex plugin for invoking Claude Code as a read-only adversarial reviewer, triaging findings as external feedback, applying accepted in-scope fixes, and validating the result. Also ships the Claude CLI contract for delegating work to Claude Code, including a copyable Codex subagent definition.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
