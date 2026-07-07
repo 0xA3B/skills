@@ -41,9 +41,10 @@ accepted.
 
 ## Trust Boundary
 
-- Codex is a read-only reviewer. Always run review turns with `--sandbox read-only` per the
-  `using-codex-cli` skill; the sandbox is enforced at the OS level. Never use `workspace-write` from
-  this workflow.
+- Codex is a read-only reviewer. Always run review turns read-only per the `using-codex-cli` skill:
+  `--sandbox read-only` on the initial turn and `-c sandbox_mode=read-only` on every resume turn,
+  since resume falls back to the configured default sandbox. The sandbox is enforced at the OS
+  level. Never use `workspace-write` from this workflow.
 - Claude is the only actor allowed to write files.
 - Claude may write only after independently evaluating Codex's feedback and accepting a finding as
   valid, in scope, and worth fixing.
@@ -72,8 +73,8 @@ Codex's findings but ask the user before editing.
 ## Codex Invocation
 
 Use the `using-codex-cli` skill for CLI mechanics: model and effort defaults, sandbox modes, session
-handling, warning handling, and command shapes. Every Codex turn in this workflow uses
-`--sandbox read-only`.
+handling, warning handling, and command shapes. Every Codex turn in this workflow runs read-only:
+`--sandbox read-only` initially, `-c sandbox_mode=read-only` on resume turns.
 
 Review-specific rules on top of that contract:
 
