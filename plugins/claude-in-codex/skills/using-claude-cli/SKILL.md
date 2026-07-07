@@ -122,7 +122,6 @@ Claude choose the method unless order or completeness is itself part of the requ
 
 ## Claude as a Codex Subagent
 
-Codex plugins cannot package subagent definitions, so this skill ships a copyable one instead.
-`references/claude-agent.toml` defines a general-purpose Claude proxy subagent for Codex. To install
-it, copy the file to `.codex/agents/claude.toml` in a project (or `~/.codex/agents/` for all
-projects). Once installed, Codex can spawn Claude as a named subagent for delegated tasks.
+Codex plugins cannot package subagent definitions, so this skill ships a copyable one instead:
+`references/claude-agent.toml`, a general-purpose Claude proxy subagent for Codex. The plugin README
+and the file's header comments own the install steps and sandbox network requirement.
