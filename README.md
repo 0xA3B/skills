@@ -35,6 +35,7 @@ Add the marketplace inside Claude Code:
 Then install the desired plugins:
 
 ```text
+/plugin install codex-in-claude@0xa3b-marketplace
 /plugin install conventional-commits@0xa3b-marketplace
 /plugin install engineering-workflows@0xa3b-marketplace
 ```
@@ -56,6 +57,20 @@ Runs Claude Code from Codex for adversarial code review, feedback triage, and in
 - [`claude-in-codex:using-claude-cli`](./plugins/claude-in-codex/skills/using-claude-cli/): Internal
   contract for running the Claude Code CLI non-interactively, with prompting guidance and a copyable
   `.codex/agents/claude.toml` proxy subagent definition.
+
+### `codex-in-claude`
+
+> Claude Code-only: this plugin exists to drive Codex from Claude Code, so it is not published to
+> the Codex marketplace.
+
+Runs Codex from Claude Code for adversarial code review, feedback triage, and in-scope fixes, and
+ships a `codex` subagent for delegating tasks to Codex.
+
+- [`codex-in-claude:adversarial-review`](./plugins/codex-in-claude/skills/adversarial-review/):
+  Invokes Codex as a sandboxed read-only adversarial reviewer, triages findings as external
+  feedback, and applies accepted in-scope fixes for current working-tree changes.
+- [`codex-in-claude:using-codex-cli`](./plugins/codex-in-claude/skills/using-codex-cli/): Internal
+  contract for running the Codex CLI non-interactively, with GPT-5.5 prompting guidance.
 
 ### `conventional-commits`
 

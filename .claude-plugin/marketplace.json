@@ -6,6 +6,10 @@
   },
   "plugins": [
     {
+      "name": "codex-in-claude",
+      "source": "./plugins/codex-in-claude"
+    },
+    {
       "name": "conventional-commits",
       "source": "./plugins/conventional-commits"
     },

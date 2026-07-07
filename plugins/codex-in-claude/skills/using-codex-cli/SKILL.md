@@ -1,0 +1,103 @@
+---
+name: using-codex-cli
+description: >-
+  Internal contract for invoking the Codex CLI non-interactively. Use when another codex-in-claude
+  skill or the codex proxy agent needs to run codex exec for review, delegation, session follow-ups,
+  or structured output. Do not use for conceptual questions about Codex.
+license: MIT
+user-invocable: false
+compatibility:
+  Requires Codex CLI on PATH, authenticated and able to run non-interactively with network access.
+---
+
+# Using the Codex CLI
+
+This skill owns the mechanics of running Codex non-interactively: command shapes, sandbox modes,
+sessions, structured output, and prompting guidance. The caller owns the task contract: what Codex
+is asked to do, the scope, and how its output is used.
+
+## CLI Basics
+
+- Use `codex` from `PATH`; do not hard-code a machine-specific absolute path.
+- Leave the model at the configured default. Add `-m <model>` only when the user explicitly requests
+  a specific model.
+- Leave reasoning effort at the default. Set `-c model_reasoning_effort=<level>` (`low`, `medium`,
+  `high`, or `xhigh`) only when the user requests it or the task clearly warrants it; tighten the
+  prompt before raising effort.
+- Higher effort levels can take several minutes, even for small targets. Be patient and let Codex
+  finish unless the process is clearly hung or the user asks to stop.
+- Do not treat non-fatal Codex CLI warnings as failures. Continue when Codex still produces a usable
+  result, adjust later commands if the warning identifies a bad option, and surface the warning in
+  the final summary when it may affect future maintenance.
+- If Codex is unavailable, unauthenticated, or fails, report the failure and stop; do not retry the
+  same command blindly.
+
+## Sandbox Modes
+
+Codex enforces its sandbox at the OS level, so permissions are set by flag, not by instruction:
+
+- `--sandbox read-only` for review, diagnosis, and research turns that must never modify the
+  repository. This is also the `codex exec` default; pass it explicitly anyway so the boundary is
+  visible in the command.
+- `--sandbox workspace-write` for delegated implementation or fix tasks that are expected to change
+  files.
+- Never use `--sandbox danger-full-access` or `--dangerously-bypass-approvals-and-sandbox`.
+
+## Sessions and Output
+
+- Add `--json` to stream machine-readable JSONL events. Capture the thread id from the
+  `thread.started` event (`{"type":"thread.started","thread_id":"..."}`) and preserve it for
+  follow-up turns.
+- Add `--output-last-message <file>` to write Codex's final message to a file; read the file for the
+  result instead of scraping the event stream.
+- For structured results, write a JSON Schema to a file and pass its path to
+  `--output-schema <file>`. Apply a schema only to turns that must produce the structured artifact;
+  use natural language for conversational follow-ups in the same session.
+- Resume a session with `codex exec resume "$THREAD_ID" "$PROMPT"` (same output flags apply). Use
+  `codex exec resume --last` only when resuming the most recent Codex session is unambiguous.
+- Resumed turns keep the original session's sandbox mode; there is no `--sandbox` flag on resume, so
+  choose the sandbox correctly on the initial run.
+- On resumed turns, send only the delta instruction instead of restating the whole prompt, unless
+  the direction changed materially.
+
+Initial-run shape:
+
+```bash
+codex exec "$PROMPT" \
+  --sandbox read-only \
+  --json \
+  --output-last-message "$RESULT_FILE"
+```
+
+Follow-up shape:
+
+```bash
+codex exec resume "$THREAD_ID" "$FOLLOW_UP_PROMPT" \
+  --json \
+  --output-last-message "$RESULT_FILE"
+```
+
+## Prompting Codex
+
+Codex (GPT-5.5) responds best to a compact outcome contract, not narrated procedure. When composing
+prompts for Codex runs:
+
+- Lead with the outcome: define the target result, success criteria, and constraints, then let Codex
+  choose the path. Over-specified step-by-step instructions narrow its search and produce mechanical
+  answers.
+- Structure the prompt with a few stable XML-style blocks, such as `<task>`, `<constraints>`,
+  `<output_contract>`, `<verification_loop>`, and `<grounding_rules>`. Add a block only when the
+  task needs it.
+- State explicit stopping conditions: when to retry, fall back, or stop. Tell Codex to handle the
+  task end-to-end within the turn and to prefer making progress over stopping to ask when the
+  request is already clear enough to attempt.
+- Lock the output contract: exact sections in exact order. For structured output, forbid prose and
+  markdown fences around it.
+- Add grounding rules for review and research tasks: only cite files, lines, and evidence actually
+  inspected during the run; never fabricate citations or line numbers.
+- Reserve absolute words like "always" and "never" for true invariants; give decision rules for
+  judgment calls.
+- Require a verification pass for risky or write-capable work: after the change appears complete,
+  check correctness, grounding, and formatting before finishing.
+- One clear task per run. Split unrelated asks into separate runs, and send only deltas on resumed
+  turns.

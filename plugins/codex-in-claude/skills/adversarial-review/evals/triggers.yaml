@@ -1,0 +1,70 @@
+version: 1
+cases:
+  - id: codex-adversarial-current-changes
+    prompt: >-
+      Ask Codex to adversarially review my current changes.
+    expect: invoke
+    rationale:
+      The user explicitly asks for Codex to perform an adversarial review of current changes.
+
+  - id: codex-review-working-tree
+    prompt: >-
+      Have Codex review the working tree before I commit.
+    expect: invoke
+    rationale: The user explicitly asks Codex to review the default working-tree scope.
+
+  - id: codex-review-branch
+    prompt: >-
+      Run a Codex review of this branch against main.
+    expect: invoke
+    rationale: The user explicitly asks Codex to review branch scope.
+
+  - id: codex-review-pr
+    prompt: >-
+      Ask Codex to review PR #42 and challenge anything risky.
+    expect: invoke
+    rationale: The user explicitly asks Codex to review a pull request.
+
+  - id: codex-review-with-model-override
+    prompt: >-
+      Use Codex with gpt-5.5-codex to review these changes.
+    expect: invoke
+    rationale: The user explicitly asks Codex to review and supplies a model override.
+
+  - id: generic-review-current-changes
+    prompt: >-
+      Review my current changes before I commit.
+    expect: skip
+    rationale: The user asks for review but does not explicitly name Codex.
+
+  - id: generic-adversarial-review
+    prompt: >-
+      Run an adversarial review of my current changes.
+    expect: skip
+    rationale: The user uses adversarial review wording but does not explicitly name Codex.
+
+  - id: claude-review-request
+    prompt: >-
+      Use Claude to review my branch against main.
+    expect: skip
+    rationale: The user names Claude, not Codex.
+
+  - id: architecture-review-request
+    prompt: >-
+      Review this codebase architecture and suggest module boundaries.
+    expect: skip
+    rationale: The request is for architecture review, not a Codex code review.
+
+  - id: ask-codex-conceptual-question
+    prompt: >-
+      Ask Codex what an adversarial code review is.
+    expect: skip
+    rationale: The user names Codex but asks a conceptual question, not for Codex to review code.
+
+  - id: delegate-fix-to-codex
+    prompt: >-
+      Have Codex fix the failing tests in this repo.
+    expect: skip
+    rationale:
+      The user asks Codex to implement a fix, which is a delegation task for the codex agent, not a
+      review.
