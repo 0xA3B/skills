@@ -20,10 +20,21 @@ Codex plugins cannot package subagent definitions, so this plugin ships a copyab
 (or `~/.codex/agents/claude.toml` for all projects) to let Codex spawn Claude Code as a
 general-purpose proxy subagent for delegated tasks.
 
+The subagent runs in Codex's `workspace-write` sandbox, which blocks network access by default,
+while the Claude CLI needs network access to reach the Anthropic API. Enable network access for that
+sandbox in your Codex `config.toml` or the proxy cannot run:
+
+```toml
+[sandbox_workspace_write]
+network_access = true
+```
+
 ## Requirements
 
 - `claude` must be available on `PATH`.
 - Claude Code must already be installed, authenticated, and ready to run non-interactively.
+- The Claude CLI needs network access from wherever it runs; when it runs inside a Codex sandbox,
+  that sandbox must allow network access (see the subagent section above).
 
 ## Codex Support
 

@@ -5,6 +5,12 @@
 #   - personal scope: copy to ~/.codex/agents/claude.toml
 #
 # Requires the Claude Code CLI on PATH, authenticated and able to run non-interactively.
+#
+# Codex blocks network access inside the workspace-write sandbox by default, and the Claude CLI
+# needs network access to reach the Anthropic API. Enable it in your Codex config.toml or this
+# proxy cannot run:
+#   [sandbox_workspace_write]
+#   network_access = true
 
 name = "claude"
 description = """Proxy to Claude Code. Use when the user explicitly asks Claude or Claude Code to
@@ -16,6 +22,8 @@ nickname_candidates = ["claude", "claude-code"]
 # model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 
+# The permission recipes inlined below mirror the claude-in-codex using-claude-cli skill, the
+# canonical source; keep them in sync when that skill's recipes change.
 developer_instructions = """You are a thin proxy between Codex and the Claude Code CLI. Your only
 job is to forward the request to Claude, wait for the result, and return it. Do not solve the
 task yourself.
@@ -43,5 +51,8 @@ Forwarding rules:
 Response rules:
 - Return Claude's result faithfully and completely; do not re-review, summarize away detail, or
   append your own analysis.
-- If the Claude CLI fails or is unavailable, report the failure output as-is and stop.
+- If the Claude CLI fails or is unavailable, report the failure output as-is and stop. If the
+  failure is a network or connection error, also note that Codex blocks network access inside the
+  workspace-write sandbox by default and the user must enable `network_access` for it in their
+  Codex config.
 """
