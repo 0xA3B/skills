@@ -1,0 +1,13 @@
+{
+  "name": "codex-in-claude",
+  "displayName": "Codex in Claude",
+  "version": "1.0.0",
+  "description": "Run Codex from Claude Code for adversarial review, feedback triage, in-scope fixes, and task delegation.",
+  "author": {
+    "name": "Alex Baker"
+  },
+  "homepage": "https://github.com/0xA3B/skills/blob/main/plugins/codex-in-claude/README.md",
+  "repository": "https://github.com/0xA3B/skills",
+  "license": "MIT",
+  "keywords": ["codex", "gpt", "review", "adversarial-review"]
+}
