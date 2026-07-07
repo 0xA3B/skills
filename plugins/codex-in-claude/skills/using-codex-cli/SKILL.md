@@ -57,6 +57,8 @@ Codex enforces its sandbox at the OS level, so permissions are set by flag, not 
   `codex exec resume --last` only when resuming the most recent Codex session is unambiguous.
 - Resumed turns keep the original session's sandbox mode; there is no `--sandbox` flag on resume, so
   choose the sandbox correctly on the initial run.
+- Redirect stdin from `/dev/null`. When stdin is a non-TTY pipe, `codex exec` reads it as additional
+  prompt input and hangs until the pipe closes, which never happens in most harnesses.
 - On resumed turns, send only the delta instruction instead of restating the whole prompt, unless
   the direction changed materially.
 
@@ -66,7 +68,8 @@ Initial-run shape:
 codex exec "$PROMPT" \
   --sandbox read-only \
   --json \
-  --output-last-message "$RESULT_FILE"
+  --output-last-message "$RESULT_FILE" \
+  < /dev/null
 ```
 
 Follow-up shape:
@@ -74,7 +77,8 @@ Follow-up shape:
 ```bash
 codex exec resume "$THREAD_ID" "$FOLLOW_UP_PROMPT" \
   --json \
-  --output-last-message "$RESULT_FILE"
+  --output-last-message "$RESULT_FILE" \
+  < /dev/null
 ```
 
 ## Prompting Codex
