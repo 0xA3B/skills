@@ -1,14 +1,14 @@
-# Claudex
+# Claude in Codex
 
-![Claudex plugin logo](assets/logo.svg)
+![Claude in Codex plugin logo](assets/logo.svg)
 
 Run Claude Code from Codex for adversarial code review.
 
 ## Skills
 
-- `claudex:adversarial-review`: Invokes Claude Code as a read-only adversarial reviewer, has Codex
-  triage the feedback, applies accepted in-scope fixes for current working-tree changes, validates
-  the result, and summarizes the outcome.
+- `claude-in-codex:adversarial-review`: Invokes Claude Code as a read-only adversarial reviewer, has
+  Codex triage the feedback, applies accepted in-scope fixes for current working-tree changes,
+  validates the result, and summarizes the outcome.
 
 ## Requirements
 
