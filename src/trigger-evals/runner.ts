@@ -223,13 +223,17 @@ function buildCaseResult(options: {
   );
   const invoked = invocationSignal !== "none";
   const matchedExpectation = options.testCase.expect === "invoke" ? invoked : !invoked;
-  const passed = matchedExpectation;
+  const environmentalFailure = invoked
+    ? undefined
+    : detectEnvironmentalFailure(options.runResult.stderr);
+  const passed = environmentalFailure === undefined && matchedExpectation;
   return {
     caseId: options.testCase.id,
     expect: options.testCase.expect,
     invocationSignal,
     invoked,
     passed,
+    ...(environmentalFailure === undefined ? {} : { environmentalFailure }),
     durationMs: options.durationMs,
     exitCode: options.runResult.exitCode,
     finalMessagePath: options.runResult.finalMessagePath,
@@ -372,6 +376,22 @@ async function createRunDir(
 
 function sanitize(value: string): string {
   return value.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+// macOS refuses to nest a second Seatbelt sandbox: when the harness itself runs inside a sandbox
+// (a sandboxed outer Codex session, a sandboxed Bash tool call), every per-case CLI subprocess dies
+// on sandbox_apply before executing anything. Without this check the dead run reads as a clean skip
+// and masks the environment problem as a trigger miss. Only checked when no invocation signal was
+// observed, because an observed signal proves the run actually executed.
+function detectEnvironmentalFailure(stderr: string): string | undefined {
+  if (stderr.includes("sandbox_apply: Operation not permitted")) {
+    return (
+      "sandbox_apply: Operation not permitted — the case subprocess could not apply its OS " +
+      "sandbox, so no command ran. Run trigger evals from an unsandboxed context."
+    );
+  }
+
+  return undefined;
 }
 
 // Claude Code invokes skills through the Skill tool, which is visible directly in the stream-json

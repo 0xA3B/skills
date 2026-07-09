@@ -16,12 +16,19 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   );
 
   for (const caseResult of result.results) {
-    const status = caseResult.passed ? "PASS" : "FAIL";
+    const status = caseResult.passed
+      ? "PASS"
+      : caseResult.environmentalFailure === undefined
+        ? "FAIL"
+        : "ERROR";
     const actual = caseResult.invoked ? "invoke" : "skip";
     const signal = caseResult.invoked ? ` via ${caseResult.invocationSignal}` : "";
     console.log(
       `- ${status} ${caseResult.caseId}: expected ${caseResult.expect}, observed ${actual}${signal} (${formatDuration(caseResult.durationMs)})`,
     );
+    if (caseResult.environmentalFailure !== undefined) {
+      console.log(`  environment: ${caseResult.environmentalFailure}`);
+    }
     if (caseResult.error !== undefined) {
       console.log(`  error: ${caseResult.error}`);
     }

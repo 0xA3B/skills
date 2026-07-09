@@ -166,6 +166,37 @@ describe("runTriggerEval", () => {
     expect(result.results[0]?.durationMs).toBeGreaterThanOrEqual(0);
   });
 
+  it("reports an environmental failure instead of a skip when sandbox_apply is refused", async () => {
+    const repoRoot = await writeRepoFixture();
+    mockState.codexResults.push({
+      exitCode: 1,
+      finalMessage: "",
+      stdout: "",
+      stderr: "sandbox-exec: sandbox_apply: Operation not permitted",
+      stdoutPath: "/tmp/stdout.jsonl",
+      stderrPath: "/tmp/stderr.log",
+      finalMessagePath: "/tmp/final.txt",
+      error: "codex exec exited with code 1.",
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+    });
+
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]).toMatchObject({
+      caseId: "skip-case",
+      expect: "skip",
+      invoked: false,
+      passed: false,
+    });
+    expect(result.results[0]?.environmentalFailure).toContain(
+      "sandbox_apply: Operation not permitted",
+    );
+  });
+
   it("runs cases concurrently while preserving fixture order", async () => {
     const repoRoot = await writeRepoFixture({
       cases: [

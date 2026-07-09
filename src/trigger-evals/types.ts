@@ -46,6 +46,7 @@ export type TriggerCaseResult = {
     | "none";
   invoked: boolean;
   passed: boolean;
+  environmentalFailure?: string;
   durationMs: number;
   exitCode: number | null;
   finalMessagePath: string;

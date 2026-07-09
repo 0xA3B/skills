@@ -158,6 +158,11 @@ cases where loaded repository instructions should affect the trigger boundary, s
   `.claude/skills/` copy, so the committed description is tested unmodified on Claude.
 - Case pass/fail is based on matching the expected invoke or skip classification. Exec errors and
   timeouts remain in the report because trigger evals do not validate workflow completion.
+- Run trigger evals from an unsandboxed context. The per-case CLI subprocesses apply their own OS
+  sandbox and need network and home-directory access, so driving the harness from inside a sandbox
+  (a sandboxed Codex session, a sandboxed Bash tool call) kills every case before it executes —
+  macOS refuses to nest a second Seatbelt sandbox. The runner reports such cases as ERROR with an
+  environmental-failure note instead of counting the dead run as a skip.
 - The runner removes copied `auth.json` from the temporary Codex home after the run.
 
 ## Boundaries
