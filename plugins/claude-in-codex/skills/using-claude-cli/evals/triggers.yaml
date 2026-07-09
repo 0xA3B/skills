@@ -1,0 +1,79 @@
+version: 1
+cases:
+  - id: headless-structured-output
+    prompt: >-
+      Run Claude Code headlessly with claude -p and a JSON schema to return the migration steps as
+      structured output.
+    expect: invoke
+    rationale: The request requires a non-interactive Claude CLI run with schema-constrained output.
+
+  - id: resume-claude-session
+    prompt: >-
+      Resume Claude CLI session 8a54f160-83d9-4f19-ae1a-871226f91b23 and ask it to turn its earlier
+      research into an implementation plan.
+    expect: invoke
+    rationale: The request requires a Claude CLI follow-up using a specific persisted session.
+
+  - id: delegate-implementation-to-claude
+    prompt: >-
+      From this Codex session, delegate the parser implementation to Claude and have it return its
+      result as JSON when it finishes.
+    expect: invoke
+    rationale: The request delegates write-capable implementation work through the Claude CLI.
+
+  - id: delegate-read-only-research
+    prompt: >-
+      Have a Claude proxy agent research how authentication is wired in this repository and report
+      file-and-line evidence without changing anything.
+    expect: invoke
+    rationale: The request requires a read-only Claude proxy run with an explicit evidence contract.
+
+  - id: capture-claude-json
+    prompt: >-
+      Invoke Claude Code non-interactively and capture its output-format JSON response so I can feed
+      the result into the next Codex step.
+    expect: invoke
+    rationale: The request requires programmatic capture of a non-interactive Claude CLI result.
+
+  - id: continue-latest-claude-delegation
+    prompt: >-
+      Continue the most recent Claude CLI delegation and ask it to rerun the failed test with the
+      corrected fixture path.
+    expect: invoke
+    rationale: The request requires a conversational follow-up in an existing Claude CLI session.
+
+  - id: explain-json-output-flags
+    prompt: >-
+      What does claude -p --output-format json do, and when would I combine it with --json-schema?
+    expect: skip
+    rationale: The user asks a conceptual CLI question and does not need Claude to be run.
+
+  - id: claude-review-working-tree
+    prompt: >-
+      Ask Claude Code to review my working tree before I commit.
+    expect: skip
+    rationale: A Claude code-review request belongs to the sibling adversarial-review skill.
+
+  - id: claude-review-pull-request
+    prompt: >-
+      Run Claude against PR #84 and report any material code-review findings.
+    expect: skip
+    rationale: A Claude pull-request review belongs to the sibling adversarial-review skill.
+
+  - id: generic-task-delegation
+    prompt: >-
+      Delegate the documentation cleanup to a subagent and summarize what it changes.
+    expect: skip
+    rationale: The delegation request never names Claude or otherwise requires the Claude CLI.
+
+  - id: anthropic-model-pricing
+    prompt: >-
+      How much do Anthropic's current Claude models cost per million input and output tokens?
+    expect: skip
+    rationale: The user asks for pricing information that does not require running the Claude CLI.
+
+  - id: compare-anthropic-models
+    prompt: >-
+      Compare the strengths of Anthropic's Opus and Sonnet models for long-context research.
+    expect: skip
+    rationale: The user asks a conceptual model question rather than requesting a Claude CLI run.
