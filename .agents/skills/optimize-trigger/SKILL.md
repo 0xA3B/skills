@@ -146,6 +146,9 @@ cases where loaded repository instructions should affect the trigger boundary, s
   classification instead of workflow completion.
 - The runner also stops the agent CLI as soon as it observes the invocation signal, so positive
   cases do not need to finish the requested workflow.
+- Negative cases stop early too: once five substantive items (agent messages, command executions —
+  not reasoning) complete without an invocation signal, the run is stopped and classified as a clean
+  skip, because the trigger decision happens at the front of the turn.
 - For plugin skills on Codex, the canary section is body-only so the frontmatter description under
   test stays byte-identical to the committed skill; invocation is classified when the assistant
   outputs the token. Older Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary
@@ -158,6 +161,9 @@ cases where loaded repository instructions should affect the trigger boundary, s
   `.claude/skills/` copy, so the committed description is tested unmodified on Claude.
 - Case pass/fail is based on matching the expected invoke or skip classification. Exec errors and
   timeouts remain in the report because trigger evals do not validate workflow completion.
+- Skip verdicts record how the run ended: natural completion, the decision-item budget, or the case
+  timeout. Timeout skips are annotated as weak signals because the model might have invoked after
+  the cutoff; treat a fixture that repeatedly skips only via timeout as unresolved, not passing.
 - Run trigger evals from an unsandboxed context. The per-case CLI subprocesses apply their own OS
   sandbox and need network and home-directory access, so driving the harness from inside a sandbox
   (a sandboxed Codex session, a sandboxed Bash tool call) kills every case before it executes —

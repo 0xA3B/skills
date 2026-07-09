@@ -5,10 +5,15 @@ export type StreamingCliOutput = {
   stderr: string;
 };
 
+// How a CLI run ended, so the caller can tell a run that finished naturally from one stopped by
+// the stopWhen predicate or cut off by the case timeout.
+export type CliEndReason = "completed" | "stop-when" | "timeout" | "abort" | "spawn-error";
+
 export type StreamingCliResult = {
   exitCode: number | null;
   stdout: string;
   stderr: string;
+  endedBy: CliEndReason;
   error?: string;
 };
 
@@ -20,6 +25,7 @@ export type CliRunResult = {
   stdoutPath: string;
   stderrPath: string;
   finalMessagePath: string;
+  endedBy?: CliEndReason;
   error?: string;
 };
 
@@ -47,11 +53,16 @@ export function spawnStreamingCli(
 ): Promise<StreamingCliResult> {
   return new Promise((resolve) => {
     let earlyStopped = false;
-    const resolveResult = (exitCode: number | null, error?: string): void => {
+    const resolveResult = (
+      exitCode: number | null,
+      endedBy: CliEndReason,
+      error?: string,
+    ): void => {
       resolve({
         exitCode: earlyStopped ? 0 : exitCode,
         stdout: Buffer.concat(stdoutChunks).toString("utf8"),
         stderr: Buffer.concat(stderrChunks).toString("utf8"),
+        endedBy,
         ...(error === undefined ? {} : { error }),
       });
     };
@@ -90,20 +101,27 @@ export function spawnStreamingCli(
       maybeStopEarly();
     });
     child.on("error", (caught) => {
-      const error =
-        options.abortSignal?.aborted === true ? `${options.label} aborted.` : caught.message;
-      resolveResult(null, error);
+      const aborted = options.abortSignal?.aborted === true;
+      const error = aborted ? `${options.label} aborted.` : caught.message;
+      resolveResult(null, aborted ? "abort" : "spawn-error", error);
     });
 
     child.on("close", (exitCode, signal) => {
       const aborted = options.abortSignal?.aborted === true;
       const timedOut = exitCode === null && signal === "SIGTERM" && !aborted && !earlyStopped;
+      const endedBy = aborted
+        ? "abort"
+        : timedOut
+          ? "timeout"
+          : earlyStopped
+            ? "stop-when"
+            : "completed";
       const error = aborted
         ? `${options.label} aborted.`
         : timedOut
           ? `${options.label} timed out after ${options.timeoutMs}ms.`
           : undefined;
-      resolveResult(exitCode, error);
+      resolveResult(exitCode, endedBy, error);
     });
   });
 }

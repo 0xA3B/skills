@@ -21,10 +21,11 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
       : caseResult.environmentalFailure === undefined
         ? "FAIL"
         : "ERROR";
-    const actual = caseResult.invoked ? "invoke" : "skip";
-    const signal = caseResult.invoked ? ` via ${caseResult.invocationSignal}` : "";
+    const observed = caseResult.invoked
+      ? `invoke via ${caseResult.invocationSignal}`
+      : formatSkip(caseResult.skipSignal);
     console.log(
-      `- ${status} ${caseResult.caseId}: expected ${caseResult.expect}, observed ${actual}${signal} (${formatDuration(caseResult.durationMs)})`,
+      `- ${status} ${caseResult.caseId}: expected ${caseResult.expect}, observed ${observed} (${formatDuration(caseResult.durationMs)})`,
     );
     if (caseResult.environmentalFailure !== undefined) {
       console.log(`  environment: ${caseResult.environmentalFailure}`);
@@ -38,6 +39,17 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   if (failures.length > 0) {
     process.exitCode = 1;
   }
+}
+
+function formatSkip(skipSignal: "completed" | "item-budget" | "timeout" | undefined): string {
+  if (skipSignal === "item-budget") {
+    return "skip via item-budget";
+  }
+  if (skipSignal === "timeout") {
+    return "skip via timeout (weak signal)";
+  }
+
+  return "skip";
 }
 
 function formatDuration(durationMs: number): string {

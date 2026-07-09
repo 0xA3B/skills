@@ -82,6 +82,7 @@ export async function runClaudeExec(options: ClaudeRunOptions): Promise<CliRunRe
     stdoutPath,
     stderrPath,
     finalMessagePath,
+    endedBy: result.endedBy,
     ...(error === undefined ? {} : { error }),
   };
 }

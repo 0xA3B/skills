@@ -61,18 +61,23 @@ describe("spawnStreamingCli", () => {
 
 describe("cliRunError", () => {
   it("returns undefined for a clean zero exit", () => {
-    expect(cliRunError({ exitCode: 0, stdout: "", stderr: "" }, "test cli")).toBeUndefined();
+    expect(
+      cliRunError({ exitCode: 0, stdout: "", stderr: "", endedBy: "completed" }, "test cli"),
+    ).toBeUndefined();
   });
 
   it("describes a nonzero exit", () => {
-    expect(cliRunError({ exitCode: 3, stdout: "", stderr: "" }, "test cli")).toBe(
-      "test cli exited with code 3.",
-    );
+    expect(
+      cliRunError({ exitCode: 3, stdout: "", stderr: "", endedBy: "completed" }, "test cli"),
+    ).toBe("test cli exited with code 3.");
   });
 
   it("prefers the underlying execution error message", () => {
-    expect(cliRunError({ exitCode: null, stdout: "", stderr: "", error: "boom" }, "test cli")).toBe(
-      "boom",
-    );
+    expect(
+      cliRunError(
+        { exitCode: null, stdout: "", stderr: "", endedBy: "spawn-error", error: "boom" },
+        "test cli",
+      ),
+    ).toBe("boom");
   });
 });

@@ -16,6 +16,7 @@ const mockState = vi.hoisted(() => ({
     stdoutPath: string;
     stderrPath: string;
     finalMessagePath: string;
+    endedBy?: "completed" | "stop-when" | "timeout" | "abort" | "spawn-error";
     error?: string;
     delayMs?: number;
   }>,
@@ -107,7 +108,10 @@ vi.mock(import("./claude-exec.js"), () => ({
               content: [{ type: "tool_use", name: "Skill", input: { command: "demo:auto-skill" } }],
             },
           })
-        : "",
+        : JSON.stringify({
+            type: "assistant",
+            message: { content: [{ type: "text", text: "I answered without any skill." }] },
+          }),
       stderr: "",
       stdoutPath: "/tmp/events.jsonl",
       stderrPath: "/tmp/stderr.log",
@@ -140,7 +144,7 @@ describe("runTriggerEval", () => {
     mockState.codexResults.push({
       exitCode: 1,
       finalMessage: "",
-      stdout: "",
+      stdout: agentMessageEvent("I looked at the request and answered it directly."),
       stderr: "",
       stdoutPath: "/tmp/stdout.jsonl",
       stderrPath: "/tmp/stderr.log",
@@ -195,6 +199,97 @@ describe("runTriggerEval", () => {
     expect(result.results[0]?.environmentalFailure).toContain(
       "sandbox_apply: Operation not permitted",
     );
+  });
+
+  it("reports an environmental failure when a run produces no agent output", async () => {
+    const repoRoot = await writeRepoFixture();
+    mockState.codexResults.push({
+      exitCode: 1,
+      finalMessage: "",
+      stdout: "",
+      stderr: "codex: unable to authenticate",
+      stdoutPath: "/tmp/stdout.jsonl",
+      stderrPath: "/tmp/stderr.log",
+      finalMessagePath: "/tmp/final.txt",
+      endedBy: "completed",
+      error: "codex exec exited with code 1.",
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+    });
+
+    expect(result.results[0]).toMatchObject({
+      caseId: "skip-case",
+      invoked: false,
+      passed: false,
+    });
+    expect(result.results[0]?.environmentalFailure).toContain("no agent output");
+    expect(result.results[0]?.environmentalFailure).toContain("codex: unable to authenticate");
+  });
+
+  it("classifies skip signals from how the run ended", async () => {
+    const repoRoot = await writeRepoFixture();
+    const baseResult = {
+      exitCode: 0,
+      finalMessage: "",
+      stdout: agentMessageEvent("I answered the request without the skill."),
+      stderr: "",
+      stdoutPath: "/tmp/stdout.jsonl",
+      stderrPath: "/tmp/stderr.log",
+      finalMessagePath: "/tmp/final.txt",
+    };
+    mockState.codexResults.push({ ...baseResult, endedBy: "stop-when" });
+
+    const budgetResult = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+    });
+    expect(budgetResult.results[0]).toMatchObject({
+      invoked: false,
+      passed: true,
+      skipSignal: "item-budget",
+    });
+
+    mockState.codexResults.push({
+      ...baseResult,
+      exitCode: null,
+      endedBy: "timeout",
+      error: "codex exec timed out after 60000ms.",
+    });
+    const timeoutResult = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+    });
+    expect(timeoutResult.results[0]).toMatchObject({
+      invoked: false,
+      passed: true,
+      skipSignal: "timeout",
+    });
+  });
+
+  it("stops a case at the decision-item budget when no invocation signal appears", async () => {
+    const repoRoot = await writeRepoFixture();
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+    });
+
+    const stopWhen = mockState.stopWhenPredicates[0];
+    expect(stopWhen).toBeDefined();
+
+    const reasoningEvent = `${JSON.stringify({
+      type: "item.completed",
+      item: { type: "reasoning", text: "thinking" },
+    })}\n`;
+    const fourItems = agentMessageEvent("one").repeat(4);
+    expect(stopWhen?.({ stdout: fourItems + reasoningEvent.repeat(3), stderr: "" })).toBe(false);
+    expect(stopWhen?.({ stdout: fourItems + agentMessageEvent("five"), stderr: "" })).toBe(true);
   });
 
   it("runs cases concurrently while preserving fixture order", async () => {
@@ -502,13 +597,17 @@ async function buildMockCodexResult(options: {
   return {
     exitCode: 0,
     finalMessage: "",
-    stdout: "",
+    stdout: agentMessageEvent("I handled the request."),
     stderr: shouldInvoke ? "codex.skill.injected demo:auto-skill" : "",
     stdoutPath: "/tmp/stdout.jsonl",
     stderrPath: "/tmp/stderr.log",
     finalMessagePath: "/tmp/final.txt",
     delayMs: 50,
   };
+}
+
+function agentMessageEvent(text: string): string {
+  return `${JSON.stringify({ type: "item.completed", item: { type: "agent_message", text } })}\n`;
 }
 
 function frontmatterDescription(content: string): string {

@@ -39,6 +39,13 @@ export type RunTriggerEvalOptions = {
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_CONCURRENCY = 3;
 
+// The trigger decision happens at the front of the turn, so once this many substantive items
+// (agent messages, command executions — not reasoning) complete without an invocation signal, the
+// run is stopped and classified as a clean skip instead of waiting for the full workflow or the
+// case timeout. Observed invocations surface the canary within about three items, so five keeps
+// late invocations safe while cutting long skip runs short.
+const SKIP_DECISION_ITEM_BUDGET = 5;
+
 // Trigger evals default to the models this repository's skills are used with day to day, so
 // results predict real invocation behavior. Full-sweep comparisons showed trigger boundaries are
 // model-specific, so proxying with smaller models measures the wrong thing. Override with
@@ -113,7 +120,8 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           model,
           effort,
           stopWhen: (output: StreamingCliOutput) =>
-            detectInvocation(output, target, canary, agent) !== "none",
+            detectInvocation(output, target, canary, agent) !== "none" ||
+            countDecisionItems(output.stdout, agent) >= SKIP_DECISION_ITEM_BUDGET,
           ...(target.kind === "plugin"
             ? {
                 pluginDir: path.join(caseWorkspace.workspacePath, "plugins", target.pluginName),
@@ -172,7 +180,8 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
           sandboxMode,
           stopWhen: (output: StreamingCliOutput) =>
-            detectInvocation(output, target, canary, agent) !== "none",
+            detectInvocation(output, target, canary, agent) !== "none" ||
+            countDecisionItems(output.stdout, agent) >= SKIP_DECISION_ITEM_BUDGET,
           ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
         };
 
@@ -223,9 +232,11 @@ function buildCaseResult(options: {
   );
   const invoked = invocationSignal !== "none";
   const matchedExpectation = options.testCase.expect === "invoke" ? invoked : !invoked;
+  const endedBy = options.runResult.endedBy ?? "completed";
   const environmentalFailure = invoked
     ? undefined
-    : detectEnvironmentalFailure(options.runResult.stderr);
+    : detectEnvironmentalFailure(options.runResult, options.agent, endedBy);
+  const skipSignal = invoked ? undefined : classifySkipSignal(endedBy);
   const passed = environmentalFailure === undefined && matchedExpectation;
   return {
     caseId: options.testCase.id,
@@ -233,6 +244,7 @@ function buildCaseResult(options: {
     invocationSignal,
     invoked,
     passed,
+    ...(skipSignal === undefined ? {} : { skipSignal }),
     ...(environmentalFailure === undefined ? {} : { environmentalFailure }),
     durationMs: options.durationMs,
     exitCode: options.runResult.exitCode,
@@ -378,20 +390,108 @@ function sanitize(value: string): string {
   return value.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-// macOS refuses to nest a second Seatbelt sandbox: when the harness itself runs inside a sandbox
-// (a sandboxed outer Codex session, a sandboxed Bash tool call), every per-case CLI subprocess dies
-// on sandbox_apply before executing anything. Without this check the dead run reads as a clean skip
-// and masks the environment problem as a trigger miss. Only checked when no invocation signal was
-// observed, because an observed signal proves the run actually executed.
-function detectEnvironmentalFailure(stderr: string): string | undefined {
-  if (stderr.includes("sandbox_apply: Operation not permitted")) {
+// A skip verdict is only trustworthy when the agent demonstrably ran: a case whose subprocess died
+// before producing any agent output would otherwise read as a clean skip and mask an environment
+// problem (bad auth, blocked network, sandbox nesting) as a trigger miss. Only checked when no
+// invocation signal was observed, because an observed signal proves the run actually executed.
+// The sandbox_apply marker is an OS-level (macOS Seatbelt) failure that leaves the agent alive but
+// unable to execute any command, so it is checked separately from the dead-run case.
+function detectEnvironmentalFailure(
+  runResult: StreamingCliOutput,
+  agent: TriggerEvalAgent,
+  endedBy: string,
+): string | undefined {
+  if (runResult.stderr.includes("sandbox_apply: Operation not permitted")) {
     return (
-      "sandbox_apply: Operation not permitted — the case subprocess could not apply its OS " +
-      "sandbox, so no command ran. Run trigger evals from an unsandboxed context."
+      "sandbox_apply: Operation not permitted — case subprocesses could not apply their OS " +
+      "sandbox (macOS refuses to nest Seatbelt sandboxes), so no command ran. Run trigger evals " +
+      "from an unsandboxed context."
+    );
+  }
+
+  if (
+    endedBy !== "stop-when" &&
+    endedBy !== "abort" &&
+    !hasAgentActivity(runResult.stdout, agent)
+  ) {
+    const stderrHint = firstNonEmptyLine(runResult.stderr);
+    return (
+      "the run produced no agent output, so the case cannot be classified as a skip." +
+      (stderrHint === undefined ? " Check the case stderr log." : ` stderr: ${stderrHint}`)
     );
   }
 
   return undefined;
+}
+
+function hasAgentActivity(stdout: string, agent: TriggerEvalAgent): boolean {
+  for (const event of parseJsonlEvents(stdout)) {
+    if (!isRecord(event)) {
+      continue;
+    }
+    if (agent === "claude") {
+      if (event["type"] === "assistant" || event["type"] === "result") {
+        return true;
+      }
+    } else if (event["type"] === "item.completed" || event["type"] === "turn.completed") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function firstNonEmptyLine(text: string): string | undefined {
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+
+  return undefined;
+}
+
+function classifySkipSignal(endedBy: string): "completed" | "item-budget" | "timeout" | undefined {
+  if (endedBy === "completed") {
+    return "completed";
+  }
+  if (endedBy === "stop-when") {
+    return "item-budget";
+  }
+  if (endedBy === "timeout") {
+    return "timeout";
+  }
+
+  return undefined;
+}
+
+// Counts completed substantive items so a run can be stopped as a clean skip once the trigger
+// decision has demonstrably been made. Reasoning items are excluded because they arrive frequently
+// before the model has committed to acting.
+function countDecisionItems(stdout: string, agent: TriggerEvalAgent): number {
+  let count = 0;
+  for (const event of parseJsonlEvents(stdout)) {
+    if (!isRecord(event)) {
+      continue;
+    }
+    if (agent === "claude") {
+      if (event["type"] === "assistant") {
+        count += 1;
+      }
+      continue;
+    }
+
+    if (event["type"] !== "item.completed") {
+      continue;
+    }
+    const item = event["item"];
+    if (isRecord(item) && item["type"] !== "reasoning") {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 // Claude Code invokes skills through the Skill tool, which is visible directly in the stream-json

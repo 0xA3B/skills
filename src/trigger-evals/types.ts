@@ -46,6 +46,10 @@ export type TriggerCaseResult = {
     | "none";
   invoked: boolean;
   passed: boolean;
+  // How a skip verdict was reached: the run finished naturally, was stopped at the decision-item
+  // budget, or was cut off by the case timeout (a weak signal — the model might have invoked
+  // later). Absent on invoked cases and on runs that ended by abort or spawn failure.
+  skipSignal?: "completed" | "item-budget" | "timeout";
   environmentalFailure?: string;
   durationMs: number;
   exitCode: number | null;

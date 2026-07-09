@@ -68,6 +68,7 @@ export async function runCodexExec(options: CodexRunOptions): Promise<CliRunResu
     stdoutPath,
     stderrPath,
     finalMessagePath,
+    endedBy: result.endedBy,
     ...(error === undefined ? {} : { error }),
   };
 }
