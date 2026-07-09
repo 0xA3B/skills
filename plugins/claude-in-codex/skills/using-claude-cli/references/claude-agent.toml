@@ -23,7 +23,10 @@ nickname_candidates = ["claude", "claude-code"]
 # Recommend using a small proxy model; adjust to taste
 # model = "gpt-5.6-luna"
 # model_reasoning_effort = "low"
-sandbox_mode = "workspace-write"
+# Probably not needed since claude commands will be running outside the sandbox anyway
+# sandbox_mode = "workspace-write"
+# Need to test if read-only here works. Would be best so codex-proxy agent is read-only, while claude runs outside the sandbox. Need to test if read-only agents can request/run escalated commands
+# sandbox_mode = "read-only"
 
 # The permission recipes inlined below mirror the claude-in-codex using-claude-cli skill, the
 # canonical source; keep them in sync when that skill's recipes change.
