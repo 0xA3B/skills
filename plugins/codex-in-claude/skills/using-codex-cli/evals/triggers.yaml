@@ -1,0 +1,77 @@
+version: 1
+cases:
+  - id: codex-structured-output-schema
+    prompt: >-
+      Run codex exec with a JSON schema so I get back a structured migration plan I can parse.
+    expect: invoke
+    rationale:
+      The user needs a non-interactive codex exec run that produces schema-constrained structured
+      output.
+
+  - id: codex-resume-session-by-id
+    prompt: >-
+      Resume Codex session thread_abc123 and ask it to keep going on the refactor we started.
+    expect: invoke
+    rationale: The user asks to resume a specific Codex CLI session by its thread id.
+
+  - id: codex-delegate-implementation-task
+    prompt: >-
+      Delegate implementing the new rate limiter to Codex from the command line.
+    expect: invoke
+    rationale: The user asks for an implementation task to be delegated to Codex via the CLI.
+
+  - id: codex-capture-json-output
+    prompt: >-
+      Run Codex non-interactively and capture its JSON event stream to a file for my script.
+    expect: invoke
+    rationale: The user needs codex exec run with its JSON output captured programmatically.
+
+  - id: codex-research-task-delegation
+    prompt: >-
+      Have Codex research why the checkout test is flaky and report back with its findings.
+    expect: invoke
+    rationale:
+      The user delegates a research task to Codex, which requires a non-interactive codex exec run.
+
+  - id: codex-thread-follow-up
+    prompt: >-
+      Send a follow-up prompt to the same Codex thread we started earlier about the API design.
+    expect: invoke
+    rationale: The user asks for a Codex CLI session follow-up, which requires codex exec resume.
+
+  - id: codex-exec-json-flag-conceptual
+    prompt: >-
+      What does the codex exec --json flag actually print?
+    expect: skip
+    rationale: The user asks a conceptual question about a Codex CLI flag, not for a run.
+
+  - id: codex-adversarial-review-request
+    prompt: >-
+      Ask Codex to adversarially review my current changes before I commit.
+    expect: skip
+    rationale:
+      Codex code-review requests belong to the sibling adversarial-review skill, not this one.
+
+  - id: generic-delegation-no-codex
+    prompt: >-
+      Delegate this task to whichever tool works best for it.
+    expect: skip
+    rationale: The user asks for delegation but never names Codex.
+
+  - id: codex-vs-chatgpt-question
+    prompt: >-
+      What's the difference between Codex and ChatGPT as OpenAI products?
+    expect: skip
+    rationale: The user asks a product comparison question that needs no CLI run.
+
+  - id: codex-sandbox-modes-conceptual
+    prompt: >-
+      Explain how Codex's sandbox modes work and when each one applies.
+    expect: skip
+    rationale: The user asks a conceptual question about Codex sandboxing, not to run it.
+
+  - id: codex-review-pr-request
+    prompt: >-
+      Have Codex review PR #42 and flag anything risky before merge.
+    expect: skip
+    rationale: Codex PR review requests belong to the sibling adversarial-review skill.
