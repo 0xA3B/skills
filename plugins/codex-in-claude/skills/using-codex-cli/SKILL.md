@@ -19,6 +19,9 @@ is asked to do, the scope, and how its output is used.
 ## CLI Basics
 
 - Use `codex` from `PATH`; do not hard-code a machine-specific absolute path.
+- Run `codex` outside any calling sandbox, such as Claude Code's Bash sandbox: it needs network
+  access and `~/.codex` writes for session state, and its own OS-level sandbox is the enforcement
+  boundary.
 - Leave the model at the configured default. Add `-m <model>` only when the user explicitly requests
   a specific model.
 - Leave reasoning effort at the default. Set `-c model_reasoning_effort=<level>` (`low`, `medium`,
@@ -34,13 +37,17 @@ is asked to do, the scope, and how its output is used.
 
 ## Sandbox Modes
 
-Codex enforces its sandbox at the OS level, so permissions are set by flag, not by instruction:
+Codex enforces its sandbox at the OS level, so permissions are set by flag or config, not by
+instruction:
 
-- `--sandbox read-only` for review, diagnosis, and research turns that must never modify the
-  repository. This is also the `codex exec` default; pass it explicitly anyway so the boundary is
-  visible in the command.
-- `--sandbox workspace-write` for delegated implementation or fix tasks that are expected to change
-  files.
+- Pin `--sandbox read-only` for review, diagnosis, and research turns that must never modify the
+  repository. Read-only is an intentional downgrade, so set it explicitly instead of relying on the
+  configured default.
+- For implementation, fixes, and other write-intent tasks, leave the sandbox at the configured
+  default from the user's Codex config. Pass `--sandbox` only when the user requests a specific
+  mode.
+- Treat a sandbox or permission denial as a failure to report, not a boundary to work around: the
+  fix is the user adjusting their Codex config or naming a mode, not a broader flag.
 - Never use `--sandbox danger-full-access` or `--dangerously-bypass-approvals-and-sandbox`.
 
 ## Sessions and Output
@@ -55,16 +62,16 @@ Codex enforces its sandbox at the OS level, so permissions are set by flag, not 
   use natural language for conversational follow-ups in the same session.
 - Resume a session with `codex exec resume "$THREAD_ID" "$PROMPT"` (same output flags apply). Use
   `codex exec resume --last` only when resuming the most recent Codex session is unambiguous.
-- Resumed turns do not keep the original session's sandbox mode: `codex exec resume` has no
-  `--sandbox` flag and falls back to the configured default, which may be more permissive than the
-  initial turn (verified on codex-cli 0.142.5). Re-state the sandbox on every resume turn with
-  `-c sandbox_mode=<mode>`.
+- Resumed turns do not keep an explicitly passed sandbox mode: `codex exec resume` has no
+  `--sandbox` flag and falls back to the configured default (verified on codex-cli 0.142.5). Turns
+  that already ran on the configured default resume consistently, but when a turn pinned a mode such
+  as read-only, re-state it on every resume turn with `-c sandbox_mode=<mode>`.
 - Redirect stdin from `/dev/null`. When stdin is a non-TTY pipe, `codex exec` reads it as additional
   prompt input and hangs until the pipe closes, which never happens in most harnesses.
 - On resumed turns, send only the delta instruction instead of restating the whole prompt, unless
   the direction changed materially.
 
-Initial-run shape:
+Initial-run shape, shown pinning read-only:
 
 ```bash
 codex exec "$PROMPT" \
@@ -74,7 +81,7 @@ codex exec "$PROMPT" \
   < /dev/null
 ```
 
-Follow-up shape:
+Follow-up shape, re-stating the pinned mode:
 
 ```bash
 codex exec resume "$THREAD_ID" "$FOLLOW_UP_PROMPT" \
