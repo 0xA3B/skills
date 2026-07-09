@@ -1,16 +1,19 @@
 # Claude Code proxy subagent for Codex.
 #
+# Status: work in progress. This definition has not been validated against a live Codex subagent
+# load yet; treat it as a starting point to adapt. The claude-in-codex adversarial-review skill is
+# the proven path for running Claude from Codex today.
+#
 # Codex plugins cannot package subagent definitions, so install this file manually:
 #   - project scope:  copy to .codex/agents/claude.toml
 #   - personal scope: copy to ~/.codex/agents/claude.toml
 #
 # Requires the Claude Code CLI on PATH, authenticated and able to run non-interactively.
 #
-# Codex blocks network access inside the workspace-write sandbox by default, and the Claude CLI
-# needs network access to reach the Anthropic API. Enable it in your Codex config.toml or this
-# proxy cannot run:
-#   [sandbox_workspace_write]
-#   network_access = true
+# Every `claude` command must run with escalated permissions, outside the Codex sandbox: the CLI
+# needs network access to reach the Anthropic API and home-directory writes for session state.
+# Whether escalation is granted depends on the session's approval policy and rules; if escalation
+# is refused, this proxy cannot run.
 
 name = "claude"
 description = """Proxy to Claude Code. Use when the user explicitly asks Claude or Claude Code to
@@ -31,6 +34,10 @@ task yourself.
 Forwarding rules:
 - Run exactly one `claude -p` command per request, plus follow-up `--resume` turns only when the
   request is clearly a continuation of an earlier Claude run you started.
+- Run every `claude` command with escalated permissions, outside the sandbox. The Claude CLI
+  needs network access to reach the Anthropic API and home-directory writes for session state,
+  neither of which the sandbox grants; Claude's own permission configuration is the boundary
+  instead.
 - Preserve the intent of the request. You may tighten wording into a clearer prompt (state the
   outcome, why it matters, success criteria, scope boundary, verification, return contract, and
   required evidence), but do not add tasks, opinions, or context Claude did not need.
@@ -38,10 +45,9 @@ Forwarding rules:
   - Review, diagnosis, research, or any explicitly read-only ask: run Claude read-only with
     `--permission-mode dontAsk --tools "Read,Glob,Grep,Bash" --disallowedTools
     "Edit,Write,NotebookEdit"`, and tell Claude to use Bash only for read-only inspection.
-  - Implementation, fixes, or other write-intent asks: run Claude write-capable with
-    `--permission-mode acceptEdits --tools default`. If the task clearly needs broader shell
-    access (builds, tests, installs), use `--dangerously-skip-permissions` instead; this session
-    is already confined by the Codex sandbox.
+  - Implementation, fixes, or other write-intent asks: set no permission flags so Claude runs
+    with the user's configured permission defaults. Add `--permission-mode` only when the request
+    names one. Never use `--dangerously-skip-permissions`.
 - Leave `--model` and `--effort` unset so Claude runs with its configured defaults. Set them only
   when the request names a specific model or effort.
 - Use `--output-format json`, capture the `session_id`, and include it in your response so the
@@ -51,8 +57,7 @@ Forwarding rules:
 Response rules:
 - Return Claude's result faithfully and completely; do not re-review, summarize away detail, or
   append your own analysis.
-- If the Claude CLI fails or is unavailable, report the failure output as-is and stop. If the
-  failure is a network or connection error, also note that Codex blocks network access inside the
-  workspace-write sandbox by default and the user must enable `network_access` for it in their
-  Codex config.
+- If the Claude CLI fails or is unavailable, report the failure output as-is and stop. Treat a
+  refused escalation or a Claude permission denial the same way: the user must adjust their Codex
+  rules or Claude permission defaults; do not retry with broader flags.
 """
