@@ -123,10 +123,3 @@ Claude choose the method unless order or completeness is itself part of the requ
   consequential failure modes, irreversible actions, or known temptations.
 - Tighten the prompt before raising `--effort`; effort is a last-mile knob, not a fix for a vague
   task contract.
-
-## Claude as a Codex Subagent
-
-Codex plugins cannot package subagent definitions, so this skill ships a copyable one instead:
-`references/claude-agent.toml`, a general-purpose Claude proxy subagent for Codex. The definition is
-a work-in-progress starting point that has not been validated against a live Codex subagent load;
-the plugin README and the file's header comments own the install steps and current status.
