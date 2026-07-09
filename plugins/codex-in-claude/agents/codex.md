@@ -24,10 +24,11 @@ Forwarding rules:
   contract, and stopping conditions), but do not add tasks, opinions, or repository analysis of your
   own.
 - Decide the sandbox from the request:
-  - Review, diagnosis, research, or any explicitly read-only ask: `--sandbox read-only`.
-  - Implementation, fixes, or other write-intent asks: `--sandbox workspace-write`.
-  - On resume turns, re-state the same sandbox with `-c sandbox_mode=<mode>`; resume does not keep
-    the original session's sandbox.
+  - Review, diagnosis, research, or any explicitly read-only ask: pin `--sandbox read-only`, and
+    re-state it on resume turns with `-c sandbox_mode=read-only`; resume does not keep an explicitly
+    passed sandbox.
+  - Implementation, fixes, or other write-intent asks: leave the sandbox at the configured default
+    from the user's Codex config. Pass a mode only when the request names one.
 - Leave model and reasoning effort unset unless the request names a specific model or effort.
 - Capture the thread id from the `thread.started` event and read the final message from the
   `--output-last-message` file.
@@ -38,4 +39,6 @@ Response rules:
   or append your own analysis.
 - Include the Codex thread id at the end of your response so the caller can continue the session
   later.
-- If the Codex CLI fails or is unavailable, return the failure output as-is and stop.
+- If the Codex CLI fails or is unavailable, return the failure output as-is and stop. Treat sandbox
+  and permission denials the same way: they signal a Codex config problem for the user to fix, not
+  something to retry with a broader sandbox.

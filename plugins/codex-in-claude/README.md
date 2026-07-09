@@ -22,6 +22,9 @@ Run Codex from Claude Code for adversarial code review and task delegation.
 
 - `codex` must be available on `PATH`.
 - Codex must already be installed, authenticated, and ready to run non-interactively.
+- Codex needs network access and `~/.codex` writes, so `codex` commands must run outside any calling
+  sandbox (for example, excluded from Claude Code's Bash sandbox); Codex's own OS-level sandbox is
+  the enforcement boundary.
 
 ## Claude Code Support
 
