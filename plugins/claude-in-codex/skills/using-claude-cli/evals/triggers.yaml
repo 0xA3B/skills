@@ -42,23 +42,29 @@ cases:
     expect: invoke
     rationale: The request requires a conversational follow-up in an existing Claude CLI session.
 
-  - id: explain-json-output-flags
+  - id: claude-code-mcp-conceptual
     prompt: >-
-      What does claude -p --output-format json do, and when would I combine it with --json-schema?
+      Does Claude Code support MCP servers, and what do they add to a session?
     expect: skip
-    rationale: The user asks a conceptual CLI question and does not need Claude to be run.
+    rationale:
+      The user asks a conceptual Claude Code question that this contract does not answer, so no
+      claude -p run is needed.
 
   - id: claude-review-working-tree
     prompt: >-
       Ask Claude Code to review my working tree before I commit.
-    expect: skip
-    rationale: A Claude code-review request belongs to the sibling adversarial-review skill.
+    expect: invoke
+    rationale:
+      The adversarial-review skill owns the review workflow but runs Claude through this contract,
+      so a Claude review request is expected to load it.
 
   - id: claude-review-pull-request
     prompt: >-
       Run Claude against PR #84 and report any material code-review findings.
-    expect: skip
-    rationale: A Claude pull-request review belongs to the sibling adversarial-review skill.
+    expect: invoke
+    rationale:
+      A Claude pull-request review reaches claude -p through this contract via the
+      adversarial-review workflow.
 
   - id: generic-task-delegation
     prompt: >-
