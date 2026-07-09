@@ -1,9 +1,14 @@
 ---
 name: using-codex-cli
 description: >-
-  Internal contract for invoking the Codex CLI non-interactively. Use when another codex-in-claude
-  skill or the codex proxy agent needs to run codex exec for review, delegation, session follow-ups,
-  or structured output. Do not use for conceptual questions about Codex.
+  Internal contract for invoking the Codex CLI non-interactively. Use only when another
+  codex-in-claude skill or the codex proxy agent needs to run codex exec, including to support a
+  review workflow, delegate work, produce structured output, or resume or continue a prior Codex
+  session or thread with a follow-up in the same thread. Do not use as the direct entry point for a
+  user's request to have Codex review code, current changes or the working tree, a branch, or a pull
+  request; route that request through the sibling adversarial-review skill first. Do not use to
+  explain or describe Codex or Codex CLI behavior, commands, flags, output, or sandbox modes;
+  questions asking what a Codex CLI feature does are conceptual and should skip this skill.
 license: MIT
 user-invocable: false
 compatibility:
@@ -90,6 +95,20 @@ codex exec resume "$THREAD_ID" "$FOLLOW_UP_PROMPT" \
   --output-last-message "$RESULT_FILE" \
   < /dev/null
 ```
+
+## Timeouts and Interruption
+
+- Codex turns regularly outlast default tool timeouts. When invoking `codex exec` through a tool
+  with a configurable timeout, set the maximum (in Claude Code, `timeout: 600000`, 10 minutes).
+- For turns that may outlast even the maximum, such as high-effort review turns, run the command in
+  the background when the calling context supports it (Claude Code's `run_in_background`) and
+  collect the output when it exits.
+- For long delegated tasks, keep one Codex session but split the work into bounded steps across
+  resume turns instead of stretching a single run.
+- If a run is killed at a timeout, the thread id survives in the partial `--json` stream because
+  `thread.started` arrives early. Check whether the work actually completed before acting, and
+  resume with a short pick-up-where-you-left-off prompt only when it did not, re-stating any pinned
+  sandbox mode.
 
 ## Prompting Codex
 

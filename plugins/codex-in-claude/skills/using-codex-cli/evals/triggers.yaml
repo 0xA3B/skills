@@ -35,9 +35,10 @@ cases:
 
   - id: codex-thread-follow-up
     prompt: >-
-      Send a follow-up prompt to the same Codex thread we started earlier about the API design.
+      Continue the most recent codex exec run and have it tighten the API error handling.
     expect: invoke
-    rationale: The user asks for a Codex CLI session follow-up, which requires codex exec resume.
+    rationale:
+      The user asks to continue the most recent Codex CLI run, which requires codex exec resume.
 
   - id: codex-exec-json-flag-conceptual
     prompt: >-

@@ -1,7 +1,7 @@
 {
   "name": "codex-in-claude",
   "displayName": "Codex in Claude",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Run Codex from Claude Code for adversarial review, feedback triage, in-scope fixes, and task delegation.",
   "author": {
     "name": "Alex Baker"
