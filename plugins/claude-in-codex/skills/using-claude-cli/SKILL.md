@@ -20,6 +20,10 @@ Claude is asked to do, the scope, and how its output is used.
 ## CLI Basics
 
 - Use `claude` from `PATH`; do not hard-code a machine-specific absolute path.
+- Run `claude` with escalated permissions, outside the Codex sandbox: it needs network access to
+  reach the Anthropic API and home-directory writes for session state, neither of which the sandbox
+  grants. Claude's own recipes and configuration are the permission boundary, not the calling
+  sandbox.
 - Leave the model at the configured default. Add `--model` only when the user explicitly requests a
   specific model, such as asking for a Fable or Sonnet run.
 - Leave reasoning effort at the configured default. Add `--effort` (`medium`, `high`, or `xhigh`)
@@ -69,17 +73,17 @@ fix task:
 
 ```bash
 claude -p "$TASK_PROMPT" \
-  --permission-mode acceptEdits \
-  --tools default \
   --output-format json
 ```
 
-- `--permission-mode acceptEdits` auto-approves file edits; shell commands that would need an
-  interactive permission prompt are denied in `-p` mode and the step fails instead of blocking.
-- When the delegated task needs broader shell access (builds, tests, package installs) and the
-  calling process is itself confined by an OS-level sandbox, such as a Codex `workspace-write`
-  session, `--dangerously-skip-permissions` is acceptable because the outer sandbox still bounds the
-  damage. Never use it without an external sandbox, and never use it for review tasks.
+- The command sets no permission flags on purpose: Claude runs with the user's configured permission
+  defaults, which are treated as the intended write posture. Add `--permission-mode` only when the
+  user explicitly requests one.
+- Treat a permission denial as a failure to report, not a boundary to work around: it means the
+  configured defaults do not cover the task's writes non-interactively, and the fix is the user
+  adjusting their Claude settings or naming a permission mode. Never use
+  `--dangerously-skip-permissions`; an escalated run has no outer sandbox, so Claude's permission
+  system is the only boundary left.
 - State the intended change scope in the prompt and validate Claude's changes after the run; a
   write-capable Claude run is a delegation, not an oracle.
 
@@ -123,5 +127,6 @@ Claude choose the method unless order or completeness is itself part of the requ
 ## Claude as a Codex Subagent
 
 Codex plugins cannot package subagent definitions, so this skill ships a copyable one instead:
-`references/claude-agent.toml`, a general-purpose Claude proxy subagent for Codex. The plugin README
-and the file's header comments own the install steps and sandbox network requirement.
+`references/claude-agent.toml`, a general-purpose Claude proxy subagent for Codex. The definition is
+a work-in-progress starting point that has not been validated against a live Codex subagent load;
+the plugin README and the file's header comments own the install steps and current status.
