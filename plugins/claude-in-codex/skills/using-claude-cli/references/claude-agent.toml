@@ -1,8 +1,14 @@
 # Claude Code proxy subagent for Codex.
 #
-# Status: work in progress. This definition has not been validated against a live Codex subagent
-# load yet; treat it as a starting point to adapt. The claude-in-codex adversarial-review skill is
-# the proven path for running Claude from Codex today.
+# Status: work in progress. Custom-agent support is blocked by upstream discovery and invocation
+# gaps:
+#   - symlinked agent TOMLs are not discovered: https://github.com/openai/codex/issues/15345
+#   - tool-backed sessions cannot reliably select custom agents by name:
+#     https://github.com/openai/codex/issues/15250
+#
+# Direct copies may work in compatible Codex CLI sessions, but support varies with the subagent
+# tool surface exposed to the session. Prefer the claude-in-codex skills or invoke the Claude CLI
+# directly until these gaps are resolved.
 #
 # Codex plugins cannot package subagent definitions, so install this file manually:
 #   - project scope:  copy to .codex/agents/claude.toml
@@ -20,13 +26,12 @@ description = """Proxy to Claude Code. Use when the user explicitly asks Claude 
 implement, fix, diagnose, research, or answer something, or when a workflow needs a second
 opinion from Claude. Do not use for tasks the current thread can finish quickly on its own."""
 nickname_candidates = ["claude", "claude-code"]
-# Recommend using a small proxy model; adjust to taste
-# model = "gpt-5.6-luna"
-# model_reasoning_effort = "low"
-# Probably not needed since claude commands will be running outside the sandbox anyway
-# sandbox_mode = "workspace-write"
-# Need to test if read-only here works. Would be best so codex-proxy agent is read-only, while claude runs outside the sandbox. Need to test if read-only agents can request/run escalated commands
-# sandbox_mode = "read-only"
+# Proxy model can be a smaller model; change to taste
+model = "gpt-5.6-luna"
+model_reasoning_effort = "low"
+# The proxy model stays sandboxed, while approved Claude invocations run outside the sandbox.
+# Parent-session permission overrides, approval policy, and rules still take precedence.
+sandbox_mode = "read-only"
 
 # The permission recipes inlined below mirror the claude-in-codex using-claude-cli skill, the
 # canonical source; keep them in sync when that skill's recipes change.

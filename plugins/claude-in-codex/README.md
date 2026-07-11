@@ -20,12 +20,21 @@ Codex plugins cannot package subagent definitions, so this plugin ships a copyab
 (or `~/.codex/agents/claude.toml` for all projects) to let Codex spawn Claude Code as a
 general-purpose proxy subagent for delegated tasks.
 
-The definition is a work in progress: it has not been validated against a live Codex subagent load
-yet, so treat it as a starting point and prefer the `adversarial-review` skill, the proven path for
-running Claude from Codex today. The Claude CLI cannot run inside Codex's sandbox — it needs network
-access to reach the Anthropic API and home-directory writes for session state — so the proxy runs
-every `claude` command with escalated permissions, and whether Codex grants that escalation depends
-on your approval policy and rules.
+The definition is a work in progress. Custom-agent support currently has two upstream blockers:
+
+- [Symlinked custom-agent TOMLs are not discovered](https://github.com/openai/codex/issues/15345).
+- [Tool-backed sessions cannot reliably select custom agents by name](https://github.com/openai/codex/issues/15250),
+  including current Codex app sessions whose subagent tool exposes no agent-role selector.
+
+Direct copies may work in compatible Codex CLI sessions, but behavior varies by the subagent tool
+surface exposed to the session. Prefer the `adversarial-review` skill for its focused code-review
+workflow or invoke the Claude CLI directly through the `using-claude-cli` contract.
+
+The Claude CLI cannot run inside Codex's sandbox — it needs network access to reach the Anthropic
+API and home-directory writes for session state — so the proxy itself stays read-only while every
+`claude` command requests escalated execution. Whether Codex grants that exception depends on the
+parent session's approval policy, reviewer, and rules. Live permission overrides on the parent
+session take precedence over the proxy's configured read-only default.
 
 ## Requirements
 
