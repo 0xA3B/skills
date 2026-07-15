@@ -17,12 +17,17 @@ Write a concise continuation document for a fresh agent session.
 
 ## Placement
 
-Inside a repository, save the document as `.local/handoffs/<timestamp>-<slug>.md`. The repository's
-`.local/` directory is ignored working state, not project documentation. Outside a repository, use
-the operating system's temporary directory.
+The handoff document must never become tracked project state.
 
-Create only the handoff document and its parent directory. Do not edit project files, stage, commit,
-push, or create tracker items.
+Inside a repository, prefer the repository's ignored scratch convention when project instructions
+define one or an ignored scratch directory already exists (for example `.local/` or `.scratch/`),
+and save the document as `<scratch-dir>/handoffs/<timestamp>-<slug>.md`. Confirm the path is
+ignored, for example with `git check-ignore`, before writing. When no ignored convention exists or
+the path is not ignored, fall back to the operating system's temporary directory instead of changing
+ignore rules. Outside a repository, use the temporary directory.
+
+Create only the handoff document and its parent directory. Do not edit project files or ignore
+rules, stage, commit, push, or create tracker items.
 
 ## Content
 
