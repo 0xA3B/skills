@@ -26,6 +26,22 @@ cases:
     expect: invoke
     rationale: A lane reviewer should load the assigned review discipline.
 
+  - id: plain-worktree-review
+    prompt: >-
+      Review my worktree changes before I commit and fix anything you find.
+    expect: invoke
+    rationale: >-
+      Reviewing the session's own worktree is in contract even without the manual workflow; the
+      standalone fallback reports findings-only and hands off to review-changes.
+
+  - id: third-party-code-review
+    prompt: >-
+      Review this open-source library I vendored from GitHub and tell me whether the code quality is
+      good enough to adopt.
+    expect: skip
+    rationale: >-
+      Generic review of arbitrary third-party code is outside the own-work review contract.
+
   - id: existing-feedback
     prompt: >-
       Triage these reviewer comments and fix the valid ones.
