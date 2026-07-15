@@ -18,9 +18,10 @@ argument-hint: "[skill-name]"
 
 Repo-local wrapper for adding a plugin skill under `plugins/<plugin-name>/skills/`.
 
-Use the built-in `skill-creator` guidance for drafting or materially revising `SKILL.md`. Use this
-skill for this repository's plugin placement, metadata, documentation, invocation-policy, and
-validation conventions.
+Use the repo-local `writing-skills` discipline for drafting or materially revising `SKILL.md`, and
+the built-in `skill-creator` guidance for general skill scaffolding and bundled-resource structure.
+Use this skill for this repository's plugin placement, metadata, documentation, invocation-policy,
+and validation conventions.
 
 ## Outcome
 
@@ -34,8 +35,10 @@ is not clearly caused by this change, report the blocker and the safest next act
 ## Source Of Truth
 
 - Follow `plugins/AGENTS.md` for skill metadata placement and authoring rules.
-- Follow the built-in `skill-creator` skill for general skill design, progressive disclosure, and
-  skill-body drafting. Do not take target paths or repo layout from `skill-creator`.
+- Follow the repo-local `writing-skills` discipline for skill-body drafting, instruction quality,
+  information hierarchy, and completion criteria.
+- Follow the built-in `skill-creator` skill for general skill scaffolding and bundled-resource
+  structure. Do not take target paths or repo layout from `skill-creator`.
 - Use existing skills in the target plugin as local style examples.
 - Keep plugin manifests pointed at `./skills/`; do not add per-skill manifest paths.
 - Follow the plugin version policy in `plugins/AGENTS.md`; adding a new skill requires a patch
@@ -50,9 +53,10 @@ is not clearly caused by this change, report the blocker and the safest next act
 
 ## Workflow
 
-1. Identify the target plugin and normalize the skill name to lowercase kebab-case. Use an
-   imperative verb phrase for user-invocable skills and a state or discipline phrase (typically a
-   gerund, such as `receiving-feedback`) for `user-invocable: false` skills.
+1. Identify the target plugin and normalize the skill name to lowercase kebab-case. Use an action or
+   workflow name (imperative verb phrase by default) for user-invocable skills and a state or
+   discipline phrase (typically a gerund, such as `receiving-feedback`) for `user-invocable: false`
+   skills.
 2. Confirm the skill does not already exist at `plugins/<plugin-name>/skills/<skill-name>/`.
 3. Create:
 
@@ -61,8 +65,9 @@ is not clearly caused by this change, report the blocker and the safest next act
    plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml
    ```
 
-4. Use `skill-creator` guidance to draft `SKILL.md`; apply `plugins/AGENTS.md` for this repo's
-   frontmatter and placement rules.
+4. Apply the `writing-skills` discipline to draft `SKILL.md`, using `skill-creator` guidance for
+   scaffolding and bundled-resource structure; apply `plugins/AGENTS.md` for this repo's frontmatter
+   and placement rules.
 5. Write `agents/openai.yaml` with `interface.display_name`, `interface.short_description`,
    `interface.default_prompt`, and `policy.allow_implicit_invocation`. For manual-only skills, make
    `interface.default_prompt` include the explicit `$plugin-name:skill-name` callout. Use
@@ -121,5 +126,6 @@ mise exec -- pnpm format:check
 - Do not change plugin metadata unless the new skill affects plugin descriptions, prompts, keywords,
   or visible docs.
 - Do not duplicate broad skill-authoring guidance here; keep repo-wide review guidance in
-  `plugins/AGENTS.md` and use `skill-creator` for general authoring details.
+  `plugins/AGENTS.md`, use `writing-skills` for skill-body quality, and use `skill-creator` for
+  general scaffolding details.
 - Do not stage or commit changes unless the user asks.
