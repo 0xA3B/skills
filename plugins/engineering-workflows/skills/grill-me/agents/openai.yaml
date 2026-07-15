@@ -1,9 +1,8 @@
 version: 1
 interface:
   display_name: "Grill Me"
-  short_description: "Stress-test an approach through adversarial questioning"
+  short_description: "Stress-test a plan, decision, idea, or design"
   default_prompt:
-    "Use $engineering-workflows:grill-me to stress-test this approach through adversarial
-    questioning."
+    "Use $engineering-workflows:grill-me to stress-test this through adversarial questioning."
 policy:
   allow_implicit_invocation: false

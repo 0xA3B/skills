@@ -83,51 +83,50 @@ Skills for drafting and creating Conventional Commits.
 
 ### `engineering-workflows`
 
-Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance,
-disposable prototyping, building, TDD, diagnosis, architecture review, durable terminology, codebase
-orientation, scoped code review, feedback triage, and visual presentation artifacts. Some skills are
+Engineering workflow skills for decision mapping, adversarial design review, dependency maintenance,
+disposable prototyping, building, TDD, diagnosis, architecture review, durable terminology, scoped
+code review, session handoffs, feedback triage, and visual presentation artifacts. Some skills are
 adapted from Matt Pocock's MIT-licensed [`mattpocock/skills`](https://github.com/mattpocock/skills)
 repository with source attribution preserved in each adapted skill's Agent Skills frontmatter
 metadata.
 
-Typical implementation flow: `brainstorm` when solution direction is unclear, `grill-me` once a
-direction is selected and needs interrogation, `prototype` when a question needs disposable
-executable evidence, then `build` for greenfield or high-churn implementation and `tdd` for stable
-behavior. Use `terminology` when stable domain language needs a focused create, update, or review
-pass. Use `review-changes` for worktree review before commit and `review-branch` for pre-merge
-branch review. `receiving-feedback` handles existing reviewer feedback. `diagnose`, `zoom-out`, and
-`improve-codebase-architecture` are ad hoc workflows for specific needs. Use
-`dependency-maintenance` when dependency update PRs need evidence-backed triage, safe merges, local
-sync, and linked follow-up issues for migration or feature work. `visualize` is a manual
-presentation workflow for turning session output into a temporary visual artifact without changing
-the underlying analysis.
+Typical implementation flow: `wayfinder` maps a loose idea into decision-sized chunks, `grill-me`
+resolves a selected direction, and `prototype` answers questions that need executable evidence. Use
+`build` for greenfield or high-churn implementation and `tdd` for stable behavior. Use
+`review-changes` before commit and `review-branch` before merge. `codebase-design` and
+`reviewing-code` provide shared background discipline. Use `handoff` when another agent session
+should continue from an ignored local context document.
 
-- [`engineering-workflows:brainstorm`](./plugins/engineering-workflows/skills/brainstorm/):
-  Researches and compares solution options before adversarial review.
 - [`engineering-workflows:build`](./plugins/engineering-workflows/skills/build/): Implements working
   slices with pragmatic validation.
+- [`engineering-workflows:codebase-design`](./plugins/engineering-workflows/skills/codebase-design/):
+  Applies shared deep-module and interface-design discipline.
 - [`engineering-workflows:dependency-maintenance`](./plugins/engineering-workflows/skills/dependency-maintenance/):
   Reviews dependency update PRs, merges ready ones, syncs local state, and files linked follow-up
   issues.
 - [`engineering-workflows:diagnose`](./plugins/engineering-workflows/skills/diagnose/): Runs a
   disciplined diagnosis loop for bugs, flaky behavior, and performance regressions.
+- [`engineering-workflows:grill-me`](./plugins/engineering-workflows/skills/grill-me/): Stress-tests
+  a plan, decision, idea, or design through adversarial questioning.
+- [`engineering-workflows:handoff`](./plugins/engineering-workflows/skills/handoff/): Saves a
+  compact local continuation document for another agent session.
+- [`engineering-workflows:improve-codebase-architecture`](./plugins/engineering-workflows/skills/improve-codebase-architecture/):
+  Finds focused, evidence-backed module deepening opportunities.
 - [`engineering-workflows:prototype`](./plugins/engineering-workflows/skills/prototype/): Creates
   disposable exploratory code to answer a design question.
 - [`engineering-workflows:review-branch`](./plugins/engineering-workflows/skills/review-branch/):
   Reviews a branch, PR, or MR before merge.
 - [`engineering-workflows:review-changes`](./plugins/engineering-workflows/skills/review-changes/):
   Reviews and fixes current worktree changes before commit.
+- [`engineering-workflows:reviewing-code`](./plugins/engineering-workflows/skills/reviewing-code/):
+  Applies shared review-lane selection, isolation, and finding contracts.
 - [`engineering-workflows:receiving-feedback`](./plugins/engineering-workflows/skills/receiving-feedback/):
   Triages and responds to existing review feedback.
 - [`engineering-workflows:tdd`](./plugins/engineering-workflows/skills/tdd/): Builds features or
   fixes with a red-green-refactor loop.
-- [`engineering-workflows:grill-me`](./plugins/engineering-workflows/skills/grill-me/): Stress-tests
-  an approach through adversarial questioning.
 - [`engineering-workflows:terminology`](./plugins/engineering-workflows/skills/terminology/):
   Creates, updates, or reviews durable project terminology.
-- [`engineering-workflows:zoom-out`](./plugins/engineering-workflows/skills/zoom-out/): Maps an
-  unfamiliar code area at a higher level of abstraction.
-- [`engineering-workflows:improve-codebase-architecture`](./plugins/engineering-workflows/skills/improve-codebase-architecture/):
-  Finds module deepening and architecture improvement opportunities.
 - [`engineering-workflows:visualize`](./plugins/engineering-workflows/skills/visualize/): Creates a
   temporary visual report, diagram, or presentation artifact from the current session.
+- [`engineering-workflows:wayfinder`](./plugins/engineering-workflows/skills/wayfinder/): Maps a
+  loose idea into decisions, dependencies, frontier, fog, and excluded scope.

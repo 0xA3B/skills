@@ -95,36 +95,14 @@ These instructions apply to plugin directories under `plugins/`.
 
 ## Skill Authoring Baseline
 
-- Skills ship to both Claude Code (Claude) and Codex (GPT-5.5). Write instructions that hold up on
-  both models by describing the outcome, success criteria, constraints, allowed side effects,
-  evidence rules, and final output shape.
-- Prefer outcome-first instructions over step-by-step procedures. Keep exact sequences only when
-  repository safety, file placement, validation, or command ordering requires them.
-- Use absolute instructions such as "must" or "do not" only for true invariants. For judgment calls,
-  provide decision rules and missing-evidence behavior.
-- Add explicit stopping conditions for tool-heavy workflows: stop when validation passes, when the
-  requested artifact is complete, or when a blocker prevents safe execution.
-- Remove contradictory or overlapping instructions during prompt review. Both models follow literal
-  instructions closely, so stale or vague guidance can cause unnecessary work.
-- Treat the `description` as the trigger contract: describe what the skill does and when agents
-  should use it.
-- Keep `SKILL.md` concise and procedural. Include only context needed to perform the workflow.
-- Use progressive disclosure for larger material:
-  - keep the core workflow in `SKILL.md`
-  - put large reference material, detailed examples, schemas, or API notes in `references/`
-  - put deterministic or repeatedly rewritten logic in `scripts/`
-  - put templates, images, icons, fonts, or other output resources in `assets/`
-- Prefer imperative workflow instructions over broad explanatory documentation.
-- Add examples only when they materially reduce ambiguity for the agent using the skill.
-- For non-trivial behavior-shaping skills, run temporary behavior pressure tests before treating the
-  draft as ready. Behavior-shaping skills ask the agent to resist a tempting shortcut, spend extra
-  effort, stop before acting, preserve a safety boundary, or follow a workflow that may feel slower
-  than the immediate user request.
-- The repo-local `$pressure-test-skill` workflow owns the pressure-test methodology: prompt design,
-  isolated execution, manual evaluation, and skill tightening. It is a review workflow, not a
-  required validation gate. Keep pressure prompts and notes temporary (under `.local/` or
-  discarded); do not commit fixtures, eval output, or a harness unless the behavior needs repeatable
-  regression coverage and the user explicitly wants that investment.
+- Skills ship to both Claude Code and Codex. Keep bodies agent-agnostic and use the repository's
+  metadata surfaces for target-specific behavior.
+- Use the repo-local `writing-skills` discipline when authoring or materially revising `SKILL.md`.
+  It owns instruction quality, invocation design, information hierarchy, completion criteria, and
+  pruning; this file owns repository placement, metadata, versioning, and validation conventions.
+- Use `pressure-test-skill` for non-trivial behavior shaping and `optimize-trigger` for implicit
+  invocation behavior. Keep their generated artifacts under `.local/` unless the repository
+  intentionally adds repeatable regression coverage.
 
 ## Validation
 

@@ -1,0 +1,9 @@
+version: 1
+interface:
+  display_name: "Wayfinder"
+  short_description: "Map a loose idea into actionable decision chunks"
+  default_prompt:
+    "Use $engineering-workflows:wayfinder to map this idea into decisions, dependencies, and an
+    actionable frontier."
+policy:
+  allow_implicit_invocation: false

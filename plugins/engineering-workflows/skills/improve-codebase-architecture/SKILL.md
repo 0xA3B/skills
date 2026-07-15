@@ -1,134 +1,87 @@
 ---
 name: improve-codebase-architecture
 description: >-
-  Find architectural deepening opportunities in a codebase, informed by the project's domain
-  language. Use when the user wants refactoring opportunities, better module design, simpler
-  interfaces, stronger testability, or a codebase architecture review.
+  Find evidence-backed architectural deepening opportunities in a codebase. Use when the user wants
+  refactoring candidates, better module design, simpler interfaces, stronger testability, or a
+  focused codebase architecture review.
 license: MIT
 metadata:
   original_author: Matt Pocock
-  original_source: https://github.com/mattpocock/skills/tree/b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8/skills/engineering/improve-codebase-architecture
+  original_source: https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills/engineering/improve-codebase-architecture
 disable-model-invocation: true
 argument-hint: "[scope]"
 ---
 
 # Improve Codebase Architecture
 
-Surface architectural friction and propose deepening opportunities: refactors that put more useful
-behavior behind simpler interfaces. The goal is better locality, leverage, testability, and
-agent-navigability.
+Find architectural friction and propose deepening opportunities: changes that put more useful
+behavior behind simpler interfaces and improve locality, leverage, testability, and navigation.
+
+Apply `engineering-workflows:codebase-design` throughout this workflow.
 
 ## Outcome
 
-Produce a prioritized architecture review grounded in repository evidence, or a concrete
-implementation plan for a selected refactor. The first pass is analysis only unless the user
-explicitly asks for implementation or durable documentation updates.
+Produce a prioritized, repository-grounded architecture review or a concrete plan for one selected
+refactor. The first pass is analysis-only unless the user explicitly requests implementation.
 
-## Evidence Rules
+## Scope Before Scanning
 
-- Tie each candidate to specific files, modules, callers, tests, docs, or observed navigation
-  friction.
-- State uncertainty when evidence is incomplete, and name the evidence that would change the
-  recommendation.
-- Do not treat a theoretical pattern preference as a candidate unless repository evidence shows
-  friction.
+Deepening pays off where future change is likely. Choose the review area before searching:
 
-## Language
+1. Use the module, subsystem, pain point, or path named by the user.
+2. Otherwise inspect a meaningful stretch of recent history for files and areas that change
+   repeatedly, and start with those hot spots.
+3. Widen only when changes are scattered or evidence shows the initial area depends on a broader
+   architectural problem.
 
-Use this vocabulary consistently in every suggestion. The full definitions live in
-[LANGUAGE.md](references/LANGUAGE.md).
+Do not manufacture repository-wide candidates when the likely change surface is narrower.
 
-- **Module**: anything with an interface and an implementation.
-- **Interface**: everything a caller must know to use a module, including types, invariants, error
-  modes, ordering, and configuration.
-- **Implementation**: the code inside the module.
-- **Depth**: leverage at the interface. A deep module provides a lot of behavior behind a simple
-  interface. A shallow module exposes nearly as much complexity as it hides.
-- **Seam**: where an interface lives; a place behavior can be changed without editing callers in
-  place.
-- **Adapter**: a concrete thing satisfying an interface at a seam.
-- **Leverage**: what callers get from depth.
-- **Locality**: what maintainers get from depth: change, bugs, and knowledge concentrated in one
-  place.
+## Explore
 
-Key principles:
+Read `AGENTS.md ## Terminology`, repository guidance, nearby docs, code, callers, and tests. Follow
+concrete friction:
 
-- Deletion test: if deleting a module makes complexity disappear, it was probably pass-through. If
-  deleting it spreads complexity into callers, it was earning its keep.
-- The interface is the test surface.
-- One adapter usually means a hypothetical seam; two adapters usually means a real seam.
+- understanding one concept requires bouncing through many shallow modules;
+- caller knowledge, bugs, or policy are duplicated across a cluster;
+- a seam is missing at real variation or added where nothing varies;
+- tests reach through interfaces or depend on private structure;
+- one logical change repeatedly causes scattered edits;
+- code names conflict with durable domain language.
 
-## Workflow
+Apply the deletion test to suspected pass-through modules. Tie every candidate to specific files,
+callers, tests, history, or observed navigation friction. Pattern preference without repository
+evidence is not a finding.
 
-### 1. Explore
+## Present Candidates
 
-Read the project's domain language first when these sources exist:
+For each candidate include:
 
-- `AGENTS.md`, README files, and nearby module docs
-- code names in the area under review
+- files and modules involved;
+- observed friction and evidence;
+- proposed responsibility and seam change in plain language;
+- benefits to locality, leverage, callers, and tests;
+- risks, compatibility or migration costs, and uncertainty.
 
-Then inspect the codebase with normal repository inspection tools. Follow the friction:
+Do not propose a detailed interface during the first pass. Ask which candidate the user wants to
+explore or implement.
 
-- Where does understanding one concept require bouncing through many small modules?
-- Where are modules shallow?
-- Where was code extracted for testability, but the real bugs live in orchestration?
-- Where do tightly coupled modules leak across seams?
-- Which parts are untested or hard to test through the current interface?
-- Which names in code fail to match the domain language?
-- Which terms are vague, overloaded, or missing from `AGENTS.md ## Terminology`?
+## Resolve A Selected Candidate
 
-Apply the deletion test to suspected shallow modules.
+For the selected candidate, make explicit:
 
-### 2. Present Candidates
+- behavior that belongs behind the interface;
+- knowledge callers should lose;
+- dependencies and adapter strategy;
+- invariants, errors, ordering, configuration, and performance that remain part of the interface;
+- tests that should survive the refactor;
+- migration and compatibility constraints.
 
-Present a numbered list of deepening opportunities. For each candidate include:
-
-- **Files**: the files or modules involved.
-- **Problem**: the architectural friction.
-- **Solution**: what would change in plain English.
-- **Benefits**: why locality, leverage, or tests improve.
-- **Risks**: migration cost, compatibility issues, or uncertainty.
-- **Evidence**: the concrete code or doc evidence that supports the candidate.
-
-Use the project's domain language from `AGENTS.md ## Terminology` when available. If an idea
-conflicts with established terminology, surface the mismatch and recommend whether to rename the
-code, update the terminology, defer the terminology decision, or hand off to
-`engineering-workflows:terminology` for a focused pass.
-
-When handing off to another engineering workflow skill, include why this workflow is stopping, the
-context to carry forward, and the exact `engineering-workflows:<skill>` skill for the user to invoke
-explicitly with their agent's skill-invocation syntax.
-
-Do not implement the refactor during this first pass unless the user explicitly asked for changes.
-Ask which candidate they want to explore or implement.
-
-### 3. Grill The Selected Candidate
-
-Once the user picks a candidate, run a focused planning loop:
-
-- What exact behavior belongs behind the new or deepened interface?
-- Which callers should know less after the change?
-- Which tests should survive a refactor?
-- What data, errors, ordering, or configuration are part of the interface?
-- Which compatibility or migration constraints matter?
-
-If new stable domain terms emerge, update the `## Terminology` section in `AGENTS.md`. Create the
-section if needed. Prefer canonical terms, one-sentence definitions, aliases to avoid, and useful
-relationships between terms. Skip generic programming terms and incidental class, function, or
-module names unless they are part of the domain language.
-
-If the user rejects a candidate for a durable reason, include that reason in the review summary so
-future architecture reviews do not re-suggest it without new evidence.
-
-For deeper interface exploration, use [INTERFACE-DESIGN.md](references/INTERFACE-DESIGN.md). For the
-full deepening model, use [DEEPENING.md](references/DEEPENING.md).
+When the interface shape is still uncertain, apply the design-it-twice reference from
+`engineering-workflows:codebase-design`. When the remaining choices are user-owned decisions,
+recommend an explicit `engineering-workflows:grill-me` handoff.
 
 ## Completion
 
-End with either:
-
-- A prioritized architecture review and the next decision to make, or
-- A concrete implementation plan for the selected refactor, including validation steps.
-
-Stop the first pass once the strongest defensible candidates are clear. Do not keep searching for
-additional theoretical refactors after the review has enough evidence to guide the next decision.
+End with either a prioritized architecture review and next decision, or an implementation-ready plan
+for the selected candidate with validation steps. Stop when the strongest defensible candidates are
+clear; do not continue into theoretical cleanup after the evidence is sufficient.

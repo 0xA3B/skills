@@ -1,0 +1,37 @@
+version: 1
+cases:
+  - id: design-module-interface
+    prompt: >-
+      Help me design a deeper module interface for this cluster of shallow wrappers.
+    expect: invoke
+    rationale: The user asks for module depth and interface design.
+
+  - id: choose-seam
+    prompt: >-
+      Where should the seam go so callers know less and this is easier to test?
+    expect: invoke
+    rationale: Seam placement is a core codebase-design decision.
+
+  - id: compare-interface-designs
+    prompt: >-
+      Compare a few materially different interfaces for this subsystem and recommend one.
+    expect: invoke
+    rationale: The user asks to design an interface more than once.
+
+  - id: fix-bug
+    prompt: >-
+      Fix the null dereference in the login handler.
+    expect: skip
+    rationale: A direct bug fix does not inherently require codebase design.
+
+  - id: review-worktree
+    prompt: >-
+      Review my current worktree before I commit.
+    expect: skip
+    rationale: Generic worktree review belongs to reviewing-code and review-changes.
+
+  - id: conceptual-architecture
+    prompt: >-
+      What is hexagonal architecture?
+    expect: skip
+    rationale: A conceptual question does not ask for repository codebase design.

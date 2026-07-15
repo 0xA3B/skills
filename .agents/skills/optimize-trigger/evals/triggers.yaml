@@ -16,7 +16,7 @@ cases:
 
   - id: run-evals-request
     prompt: >-
-      Run the trigger evals for the brainstorm skill and fix any failures.
+      Run the trigger evals for the wayfinder skill and fix any failures.
     expect: invoke
     rationale: Running trigger evals and interpreting failures is owned by this workflow.
 

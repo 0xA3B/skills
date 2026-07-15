@@ -3,103 +3,87 @@ name: review-branch
 description: >-
   Review a branch, WIP branch, PR, MR, or branch-vs-base diff before merge. Use when the user asks
   for branch review, pre-merge review, PR review, MR review, or review against a base branch. Runs
-  review lanes, triages findings decision-first, and applies approved fixes after triage when
-  appropriate.
+  focused review lanes, resolves gated findings one at a time, and applies approved fixes when edits
+  are permitted.
 disable-model-invocation: true
 argument-hint: "[base|pr|mr]"
 ---
 
 # Review Branch
 
-Review a full branch or PR/MR before merge. Scope is the skill boundary; intent is handled through
-review lanes.
+Review a full branch or PR/MR before merge. This workflow owns scope, base resolution,
+decision-first triage, edit policy, and completion. Apply `engineering-workflows:reviewing-code` for
+lane selection, reviewer isolation, and finding contracts.
 
 ## Outcome
 
-Produce a triaged pre-merge review of the branch diff, resolve gated decisions one finding at a
-time, then apply approved fixes when edits are permitted. Finish with validation evidence and a
-concise status summary.
+Produce a triaged pre-merge review, resolve gated decisions one finding at a time, apply approved
+fixes when permitted, and finish with fresh validation evidence.
 
-## Scope
+## Scope And Base
 
-Review the current branch against a base branch unless the user provides a PR, MR, branch, path, or
+Review the current branch against a base unless the user provides a PR, MR, branch, path, or
 explicit range.
 
-Base resolution:
+Resolve the base in this order:
 
-1. Use the user-specified base when provided.
-2. For PR or MR review, resolve the target branch when the relevant CLI and authentication are
-   available.
-3. Otherwise use the repository default branch, preferring `origin/HEAD`, then common names such as
-   `main`, `master`, or `trunk`.
-4. Use an upstream branch only when it is explicitly known to be the intended review base. A feature
-   branch's remote tracking branch is usually not the merge target and can produce an empty or
-   partial pre-merge diff.
+1. user-specified base;
+2. PR or MR target branch from the relevant CLI when available;
+3. repository default from `origin/HEAD`, then `main`, `master`, or `trunk`;
+4. another upstream only when it is explicitly known to be the merge target.
 
-Treat the full branch diff as scope. Include uncommitted changes only when they are present and
-relevant; call out that they are included.
+Use the merge-base diff for branch review. A feature branch's tracking branch is usually not its
+merge target. Include relevant uncommitted changes only when present and call them out explicitly.
 
-## Review Lanes
+## Required And Conditional Lanes
 
-Read `../../references/review-lanes.md` before launching reviewers. Run the required
-`simplification` and `code review` lanes over the branch target, and add extra lanes when branch
-size or risk justifies them.
+Always require:
 
-If the user provides a spec, PRD, issue, acceptance criteria, design doc, or similar source of
-intended behavior, add a separate `spec adherence` lane. Keep it separate from the general
-`code review` lane so implementation bugs, missing requirements, contradictory behavior, and scope
-creep are triaged without blurring the evidence source. Require the lane to cite the spec source for
-each finding.
+- `code review`;
+- `simplification`.
 
-## Sub-Agent Policy
+Use `reviewing-code` to add conditional lanes. Be deliberately greedier than `review-changes`
+because a branch is the pre-merge integration boundary:
 
-If this chat session wrote or substantially edited the code under review, the main agent must not
-own a required review lane. Spawn one sub-agent per required lane and keep the main agent as
-coordinator and triager.
+- codebase design for new modules, structural refactors, cross-module policy, or repeated seam
+  changes;
+- API/seam for new or materially changed public contracts;
+- test review for meaningful test additions, broad behavior changes, or high-risk test strategy;
+- spec adherence when a spec, issue, PRD, acceptance criteria, or equivalent intent source is
+  available.
 
-If this is a fresh session or the main agent did not author the branch changes, the main agent may
-own one lane and spawn at least one sub-agent for the other lane. For large, cross-cutting,
-security-sensitive, migration-heavy, or high-risk branches, keep the main agent as coordinator and
-spawn all required lanes plus any extra lanes that risk justifies.
+Do not add lanes merely to increase reviewer count. Each selected lane needs a distinct question
+that the required lanes would otherwise overload.
 
-## Decision-First, Edit-Second Triage
+## Review Execution
 
-Use `engineering-workflows:receiving-feedback` discipline for all reviewer findings:
+Use the coordinator mode from `engineering-workflows:reviewing-code`. If this session authored or
+substantially edited the branch, keep the main agent as coordinator and use independent reviewers
+for required lanes when subagents are permitted. For large or high-risk branches, independently run
+all selected lanes when capacity allows.
 
-- verify before accepting;
-- ask follow-up questions or push back when unclear or wrong;
-- classify findings as accepted, auto-accepted, needs-clarification, gated, deferred, or rejected.
+Lane reviewers report findings only; they do not edit or negotiate user decisions.
 
-For branch review, triage before editing:
+## Decision First, Edits Second
 
-1. Run all lanes and collect findings.
-2. Dedup findings that point at the same line, mechanism, or missing coverage.
-3. Mark obvious low-risk, tightly scoped findings as `auto-accepted`, but do not edit yet.
-4. Present gated findings to the user one at a time in natural language.
-5. Record each decision before moving to the next gated finding.
-6. After the decision queue is resolved, apply approved fixes in dependency order.
-7. Validate high-risk fixes independently and low-risk fixes in small coherent batches.
+Apply `engineering-workflows:receiving-feedback` to every finding:
 
-Do not dump gated findings into a bulk approval list, even when the user asks to approve everything
-at once. The one-finding-at-a-time loop exists to preserve decision quality; summaries are fine only
-after individual decisions are resolved or when the user asks for a non-decision overview.
+1. collect all lane results;
+2. normalize and deduplicate by mechanism and remedy;
+3. mark obvious low-risk findings as auto-accepted without editing yet;
+4. present gated findings to the user one at a time;
+5. record each decision before moving to the next finding;
+6. apply approved fixes in dependency order after the queue is resolved;
+7. validate high-risk fixes independently and low-risk fixes in coherent batches.
 
-Exceptions: fix immediately if one issue blocks understanding later findings, if the user asks to
-handle that finding now, if a decision changes review scope enough to require re-triage, or if a
-risky fix needs isolated validation before continuing.
+Fix immediately only when an issue blocks understanding later findings, the user asks to handle it
+now, a decision changes review scope, or an isolated risky fix needs evidence before triage can
+continue.
 
-## Edit Boundary
-
-Do not auto-accept or silently edit broad refactors, public API changes, data model changes,
-migrations, dependency changes, security-policy changes, product behavior changes, or fixes outside
-the branch review scope. Present those as gated or deferred.
+Do not silently auto-accept broad refactors, public-interface changes, data-model changes,
+migrations, dependencies, security policy, product behavior, or fixes outside branch scope.
 
 ## Output
 
-End with:
-
-- review scope and base;
-- lanes run and the sub-agent reviewers used;
-- auto-accepted, accepted, gated, deferred, and rejected finding counts;
-- fixes applied and validation results;
-- findings left for user or follow-up decisions.
+End with scope and base, selected lanes and reviewers, finding counts by disposition, fixes applied,
+validation results, and findings left for user or follow-up decisions.

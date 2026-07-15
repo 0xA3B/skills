@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Writing Skills"
+  short_description: "Write and improve predictable skill instructions"
+  default_prompt: "Use $writing-skills to write or improve this skill body."
+policy:
+  allow_implicit_invocation: true

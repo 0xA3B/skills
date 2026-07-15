@@ -1,0 +1,44 @@
+version: 1
+# Known Claude signal limitation: on edits or reviews, Claude may locate and read the staged
+# writing-skills SKILL.md directly instead of emitting a Skill tool event. Inspect events before
+# treating those direct-read skips as evidence that the trigger contract needs broader wording.
+cases:
+  - id: write-skill-body
+    prompt: >-
+      Draft the SKILL.md instructions for a new release-management workflow skill.
+    expect: invoke
+    rationale: The request is directly about authoring a skill body.
+
+  # Claude has sometimes direct-read the staged authoring skill for this case and reported a skip.
+  - id: improve-existing-skill
+    prompt: >-
+      Tighten the supplied release skill's SKILL.md body so it stops completing before it has
+      verified the result.
+    expect: invoke
+    rationale: The user wants to improve behavior-shaping instructions in an existing skill.
+
+  # Claude has sometimes direct-read the staged authoring skill for this case and reported a skip.
+  - id: review-skill-structure
+    prompt: >-
+      Review the supplied deployment skill's SKILL.md body for duplicated guidance, weak completion
+      criteria, and poor progressive disclosure.
+    expect: invoke
+    rationale: The request uses the shared skill-authoring discipline.
+
+  - id: plugin-metadata-only
+    prompt: >-
+      Update this plugin's marketplace description and version.
+    expect: skip
+    rationale: Marketplace and version metadata are outside skill-body authoring.
+
+  - id: trigger-evaluation
+    prompt: >-
+      Evaluate whether this skill invokes on the right prompts.
+    expect: skip
+    rationale: Trigger behavior belongs to optimize-trigger.
+
+  - id: install-skill
+    prompt: >-
+      Install this skill from a GitHub repository.
+    expect: skip
+    rationale: Skill installation is outside authoring.

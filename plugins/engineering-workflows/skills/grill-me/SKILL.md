@@ -1,65 +1,67 @@
 ---
 name: grill-me
 description: >-
-  Interview the user through an adversarial line of questioning until the important decisions,
-  dependencies, and edge cases are clear. Use when the user asks to stress-test an approach, get
-  grilled on a design, challenge a brainstormed direction, or resolve ambiguity before
-  implementation.
+  Interview the user through an adversarial decision tree until the important decisions,
+  dependencies, and edge cases are clear. Use when the user asks to stress-test a plan, decision,
+  idea, or design, get grilled on an approach, challenge a brainstormed direction, or resolve
+  ambiguity before implementation.
 license: MIT
 metadata:
   original_author: Matt Pocock
-  original_source: https://github.com/mattpocock/skills/tree/b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8/skills/productivity/grill-me
+  original_source: https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills/productivity/grilling
 disable-model-invocation: true
 argument-hint: "[approach]"
 ---
 
 # Grill Me
 
-Interview the user about the approach until there is a shared understanding of the shape of the
-work. Walk the decision tree one branch at a time, resolving dependencies before moving deeper.
-Treat the session as a rigorous design review, not a promise to produce a formal implementation
-artifact.
+Interview the user relentlessly until there is shared understanding of the work. Walk the decision
+tree one branch at a time, resolving dependencies before moving deeper.
 
 ## Outcome
 
-Expose and resolve the decisions that materially affect implementation, risk, scope, product
-behavior, or validation. The approach should become specific enough to implement, defer, or reject.
+Expose and resolve decisions that materially affect behavior, implementation, risk, scope, or
+validation. Finish with an approach the user has explicitly confirmed is specific enough to
+implement, defer, or reject.
 
-## Behavior
+## Facts And Decisions
 
-- Ask one question at a time and wait for the user's answer.
-- For each question, include the answer you recommend and the tradeoff it resolves.
-- If a question can be answered by inspecting the repository or running a targeted web search,
-  gather that evidence instead of asking.
-- Use `AGENTS.md` when it exists, especially its `## Terminology` section, to align questions with
-  the project's domain language.
-- Do not move on to the next question until the current answer is understood, any disagreement is
-  explicit, and unresolved uncertainty has been captured as an assumption, decision, or follow-up.
-- Ask the next question that most reduces implementation risk or decision ambiguity.
-- Challenge vague, overloaded, or conflicting terms. Propose a canonical term, define it in one
-  tight sentence, and name aliases to avoid.
-- When a decision cannot be resolved by questioning or repository inspection, hand off to
-  `engineering-workflows:prototype`; do not create prototype code during the interview.
-- When terminology becomes the main unresolved work, hand off to
-  `engineering-workflows:terminology`.
-- When a stable domain term emerges, update the `## Terminology` section in `AGENTS.md`. Create the
-  section if needed. Include relationships between terms when they clarify ownership, lifecycle, or
-  cardinality.
-- Only add terms relevant to domain experts or project maintainers. Skip generic programming terms
-  and incidental class, function, or module names unless they are part of the domain language.
-- Do not implement the approach.
-- Stop when the approach is specific enough to implement, defer, or reject.
+- Find facts by inspecting the environment: repository files, history, tools, configured services,
+  and current external sources when relevant.
+- Do not ask the user to supply facts that can be established safely from available evidence.
+- Decisions belong to the user. Present each material choice, your recommendation, and the tradeoff
+  it resolves, then wait for the user's answer.
+- Keep assumptions distinct from facts and decisions. Make unresolved uncertainty explicit.
 
-## Output
+## Interview Behavior
 
-When the interview is complete, summarize:
+- Ask one question at a time and wait for the answer.
+- Do not move on until the current answer is understood, disagreement is explicit, and uncertainty
+  is captured as an assumption, decision, or follow-up.
+- Choose the next question that most reduces implementation risk or decision ambiguity.
+- Challenge vague, overloaded, or conflicting terms. Propose a canonical term, a tight definition,
+  and aliases to avoid.
+- Test domain relationships, state transitions, and ownership with concrete edge-case scenarios.
+- Verify important claims about current behavior against code. When code and the user's model
+  disagree, pause and resolve which should be authoritative.
+- Use `AGENTS.md ## Terminology` when present. Update stable domain terms there as they crystallize;
+  skip generic programming terms and incidental implementation names.
+- Do not implement, prototype, create tickets, or enact the approach during the interview.
 
-- The decisions that were made.
-- Terminology entries added, changed, or intentionally deferred.
-- The assumptions that remain.
-- Prototype questions that should be answered before implementation, if any.
-- The next implementation or review step.
+When an unresolved question needs executable evidence, stop that branch and recommend an explicit
+invocation of `engineering-workflows:prototype`. When terminology is the main unresolved work,
+recommend `engineering-workflows:terminology`.
 
-If the next step is another engineering workflow skill, include a handoff note with why this
-workflow is stopping, the context to carry forward, and the exact `engineering-workflows:<skill>`
-skill for the user to invoke explicitly with their agent's skill-invocation syntax.
+## Completion
+
+Before declaring the interview complete:
+
+1. Summarize the decisions, facts, assumptions, rejected paths, and remaining follow-ups.
+2. State why the approach is ready to implement, defer, or reject.
+3. Ask the user to confirm that shared understanding has been reached.
+
+Do not act on the approach until the user confirms completion.
+
+End with terminology changes, prototype questions, and the recommended next explicit workflow. If
+another manual engineering skill is next, provide a handoff note with the context to carry forward
+and its exact `engineering-workflows:<skill>` invocation.
