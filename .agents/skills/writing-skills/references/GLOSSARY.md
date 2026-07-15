@@ -1,16 +1,19 @@
 # Skill Authoring Glossary
 
-Use this vocabulary when deciding how to shape a skill.
+Use this vocabulary when deciding how to shape a skill. Definitions here are agent-agnostic
+authoring concepts; a repository may bind them to concrete metadata keys, invocation-policy flags,
+and lint rules in its own terminology.
 
 ## Invocation
 
 **Model-invoked skill**: A skill the agent can discover automatically and another skill can direct
 the model to use. Its description creates permanent context load.
 
-**Manual-only skill**: A skill reached through explicit user invocation. It avoids permanent context
-load but adds cognitive load for the user, who must remember it exists.
+**Manual-only skill**: A skill reached only through explicit user invocation. It avoids permanent
+context load but adds cognitive load for the user, who must remember it exists.
 
-**Trigger contract**: The description text that decides when a model-invoked skill should load.
+**Trigger contract**: The description text that defines when a model-invoked skill should load
+implicitly.
 
 **Context pointer**: Wording held in context that names out-of-context material and says when to
 read it. The pointer's wording, not the target file, controls whether disclosure works reliably.

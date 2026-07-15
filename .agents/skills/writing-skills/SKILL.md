@@ -9,7 +9,7 @@ description: >-
 license: MIT
 metadata:
   original_author: Matt Pocock
-  original_source: https://github.com/mattpocock/skills/tree/e9fcdf999fdc7f5db7674a3d3f4ee872d5be7f6a/skills/productivity/writing-great-skills
+  original_source: https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills/productivity/writing-great-skills
 user-invocable: false
 ---
 
