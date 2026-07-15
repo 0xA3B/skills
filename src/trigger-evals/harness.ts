@@ -19,6 +19,7 @@ export async function prepareHarness(runDir: string, target: SkillTarget): Promi
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-eval-workspace-"));
   const workspacePath = path.join(workspaceRoot, "workspace");
   const codexHome = path.join(runDir, "codex-home");
+  await writeClaudeEvalSettings(workspacePath);
   if (target.kind === "plugin") {
     const copiedPluginPath = path.join(workspacePath, "plugins", target.pluginName);
     const pluginVersion = await readPluginVersion(target);
@@ -64,6 +65,12 @@ export async function prepareHarness(runDir: string, target: SkillTarget): Promi
     workspaceRoot,
     codexHome,
   };
+}
+
+async function writeClaudeEvalSettings(workspacePath: string): Promise<void> {
+  const settingsPath = path.join(workspacePath, ".claude", "settings.json");
+  await mkdir(path.dirname(settingsPath), { recursive: true });
+  await writeFile(settingsPath, `${JSON.stringify({ disableBundledSkills: true }, null, 2)}\n`);
 }
 
 function buildMarketplace(target: PluginSkillTarget): unknown {
