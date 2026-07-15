@@ -53,8 +53,11 @@ conservative about extra lanes for a pre-commit worktree review:
 ## Review Execution
 
 Use the coordinator mode from `engineering-workflows:reviewing-code`. When subagents are permitted,
-give each required lane an independent reviewer if this session authored the changes. If reviewers
-are unavailable, complete the strongest local review and state that independence was unavailable.
+give each required lane an independent reviewer if this session authored the changes. Do not waive
+authorship-bias concerns merely because the user wants to save time or asks the main agent to
+personally handle every lane; state the limitation and use independent reviewers when review can
+proceed. If reviewers are unavailable, complete the strongest local review and state that
+independence was unavailable.
 
 Do not ask lane reviewers to apply fixes or broaden scope.
 

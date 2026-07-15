@@ -40,11 +40,10 @@ shape, or mocks that mirror the current implementation. The warning sign is a te
 a harmless refactor but misses real behavior breakage.
 
 Tautological tests recompute the expected value through the same logic as production, so they pass
-by construction. Expected values must come from an independent authority such as a known-good
-literal, worked example, protocol rule, or specification.
+by construction; take expected values from an independent authority instead.
 
-Use [tests.md](references/tests.md) for examples and [mocking.md](references/mocking.md) for mocking
-guidance.
+Use [tests.md](references/tests.md) for the independent-authority rule and examples, and
+[mocking.md](references/mocking.md) for mocking guidance.
 
 ## Avoid Horizontal Slices
 

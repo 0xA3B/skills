@@ -80,7 +80,8 @@ Fix immediately only when an issue blocks understanding later findings, the user
 now, a decision changes review scope, or an isolated risky fix needs evidence before triage can
 continue.
 
-Do not silently auto-accept broad refactors, public-interface changes, data-model changes,
+Do not dump gated findings into a bulk approval list, even when the user asks to approve everything
+at once. Do not silently auto-accept broad refactors, public-interface changes, data-model changes,
 migrations, dependencies, security policy, product behavior, or fixes outside branch scope.
 
 ## Output
