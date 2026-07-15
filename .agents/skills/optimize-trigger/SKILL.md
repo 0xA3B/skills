@@ -159,6 +159,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
   invocation from Skill tool events in the stream-json output. Plugin skills load from the staged
   plugin copy via `--plugin-dir`; repo-local skills load as pristine project skills from the staged
   `.claude/skills/` copy, so the committed description is tested unmodified on Claude.
+- Claude workspaces stage project-only `.claude/settings.json` with `disableBundledSkills: true` so
+  bundled skills such as `code-review` do not compete with the target. If a Claude version ignores
+  that setting, inspect the init event's `skills` list before treating a miss as a trigger-contract
+  failure.
 - Case pass/fail is based on matching the expected invoke or skip classification. Exec errors and
   timeouts remain in the report because trigger evals do not validate workflow completion.
 - Skip verdicts record how the run ended: natural completion, the decision-item budget, or the case

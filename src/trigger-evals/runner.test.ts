@@ -419,6 +419,13 @@ describe("runTriggerEval", () => {
     expect(mockState.claudePluginDirs[0]).toContain(
       mockState.claudeWorkspacePaths[0] ?? "missing-workspace",
     );
+    const claudeProjectSettings = JSON.parse(
+      await readFile(
+        path.join(mockState.claudeWorkspacePaths[0] ?? "", ".claude", "settings.json"),
+        "utf8",
+      ),
+    ) as unknown;
+    expect(claudeProjectSettings).toStrictEqual({ disableBundledSkills: true });
   });
 
   it("evaluates Claude-only plugins on the Claude lane without Codex metadata", async () => {
