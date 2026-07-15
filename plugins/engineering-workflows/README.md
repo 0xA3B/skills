@@ -16,6 +16,11 @@ continue the work from an ignored local context document.
 workflows. `terminology`, `diagnose`, `improve-codebase-architecture`, `dependency-maintenance`, and
 `visualize` remain focused workflows for their respective concerns.
 
+On Claude Code, the bundled `code-review` skill competes for generic review prompts. Treat the
+manual `review-changes` and `review-branch` invocations as the primary entry points, and set
+`disableBundledSkills: true` in project settings when this plugin's review workflows should own
+review behavior.
+
 Some skills are adapted from Matt Pocock's MIT-licensed
 [`mattpocock/skills`](https://github.com/mattpocock/skills) repository. Adapted skills include Agent
 Skills frontmatter with `license: MIT` plus metadata for the original author and source path. The

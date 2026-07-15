@@ -1,11 +1,12 @@
 ---
 name: reviewing-code
 description: >-
-  Shared review discipline to load before performing or coordinating any new code review. Use for
-  reviews of a current worktree, branch, PR, MR, or diff, and before performing an assigned lane
-  such as test quality, simplification, codebase design, API seams, or spec adherence. Provides
-  focused lanes, reviewer isolation, and structured findings. Do not use for existing reviewer
-  feedback, first-party bug reports, implementation requests, architecture-only audits, or
+  Shared review discipline for reviewing your own work through focused lanes. Use when coordinating
+  review lanes over changes this session or its user produced — a worktree, branch, PR, MR, or diff
+  — or when performing an assigned review lane such as test quality, simplification, codebase
+  design, API seams, or spec adherence. Provides focused lanes, reviewer isolation, and structured
+  findings. Do not use for generic requests to review arbitrary or third-party code, existing
+  reviewer feedback, first-party bug reports, implementation requests, architecture-only audits, or
   conceptual review questions.
 license: MIT
 metadata:
@@ -29,6 +30,11 @@ Determine the current role before reading lane references.
 
 This skill requires no lane by itself. `review-changes`, `review-branch`, or the user supplies the
 scope and minimum lanes.
+
+When no invoking workflow supplied scope and edit policy, run findings-only: select the minimum
+lanes the target justifies, report normalized findings without applying fixes, and recommend an
+explicit `engineering-workflows:review-changes` or `engineering-workflows:review-branch` invocation
+for triage, fixes, and validation.
 
 ## Lane Selection
 
@@ -75,6 +81,8 @@ Provide every lane reviewer:
 - the exact review target and diff command;
 - relevant repository guidance and intent sources;
 - the assigned lane reference;
+- the `engineering-workflows:codebase-design` skill body for the codebase-design and API/seam lanes,
+  because an isolated reviewer cannot load another skill on every agent;
 - [review-finding.schema.json](references/review-finding.schema.json) when structured output is
   available;
 - a prohibition on expanding scope or applying fixes.
