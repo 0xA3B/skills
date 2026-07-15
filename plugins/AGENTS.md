@@ -80,9 +80,15 @@ These instructions apply to plugin directories under `plugins/`.
 - Set `user-invocable: false` only for background-discipline skills users should not invoke as a
   command. Never combine it with `disable-model-invocation: true`; the linter rejects the pairing
   (`claude-skill/uninvocable`).
-- Name user-invocable skills with an imperative verb phrase (`commit`, `visualize`, `build`). Name
-  `user-invocable: false` skills as a state or discipline, typically a gerund phrase
-  (`receiving-feedback`), so the model reads them as applicable knowledge rather than an action.
+- Name skills so invocation posture is obvious from the name alone: a user-invocable skill's name
+  reads as an action or workflow the user runs; a `user-invocable: false` skill's name reads as a
+  state or discipline, typically a gerund phrase (`receiving-feedback`), so the model reads it as
+  applicable knowledge rather than an action.
+- Default user-invocable names to an imperative verb phrase (`commit`, `visualize`, `build`).
+  Compact workflow names (`handoff`, `wayfinder`) are acceptable when they cannot be read as a
+  background discipline.
+- A skill adapted from an upstream source may keep the upstream name to preserve its identity, even
+  when that name departs from the imperative default.
 - Use `agents/openai.yaml` for Codex UI metadata and Codex invocation policy. Do not add other Codex
   policy keys to `SKILL.md` frontmatter.
 - For manual-only skills, set `policy.allow_implicit_invocation: false` in `agents/openai.yaml` and
