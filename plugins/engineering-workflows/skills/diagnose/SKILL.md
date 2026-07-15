@@ -116,7 +116,9 @@ Make the smallest change that explains both the original failure and the probe r
 
 If the fix fails, revert or revise that attempt before testing another hypothesis. Do not stack
 speculative patches. After three plausible failed fixes, stop and reassess the reproduction, system
-boundary, ownership model, and test seam before attempting a fourth.
+boundary, ownership model, and test seam before attempting a fourth. Summarize what each failed
+attempt proved, then ask the user about the blocking decision or recommend an explicit
+`engineering-workflows:improve-codebase-architecture` handoff when the code shape is the blocker.
 
 When no correct regression seam exists, record that as an architecture and testability finding and
 prove the fix with the best available loop.
