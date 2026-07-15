@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Reviewing Code"
+  short_description: "Apply shared review lanes and finding contracts"
+  default_prompt: "Review this target with the shared code-review discipline."
+policy:
+  allow_implicit_invocation: true

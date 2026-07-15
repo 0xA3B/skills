@@ -3,7 +3,7 @@ name: prototype
 description: >-
   Create a disposable prototype to answer a design question before real implementation. Use when the
   user explicitly asks to prototype, try a few designs, sanity-check state or data shape, build
-  something throwaway to play with, or explore an assumption during brainstorm or grill-me.
+  something throwaway to play with, or explore an assumption during wayfinder or grill-me.
 license: MIT
 metadata:
   original_author: Matt Pocock
@@ -16,8 +16,8 @@ argument-hint: "[design-question]"
 
 Build throwaway code that answers one question before committing to a real implementation path.
 
-Use this in the middle of `engineering-workflows:brainstorm` or `engineering-workflows:grill-me`
-when discussion needs executable evidence. Do not use it for code that is intended to land in the
+Use this in the middle of `engineering-workflows:wayfinder` or `engineering-workflows:grill-me` when
+discussion needs executable evidence. Do not use it for code that is intended to land in the
 codebase; use `engineering-workflows:build` or `engineering-workflows:tdd` for that.
 
 ## Outcome
@@ -30,7 +30,8 @@ workflow.
 
 - Create ignored local artifacts under `.local/prototypes/<slug>/` for isolated experiments.
 - Create a repo-local worktree under `.local/worktrees/<slug>/` when the prototype needs to build
-  on, route through, or integrate with repository code.
+  on, route through, or integrate with repository code. Use a detached worktree so prototype work
+  does not create or preserve a branch.
 - Add source-adjacent files only when the host framework requires them for a realistic prototype;
   name them with `prototype` and keep them easy to delete.
 - Add one local run command when the project task runner supports it.
@@ -56,18 +57,19 @@ Prefer the least durable location that still gives realistic evidence:
 
 1. Use `.local/prototypes/<slug>/` when the prototype can run independently with fixture data or a
    small copied model.
-2. Use `.local/worktrees/<slug>/` when the prototype must import project modules, exercise real
-   routing, run the app, or integrate with the build system. Create the worktree from the current
-   branch unless the user asks for a different base.
+2. Use a detached `.local/worktrees/<slug>/` worktree when the prototype must import project
+   modules, exercise real routing, run the app, or integrate with the build system. Base it on the
+   current commit unless the user asks for another revision.
 3. Use source-adjacent prototype files only when the framework cannot realistically host the
    experiment from `.local/`. Mark filenames, routes, comments, and run commands as prototype-only.
 
 If a worktree is used, keep the main checkout clean and report the worktree path. Delete the
-worktree or leave a clear cleanup instruction when the prototype is done.
+worktree or leave a clear cleanup instruction when the prototype is done. Do not commit, branch, or
+archive prototype code as a primary source; preserve the question, observed evidence, and decision.
 
 ## Subagent Use
 
-Use a subagent when the prototype is a detour inside an active `engineering-workflows:brainstorm` or
+Use a subagent when the prototype is a detour inside an active `engineering-workflows:wayfinder` or
 `engineering-workflows:grill-me` session and the implementation steps would distract from the main
 decision thread. The parent session owns the design context; the subagent owns the disposable build.
 
@@ -75,7 +77,7 @@ Decision tree:
 
 1. If the user invoked `prototype` directly, build in the main thread unless the prototype is large,
    read-heavy, or independently runnable enough that a subagent would materially protect context.
-2. If `brainstorm` or `grill-me` handed off a specific executable question, prefer a subagent.
+2. If `wayfinder` or `grill-me` handed off a specific executable question, prefer a subagent.
 3. If the prototype needs a `.local/worktrees/<slug>/` worktree, prefer a subagent so checkout
    setup, dependency probing, and implementation details stay out of the parent session.
 4. If the prototype needs live user steering, shared browser inspection, or rapid interactive edits,
@@ -86,7 +88,7 @@ Decision tree:
 Give the subagent a narrow contract:
 
 - the exact question to answer
-- the prototype branch to use: logic or UI
+- the prototype shape to use: logic or UI
 - the placement decision: `.local/prototypes/<slug>/`, `.local/worktrees/<slug>/`, or
   source-adjacent
 - the allowed side effects and cleanup expectation
@@ -100,8 +102,8 @@ The subagent should return only:
 - cleanup status or remaining disposable files
 - blockers or missing evidence
 
-The parent session should then connect that result back to the active brainstorm or grill-me
-decision and decide whether to continue questioning, reject the direction, or move to
+The parent session should then connect that result back to the active wayfinder or grill-me decision
+and decide whether to continue questioning, reject the direction, or move to
 `engineering-workflows:build` or `engineering-workflows:tdd`.
 
 ## Workflow
@@ -111,7 +113,8 @@ decision and decide whether to continue questioning, reject the direction, or mo
 3. Build only enough code to make the question inspectable.
 4. Surface the relevant state after every action or variant switch.
 5. Give the user one command or URL to run.
-6. Capture the answer in chat or a local `NOTES.md` next to the prototype.
+6. Capture the question, observed evidence, and decision in chat or a local `NOTES.md` next to the
+   prototype. The decision is the reusable output; the prototype code remains disposable.
 7. Delete the prototype or hand the chosen decision to `engineering-workflows:build` or
    `engineering-workflows:tdd`.
 

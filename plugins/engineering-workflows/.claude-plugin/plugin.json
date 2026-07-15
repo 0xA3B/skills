@@ -1,8 +1,8 @@
 {
   "name": "engineering-workflows",
   "displayName": "Engineering Workflows",
-  "version": "1.3.0",
-  "description": "Engineering workflow skills for brainstorming, adversarial design review, dependency maintenance, durable terminology, disposable prototyping, building, TDD, diagnosis, architecture review, code review, codebase orientation, and visual presentation artifacts.",
+  "version": "1.4.0",
+  "description": "Engineering workflow skills for decision mapping, adversarial design review, dependency maintenance, durable terminology, prototyping, building, TDD, diagnosis, architecture, code review, handoffs, and visual artifacts.",
   "author": {
     "name": "Alex Baker"
   },
@@ -19,6 +19,7 @@
     "architecture",
     "review",
     "planning",
+    "handoff",
     "visualization",
     "terminology"
   ]

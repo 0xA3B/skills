@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Handoff"
+  short_description: "Prepare local context for another agent session"
+  default_prompt:
+    "Use $engineering-workflows:handoff to prepare this work for a fresh agent session."
+policy:
+  allow_implicit_invocation: false

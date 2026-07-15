@@ -54,21 +54,14 @@ bug fixes, stable public seams, or well-defined behavior that should be test-fir
 
 This workflow is loose about test timing, not about design quality.
 
-- Treat a **module** as anything with an interface and an implementation, and the **interface** as
-  everything a caller must know: types, invariants, error modes, ordering, configuration, and
-  command behavior.
-- Prefer **deep modules**: a small interface that hides useful behavior. Avoid shallow pass-through
-  modules that expose nearly as much complexity as they hide; move behavior behind interfaces that
-  simplify callers.
-- Use real **seams** for external systems, slow dependencies, filesystem boundaries, network calls,
-  and process execution. Add **adapters** at real external boundaries, not because an abstraction
-  might be useful someday.
+- Apply `engineering-workflows:codebase-design` when defining or changing interfaces, module depth,
+  seams, adapters, or the test surface.
 - Prefer small vertical slices that produce a runnable result, and define the smallest useful public
   interface or command surface before wiring internals.
 - Keep interfaces easy to change until they prove useful.
 - Keep domain names aligned with `AGENTS.md ## Terminology` when present.
 
-If interface or module shape becomes the main risk, pause and use
+If interface or module shape becomes the main risk, pause and recommend an explicit handoff to
 `engineering-workflows:improve-codebase-architecture` or `engineering-workflows:grill-me` before
 continuing implementation.
 
@@ -122,12 +115,12 @@ If validation cannot run, explain the missing setup, artifact, dependency, or us
 
 After the slice works, simplify:
 
-- reduce caller knowledge
-- move behavior behind a deeper interface
-- remove pass-through abstractions
-- improve names around domain language
-- isolate external boundaries behind adapters when useful
-- delete throwaway scaffolding unless it became durable tooling
+- reduce caller knowledge;
+- deepen interfaces that have proved useful;
+- remove pass-through abstractions;
+- improve names around domain language;
+- isolate external boundaries behind adapters when useful;
+- delete throwaway scaffolding unless it became durable tooling.
 
 ### 5. Add Tests When They Now Help
 

@@ -79,6 +79,7 @@ When maintaining the terminology:
 | **Manual-only skill**        | A skill with `allow_implicit_invocation: false` and `disable-model-invocation: true`; it should be invoked explicitly by the user.                                                                            | disabled skill            |
 | **Implicit invocation**      | An agent automatically loading a skill because the user prompt matches the skill description.                                                                                                                 | auto-trigger              |
 | **Hand off**                 | A workflow boundary where the current skill stops, summarizes transfer context, and recommends the next explicit skill.                                                                                       | auto-invoke, delegate     |
+| **Handoff document**         | An ignored local continuation artifact that preserves session-specific decisions, state, pointers, and next actions for a fresh agent session.                                                                | project documentation     |
 | **Trigger fixture**          | A committed YAML file of positive and negative cases used to evaluate implicit invocation behavior.                                                                                                           | skill test                |
 | **Trigger eval**             | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code).                                          | validation gate           |
 | **Invocation signal**        | The observed evidence that the agent invoked the target skill: an eval canary in Codex output, Claude Code Skill tool events, or legacy Codex skill-injection telemetry as a secondary signal.                | telemetry                 |
@@ -88,9 +89,11 @@ When maintaining the terminology:
 | **Pressure prompt**          | A temporary prompt used in a behavior pressure test to make an agent want to skip, soften, or rationalize around a workflow rule.                                                                             | trigger fixture           |
 | **Plugin linter**            | The local validator behind `pnpm lint:plugins`, covering marketplace, manifest, skill, and metadata consistency.                                                                                              | validator                 |
 | **External validation**      | Opt-in network or remote URL checks run separately from default local plugin linting.                                                                                                                         | normal linting            |
-| **Review lane**              | A focused review pass over the same target with one intent, such as simplification, correctness, security, test coverage, or spec adherence.                                                                  | review scope              |
-| **Brainstorm**               | A read-only exploration workflow that researches and compares solution directions before adversarial review.                                                                                                  | idea list                 |
-| **Grill Me**                 | A convergence workflow that stress-tests a chosen direction through adversarial questioning before implementation.                                                                                            | plan                      |
+| **Review lane**              | A focused review pass over the same target with one intent, such as code review, simplification, codebase design, API/seam review, test review, or spec adherence.                                            | review scope              |
+| **Decision map**             | The tracker-neutral output of Wayfinder: a destination, known ground, decision-sized chunks, dependencies, frontier, unresolved fog, and excluded scope.                                                      | ticket list, spec         |
+| **Frontier**                 | The precise, unblocked chunks on a Decision map that are useful to start next.                                                                                                                                | backlog                   |
+| **Wayfinder**                | A breadth-first, read-only workflow that turns a loose or oversized idea into a Decision map without resolving or implementing its chunks.                                                                    | brainstorm, idea list     |
+| **Grill Me**                 | A depth-first convergence workflow that stress-tests a plan, decision, idea, or design until the user confirms shared understanding.                                                                          | plan                      |
 | **Prototype**                | A disposable executable artifact used to answer one design question before real implementation.                                                                                                               | build, spike              |
 | **Build**                    | The implementation workflow that delivers working vertical slices with pragmatic validation while interfaces settle.                                                                                          | prototype                 |
 | **TDD**                      | The implementation workflow that delivers behavior through red-green-refactor cycles.                                                                                                                         | testing phase             |
@@ -112,11 +115,15 @@ Relationships:
   targets Codex.
 - A **Hand off** recommends an explicit **Manual-only skill** invocation; it does not automatically
   load another skill.
+- A **Handoff document** preserves a **Hand off** across agent sessions without becoming committed
+  project state.
 - A **Skill body** may direct the model to use another skill only when the referenced skill is
   implicitly invokable; manual-only skills are referenced through a **Hand off** instead.
-- **Brainstorm** and **Grill Me** can hand off unresolved executable questions to **Prototype**.
+- **Wayfinder** produces a **Decision map** whose **Frontier** routes focused chunks to later
+  research, questioning, prototyping, or implementation workflows.
+- **Wayfinder** and **Grill Me** can hand off unresolved executable questions to **Prototype**.
 - **Prototype** can hand off a validated decision to **Build** or **TDD**.
-- **Brainstorm** can hand off a preferred direction to **Grill Me**; **Grill Me** can hand off a
+- **Wayfinder** can hand off a frontier decision to **Grill Me**; **Grill Me** can hand off a
   sufficiently resolved approach to **Build** or **TDD**.
 - A **Repo-local skill** is exposed to Claude Code as a project skill through the `.claude/skills`
   symlink.

@@ -24,6 +24,20 @@ Characteristics:
 
 ## Bad Tests
 
+**Tautological tests**: Recompute the expected result through the same logic as production, so the
+assertion cannot disagree with the implementation.
+
+```typescript
+// BAD: Expected value repeats the implementation rule
+expect(add(a, b)).toBe(a + b);
+
+// GOOD: Expected value comes from a worked example
+expect(add(2, 3)).toBe(5);
+```
+
+Use a known-good literal, worked example, protocol rule, or specification as the independent source
+of truth.
+
 **Implementation-detail tests**: Coupled to internal structure.
 
 ```typescript

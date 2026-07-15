@@ -1,9 +1,0 @@
-version: 1
-interface:
-  display_name: "Brainstorm"
-  short_description: "Research options before adversarial review"
-  default_prompt:
-    "Use $engineering-workflows:brainstorm to explore options for this problem before choosing an
-    approach."
-policy:
-  allow_implicit_invocation: false

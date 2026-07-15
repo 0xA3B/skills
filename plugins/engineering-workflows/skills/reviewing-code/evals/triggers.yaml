@@ -1,0 +1,45 @@
+version: 1
+# Known Claude signal limitation: older or incompatible Claude versions may ignore the eval
+# workspace's disableBundledSkills setting and choose the bundled code-review skill. Inspect the
+# init event's skills list and Skill tool target before broadening this skill's trigger contract.
+cases:
+  # Claude has sometimes preferred bundled code-review when bundled-skill isolation was absent.
+  - id: review-worktree
+    prompt: >-
+      Coordinate separate correctness and simplification review lanes over my current worktree, then
+      merge their structured findings before I commit.
+    expect: invoke
+    rationale: A new worktree review needs the shared review discipline.
+
+  - id: review-branch
+    prompt: >-
+      Coordinate independent correctness, simplification, and test review lanes for this branch
+      against main before merge.
+    expect: invoke
+    rationale: Branch review uses shared lane selection and findings.
+
+  # Claude has sometimes preferred bundled code-review when bundled-skill isolation was absent.
+  - id: assigned-test-lane
+    prompt: >-
+      You are the isolated test-review lane for this diff. Review only test quality and coverage,
+      and return structured findings without expanding into other concerns.
+    expect: invoke
+    rationale: A lane reviewer should load the assigned review discipline.
+
+  - id: existing-feedback
+    prompt: >-
+      Triage these reviewer comments and fix the valid ones.
+    expect: skip
+    rationale: Existing feedback belongs to receiving-feedback.
+
+  - id: bug-report
+    prompt: >-
+      The login handler crashes on empty input. Diagnose and fix it.
+    expect: skip
+    rationale: A first-party bug report is not a request for a new review.
+
+  - id: architecture-audit
+    prompt: >-
+      Audit this repository for architecture deepening opportunities.
+    expect: skip
+    rationale: Architecture-only audits belong to improve-codebase-architecture.

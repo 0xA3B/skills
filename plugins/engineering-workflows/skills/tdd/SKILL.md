@@ -39,6 +39,10 @@ Bad tests couple to implementation details: private methods, internal collaborat
 shape, or mocks that mirror the current implementation. The warning sign is a test that fails during
 a harmless refactor but misses real behavior breakage.
 
+Tautological tests recompute the expected value through the same logic as production, so they pass
+by construction. Expected values must come from an independent authority such as a known-good
+literal, worked example, protocol rule, or specification.
+
 Use [tests.md](references/tests.md) for examples and [mocking.md](references/mocking.md) for mocking
 guidance.
 
@@ -103,8 +107,8 @@ Identify:
 When the interface or behavior priority is ambiguous, ask the user to choose. When it is clear,
 state the assumption and proceed.
 
-Use [interface-design.md](references/interface-design.md) and
-[deep-modules.md](references/deep-modules.md) when the interface itself needs design.
+Apply `engineering-workflows:codebase-design` when the interface, seam, module depth, or test
+surface needs design.
 
 ### 2. Red
 

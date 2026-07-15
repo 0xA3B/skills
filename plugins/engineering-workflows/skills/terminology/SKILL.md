@@ -30,6 +30,10 @@ relationships, or the user receives a focused terminology review with concrete p
 - Prefer the canonical term used by domain experts or project maintainers.
 - State uncertainty when a term is not stable enough to make durable.
 - Do not invent domain language from implementation details alone.
+- Test important relationships, state transitions, and ownership boundaries with concrete edge-case
+  scenarios instead of relying only on happy-path examples.
+- When the user states how a concept behaves, verify the claim against relevant code and tests. If
+  durable language and implementation disagree, surface the contradiction before updating either.
 
 ## Workflow
 
@@ -54,6 +58,8 @@ Use when stable terms, aliases, ambiguities, or relationships have emerged.
 4. Resolve overloaded words by splitting concepts or flagging the ambiguity in the relevant
    definition.
 5. Update relationships when they clarify ownership, lifecycle, or cardinality.
+6. Exercise changed relationships with concrete scenarios and record only language that still holds
+   at the edge cases.
 
 ### Review
 
@@ -61,8 +67,9 @@ Use when the user asks whether terminology is complete, consistent, or aligned w
 
 1. Inspect `AGENTS.md`, README files, nearby docs, code names, and tests relevant to the request.
 2. Find missing, vague, overloaded, contradictory, or stale terms.
-3. Report findings with file references and concrete wording changes.
-4. Edit `AGENTS.md` only when the user asked for changes or clearly wants the review applied.
+3. Cross-check important definitions and relationships against code and tests.
+4. Report findings with file references and concrete wording changes.
+5. Edit `AGENTS.md` only when the user asked for changes or clearly wants the review applied.
 
 ## Section Format
 

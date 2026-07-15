@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Codebase Design"
+  short_description: "Apply shared deep-module design discipline"
+  default_prompt: "Design this module using the shared codebase-design vocabulary."
+policy:
+  allow_implicit_invocation: true
