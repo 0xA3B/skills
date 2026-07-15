@@ -1,12 +1,13 @@
 {
-  "files.insertFinalNewline": true,
-  "files.trimFinalNewlines": true,
-  "files.trimTrailingWhitespace": true,
   "editor.rulers": [100],
-  "oxc.fmt.configPath": ".oxfmtrc.json",
   "editor.codeActionsOnSave": {
     "source.fixAll.oxc": "always"
   },
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  "git.repositoryScanIgnoredFolders": ["node_modules", ".local/skill-evals"],
+  "oxc.fmt.configPath": ".oxfmtrc.json",
   "[javascript]": {
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.formatOnSave": true
