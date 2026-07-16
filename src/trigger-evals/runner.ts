@@ -109,12 +109,13 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     runDir,
     target,
     options.stageMarketplacePlugins === true
-      ? { extraPlugins: await listMarketplacePlugins(repoRoot, agent) }
-      : {},
+      ? { agent, extraPlugins: await listMarketplacePlugins(repoRoot, agent) }
+      : { agent },
   );
   const harnessCanaryLabels = new Map(
     harness.skillCanaries.map((skillCanary) => [skillCanary.canary, skillCanary.skillLabel]),
   );
+  const stagedSkillLabels = new Set(harness.stagedSkillLabels);
 
   const results: Array<TriggerCaseResult | undefined> = new Array(fixture.cases.length);
   const concurrency = normalizeConcurrency(options.concurrency ?? DEFAULT_CONCURRENCY);
@@ -130,6 +131,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         caseDir,
         target,
         testCase,
+        agent,
       });
       // Repo-local targets canary per case; plugin targets share the per-run canary map that also
       // names every implicitly invokable staged sibling.
@@ -169,6 +171,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           runResult: claudeResult,
           target,
           canaryLabels,
+          stagedSkillLabels,
           durationMs: Date.now() - caseStartedAt,
           agent,
         });
@@ -217,6 +220,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           runResult: codexResult,
           target,
           canaryLabels,
+          stagedSkillLabels,
           durationMs: Date.now() - caseStartedAt,
           agent,
         });
@@ -246,6 +250,7 @@ function buildCaseResult(options: {
   runResult: CliRunResult;
   target: SkillTarget;
   canaryLabels: Map<string, string>;
+  stagedSkillLabels: Set<string>;
   durationMs: number;
   agent: TriggerEvalAgent;
 }): TriggerCaseResult {
@@ -262,11 +267,18 @@ function buildCaseResult(options: {
   // on a target-negative prompt may be exactly right. It is still recorded in invokedSkill.
   const matchedExpectation = options.testCase.expect === "invoke" ? invoked : !invoked;
   const endedBy = options.runResult.endedBy ?? "completed";
-  // Any observed invocation proves the run executed, so the environmental and skip classifiers
-  // only apply when no skill fired at all.
-  const environmentalFailure = anyInvocation
-    ? undefined
-    : detectEnvironmentalFailure(options.runResult, options.agent, endedBy);
+  // Isolation leaks poison the case in both directions — an unstaged skill can steal an invoke or
+  // provoke one — so the check applies even when the target fired. Other environmental checks only
+  // apply when no skill fired, because any observed invocation proves the run executed.
+  const isolationFailure =
+    options.agent === "claude"
+      ? detectSkillIsolationFailure(options.runResult.stdout, options.stagedSkillLabels)
+      : undefined;
+  const environmentalFailure =
+    isolationFailure ??
+    (anyInvocation
+      ? undefined
+      : detectEnvironmentalFailure(options.runResult, options.agent, endedBy));
   const skipSignal = anyInvocation ? undefined : classifySkipSignal(endedBy);
   const passed = environmentalFailure === undefined && matchedExpectation;
   return {
@@ -325,6 +337,7 @@ async function prepareCaseWorkspace(options: {
   caseDir: string;
   target: SkillTarget;
   testCase: TriggerCase;
+  agent: TriggerEvalAgent;
 }): Promise<{ workspacePath: string; canary?: string }> {
   if (options.target.kind === "plugin" && options.testCase.workspaceFiles === undefined) {
     return { workspacePath: options.baseWorkspacePath };
@@ -340,7 +353,10 @@ async function prepareCaseWorkspace(options: {
     await writeFile(absoluteFilePath, content);
   }
 
-  if (options.target.kind === "repo-local") {
+  // Only the Codex lane stages repo-local skills under .agents/skills and needs the per-case
+  // canary; the Claude lane stages a pristine .claude/skills copy and detects invocation from
+  // Skill tool events.
+  if (options.target.kind === "repo-local" && options.agent === "codex") {
     const canary = createCanary();
     await injectSkillEvalInstructions(workspacePath, options.target, canary);
     return { workspacePath, canary };
@@ -457,6 +473,54 @@ function detectEnvironmentalFailure(
       "the run produced no agent output, so the case cannot be classified as a skip." +
       (stderrHint === undefined ? " Check the case stderr log." : ` stderr: ${stderrHint}`)
     );
+  }
+
+  return undefined;
+}
+
+// Bundled skills Claude Code loads even when disableBundledSkills is honored (observed on
+// 2.1.210). Extend when a new Claude version exempts more skills from the setting.
+const DISABLE_BUNDLED_SKILLS_EXEMPT = new Set(["doctor"]);
+
+// Claude's init event lists every loaded skill: plugin skills as <plugin>:<skill>, project and
+// bundled skills as bare names. With the workspace's disableBundledSkills setting honored, only
+// staged skills (plus the exempt set) appear; anything else means the isolation the eval depends
+// on did not hold — an unstaged skill can steal an invoke or provoke one — so the verdict cannot
+// be trusted in either direction. Runs without an init event (older CLIs) skip the check.
+function detectSkillIsolationFailure(
+  stdout: string,
+  stagedSkillLabels: Set<string>,
+): string | undefined {
+  const loadedSkills = initEventSkills(stdout);
+  if (loadedSkills === undefined) {
+    return undefined;
+  }
+
+  const unexpected = loadedSkills.filter(
+    (skill) => !stagedSkillLabels.has(skill) && !DISABLE_BUNDLED_SKILLS_EXEMPT.has(skill),
+  );
+  if (unexpected.length === 0) {
+    return undefined;
+  }
+
+  return (
+    `unstaged skills loaded despite disableBundledSkills: ${unexpected.join(", ")} — the run was ` +
+    "not isolated, so the verdict is not trustworthy. Check the Claude version's " +
+    "disableBundledSkills support, or extend the exempt list if a new bundled skill ignores the " +
+    "setting."
+  );
+}
+
+function initEventSkills(stdout: string): string[] | undefined {
+  for (const event of parseJsonlEvents(stdout)) {
+    if (!isRecord(event) || event["type"] !== "system" || event["subtype"] !== "init") {
+      continue;
+    }
+
+    const skills = event["skills"];
+    return Array.isArray(skills)
+      ? skills.filter((skill): skill is string => typeof skill === "string")
+      : undefined;
   }
 
   return undefined;
