@@ -1,51 +1,106 @@
-import { cp, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 import { appendEvalSectionToFile, createCanary } from "./canary.js";
+import type { MarketplacePluginEntry } from "./marketplace.js";
+import { readSkillFileAllowImplicitInvocation } from "./target.js";
 import type { PluginSkillTarget, SkillTarget } from "./types.js";
 
 export const EVAL_MARKETPLACE_NAME = "trigger-eval";
+
+export type StagedPlugin = {
+  pluginName: string;
+  // Committed plugin directory the staged copies were made from; the Codex plugin cache copies
+  // from here again per case.
+  sourcePath: string;
+  version: string;
+};
+
+export type SkillCanary = {
+  canary: string;
+  pluginName: string;
+  skillName: string;
+  skillLabel: string;
+};
 
 export type HarnessPaths = {
   workspacePath: string;
   workspaceRoot: string;
   codexHome: string;
-  pluginVersion?: string;
-  pluginCanary?: string;
+  // Empty for repo-local targets.
+  stagedPlugins: StagedPlugin[];
+  // One canary per staged implicitly invokable plugin skill (plus the target), so a wrong skill
+  // firing on Codex is observable and attributable. Empty for repo-local targets, which canary
+  // per case instead.
+  skillCanaries: SkillCanary[];
 };
 
-export async function prepareHarness(runDir: string, target: SkillTarget): Promise<HarnessPaths> {
+export type PrepareHarnessOptions = {
+  // Plugins staged alongside the target's plugin (marketplace mode). Entries matching the target
+  // plugin are deduplicated.
+  extraPlugins?: MarketplacePluginEntry[];
+};
+
+export async function prepareHarness(
+  runDir: string,
+  target: SkillTarget,
+  options: PrepareHarnessOptions = {},
+): Promise<HarnessPaths> {
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-eval-workspace-"));
   const workspacePath = path.join(workspaceRoot, "workspace");
   const codexHome = path.join(runDir, "codex-home");
   await writeClaudeEvalSettings(workspacePath);
   if (target.kind === "plugin") {
-    const copiedPluginPath = path.join(workspacePath, "plugins", target.pluginName);
-    const pluginVersion = await readPluginVersion(target);
+    const pluginsToStage: MarketplacePluginEntry[] = [
+      { pluginName: target.pluginName, pluginPath: target.pluginPath },
+      ...(options.extraPlugins ?? []).filter((entry) => entry.pluginName !== target.pluginName),
+    ];
+
+    const stagedPlugins: StagedPlugin[] = [];
+    for (const entry of pluginsToStage) {
+      const copiedPluginPath = path.join(workspacePath, "plugins", entry.pluginName);
+      await mkdir(path.dirname(copiedPluginPath), { recursive: true });
+      await cp(entry.pluginPath, copiedPluginPath, { recursive: true });
+      stagedPlugins.push({
+        pluginName: entry.pluginName,
+        sourcePath: entry.pluginPath,
+        version: await readPluginVersion(entry.pluginPath),
+      });
+    }
+
     await mkdir(path.join(workspacePath, ".agents", "plugins"), { recursive: true });
-    await mkdir(path.dirname(copiedPluginPath), { recursive: true });
-    await cp(target.pluginPath, copiedPluginPath, { recursive: true });
     await writeFile(
       path.join(workspacePath, ".agents", "plugins", "marketplace.json"),
-      JSON.stringify(buildMarketplace(target), null, 2),
+      JSON.stringify(buildMarketplace(stagedPlugins), null, 2),
     );
 
-    // Codex no longer emits skill-injection telemetry, so plugin evals detect invocation with a
-    // body-only canary that the model sees once the skill instructions load. One canary per run is
-    // enough because each case scans only its own output.
-    const pluginCanary = createCanary();
-    await appendEvalSectionToFile(
-      path.join(copiedPluginPath, "skills", target.skillName, "SKILL.md"),
-      pluginCanary,
-    );
+    // Codex no longer emits skill-injection telemetry, so plugin evals detect invocation with
+    // body-only canaries that the model sees once a skill's instructions load. Every implicitly
+    // invokable staged skill gets its own canary so invoking the wrong skill is observable and
+    // attributable, not an undifferentiated miss. One canary per skill per run is enough because
+    // each case scans only its own output.
+    const skillCanaries = await createSkillCanaries(target, pluginsToStage);
+    for (const skillCanary of skillCanaries) {
+      await appendEvalSectionToFile(
+        path.join(
+          workspacePath,
+          "plugins",
+          skillCanary.pluginName,
+          "skills",
+          skillCanary.skillName,
+          "SKILL.md",
+        ),
+        skillCanary.canary,
+      );
+    }
 
     return {
       workspacePath,
       workspaceRoot,
       codexHome,
-      pluginVersion,
-      pluginCanary,
+      stagedPlugins,
+      skillCanaries,
     };
   }
 
@@ -64,7 +119,61 @@ export async function prepareHarness(runDir: string, target: SkillTarget): Promi
     workspacePath,
     workspaceRoot,
     codexHome,
+    stagedPlugins: [],
+    skillCanaries: [],
   };
+}
+
+async function createSkillCanaries(
+  target: PluginSkillTarget,
+  stagedPlugins: MarketplacePluginEntry[],
+): Promise<SkillCanary[]> {
+  const skillCanaries: SkillCanary[] = [];
+  for (const entry of stagedPlugins) {
+    for (const skillName of await listPluginSkillNames(entry.pluginPath)) {
+      const isTarget = entry.pluginName === target.pluginName && skillName === target.skillName;
+      const skillFilePath = path.join(entry.pluginPath, "skills", skillName, "SKILL.md");
+      // Manual-only siblings cannot fire implicitly, so they stay canary-free. The target is
+      // always canaried; --force runs would otherwise lose their invocation signal.
+      if (!isTarget && !(await readSkillFileAllowImplicitInvocation(skillFilePath))) {
+        continue;
+      }
+
+      skillCanaries.push({
+        canary: createCanary(),
+        pluginName: entry.pluginName,
+        skillName,
+        skillLabel: `${entry.pluginName}:${skillName}`,
+      });
+    }
+  }
+
+  return skillCanaries;
+}
+
+async function listPluginSkillNames(pluginPath: string): Promise<string[]> {
+  const skillsPath = path.join(pluginPath, "skills");
+  let entries;
+  try {
+    entries = await readdir(skillsPath, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const skillNames: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    try {
+      await stat(path.join(skillsPath, entry.name, "SKILL.md"));
+      skillNames.push(entry.name);
+    } catch {
+      // Not a skill directory.
+    }
+  }
+
+  return skillNames.sort();
 }
 
 async function writeClaudeEvalSettings(workspacePath: string): Promise<void> {
@@ -73,35 +182,33 @@ async function writeClaudeEvalSettings(workspacePath: string): Promise<void> {
   await writeFile(settingsPath, `${JSON.stringify({ disableBundledSkills: true }, null, 2)}\n`);
 }
 
-function buildMarketplace(target: PluginSkillTarget): unknown {
+function buildMarketplace(stagedPlugins: StagedPlugin[]): unknown {
   return {
     name: EVAL_MARKETPLACE_NAME,
     interface: {
       displayName: "Trigger Eval Marketplace",
     },
-    plugins: [
-      {
-        name: target.pluginName,
-        source: {
-          source: "local",
-          path: `./plugins/${target.pluginName}`,
-        },
-        policy: {
-          installation: "AVAILABLE",
-          authentication: "ON_INSTALL",
-        },
-        category: "Productivity",
+    plugins: stagedPlugins.map((stagedPlugin) => ({
+      name: stagedPlugin.pluginName,
+      source: {
+        source: "local",
+        path: `./plugins/${stagedPlugin.pluginName}`,
       },
-    ],
+      policy: {
+        installation: "AVAILABLE",
+        authentication: "ON_INSTALL",
+      },
+      category: "Productivity",
+    })),
   };
 }
 
-async function readPluginVersion(target: PluginSkillTarget): Promise<string> {
+async function readPluginVersion(pluginPath: string): Promise<string> {
   // Claude-only plugins ship no Codex manifest, so fall back to the Claude manifest for the
   // staged plugin version.
   const manifestPaths = [
-    path.join(target.pluginPath, ".codex-plugin", "plugin.json"),
-    path.join(target.pluginPath, ".claude-plugin", "plugin.json"),
+    path.join(pluginPath, ".codex-plugin", "plugin.json"),
+    path.join(pluginPath, ".claude-plugin", "plugin.json"),
   ];
   for (const manifestPath of manifestPaths) {
     let content: string;
@@ -122,6 +229,6 @@ async function readPluginVersion(target: PluginSkillTarget): Promise<string> {
   }
 
   throw new Error(
-    `${target.pluginPath}: expected .codex-plugin/plugin.json or .claude-plugin/plugin.json to provide a plugin version.`,
+    `${pluginPath}: expected .codex-plugin/plugin.json or .claude-plugin/plugin.json to provide a plugin version.`,
   );
 }

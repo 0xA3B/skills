@@ -36,15 +36,22 @@ export type RepoLocalSkillTarget = SkillTargetBase & {
 
 export type SkillTarget = PluginSkillTarget | RepoLocalSkillTarget;
 
+export type InvocationSignal =
+  | "stderr-skill-injected"
+  | "stdout-skill-canary"
+  | "stream-skill-tool-use"
+  | "none";
+
 export type TriggerCaseResult = {
   caseId: string;
   expect: TriggerExpectation;
-  invocationSignal:
-    | "stderr-skill-injected"
-    | "stdout-skill-canary"
-    | "stream-skill-tool-use"
-    | "none";
+  invocationSignal: InvocationSignal;
+  // True only when the target skill was invoked. A different staged skill firing instead leaves
+  // this false and names that skill in invokedSkill.
   invoked: boolean;
+  // Label of the skill whose invocation was detected, when any skill fired: the target label when
+  // invoked is true, or the wrong skill's label when the prompt routed elsewhere.
+  invokedSkill?: string;
   passed: boolean;
   // How a skip verdict was reached: the run finished naturally, was stopped at the decision-item
   // budget, or was cut off by the case timeout (a weak signal — the model might have invoked

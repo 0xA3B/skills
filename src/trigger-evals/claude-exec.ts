@@ -11,7 +11,7 @@ import { isRecord, parseJsonlEvents } from "./json.js";
 
 type ClaudeRunOptions = {
   workspacePath: string;
-  pluginDir?: string;
+  pluginDirs?: string[];
   prompt: string;
   caseDir: string;
   timeoutMs: number;
@@ -49,8 +49,8 @@ export async function runClaudeExec(options: ClaudeRunOptions): Promise<CliRunRe
     options.effort,
   ];
 
-  if (options.pluginDir !== undefined) {
-    args.push("--plugin-dir", options.pluginDir);
+  for (const pluginDir of options.pluginDirs ?? []) {
+    args.push("--plugin-dir", pluginDir);
   }
 
   args.push(options.prompt);

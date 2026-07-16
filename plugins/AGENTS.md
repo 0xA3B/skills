@@ -119,5 +119,9 @@ These instructions apply to plugin directories under `plugins/`.
   shared by both agents; use `pnpm eval:trigger -- <skill-path> --agent both` to check that a
   description change triggers correctly on Codex and Claude Code. Body-only `SKILL.md` changes
   affect behavior after invocation and do not require trigger evals.
+- When a description change risks overlapping another skill's trigger contract, use the opt-in suite
+  modes: `pnpm eval:trigger:plugin -- plugins/<plugin>` runs every trigger eval in the plugin, and
+  `pnpm eval:trigger:marketplace` stages all marketplace plugins and runs every trigger eval across
+  them, reporting wrong-skill invocations distinctly.
 - Run `pnpm format:check` when Markdown, JSON, YAML, or TypeScript files changed.
 - Run `pnpm lint` and `pnpm typecheck` when TypeScript validation tooling changed.

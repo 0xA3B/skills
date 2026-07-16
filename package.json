@@ -5,6 +5,8 @@
   "scripts": {
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm lint:plugins",
     "eval:trigger": "tsx src/trigger-evals/cli.ts",
+    "eval:trigger:marketplace": "tsx src/trigger-evals/cli.ts --marketplace",
+    "eval:trigger:plugin": "tsx src/trigger-evals/cli.ts --plugin",
     "format": "oxfmt --write",
     "format:check": "oxfmt --check",
     "install:frozen": "pnpm install --frozen-lockfile",

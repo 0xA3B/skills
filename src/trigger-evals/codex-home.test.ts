@@ -19,12 +19,14 @@ describe("prepareCodexHome", () => {
       model: "gpt-5.6-luna",
       effort: "medium",
       marketplaceName: "trigger-eval",
-      pluginName: "demo-plugin",
+      pluginNames: ["demo-plugin", "other-plugin"],
     });
 
     await expect(readFile(path.join(codexHome, "auth.json"), "utf8")).resolves.toBe("{}");
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
     expect(config).toContain('[marketplaces."trigger-eval"]');
+    expect(config).toContain('[plugins."demo-plugin@trigger-eval"]');
+    expect(config).toContain('[plugins."other-plugin@trigger-eval"]');
     expect(config).toContain('model = "gpt-5.6-luna"');
     expect(config).toContain('model_reasoning_effort = "medium"');
   });
@@ -55,7 +57,7 @@ describe("prepareCodexHome", () => {
       model: "gpt-5.6-luna",
       effort: "medium",
       marketplaceName: "trigger-eval",
-      pluginName: "demo-plugin",
+      pluginNames: ["demo-plugin"],
     });
 
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");

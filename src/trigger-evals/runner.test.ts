@@ -26,12 +26,13 @@ const mockState = vi.hoisted(() => ({
   workspacePaths: [] as string[],
   sandboxModes: [] as string[],
   stopWhenPredicates: [] as Array<(output: { stdout: string; stderr: string }) => boolean>,
-  claudePluginDirs: [] as string[],
+  claudePluginDirs: [] as string[][],
   claudeWorkspacePaths: [] as string[],
   claudeModels: [] as string[],
   claudeEfforts: [] as string[],
   codexHomeModels: [] as string[],
   codexHomeEfforts: [] as string[],
+  codexHomePluginNames: [] as string[][],
 }));
 
 vi.mock(import("./codex-exec.js"), () => ({
@@ -66,19 +67,20 @@ vi.mock(import("./codex-exec.js"), () => ({
 }));
 
 vi.mock(import("./codex-home.js"), () => ({
-  prepareCodexHome: vi.fn<(options: { model: string; effort: string }) => Promise<void>>(
-    async (options) => {
-      mockState.codexHomeModels.push(options.model);
-      mockState.codexHomeEfforts.push(options.effort);
-    },
-  ),
+  prepareCodexHome: vi.fn<
+    (options: { model: string; effort: string; pluginNames?: string[] }) => Promise<void>
+  >(async (options) => {
+    mockState.codexHomeModels.push(options.model);
+    mockState.codexHomeEfforts.push(options.effort);
+    mockState.codexHomePluginNames.push(options.pluginNames ?? []);
+  }),
   removeCopiedAuth: vi.fn<() => Promise<void>>(async () => undefined),
 }));
 
 vi.mock(import("./claude-exec.js"), () => ({
   runClaudeExec: vi.fn<
     (options: {
-      pluginDir?: string;
+      pluginDirs?: string[];
       prompt: string;
       workspacePath: string;
       model: string;
@@ -93,25 +95,30 @@ vi.mock(import("./claude-exec.js"), () => ({
       finalMessagePath: string;
     }>
   >(async (options) => {
-    mockState.claudePluginDirs.push(options.pluginDir ?? "(none)");
+    mockState.claudePluginDirs.push(options.pluginDirs ?? []);
     mockState.claudeWorkspacePaths.push(options.workspacePath);
     mockState.claudeModels.push(options.model);
     mockState.claudeEfforts.push(options.effort);
-    const shouldInvoke = !options.prompt.startsWith("Do not invoke");
+    const invokedSkill = options.prompt.startsWith("Invoke the sibling")
+      ? "demo:sibling-skill"
+      : options.prompt.startsWith("Do not invoke")
+        ? undefined
+        : "demo:auto-skill";
     return {
       exitCode: 0,
       finalMessage: "",
-      stdout: shouldInvoke
-        ? JSON.stringify({
-            type: "assistant",
-            message: {
-              content: [{ type: "tool_use", name: "Skill", input: { command: "demo:auto-skill" } }],
-            },
-          })
-        : JSON.stringify({
-            type: "assistant",
-            message: { content: [{ type: "text", text: "I answered without any skill." }] },
-          }),
+      stdout:
+        invokedSkill !== undefined
+          ? JSON.stringify({
+              type: "assistant",
+              message: {
+                content: [{ type: "tool_use", name: "Skill", input: { command: invokedSkill } }],
+              },
+            })
+          : JSON.stringify({
+              type: "assistant",
+              message: { content: [{ type: "text", text: "I answered without any skill." }] },
+            }),
       stderr: "",
       stdoutPath: "/tmp/events.jsonl",
       stderrPath: "/tmp/stderr.log",
@@ -137,6 +144,7 @@ describe("runTriggerEval", () => {
     mockState.claudeEfforts = [];
     mockState.codexHomeModels = [];
     mockState.codexHomeEfforts = [];
+    mockState.codexHomePluginNames = [];
   });
 
   it("passes cases when invocation expectation matches even if codex exec errors", async () => {
@@ -350,6 +358,183 @@ describe("runTriggerEval", () => {
     ).toBe(true);
   });
 
+  it("classifies wrong-skill invocations distinctly on Codex via sibling canaries", async () => {
+    const repoRoot = await writeRepoFixture({
+      cases: [
+        { id: "sibling-invoke", expect: "invoke", prompt: "Invoke the sibling skill." },
+        { id: "sibling-skip", expect: "skip", prompt: "Invoke the sibling skill instead." },
+      ],
+      siblingSkills: [{ name: "sibling-skill" }],
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+    });
+
+    expect(result.results[0]).toMatchObject({
+      caseId: "sibling-invoke",
+      expect: "invoke",
+      invocationSignal: "stdout-skill-canary",
+      invoked: false,
+      invokedSkill: "demo:sibling-skill",
+      passed: false,
+    });
+    expect(result.results[0]?.skipSignal).toBeUndefined();
+    expect(result.results[0]?.environmentalFailure).toBeUndefined();
+    expect(result.results[1]).toMatchObject({
+      caseId: "sibling-skip",
+      expect: "skip",
+      invoked: false,
+      invokedSkill: "demo:sibling-skill",
+      passed: true,
+    });
+
+    const sharedWorkspace = mockState.workspacePaths[0];
+    const stagedSibling = await readFile(
+      path.join(sharedWorkspace ?? "", "plugins", "demo", "skills", "sibling-skill", "SKILL.md"),
+      "utf8",
+    );
+    const siblingCanary = stagedSibling.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+    expect(siblingCanary).toBeDefined();
+    expect(
+      mockState.stopWhenPredicates[0]?.({
+        stdout: agentMessageEvent(siblingCanary ?? ""),
+        stderr: "",
+      }),
+    ).toBe(true);
+  });
+
+  it("leaves manual-only siblings canary-free", async () => {
+    const repoRoot = await writeRepoFixture({
+      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
+    });
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+    });
+
+    const sharedWorkspace = mockState.workspacePaths[0];
+    const stagedManualSibling = await readFile(
+      path.join(sharedWorkspace ?? "", "plugins", "demo", "skills", "manual-skill", "SKILL.md"),
+      "utf8",
+    );
+    expect(stagedManualSibling).not.toContain("Trigger Eval Instructions");
+  });
+
+  it("classifies wrong-skill invocations distinctly on Claude via Skill tool names", async () => {
+    const repoRoot = await writeRepoFixture({
+      cases: [
+        { id: "sibling-invoke", expect: "invoke", prompt: "Invoke the sibling skill." },
+        { id: "sibling-skip", expect: "skip", prompt: "Invoke the sibling skill instead." },
+      ],
+      siblingSkills: [{ name: "sibling-skill" }],
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+    });
+
+    expect(result.results[0]).toMatchObject({
+      caseId: "sibling-invoke",
+      expect: "invoke",
+      invocationSignal: "stream-skill-tool-use",
+      invoked: false,
+      invokedSkill: "demo:sibling-skill",
+      passed: false,
+    });
+    expect(result.results[1]).toMatchObject({
+      caseId: "sibling-skip",
+      expect: "skip",
+      invoked: false,
+      invokedSkill: "demo:sibling-skill",
+      passed: true,
+    });
+  });
+
+  it("stages every marketplace plugin on Codex when marketplace staging is requested", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+      stageMarketplacePlugins: true,
+    });
+
+    expect(result.results[0]?.passed).toBe(true);
+    const workspace = mockState.workspacePaths[0] ?? "";
+    const marketplace = JSON.parse(
+      await readFile(path.join(workspace, ".agents", "plugins", "marketplace.json"), "utf8"),
+    ) as { plugins: Array<{ name: string }> };
+    expect(marketplace.plugins.map((plugin) => plugin.name)).toStrictEqual(["demo", "other"]);
+    expect(mockState.codexHomePluginNames[0]).toStrictEqual(["demo", "other"]);
+
+    const stagedOtherSkill = await readFile(
+      path.join(workspace, "plugins", "other", "skills", "other-skill", "SKILL.md"),
+      "utf8",
+    );
+    expect(stagedOtherSkill).toContain("Trigger Eval Instructions");
+    const otherCanary = stagedOtherSkill.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+    expect(otherCanary).toBeDefined();
+    // Cross-plugin wrong-skill detection: the other plugin's canary is a recognized invocation.
+    expect(
+      mockState.stopWhenPredicates[0]?.({
+        stdout: agentMessageEvent(otherCanary ?? ""),
+        stderr: "",
+      }),
+    ).toBe(true);
+
+    const cachedOtherSkill = await readFile(
+      path.join(
+        mockState.codexHomes[0] ?? "",
+        "plugins",
+        "cache",
+        "trigger-eval",
+        "other",
+        "2.0.0",
+        "skills",
+        "other-skill",
+        "SKILL.md",
+      ),
+      "utf8",
+    );
+    expect(cachedOtherSkill).toContain(otherCanary ?? "missing-canary");
+  });
+
+  it("passes every staged plugin dir to Claude when marketplace staging is requested", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+      caseId: "skip-case",
+      stageMarketplacePlugins: true,
+    });
+
+    expect(result.results[0]?.passed).toBe(true);
+    expect(mockState.claudePluginDirs[0]).toHaveLength(2);
+    expect(mockState.claudePluginDirs[0]?.[0]).toContain(path.join("plugins", "demo"));
+    expect(mockState.claudePluginDirs[0]?.[1]).toContain(path.join("plugins", "other"));
+  });
+
+  it("rejects marketplace staging for repo-local targets", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture();
+
+    await expect(
+      runTriggerEval({
+        repoRoot,
+        skillPath: ".agents/skills/auto-skill",
+        stageMarketplacePlugins: true,
+      }),
+    ).rejects.toThrow("Marketplace staging applies to plugin skills");
+  });
+
   it("applies fixture workspace files in a case-isolated workspace", async () => {
     const repoRoot = await writeRepoFixture({
       cases: [
@@ -415,8 +600,9 @@ describe("runTriggerEval", () => {
     expect(new Set(mockState.claudeModels)).toStrictEqual(new Set(["opus"]));
     expect(new Set(mockState.claudeEfforts)).toStrictEqual(new Set(["medium"]));
     expect(mockState.claudePluginDirs).toHaveLength(2);
-    expect(mockState.claudePluginDirs[0]).toContain(path.join("plugins", "demo"));
-    expect(mockState.claudePluginDirs[0]).toContain(
+    expect(mockState.claudePluginDirs[0]).toHaveLength(1);
+    expect(mockState.claudePluginDirs[0]?.[0]).toContain(path.join("plugins", "demo"));
+    expect(mockState.claudePluginDirs[0]?.[0]).toContain(
       mockState.claudeWorkspacePaths[0] ?? "missing-workspace",
     );
     const claudeProjectSettings = JSON.parse(
@@ -467,7 +653,7 @@ describe("runTriggerEval", () => {
       invoked: false,
       passed: true,
     });
-    expect(mockState.claudePluginDirs).toStrictEqual(["(none)", "(none)"]);
+    expect(mockState.claudePluginDirs).toStrictEqual([[], []]);
     const stagedProjectSkill = await readFile(
       path.join(
         mockState.claudeWorkspacePaths[0] ?? "",
@@ -600,6 +786,24 @@ async function buildMockCodexResult(options: {
   }
 
   const prompt = options.prompt;
+  if (prompt.startsWith("Invoke the sibling")) {
+    const siblingSkillBody = await readFile(
+      path.join(options.workspacePath, "plugins", "demo", "skills", "sibling-skill", "SKILL.md"),
+      "utf8",
+    );
+    const siblingCanary = siblingSkillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+    return {
+      exitCode: 0,
+      finalMessage: "",
+      stdout: agentMessageEvent(siblingCanary ?? "missing-sibling-canary"),
+      stderr: "",
+      stdoutPath: "/tmp/stdout.jsonl",
+      stderrPath: "/tmp/stderr.log",
+      finalMessagePath: "/tmp/final.txt",
+      delayMs: 50,
+    };
+  }
+
   const shouldInvoke = !prompt.startsWith("Do not invoke");
   return {
     exitCode: 0,
@@ -630,14 +834,84 @@ async function writeRepoFixture(
     cases?: Array<{
       id: string;
       expect: "invoke" | "skip";
+      prompt?: string;
       workspaceFiles?: Record<string, string>;
     }>;
     claudeOnly?: boolean;
+    siblingSkills?: Array<{ name: string; manualOnly?: boolean }>;
+    marketplace?: boolean;
   } = {},
 ): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
   const pluginPath = path.join(repoRoot, "plugins", "demo");
   const skillPath = path.join(pluginPath, "skills", "auto-skill");
+
+  if (options.marketplace === true) {
+    const otherSkillPath = path.join(repoRoot, "plugins", "other", "skills", "other-skill");
+    await mkdir(path.join(otherSkillPath, "agents"), { recursive: true });
+    await mkdir(path.join(repoRoot, "plugins", "other", ".codex-plugin"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, "plugins", "other", ".codex-plugin", "plugin.json"),
+      JSON.stringify({ name: "other", version: "2.0.0", skills: "./skills/" }),
+    );
+    await writeFile(
+      path.join(otherSkillPath, "SKILL.md"),
+      [
+        "---",
+        "name: other-skill",
+        "description: Use when the user asks for the other plugin's skill.",
+        "---",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(
+      path.join(otherSkillPath, "agents", "openai.yaml"),
+      "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
+    );
+
+    await mkdir(path.join(repoRoot, ".agents", "plugins"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, ".agents", "plugins", "marketplace.json"),
+      JSON.stringify({
+        name: "fixture-marketplace",
+        plugins: [
+          { name: "demo", source: { source: "local", path: "./plugins/demo" } },
+          { name: "other", source: { source: "local", path: "./plugins/other" } },
+        ],
+      }),
+    );
+    await mkdir(path.join(repoRoot, ".claude-plugin"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, ".claude-plugin", "marketplace.json"),
+      JSON.stringify({
+        name: "fixture-marketplace",
+        plugins: [
+          { name: "demo", source: "./plugins/demo" },
+          { name: "other", source: "./plugins/other" },
+        ],
+      }),
+    );
+  }
+
+  for (const sibling of options.siblingSkills ?? []) {
+    const siblingPath = path.join(pluginPath, "skills", sibling.name);
+    await mkdir(path.join(siblingPath, "agents"), { recursive: true });
+    await writeFile(
+      path.join(siblingPath, "SKILL.md"),
+      [
+        "---",
+        `name: ${sibling.name}`,
+        "description: Use when the user asks for the sibling skill.",
+        ...(sibling.manualOnly === true ? ["disable-model-invocation: true"] : []),
+        "---",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(
+      path.join(siblingPath, "agents", "openai.yaml"),
+      `version: 1\npolicy:\n  allow_implicit_invocation: ${sibling.manualOnly === true ? "false" : "true"}\n`,
+    );
+  }
 
   await mkdir(path.join(skillPath, "evals"), { recursive: true });
   if (options.claudeOnly === true) {
@@ -716,12 +990,19 @@ async function writeRepoLocalSkillFixture(): Promise<string> {
 }
 
 function fixtureCaseLines(
-  cases: Array<{ id: string; expect: "invoke" | "skip"; workspaceFiles?: Record<string, string> }>,
+  cases: Array<{
+    id: string;
+    expect: "invoke" | "skip";
+    prompt?: string;
+    workspaceFiles?: Record<string, string>;
+  }>,
 ): string[] {
   return cases.flatMap((testCase) => {
+    const prompt =
+      testCase.prompt ?? `${testCase.expect === "invoke" ? "Invoke" : "Do not invoke"} the skill.`;
     const lines = [
       `  - id: ${testCase.id}`,
-      `    prompt: ${testCase.expect === "invoke" ? "Invoke" : "Do not invoke"} the skill.`,
+      `    prompt: ${prompt}`,
       `    expect: ${testCase.expect}`,
     ];
     if (testCase.workspaceFiles !== undefined) {

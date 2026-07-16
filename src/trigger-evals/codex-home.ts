@@ -9,7 +9,7 @@ type CodexHomeOptions = {
   model: string;
   effort: string;
   marketplaceName?: string;
-  pluginName?: string;
+  pluginNames?: string[];
 };
 
 // The eval pins model and model_reasoning_effort explicitly so trigger results stay reproducible
@@ -93,16 +93,24 @@ async function buildEvalConfig(
     "",
   ];
 
-  if (options.marketplaceName !== undefined && options.pluginName !== undefined) {
+  if (
+    options.marketplaceName !== undefined &&
+    options.pluginNames !== undefined &&
+    options.pluginNames.length > 0
+  ) {
     configLines.push(
       `[marketplaces.${tomlString(options.marketplaceName)}]`,
       'source_type = "local"',
       `source = ${tomlString(options.workspacePath)}`,
       "",
-      `[plugins.${tomlString(`${options.pluginName}@${options.marketplaceName}`)}]`,
-      "enabled = true",
-      "",
     );
+    for (const pluginName of options.pluginNames) {
+      configLines.push(
+        `[plugins.${tomlString(`${pluginName}@${options.marketplaceName}`)}]`,
+        "enabled = true",
+        "",
+      );
+    }
   }
 
   return configLines.join("\n");

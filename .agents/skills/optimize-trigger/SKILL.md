@@ -105,6 +105,14 @@ cases where loaded repository instructions should affect the trigger boundary, s
    repo-local skills under `.agents/skills/` for Codex and `.claude/skills/` for Claude Code,
    mirroring how the checkout's `.claude/skills` symlink exposes them in live sessions.
 
+   A single-skill run stages only the target's plugin. Two opt-in suite modes widen coverage:
+   `mise exec -- pnpm eval:trigger:plugin -- plugins/<plugin>` runs every implicitly invokable
+   skill's fixtures in the plugin, and `mise exec -- pnpm eval:trigger:marketplace` additionally
+   stages every plugin from the agent's marketplace catalog and runs all fixtures in the
+   marketplace, exercising cross-plugin trigger overlap. Suite runs are less hermetic — a
+   description change in another plugin can flip marketplace results — so the single-skill default
+   remains the day-to-day loop.
+
    Trigger cases run with bounded parallelism by default. Use `--concurrency <n>` when the target
    fixture needs a slower or faster run than the default concurrency of 3. The default per-case
    timeout is 60 seconds because trigger evals measure whether the skill is invoked, not whether the
@@ -153,6 +161,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
   test stays byte-identical to the committed skill; invocation is classified when the assistant
   outputs the token. Older Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary
   signal.
+- Every staged skill keeps its real invocation policy, and each implicitly invokable staged skill
+  gets its own canary, so invoking the wrong skill is a distinct, attributable observation. A
+  `wrong-skill <plugin>:<skill>` result fails an invoke case and is surfaced on passing skip cases
+  too, because either direction exposes trigger-contract overlap between loaded skills.
 - For repo-local skills on Codex, the runner additionally rewrites the copied description to
   reference the canary because Codex surfaces repo-local skills without any other observable signal.
 - On Claude Code, the runner launches `claude -p` with a read-only tool surface and classifies

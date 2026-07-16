@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import { skillTargetLabel } from "./target.js";
-import type { TriggerEvalResult } from "./types.js";
+import type { TriggerCaseResult, TriggerEvalResult } from "./types.js";
 
 export function printTriggerEvalResult(result: TriggerEvalResult): void {
   if (result.skippedReason !== undefined) {
@@ -21,9 +21,7 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
       : caseResult.environmentalFailure === undefined
         ? "FAIL"
         : "ERROR";
-    const observed = caseResult.invoked
-      ? `invoke via ${caseResult.invocationSignal}`
-      : formatSkip(caseResult.skipSignal);
+    const observed = formatObserved(caseResult);
     console.log(
       `- ${status} ${caseResult.caseId}: expected ${caseResult.expect}, observed ${observed} (${formatDuration(caseResult.durationMs)})`,
     );
@@ -39,6 +37,19 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   if (failures.length > 0) {
     process.exitCode = 1;
   }
+}
+
+function formatObserved(caseResult: TriggerCaseResult): string {
+  if (caseResult.invoked) {
+    return `invoke via ${caseResult.invocationSignal}`;
+  }
+  // A different staged skill fired: a distinct failure on invoke cases, and worth surfacing even
+  // on passing skip cases because it exposes trigger-contract overlap.
+  if (caseResult.invokedSkill !== undefined) {
+    return `wrong-skill ${caseResult.invokedSkill} via ${caseResult.invocationSignal}`;
+  }
+
+  return formatSkip(caseResult.skipSignal);
 }
 
 function formatSkip(skipSignal: "completed" | "item-budget" | "timeout" | undefined): string {
