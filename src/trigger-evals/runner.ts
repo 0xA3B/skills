@@ -8,11 +8,17 @@ import { runCodexExec } from "./codex-exec.js";
 import { prepareCodexHome, removeCopiedAuth } from "./codex-home.js";
 import type { CliRunResult, StreamingCliOutput } from "./exec.js";
 import { loadTriggerFixture } from "./fixtures.js";
-import { EVAL_MARKETPLACE_NAME, prepareHarness } from "./harness.js";
+import {
+  EVAL_MARKETPLACE_NAME,
+  prepareHarness,
+  type SkillCanary,
+  type StagedPlugin,
+} from "./harness.js";
 import { isRecord, parseJsonlEvents } from "./json.js";
+import { listMarketplacePlugins } from "./marketplace.js";
 import { readAllowImplicitInvocation, resolveSkillTarget, skillTargetLabel } from "./target.js";
 import type {
-  PluginSkillTarget,
+  InvocationSignal,
   SkillTarget,
   TriggerCase,
   TriggerCaseResult,
@@ -33,6 +39,10 @@ export type RunTriggerEvalOptions = {
   concurrency?: number;
   sourceCodexHome?: string;
   claudeConfigDir?: string;
+  // Stage every plugin from the agent's marketplace catalog instead of only the target's plugin,
+  // so cross-plugin trigger overlap is exercised. Opt-in because full staging is less hermetic: a
+  // description change in an unrelated plugin can flip results.
+  stageMarketplacePlugins?: boolean;
   abortSignal?: AbortSignal;
 };
 
@@ -92,7 +102,19 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     fixtureOptions,
   );
   const runDir = await createRunDir(repoRoot, target.skillName, agent);
-  const harness = await prepareHarness(runDir, target);
+  if (options.stageMarketplacePlugins === true && target.kind !== "plugin") {
+    throw new Error("Marketplace staging applies to plugin skills, not repo-local skills.");
+  }
+  const harness = await prepareHarness(
+    runDir,
+    target,
+    options.stageMarketplacePlugins === true
+      ? { extraPlugins: await listMarketplacePlugins(repoRoot, agent) }
+      : {},
+  );
+  const harnessCanaryLabels = new Map(
+    harness.skillCanaries.map((skillCanary) => [skillCanary.canary, skillCanary.skillLabel]),
+  );
 
   const results: Array<TriggerCaseResult | undefined> = new Array(fixture.cases.length);
   const concurrency = normalizeConcurrency(options.concurrency ?? DEFAULT_CONCURRENCY);
@@ -109,7 +131,17 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         target,
         testCase,
       });
-      const canary = caseWorkspace.canary ?? harness.pluginCanary;
+      // Repo-local targets canary per case; plugin targets share the per-run canary map that also
+      // names every implicitly invokable staged sibling.
+      const canaryLabels =
+        caseWorkspace.canary === undefined
+          ? harnessCanaryLabels
+          : new Map([[caseWorkspace.canary, skillTargetLabel(target)]]);
+
+      // Any invocation — target or wrong skill — settles the trigger decision, so the run stops.
+      const stopWhen = (output: StreamingCliOutput): boolean =>
+        detectInvocation(output, target, canaryLabels, agent).signal !== "none" ||
+        countDecisionItems(output.stdout, agent) >= SKIP_DECISION_ITEM_BUDGET;
 
       if (agent === "claude") {
         const claudeRunOptions = {
@@ -119,12 +151,12 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
           model,
           effort,
-          stopWhen: (output: StreamingCliOutput) =>
-            detectInvocation(output, target, canary, agent) !== "none" ||
-            countDecisionItems(output.stdout, agent) >= SKIP_DECISION_ITEM_BUDGET,
+          stopWhen,
           ...(target.kind === "plugin"
             ? {
-                pluginDir: path.join(caseWorkspace.workspacePath, "plugins", target.pluginName),
+                pluginDirs: harness.stagedPlugins.map((stagedPlugin) =>
+                  path.join(caseWorkspace.workspacePath, "plugins", stagedPlugin.pluginName),
+                ),
               }
             : {}),
           ...(options.claudeConfigDir === undefined ? {} : { configDir: options.claudeConfigDir }),
@@ -136,7 +168,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           testCase,
           runResult: claudeResult,
           target,
-          canary,
+          canaryLabels,
           durationMs: Date.now() - caseStartedAt,
           agent,
         });
@@ -153,22 +185,17 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           model,
           effort,
           ...(target.kind === "plugin"
-            ? { marketplaceName: EVAL_MARKETPLACE_NAME, pluginName: target.pluginName }
+            ? {
+                marketplaceName: EVAL_MARKETPLACE_NAME,
+                pluginNames: harness.stagedPlugins.map((stagedPlugin) => stagedPlugin.pluginName),
+              }
             : {}),
           ...(options.sourceCodexHome === undefined
             ? {}
             : { sourceCodexHome: options.sourceCodexHome }),
         });
         if (target.kind === "plugin") {
-          if (harness.pluginVersion === undefined || harness.pluginCanary === undefined) {
-            throw new Error("Plugin trigger eval target is missing a plugin version or canary.");
-          }
-          await prepareCasePluginCache(
-            codexHome,
-            target,
-            harness.pluginVersion,
-            harness.pluginCanary,
-          );
+          await prepareCasePluginCaches(codexHome, harness.stagedPlugins, harness.skillCanaries);
         }
         const sandboxMode: "read-only" | "workspace-write" =
           target.kind === "repo-local" ? "workspace-write" : "read-only";
@@ -179,9 +206,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           caseDir,
           timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
           sandboxMode,
-          stopWhen: (output: StreamingCliOutput) =>
-            detectInvocation(output, target, canary, agent) !== "none" ||
-            countDecisionItems(output.stdout, agent) >= SKIP_DECISION_ITEM_BUDGET,
+          stopWhen,
           ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
         };
 
@@ -191,7 +216,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           testCase,
           runResult: codexResult,
           target,
-          canary,
+          canaryLabels,
           durationMs: Date.now() - caseStartedAt,
           agent,
         });
@@ -220,29 +245,36 @@ function buildCaseResult(options: {
   testCase: { id: string; expect: "invoke" | "skip" };
   runResult: CliRunResult;
   target: SkillTarget;
-  canary: string | undefined;
+  canaryLabels: Map<string, string>;
   durationMs: number;
   agent: TriggerEvalAgent;
 }): TriggerCaseResult {
-  const invocationSignal = detectInvocation(
+  const detection = detectInvocation(
     options.runResult,
     options.target,
-    options.canary,
+    options.canaryLabels,
     options.agent,
   );
-  const invoked = invocationSignal !== "none";
+  const anyInvocation = detection.signal !== "none";
+  const invoked = anyInvocation && detection.invokedSkill === skillTargetLabel(options.target);
+  // A wrong-skill invocation fails an invoke case (the target lost the prompt to a sibling) but
+  // not a skip case: the fixture only encodes expectations about the target, and a sibling firing
+  // on a target-negative prompt may be exactly right. It is still recorded in invokedSkill.
   const matchedExpectation = options.testCase.expect === "invoke" ? invoked : !invoked;
   const endedBy = options.runResult.endedBy ?? "completed";
-  const environmentalFailure = invoked
+  // Any observed invocation proves the run executed, so the environmental and skip classifiers
+  // only apply when no skill fired at all.
+  const environmentalFailure = anyInvocation
     ? undefined
     : detectEnvironmentalFailure(options.runResult, options.agent, endedBy);
-  const skipSignal = invoked ? undefined : classifySkipSignal(endedBy);
+  const skipSignal = anyInvocation ? undefined : classifySkipSignal(endedBy);
   const passed = environmentalFailure === undefined && matchedExpectation;
   return {
     caseId: options.testCase.id,
     expect: options.testCase.expect,
-    invocationSignal,
+    invocationSignal: detection.signal,
     invoked,
+    ...(detection.invokedSkill === undefined ? {} : { invokedSkill: detection.invokedSkill }),
     passed,
     ...(skipSignal === undefined ? {} : { skipSignal }),
     ...(environmentalFailure === undefined ? {} : { environmentalFailure }),
@@ -342,27 +374,33 @@ function copiedSkillFilePath(workspacePath: string, target: SkillTarget): string
   return path.join(workspacePath, ".agents", "skills", target.skillName, "SKILL.md");
 }
 
-async function prepareCasePluginCache(
+async function prepareCasePluginCaches(
   codexHome: string,
-  target: PluginSkillTarget,
-  pluginVersion: string,
-  canary: string,
+  stagedPlugins: StagedPlugin[],
+  skillCanaries: SkillCanary[],
 ): Promise<void> {
-  const cachedPluginPath = path.join(
-    codexHome,
-    "plugins",
-    "cache",
-    EVAL_MARKETPLACE_NAME,
-    target.pluginName,
-    pluginVersion,
-  );
-  await mkdir(path.dirname(cachedPluginPath), { recursive: true });
-  await cp(target.pluginPath, cachedPluginPath, { recursive: true });
-  // Codex reads the skill body from the plugin cache, so the canary must be present there too.
-  await appendEvalSectionToFile(
-    path.join(cachedPluginPath, "skills", target.skillName, "SKILL.md"),
-    canary,
-  );
+  for (const stagedPlugin of stagedPlugins) {
+    const cachedPluginPath = path.join(
+      codexHome,
+      "plugins",
+      "cache",
+      EVAL_MARKETPLACE_NAME,
+      stagedPlugin.pluginName,
+      stagedPlugin.version,
+    );
+    await mkdir(path.dirname(cachedPluginPath), { recursive: true });
+    await cp(stagedPlugin.sourcePath, cachedPluginPath, { recursive: true });
+    // Codex reads skill bodies from the plugin cache, so the canaries must be present there too.
+    for (const skillCanary of skillCanaries) {
+      if (skillCanary.pluginName !== stagedPlugin.pluginName) {
+        continue;
+      }
+      await appendEvalSectionToFile(
+        path.join(cachedPluginPath, "skills", skillCanary.skillName, "SKILL.md"),
+        skillCanary.canary,
+      );
+    }
+  }
 }
 
 async function createRunDir(
@@ -494,36 +532,96 @@ function countDecisionItems(stdout: string, agent: TriggerEvalAgent): number {
   return count;
 }
 
+type InvocationDetection = {
+  signal: InvocationSignal;
+  invokedSkill?: string;
+};
+
 // Claude Code invokes skills through the Skill tool, which is visible directly in the stream-json
-// events. Codex evals rely on an eval-only canary appended to the staged skill copies; older Codex
+// events. Codex evals rely on eval-only canaries appended to the staged skill copies; older Codex
 // CLIs also emitted codex.skill.injected stderr telemetry, which is kept as a secondary signal.
+// Both lanes name the skill that fired, so invoking the wrong staged skill is a distinct,
+// attributable observation instead of an undifferentiated miss.
 function detectInvocation(
   output: StreamingCliOutput,
   target: SkillTarget,
-  canary: string | undefined,
+  canaryLabels: Map<string, string>,
   agent: TriggerEvalAgent,
-): "stderr-skill-injected" | "stdout-skill-canary" | "stream-skill-tool-use" | "none" {
-  const skillLabel = skillTargetLabel(target);
+): InvocationDetection {
+  const targetLabel = skillTargetLabel(target);
   if (agent === "claude") {
-    return streamContainsSkillToolUse(output.stdout, skillLabel) ? "stream-skill-tool-use" : "none";
+    const invokedSkills = listSkillToolUseTargets(output.stdout);
+    if (
+      invokedSkills.includes(targetLabel) ||
+      streamContainsSkillToolUse(output.stdout, targetLabel)
+    ) {
+      return { signal: "stream-skill-tool-use", invokedSkill: targetLabel };
+    }
+
+    const wrongSkill = invokedSkills[0];
+    return wrongSkill === undefined
+      ? { signal: "none" }
+      : { signal: "stream-skill-tool-use", invokedSkill: wrongSkill };
   }
 
-  if (
-    target.kind === "plugin" &&
-    output.stderr.includes("codex.skill.injected") &&
-    output.stderr.includes(skillLabel)
-  ) {
-    return "stderr-skill-injected";
+  if (target.kind === "plugin" && output.stderr.includes("codex.skill.injected")) {
+    if (output.stderr.includes(targetLabel)) {
+      return { signal: "stderr-skill-injected", invokedSkill: targetLabel };
+    }
+    for (const skillLabel of canaryLabels.values()) {
+      if (skillLabel !== targetLabel && output.stderr.includes(skillLabel)) {
+        return { signal: "stderr-skill-injected", invokedSkill: skillLabel };
+      }
+    }
   }
 
-  if (canary !== undefined && stdoutContainsCanary(output.stdout, canary)) {
-    return "stdout-skill-canary";
+  // When the target and a wrong skill both surface canaries, the target invocation is the fact the
+  // fixture asserts on, so it wins.
+  const messageText = agentMessageTexts(output.stdout).join("\n");
+  let wrongSkillDetection: InvocationDetection | undefined;
+  for (const [canary, skillLabel] of canaryLabels) {
+    if (!messageText.includes(canary)) {
+      continue;
+    }
+    if (skillLabel === targetLabel) {
+      return { signal: "stdout-skill-canary", invokedSkill: skillLabel };
+    }
+    wrongSkillDetection ??= { signal: "stdout-skill-canary", invokedSkill: skillLabel };
   }
 
-  return "none";
+  return wrongSkillDetection ?? { signal: "none" };
 }
 
 export function streamContainsSkillToolUse(stdout: string, skillLabel: string): boolean {
+  for (const block of skillToolUseBlocks(stdout)) {
+    if (JSON.stringify(block["input"] ?? {}).includes(skillLabel)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// The Skill tool names its target under the "command" key in stream-json events; "skill" is
+// accepted as a fallback shape. streamContainsSkillToolUse stays alongside as the shape-agnostic
+// matcher for the target label.
+export function listSkillToolUseTargets(stdout: string): string[] {
+  const skillLabels: string[] = [];
+  for (const block of skillToolUseBlocks(stdout)) {
+    const input = block["input"];
+    if (!isRecord(input)) {
+      continue;
+    }
+    const skillLabel = input["command"] ?? input["skill"];
+    if (typeof skillLabel === "string" && skillLabel.length > 0) {
+      skillLabels.push(skillLabel);
+    }
+  }
+
+  return skillLabels;
+}
+
+function* skillToolUseBlocks(stdout: string): Generator<Record<string, unknown>> {
   for (const event of parseJsonlEvents(stdout)) {
     if (!isRecord(event)) {
       continue;
@@ -536,28 +634,11 @@ export function streamContainsSkillToolUse(stdout: string, skillLabel: string): 
     }
 
     for (const block of content) {
-      if (
-        isRecord(block) &&
-        block["type"] === "tool_use" &&
-        block["name"] === "Skill" &&
-        JSON.stringify(block["input"] ?? {}).includes(skillLabel)
-      ) {
-        return true;
+      if (isRecord(block) && block["type"] === "tool_use" && block["name"] === "Skill") {
+        yield block;
       }
     }
   }
-
-  return false;
-}
-
-function stdoutContainsCanary(stdout: string, canary: string): boolean {
-  for (const text of agentMessageTexts(stdout)) {
-    if (text.includes(canary)) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 function agentMessageTexts(stdout: string): string[] {

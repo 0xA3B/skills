@@ -6,7 +6,7 @@ describe("parseTriggerEvalCliOptions", () => {
   it("accepts just a skill path", () => {
     expect(parseTriggerEvalCliOptions(["plugins/foo/skills/bar"])).toStrictEqual({
       agents: ["codex"],
-      skillPath: "plugins/foo/skills/bar",
+      selection: { mode: "skill", skillPath: "plugins/foo/skills/bar" },
     });
   });
 
@@ -36,7 +36,7 @@ describe("parseTriggerEvalCliOptions", () => {
       ]),
     ).toStrictEqual({
       agents: ["claude"],
-      skillPath: "plugins/foo/skills/bar",
+      selection: { mode: "skill", skillPath: "plugins/foo/skills/bar" },
       fixturePath: "custom.yaml",
       caseId: "case-a",
       model: "gpt-5",
@@ -53,8 +53,54 @@ describe("parseTriggerEvalCliOptions", () => {
     expect(parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--agent", "both"])).toStrictEqual(
       {
         agents: ["codex", "claude"],
-        skillPath: "plugins/foo/skills/bar",
+        selection: { mode: "skill", skillPath: "plugins/foo/skills/bar" },
       },
+    );
+  });
+
+  it("selects plugin suite mode with --plugin", () => {
+    expect(
+      parseTriggerEvalCliOptions(["--plugin", "plugins/foo", "--agent", "both"]),
+    ).toStrictEqual({
+      agents: ["codex", "claude"],
+      selection: { mode: "plugin", pluginPath: "plugins/foo" },
+    });
+  });
+
+  it("selects marketplace suite mode with --marketplace", () => {
+    expect(parseTriggerEvalCliOptions(["--marketplace"])).toStrictEqual({
+      agents: ["codex"],
+      selection: { mode: "marketplace" },
+    });
+  });
+
+  it("rejects combining --plugin with --marketplace", () => {
+    expect(() => parseTriggerEvalCliOptions(["--plugin", "--marketplace", "plugins/foo"])).toThrow(
+      "Use either --plugin or --marketplace, not both.",
+    );
+  });
+
+  it("requires a plugin path with --plugin", () => {
+    expect(() => parseTriggerEvalCliOptions(["--plugin"])).toThrow(
+      "Usage: pnpm eval:trigger -- --plugin plugins/<plugin> [options]",
+    );
+  });
+
+  it("rejects a path with --marketplace", () => {
+    expect(() => parseTriggerEvalCliOptions(["--marketplace", "plugins/foo"])).toThrow(
+      "--marketplace runs every marketplace skill; do not pass a path.",
+    );
+  });
+
+  it("rejects per-skill narrowing flags in suite modes", () => {
+    expect(() =>
+      parseTriggerEvalCliOptions(["--plugin", "plugins/foo", "--case", "case-a"]),
+    ).toThrow("--case applies to single-skill runs, not --plugin or --marketplace.");
+    expect(() => parseTriggerEvalCliOptions(["--marketplace", "--fixture", "custom.yaml"])).toThrow(
+      "--fixture applies to single-skill runs, not --plugin or --marketplace.",
+    );
+    expect(() => parseTriggerEvalCliOptions(["--marketplace", "--force"])).toThrow(
+      "--force applies to single-skill runs, not --plugin or --marketplace.",
     );
   });
 
@@ -67,7 +113,7 @@ describe("parseTriggerEvalCliOptions", () => {
   it("ignores the package-manager argument separator", () => {
     expect(parseTriggerEvalCliOptions(["--", "plugins/foo/skills/bar"])).toStrictEqual({
       agents: ["codex"],
-      skillPath: "plugins/foo/skills/bar",
+      selection: { mode: "skill", skillPath: "plugins/foo/skills/bar" },
     });
   });
 

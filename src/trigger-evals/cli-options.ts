@@ -3,8 +3,17 @@ import { parseArgs } from "node:util";
 import type { RunTriggerEvalOptions } from "./runner.js";
 import type { TriggerEvalAgent } from "./types.js";
 
-export type TriggerEvalCliOptions = RunTriggerEvalOptions & {
+export type TriggerEvalSelection =
+  | { mode: "skill"; skillPath: string }
+  | { mode: "plugin"; pluginPath: string }
+  | { mode: "marketplace" };
+
+export type TriggerEvalCliOptions = Omit<
+  RunTriggerEvalOptions,
+  "skillPath" | "agent" | "stageMarketplacePlugins" | "abortSignal"
+> & {
   agents: TriggerEvalAgent[];
+  selection: TriggerEvalSelection;
 };
 
 export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOptions {
@@ -15,10 +24,7 @@ export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOption
     throw new HelpRequested();
   }
 
-  const [skillPath, extra] = parsed.positionals;
-  if (skillPath === undefined || extra !== undefined) {
-    throw new Error("Usage: pnpm eval:trigger -- <skill-path> [options]");
-  }
+  const selection = parseSelection(parsed.values, parsed.positionals);
 
   const agents = parseAgents(parsed.values.agent);
   if (parsed.values.fixture !== undefined) {
@@ -52,7 +58,59 @@ export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOption
     options.force = true;
   }
 
-  return { ...options, agents, skillPath };
+  if (selection.mode !== "skill") {
+    // Suite runs iterate whole fixture files per skill and already exclude manual-only skills, so
+    // the per-skill narrowing flags have no coherent meaning there.
+    for (const [flag, present] of [
+      ["--fixture", options.fixturePath !== undefined],
+      ["--case", options.caseId !== undefined],
+      ["--force", options.force === true],
+    ] as const) {
+      if (present) {
+        throw new Error(`${flag} applies to single-skill runs, not --plugin or --marketplace.`);
+      }
+    }
+  }
+
+  return { ...options, agents, selection };
+}
+
+function parseSelection(
+  values: { plugin?: boolean; marketplace?: boolean },
+  positionals: string[],
+): TriggerEvalSelection {
+  if (values.plugin === true && values.marketplace === true) {
+    throw new Error("Use either --plugin or --marketplace, not both.");
+  }
+
+  const [firstPositional, extra] = positionals;
+  if (extra !== undefined) {
+    throw new Error(usageLine());
+  }
+
+  if (values.marketplace === true) {
+    if (firstPositional !== undefined) {
+      throw new Error("--marketplace runs every marketplace skill; do not pass a path.");
+    }
+    return { mode: "marketplace" };
+  }
+
+  if (values.plugin === true) {
+    if (firstPositional === undefined) {
+      throw new Error("Usage: pnpm eval:trigger -- --plugin plugins/<plugin> [options]");
+    }
+    return { mode: "plugin", pluginPath: firstPositional };
+  }
+
+  if (firstPositional === undefined) {
+    throw new Error(usageLine());
+  }
+
+  return { mode: "skill", skillPath: firstPositional };
+}
+
+function usageLine(): string {
+  return "Usage: pnpm eval:trigger -- <skill-path> [options]";
 }
 
 function parseAgents(value: string | undefined): TriggerEvalAgent[] {
@@ -77,7 +135,10 @@ export class HelpRequested extends Error {
 
 export function usage(): string {
   return [
-    "Usage: pnpm eval:trigger -- <skill-path> [options]",
+    "Usage:",
+    "  pnpm eval:trigger -- <skill-path> [options]",
+    "  pnpm eval:trigger -- --plugin plugins/<plugin> [options]",
+    "  pnpm eval:trigger -- --marketplace [options]",
     "",
     "Skill paths:",
     "  plugins/<plugin>/skills/<skill>",
@@ -85,6 +146,9 @@ export function usage(): string {
     "",
     "Options:",
     "  --agent <agent>            Agent(s) to evaluate: codex, claude, or both. Defaults to codex.",
+    "  --plugin                   Run every trigger eval in the plugin at the given path.",
+    "  --marketplace              Stage every marketplace plugin and run every trigger eval in the",
+    "                             marketplace, so cross-plugin trigger overlap is exercised.",
     "  --fixture <path>           Use a fixture file other than evals/triggers.yaml.",
     "  --case <id>                Run one trigger fixture case.",
     "  --model <model>            Model override. Defaults: codex gpt-5.6-sol, claude opus.",
@@ -104,6 +168,8 @@ function parseTriggerArgs(argv: string[]) {
       allowPositionals: true,
       options: {
         agent: { type: "string" },
+        plugin: { type: "boolean" },
+        marketplace: { type: "boolean" },
         fixture: { type: "string" },
         case: { type: "string" },
         model: { type: "string" },

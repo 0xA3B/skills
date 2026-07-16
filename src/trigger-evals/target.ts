@@ -96,7 +96,16 @@ export async function readAllowImplicitInvocation(
 // agents/openai.yaml, so the Claude lane reads the frontmatter directly. The linter's
 // invocation-policy parity rule keeps both policies equivalent for dual-target skills.
 async function readClaudeAllowImplicitInvocation(target: SkillTarget): Promise<boolean> {
-  const content = await readFile(target.skillFilePath, "utf8");
+  return readSkillFileAllowImplicitInvocation(target.skillFilePath);
+}
+
+// Frontmatter is the one invocation-policy surface every skill ships, so it also stands in for the
+// Codex policy where agents/openai.yaml may be absent (invocation-policy parity is linter-enforced
+// for dual-target skills).
+export async function readSkillFileAllowImplicitInvocation(
+  skillFilePath: string,
+): Promise<boolean> {
+  const content = await readFile(skillFilePath, "utf8");
   const frontmatterMatch = content.match(/^---\r?\n(?<frontmatter>[\s\S]*?)\r?\n---(?:\r?\n|$)/);
   const frontmatter = frontmatterMatch?.groups?.["frontmatter"];
   if (frontmatter === undefined) {

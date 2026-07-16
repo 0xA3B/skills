@@ -1,8 +1,15 @@
 #!/usr/bin/env node
 
-import { HelpRequested, parseTriggerEvalCliOptions, usage } from "./cli-options.js";
+import {
+  HelpRequested,
+  parseTriggerEvalCliOptions,
+  type TriggerEvalSelection,
+  usage,
+} from "./cli-options.js";
 import { printTriggerEvalResult } from "./output.js";
 import { runTriggerEval } from "./runner.js";
+import { selectMarketplaceSuite, selectPluginSuite, type TriggerEvalSuite } from "./suite.js";
+import type { TriggerEvalAgent } from "./types.js";
 
 const abortController = new AbortController();
 const handleSignal = (signal: NodeJS.Signals): void => {
@@ -27,24 +34,70 @@ async function main(): Promise<void> {
   }
 
   if (options !== undefined) {
-    const { agents, ...runOptions } = options;
+    const { agents, selection, ...runOptions } = options;
     try {
       for (const agent of agents) {
         if (abortController.signal.aborted) {
           break;
         }
-        const result = await runTriggerEval({
-          ...runOptions,
-          agent,
-          abortSignal: abortController.signal,
-        });
-        printTriggerEvalResult(result);
+        const suite = await resolveSuite(selection, agent);
+        if (suite.manualOnlySkillPaths.length > 0) {
+          console.log(
+            `Skipping manual-only skills on ${agent}: ${suite.manualOnlySkillPaths.join(", ")}.`,
+          );
+        }
+
+        let passedSkills = 0;
+        let ranSkills = 0;
+        for (const skillPath of suite.skillPaths) {
+          if (abortController.signal.aborted) {
+            break;
+          }
+          const result = await runTriggerEval({
+            ...runOptions,
+            skillPath,
+            agent,
+            stageMarketplacePlugins: selection.mode === "marketplace",
+            abortSignal: abortController.signal,
+          });
+          printTriggerEvalResult(result);
+          ranSkills += 1;
+          if (
+            result.skippedReason === undefined &&
+            result.results.every((caseResult) => caseResult.passed)
+          ) {
+            passedSkills += 1;
+          }
+        }
+
+        if (selection.mode !== "skill" && ranSkills > 0) {
+          console.log(
+            `${selection.mode === "plugin" ? "Plugin" : "Marketplace"} suite on ${agent}: ${passedSkills}/${ranSkills} skills passed.`,
+          );
+        }
       }
     } catch (caught: unknown) {
       console.error(caught instanceof Error ? caught.message : String(caught));
       process.exitCode = 1;
     }
   }
+}
+
+// Suite membership is per agent: invocation policy and the marketplace catalog both differ
+// between Claude and Codex.
+async function resolveSuite(
+  selection: TriggerEvalSelection,
+  agent: TriggerEvalAgent,
+): Promise<TriggerEvalSuite> {
+  const repoRoot = process.cwd();
+  if (selection.mode === "skill") {
+    return { skillPaths: [selection.skillPath], manualOnlySkillPaths: [] };
+  }
+  if (selection.mode === "plugin") {
+    return selectPluginSuite(repoRoot, selection.pluginPath, agent);
+  }
+
+  return selectMarketplaceSuite(repoRoot, agent);
 }
 
 void main();
