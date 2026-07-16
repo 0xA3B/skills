@@ -5,7 +5,7 @@ import path from "node:path";
 import { appendEvalSectionToFile, createCanary } from "./canary.js";
 import type { MarketplacePluginEntry } from "./marketplace.js";
 import { readSkillFileAllowImplicitInvocation } from "./target.js";
-import type { PluginSkillTarget, SkillTarget } from "./types.js";
+import type { PluginSkillTarget, SkillTarget, TriggerEvalAgent } from "./types.js";
 
 export const EVAL_MARKETPLACE_NAME = "trigger-eval";
 
@@ -34,9 +34,16 @@ export type HarnessPaths = {
   // firing on Codex is observable and attributable. Empty for repo-local targets, which canary
   // per case instead.
   skillCanaries: SkillCanary[];
+  // Every staged skill's label regardless of invocation policy — manual-only skills also surface
+  // in Claude's init-event skills list, so the isolation check must expect them.
+  stagedSkillLabels: string[];
 };
 
 export type PrepareHarnessOptions = {
+  // Lane-specific staging (Claude settings and project-skill copies vs the Codex marketplace and
+  // .agents skill copies) writes only the evaluated agent's surfaces, so the other agent's config
+  // never pollutes the workspace under test.
+  agent: TriggerEvalAgent;
   // Plugins staged alongside the target's plugin (marketplace mode). Entries matching the target
   // plugin are deduplicated.
   extraPlugins?: MarketplacePluginEntry[];
@@ -45,12 +52,14 @@ export type PrepareHarnessOptions = {
 export async function prepareHarness(
   runDir: string,
   target: SkillTarget,
-  options: PrepareHarnessOptions = {},
+  options: PrepareHarnessOptions,
 ): Promise<HarnessPaths> {
   const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-eval-workspace-"));
   const workspacePath = path.join(workspaceRoot, "workspace");
   const codexHome = path.join(runDir, "codex-home");
-  await writeClaudeEvalSettings(workspacePath);
+  if (options.agent === "claude") {
+    await writeClaudeEvalSettings(workspacePath);
+  }
   if (target.kind === "plugin") {
     const pluginsToStage: MarketplacePluginEntry[] = [
       { pluginName: target.pluginName, pluginPath: target.pluginPath },
@@ -69,18 +78,20 @@ export async function prepareHarness(
       });
     }
 
-    await mkdir(path.join(workspacePath, ".agents", "plugins"), { recursive: true });
-    await writeFile(
-      path.join(workspacePath, ".agents", "plugins", "marketplace.json"),
-      JSON.stringify(buildMarketplace(stagedPlugins), null, 2),
-    );
+    if (options.agent === "codex") {
+      await mkdir(path.join(workspacePath, ".agents", "plugins"), { recursive: true });
+      await writeFile(
+        path.join(workspacePath, ".agents", "plugins", "marketplace.json"),
+        JSON.stringify(buildMarketplace(stagedPlugins), null, 2),
+      );
+    }
 
     // Codex no longer emits skill-injection telemetry, so plugin evals detect invocation with
     // body-only canaries that the model sees once a skill's instructions load. Every implicitly
     // invokable staged skill gets its own canary so invoking the wrong skill is observable and
     // attributable, not an undifferentiated miss. One canary per skill per run is enough because
     // each case scans only its own output.
-    const skillCanaries = await createSkillCanaries(target, pluginsToStage);
+    const { skillCanaries, stagedSkillLabels } = await surveyStagedSkills(target, pluginsToStage);
     for (const skillCanary of skillCanaries) {
       await appendEvalSectionToFile(
         path.join(
@@ -101,19 +112,22 @@ export async function prepareHarness(
       codexHome,
       stagedPlugins,
       skillCanaries,
+      stagedSkillLabels,
     };
   }
 
-  const copiedSkillPath = path.join(workspacePath, ".agents", "skills", target.skillName);
-  await mkdir(path.dirname(copiedSkillPath), { recursive: true });
-  await cp(target.skillPath, copiedSkillPath, { recursive: true });
-
-  // Claude Code discovers repo-local skills as project skills from .claude/skills. This copy stays
-  // canary-free so the Claude lane tests the committed description; Claude invocation is detected
-  // from Skill tool events instead.
-  const claudeSkillPath = path.join(workspacePath, ".claude", "skills", target.skillName);
-  await mkdir(path.dirname(claudeSkillPath), { recursive: true });
-  await cp(target.skillPath, claudeSkillPath, { recursive: true });
+  if (options.agent === "codex") {
+    const copiedSkillPath = path.join(workspacePath, ".agents", "skills", target.skillName);
+    await mkdir(path.dirname(copiedSkillPath), { recursive: true });
+    await cp(target.skillPath, copiedSkillPath, { recursive: true });
+  } else {
+    // Claude Code discovers repo-local skills as project skills from .claude/skills. This copy
+    // stays canary-free so the Claude lane tests the committed description; Claude invocation is
+    // detected from Skill tool events instead.
+    const claudeSkillPath = path.join(workspacePath, ".claude", "skills", target.skillName);
+    await mkdir(path.dirname(claudeSkillPath), { recursive: true });
+    await cp(target.skillPath, claudeSkillPath, { recursive: true });
+  }
 
   return {
     workspacePath,
@@ -121,16 +135,21 @@ export async function prepareHarness(
     codexHome,
     stagedPlugins: [],
     skillCanaries: [],
+    stagedSkillLabels: [target.skillName],
   };
 }
 
-async function createSkillCanaries(
+async function surveyStagedSkills(
   target: PluginSkillTarget,
   stagedPlugins: MarketplacePluginEntry[],
-): Promise<SkillCanary[]> {
+): Promise<{ skillCanaries: SkillCanary[]; stagedSkillLabels: string[] }> {
   const skillCanaries: SkillCanary[] = [];
+  const stagedSkillLabels: string[] = [];
   for (const entry of stagedPlugins) {
     for (const skillName of await listPluginSkillNames(entry.pluginPath)) {
+      const skillLabel = `${entry.pluginName}:${skillName}`;
+      stagedSkillLabels.push(skillLabel);
+
       const isTarget = entry.pluginName === target.pluginName && skillName === target.skillName;
       const skillFilePath = path.join(entry.pluginPath, "skills", skillName, "SKILL.md");
       // Manual-only siblings cannot fire implicitly, so they stay canary-free. The target is
@@ -143,12 +162,12 @@ async function createSkillCanaries(
         canary: createCanary(),
         pluginName: entry.pluginName,
         skillName,
-        skillLabel: `${entry.pluginName}:${skillName}`,
+        skillLabel,
       });
     }
   }
 
-  return skillCanaries;
+  return { skillCanaries, stagedSkillLabels };
 }
 
 async function listPluginSkillNames(pluginPath: string): Promise<string[]> {

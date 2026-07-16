@@ -172,9 +172,13 @@ cases where loaded repository instructions should affect the trigger boundary, s
   plugin copy via `--plugin-dir`; repo-local skills load as pristine project skills from the staged
   `.claude/skills/` copy, so the committed description is tested unmodified on Claude.
 - Claude workspaces stage project-only `.claude/settings.json` with `disableBundledSkills: true` so
-  bundled skills such as `code-review` do not compete with the target. If a Claude version ignores
-  that setting, inspect the init event's `skills` list before treating a miss as a trigger-contract
-  failure.
+  bundled skills such as `code-review` do not compete with the target. The runner verifies the
+  isolation at runtime: each Claude case checks the init event's `skills` list against the staged
+  set (plus the exempt `doctor` skill) and reports an environmental failure when unstaged skills
+  leak in, because a leaked skill can steal or provoke an invocation in either direction.
+- Staging is lane-specific: only the evaluated agent's config surfaces are written into the
+  workspace (`.claude/` for Claude, `.agents/` for Codex), so the other agent's files never pollute
+  the workspace under test.
 - Case pass/fail is based on matching the expected invoke or skip classification. Exec errors and
   timeouts remain in the report because trigger evals do not validate workflow completion.
 - Skip verdicts record how the run ended: natural completion, the decision-item budget, or the case

@@ -33,6 +33,7 @@ const mockState = vi.hoisted(() => ({
   codexHomeModels: [] as string[],
   codexHomeEfforts: [] as string[],
   codexHomePluginNames: [] as string[][],
+  claudeInitSkills: undefined as string[] | undefined,
 }));
 
 vi.mock(import("./codex-exec.js"), () => ({
@@ -104,21 +105,27 @@ vi.mock(import("./claude-exec.js"), () => ({
       : options.prompt.startsWith("Do not invoke")
         ? undefined
         : "demo:auto-skill";
+    const events =
+      mockState.claudeInitSkills === undefined
+        ? []
+        : [JSON.stringify({ type: "system", subtype: "init", skills: mockState.claudeInitSkills })];
+    events.push(
+      invokedSkill !== undefined
+        ? JSON.stringify({
+            type: "assistant",
+            message: {
+              content: [{ type: "tool_use", name: "Skill", input: { command: invokedSkill } }],
+            },
+          })
+        : JSON.stringify({
+            type: "assistant",
+            message: { content: [{ type: "text", text: "I answered without any skill." }] },
+          }),
+    );
     return {
       exitCode: 0,
       finalMessage: "",
-      stdout:
-        invokedSkill !== undefined
-          ? JSON.stringify({
-              type: "assistant",
-              message: {
-                content: [{ type: "tool_use", name: "Skill", input: { command: invokedSkill } }],
-              },
-            })
-          : JSON.stringify({
-              type: "assistant",
-              message: { content: [{ type: "text", text: "I answered without any skill." }] },
-            }),
+      stdout: events.join("\n"),
       stderr: "",
       stdoutPath: "/tmp/events.jsonl",
       stderrPath: "/tmp/stderr.log",
@@ -145,6 +152,7 @@ describe("runTriggerEval", () => {
     mockState.codexHomeModels = [];
     mockState.codexHomeEfforts = [];
     mockState.codexHomePluginNames = [];
+    mockState.claudeInitSkills = undefined;
   });
 
   it("passes cases when invocation expectation matches even if codex exec errors", async () => {
@@ -454,6 +462,100 @@ describe("runTriggerEval", () => {
       invokedSkill: "demo:sibling-skill",
       passed: true,
     });
+  });
+
+  it("stages only the evaluated lane's surfaces", async () => {
+    const repoRoot = await writeRepoFixture();
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+    });
+    const codexWorkspace = mockState.workspacePaths[0] ?? "";
+    await expect(
+      readFile(path.join(codexWorkspace, ".claude", "settings.json"), "utf8"),
+    ).rejects.toThrow(/ENOENT/);
+    await expect(
+      readFile(path.join(codexWorkspace, ".agents", "plugins", "marketplace.json"), "utf8"),
+    ).resolves.toContain('"demo"');
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+      caseId: "skip-case",
+    });
+    const claudeWorkspace = mockState.claudeWorkspacePaths[0] ?? "";
+    await expect(
+      readFile(path.join(claudeWorkspace, ".agents", "plugins", "marketplace.json"), "utf8"),
+    ).rejects.toThrow(/ENOENT/);
+    await expect(
+      readFile(path.join(claudeWorkspace, ".claude", "settings.json"), "utf8"),
+    ).resolves.toContain("disableBundledSkills");
+  });
+
+  it("stages repo-local skills only for the evaluated lane", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture();
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: ".agents/skills/auto-skill",
+      caseId: "repo-local-case",
+    });
+    const codexWorkspace = mockState.workspacePaths[0] ?? "";
+    await expect(
+      readFile(path.join(codexWorkspace, ".claude", "skills", "auto-skill", "SKILL.md"), "utf8"),
+    ).rejects.toThrow(/ENOENT/);
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: ".agents/skills/auto-skill",
+      agent: "claude",
+      caseId: "repo-local-case",
+    });
+    const claudeWorkspace = mockState.claudeWorkspacePaths[0] ?? "";
+    await expect(
+      readFile(path.join(claudeWorkspace, ".agents", "skills", "auto-skill", "SKILL.md"), "utf8"),
+    ).rejects.toThrow(/ENOENT/);
+  });
+
+  it("accepts staged skills and the exempt set in the Claude init event", async () => {
+    const repoRoot = await writeRepoFixture({
+      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
+    });
+    mockState.claudeInitSkills = ["demo:auto-skill", "demo:manual-skill", "doctor"];
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+    });
+
+    expect(result.results.every((caseResult) => caseResult.passed)).toBe(true);
+    expect(
+      result.results.every((caseResult) => caseResult.environmentalFailure === undefined),
+    ).toBe(true);
+  });
+
+  it("fails cases environmentally when unstaged skills leak into a Claude run", async () => {
+    const repoRoot = await writeRepoFixture();
+    mockState.claudeInitSkills = ["demo:auto-skill", "code-review", "doctor"];
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+    });
+
+    // The leak poisons every case, including the invoke case whose expectation matched.
+    expect(result.results).toHaveLength(2);
+    for (const caseResult of result.results) {
+      expect(caseResult.passed).toBe(false);
+      expect(caseResult.environmentalFailure).toContain("code-review");
+      expect(caseResult.environmentalFailure).toContain("disableBundledSkills");
+    }
+    expect(result.results[0]?.invoked).toBe(true);
   });
 
   it("stages every marketplace plugin on Codex when marketplace staging is requested", async () => {
