@@ -87,11 +87,19 @@ Provide every lane reviewer:
   available;
 - a prohibition on expanding scope or applying fixes.
 
+Instruct each reviewer to report every finding that has a nameable failure scenario or concrete
+cost; silently dropping half-believed findings bypasses coordinator triage and is the dominant cause
+of missed defects.
+
 ## Finding Contract
 
 Each lane returns `lane`, `verdict`, `summary`, and findings with a lane-distinct ID, severity,
 file, optional lines, summary, evidence, impact, recommendation, confidence, and optional follow-up
 question. Use prefixes such as `CR`, `SIM`, `CBD`, `API`, `TEST`, and `SPEC`.
+
+Keep a finding whose failure state is realistic but unproven — a race, a rare error path, a boundary
+the code does not exclude — at reduced confidence instead of dropping it. Drop a finding only when
+the code refutes it: cite the line, invariant, or guard that makes the failure impossible.
 
 Report no findings when the lane passes. Do not invent low-value style comments to justify a lane.
 Stop when every selected lane has returned, results are normalized, and duplicates are merged

@@ -17,9 +17,10 @@ workflows. `terminology`, `diagnose`, `improve-codebase-architecture`, `dependen
 `visualize` remain focused workflows for their respective concerns.
 
 On Claude Code, the bundled `code-review` skill competes for generic review prompts. Treat the
-manual `review-changes` and `review-branch` invocations as the primary entry points, and set
-`disableBundledSkills: true` in project settings when this plugin's review workflows should own
-review behavior.
+manual `review-changes` and `review-branch` invocations as the primary entry points. To keep the
+bundled skill typable as `/code-review` while stopping it from triggering implicitly, set
+`"skillOverrides": { "code-review": "user-invocable-only" }` in settings; set
+`disableBundledSkills: true` instead when no bundled skills should load at all.
 
 Some skills are adapted from Matt Pocock's MIT-licensed
 [`mattpocock/skills`](https://github.com/mattpocock/skills) repository. Adapted skills include Agent
