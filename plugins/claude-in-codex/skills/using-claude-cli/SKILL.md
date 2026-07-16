@@ -22,8 +22,8 @@ Claude is asked to do, the scope, and how its output is used.
 - Use `claude` from `PATH`; do not hard-code a machine-specific absolute path.
 - Run `claude` with escalated permissions, outside the Codex sandbox: it needs network access to
   reach the Anthropic API and home-directory writes for session state, neither of which the sandbox
-  grants. Claude's own recipes and configuration are the permission boundary, not the calling
-  sandbox.
+  grants. Claude's own sandbox, permission mode, configured permissions, and task prompt govern the
+  child process; the calling Codex sandbox does not.
 - Leave the model at the configured default. Add `--model` only when the user explicitly requests a
   specific model, such as asking for a Fable or Sonnet run.
 - Leave reasoning effort at the configured default. Add `--effort` (`medium`, `high`, or `xhigh`)
@@ -48,23 +48,31 @@ Claude is asked to do, the scope, and how its output is used.
 - On resumed turns, send only the delta instruction instead of restating the whole prompt, unless
   the direction changed materially.
 
-## Read-Only Recipe
+## Review and Research Recipe
 
-Use this shape when Claude must inspect but never modify the repository, such as review, diagnosis,
-or research:
+Use this shape for review, diagnosis, or research where Claude may inspect the repository and run
+task-scoped checks but should not intentionally edit project files or Git state:
 
 ```bash
 claude -p "$PROMPT" \
-  --permission-mode dontAsk \
+  --permission-mode auto \
   --tools "Read,Glob,Grep,Bash" \
   --disallowedTools "Edit,Write,NotebookEdit" \
   --output-format json
 ```
 
-The read-only boundary is enforced by instruction, not by an OS sandbox: the command grants Bash for
-broad exploration, so the prompt must tell Claude to use Bash only for read-only inspection and
-never to modify files, git state, or generated output. This recipe assumes the working tree is
-recoverable if a command misfires; preserve important local work first when that is not true.
+This is a practical review posture, not a hard filesystem read-only boundary. Disabling Claude's
+editor tools removes its normal direct-edit path, while `auto` lets Claude's classifier and the
+user's configured permissions evaluate Bash commands without interactive prompts. Bash can still
+write, and tests, linters, or builds may create normal caches or generated artifacts.
+
+State the allowed actions in the prompt. Permit repository inspection and the smallest tests,
+linters, or build checks needed to investigate candidate findings; prefer check-only modes when
+available. Tell Claude not to run formatters, fix modes, or commands intended to change project
+files or Git state. Claude may use subagents when they materially help the task. Do not use
+subagents solely to probe permission behavior, and do not test permission boundaries with commands
+that would be destructive if approved; report an unvalidated boundary instead. Preserve important
+local work first when the working tree is not recoverable.
 
 ## Write-Capable Recipe
 

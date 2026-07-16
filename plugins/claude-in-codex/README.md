@@ -6,8 +6,8 @@ Run Claude Code from Codex for adversarial code review and task delegation.
 
 ## Skills
 
-- `claude-in-codex:adversarial-review`: Invokes Claude Code as a read-only adversarial reviewer, has
-  Codex triage the feedback, applies accepted in-scope fixes for current working-tree changes,
+- `claude-in-codex:adversarial-review`: Invokes Claude Code as a review-scoped adversarial reviewer,
+  has Codex triage the feedback, applies accepted in-scope fixes for current working-tree changes,
   validates the result, and summarizes the outcome.
 - `claude-in-codex:using-claude-cli`: Internal contract for running the Claude Code CLI
   non-interactively — command recipes, sessions, structured output, and prompting guidance. Used by
