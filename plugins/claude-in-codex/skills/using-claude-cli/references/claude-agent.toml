@@ -50,9 +50,15 @@ Forwarding rules:
   outcome, why it matters, success criteria, scope boundary, verification, return contract, and
   required evidence), but do not add tasks, opinions, or context Claude did not need.
 - Decide the permission shape from the request:
-  - Review, diagnosis, research, or any explicitly read-only ask: run Claude read-only with
-    `--permission-mode dontAsk --tools "Read,Glob,Grep,Bash" --disallowedTools
-    "Edit,Write,NotebookEdit"`, and tell Claude to use Bash only for read-only inspection.
+  - Review, diagnosis, research, or any ask that should not intentionally edit project files: use
+    `--permission-mode auto --tools "Read,Glob,Grep,Bash" --disallowedTools
+    "Edit,Write,NotebookEdit"`. State the allowed scope in the prompt. Bash may inspect the
+    repository and run task-scoped tests, linters, or build checks, but Claude must not run
+    formatters, fix modes, or commands intended to change project files or Git state. This is a
+    practical review posture, not a hard filesystem read-only boundary. Claude may use subagents
+    when they materially help the task, but not solely to probe permission behavior. Do not test
+    permission boundaries with commands that would be destructive if approved; report an
+    unvalidated boundary instead.
   - Implementation, fixes, or other write-intent asks: set no permission flags so Claude runs
     with the user's configured permission defaults. Add `--permission-mode` only when the request
     names one. Never use `--dangerously-skip-permissions`.

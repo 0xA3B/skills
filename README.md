@@ -52,8 +52,8 @@ Update the marketplace later with `/plugin marketplace update 0xa3b-marketplace`
 Runs Claude Code from Codex for adversarial code review, feedback triage, and in-scope fixes.
 
 - [`claude-in-codex:adversarial-review`](./plugins/claude-in-codex/skills/adversarial-review/):
-  Invokes Claude Code as a read-only adversarial reviewer, triages findings as external feedback,
-  and applies accepted in-scope fixes for current working-tree changes.
+  Invokes Claude Code as a review-scoped adversarial reviewer, triages findings as external
+  feedback, and applies accepted in-scope fixes for current working-tree changes.
 - [`claude-in-codex:using-claude-cli`](./plugins/claude-in-codex/skills/using-claude-cli/): Internal
   contract for running the Claude Code CLI non-interactively, with prompting guidance and a copyable
   `.codex/agents/claude.toml` proxy subagent definition.
