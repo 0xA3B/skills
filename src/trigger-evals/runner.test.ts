@@ -100,21 +100,32 @@ vi.mock(import("./claude-exec.js"), () => ({
     mockState.claudeWorkspacePaths.push(options.workspacePath);
     mockState.claudeModels.push(options.model);
     mockState.claudeEfforts.push(options.effort);
-    const invokedSkill = options.prompt.startsWith("Invoke the sibling")
-      ? "demo:sibling-skill"
-      : options.prompt.startsWith("Do not invoke")
-        ? undefined
-        : "demo:auto-skill";
+    // Plugin skills surface as plugin:skill labels in Skill tool input; repo-local project skills
+    // (no pluginDirs passed) surface as bare names.
+    const targetLabel = options.pluginDirs === undefined ? "auto-skill" : "demo:auto-skill";
+    const invokedSkills = options.prompt.startsWith("Invoke both")
+      ? [targetLabel, "demo:sibling-skill"]
+      : options.prompt.startsWith("Invoke a prefixed impostor")
+        ? ["demo:auto-skill-extra"]
+        : options.prompt.startsWith("Invoke the sibling")
+          ? ["demo:sibling-skill"]
+          : options.prompt.startsWith("Do not invoke")
+            ? []
+            : [targetLabel];
     const events =
       mockState.claudeInitSkills === undefined
         ? []
         : [JSON.stringify({ type: "system", subtype: "init", skills: mockState.claudeInitSkills })];
     events.push(
-      invokedSkill !== undefined
+      invokedSkills.length > 0
         ? JSON.stringify({
             type: "assistant",
             message: {
-              content: [{ type: "tool_use", name: "Skill", input: { command: invokedSkill } }],
+              content: invokedSkills.map((invokedSkill) => ({
+                type: "tool_use",
+                name: "Skill",
+                input: { command: invokedSkill },
+              })),
             },
           })
         : JSON.stringify({
@@ -134,7 +145,7 @@ vi.mock(import("./claude-exec.js"), () => ({
   }),
 }));
 
-import { runTriggerEval, streamContainsSkillToolUse } from "./runner.js";
+import { listSkillToolUseTargets, runTriggerEval } from "./runner.js";
 
 describe("runTriggerEval", () => {
   beforeEach(() => {
@@ -331,6 +342,12 @@ describe("runTriggerEval", () => {
       "case-d",
     ]);
     expect(result.results.every((caseResult) => caseResult.passed)).toBe(true);
+    // Invoke cases classify through the primary plugin signal on Codex: the staged target canary
+    // surfacing in the agent's output.
+    expect(result.results[0]).toMatchObject({
+      invoked: true,
+      invocationSignal: "stdout-skill-canary",
+    });
     expect(result.results.every((caseResult) => caseResult.durationMs >= 0)).toBe(true);
     expect(result.durationMs).toBeGreaterThanOrEqual(
       Math.max(...result.results.map((caseResult) => caseResult.durationMs)),
@@ -385,7 +402,7 @@ describe("runTriggerEval", () => {
       expect: "invoke",
       invocationSignal: "stdout-skill-canary",
       invoked: false,
-      invokedSkill: "demo:sibling-skill",
+      wrongSkill: "demo:sibling-skill",
       passed: false,
     });
     expect(result.results[0]?.skipSignal).toBeUndefined();
@@ -394,7 +411,7 @@ describe("runTriggerEval", () => {
       caseId: "sibling-skip",
       expect: "skip",
       invoked: false,
-      invokedSkill: "demo:sibling-skill",
+      wrongSkill: "demo:sibling-skill",
       passed: true,
     });
 
@@ -452,16 +469,146 @@ describe("runTriggerEval", () => {
       expect: "invoke",
       invocationSignal: "stream-skill-tool-use",
       invoked: false,
-      invokedSkill: "demo:sibling-skill",
+      wrongSkill: "demo:sibling-skill",
       passed: false,
     });
     expect(result.results[1]).toMatchObject({
       caseId: "sibling-skip",
       expect: "skip",
       invoked: false,
-      invokedSkill: "demo:sibling-skill",
+      wrongSkill: "demo:sibling-skill",
       passed: true,
     });
+  });
+
+  it("fails an invoke case when the target and a sibling fire together", async () => {
+    const cases = [
+      { id: "both-invoke", expect: "invoke" as const, prompt: "Invoke both skills." },
+      { id: "skip-case", expect: "skip" as const, prompt: "Do not invoke the skill." },
+    ];
+    const siblingSkills = [{ name: "sibling-skill" }];
+
+    for (const agent of ["codex", "claude"] as const) {
+      const repoRoot = await writeRepoFixture({ cases, siblingSkills });
+      const result = await runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        agent,
+        caseId: "both-invoke",
+      });
+
+      // Simultaneous firing is trigger-contract overlap: the target invocation must not mask the
+      // sibling's.
+      expect(result.results[0]).toMatchObject({
+        caseId: "both-invoke",
+        expect: "invoke",
+        invocationSignal: agent === "codex" ? "stdout-skill-canary" : "stream-skill-tool-use",
+        invoked: true,
+        wrongSkill: "demo:sibling-skill",
+        passed: false,
+      });
+      expect(result.results[0]?.environmentalFailure).toBeUndefined();
+    }
+  });
+
+  it("attributes prefix-named impostors as wrong skills on Claude", async () => {
+    const repoRoot = await writeRepoFixture({
+      cases: [
+        {
+          id: "impostor-invoke",
+          expect: "invoke",
+          prompt: "Invoke a prefixed impostor skill.",
+        },
+        { id: "skip-case", expect: "skip", prompt: "Do not invoke the skill." },
+      ],
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+      caseId: "impostor-invoke",
+    });
+
+    // demo:auto-skill-extra contains the target label demo:auto-skill as a prefix; exact-label
+    // attribution must not credit the target for it.
+    expect(result.results[0]).toMatchObject({
+      caseId: "impostor-invoke",
+      expect: "invoke",
+      invocationSignal: "stream-skill-tool-use",
+      invoked: false,
+      wrongSkill: "demo:auto-skill-extra",
+      passed: false,
+    });
+  });
+
+  it("boundary-matches labels in legacy Codex stderr telemetry", async () => {
+    const repoRoot = await writeRepoFixture({
+      cases: [
+        { id: "invoke-case", expect: "invoke", prompt: "Trigger the demo skill." },
+        { id: "skip-case", expect: "skip", prompt: "Do not invoke the skill." },
+      ],
+      siblingSkills: [{ name: "auto-skill-extra" }],
+    });
+    mockState.codexResults.push({
+      exitCode: 0,
+      finalMessage: "",
+      stdout: agentMessageEvent("I handled the request."),
+      stderr: "codex.skill.injected demo:auto-skill-extra",
+      stdoutPath: "/tmp/stdout.jsonl",
+      stderrPath: "/tmp/stderr.log",
+      finalMessagePath: "/tmp/final.txt",
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "invoke-case",
+    });
+
+    // The telemetry names the sibling demo:auto-skill-extra; the target demo:auto-skill must not
+    // be credited from inside the longer label.
+    expect(result.results[0]).toMatchObject({
+      caseId: "invoke-case",
+      expect: "invoke",
+      invocationSignal: "stderr-skill-injected",
+      invoked: false,
+      wrongSkill: "demo:auto-skill-extra",
+      passed: false,
+    });
+  });
+
+  it("still classifies target invocations from legacy Codex stderr telemetry", async () => {
+    const repoRoot = await writeRepoFixture({
+      cases: [
+        { id: "invoke-case", expect: "invoke", prompt: "Trigger the demo skill." },
+        { id: "skip-case", expect: "skip", prompt: "Do not invoke the skill." },
+      ],
+    });
+    mockState.codexResults.push({
+      exitCode: 0,
+      finalMessage: "",
+      stdout: agentMessageEvent("I handled the request."),
+      stderr: "codex.skill.injected demo:auto-skill",
+      stdoutPath: "/tmp/stdout.jsonl",
+      stderrPath: "/tmp/stderr.log",
+      finalMessagePath: "/tmp/final.txt",
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "invoke-case",
+    });
+
+    expect(result.results[0]).toMatchObject({
+      caseId: "invoke-case",
+      expect: "invoke",
+      invocationSignal: "stderr-skill-injected",
+      invoked: true,
+      passed: true,
+    });
+    expect(result.results[0]?.wrongSkill).toBeUndefined();
   });
 
   it("stages only the evaluated lane's surfaces", async () => {
@@ -815,8 +962,8 @@ describe("runTriggerEval", () => {
   });
 });
 
-describe("streamContainsSkillToolUse", () => {
-  it("matches Skill tool_use blocks that reference the skill label", () => {
+describe("listSkillToolUseTargets", () => {
+  it("collects Skill tool_use targets from the command key", () => {
     const stdout = [
       "non-json noise",
       JSON.stringify({ type: "system", subtype: "init" }),
@@ -831,11 +978,21 @@ describe("streamContainsSkillToolUse", () => {
       }),
     ].join("\n");
 
-    expect(streamContainsSkillToolUse(stdout, "demo:auto-skill")).toBe(true);
-    expect(streamContainsSkillToolUse(stdout, "demo:other-skill")).toBe(false);
+    expect(listSkillToolUseTargets(stdout)).toStrictEqual(["demo:auto-skill"]);
   });
 
-  it("ignores other tool_use blocks and assistant text mentioning the label", () => {
+  it("accepts the skill key as a fallback shape", () => {
+    const stdout = JSON.stringify({
+      type: "assistant",
+      message: {
+        content: [{ type: "tool_use", name: "Skill", input: { skill: "demo:auto-skill" } }],
+      },
+    });
+
+    expect(listSkillToolUseTargets(stdout)).toStrictEqual(["demo:auto-skill"]);
+  });
+
+  it("ignores other tool_use blocks and assistant text mentioning a label", () => {
     const stdout = [
       JSON.stringify({
         type: "assistant",
@@ -848,7 +1005,7 @@ describe("streamContainsSkillToolUse", () => {
       }),
     ].join("\n");
 
-    expect(streamContainsSkillToolUse(stdout, "demo:auto-skill")).toBe(false);
+    expect(listSkillToolUseTargets(stdout)).toStrictEqual([]);
   });
 });
 
@@ -888,16 +1045,29 @@ async function buildMockCodexResult(options: {
   }
 
   const prompt = options.prompt;
-  if (prompt.startsWith("Invoke the sibling")) {
-    const siblingSkillBody = await readFile(
-      path.join(options.workspacePath, "plugins", "demo", "skills", "sibling-skill", "SKILL.md"),
-      "utf8",
-    );
-    const siblingCanary = siblingSkillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+  if (prompt.startsWith("Invoke both")) {
+    const canaries = await Promise.all([
+      readWorkspacePluginCanary(options.workspacePath, "auto-skill"),
+      readWorkspacePluginCanary(options.workspacePath, "sibling-skill"),
+    ]);
     return {
       exitCode: 0,
       finalMessage: "",
-      stdout: agentMessageEvent(siblingCanary ?? "missing-sibling-canary"),
+      stdout: agentMessageEvent(canaries.join(" and ")),
+      stderr: "",
+      stdoutPath: "/tmp/stdout.jsonl",
+      stderrPath: "/tmp/stderr.log",
+      finalMessagePath: "/tmp/final.txt",
+      delayMs: 50,
+    };
+  }
+  if (prompt.startsWith("Invoke the sibling")) {
+    return {
+      exitCode: 0,
+      finalMessage: "",
+      stdout: agentMessageEvent(
+        await readWorkspacePluginCanary(options.workspacePath, "sibling-skill"),
+      ),
       stderr: "",
       stdoutPath: "/tmp/stdout.jsonl",
       stderrPath: "/tmp/stderr.log",
@@ -906,17 +1076,34 @@ async function buildMockCodexResult(options: {
     };
   }
 
+  // The default invoke path surfaces the target's canary in stdout — the primary signal on
+  // current Codex CLIs, which no longer emit codex.skill.injected stderr telemetry.
   const shouldInvoke = !prompt.startsWith("Do not invoke");
   return {
     exitCode: 0,
     finalMessage: "",
-    stdout: agentMessageEvent("I handled the request."),
-    stderr: shouldInvoke ? "codex.skill.injected demo:auto-skill" : "",
+    stdout: agentMessageEvent(
+      shouldInvoke
+        ? await readWorkspacePluginCanary(options.workspacePath, "auto-skill")
+        : "I handled the request.",
+    ),
+    stderr: "",
     stdoutPath: "/tmp/stdout.jsonl",
     stderrPath: "/tmp/stderr.log",
     finalMessagePath: "/tmp/final.txt",
     delayMs: 50,
   };
+}
+
+async function readWorkspacePluginCanary(
+  workspacePath: string,
+  skillName: string,
+): Promise<string> {
+  const skillBody = await readFile(
+    path.join(workspacePath, "plugins", "demo", "skills", skillName, "SKILL.md"),
+    "utf8",
+  );
+  return skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0] ?? `missing-${skillName}-canary`;
 }
 
 function agentMessageEvent(text: string): string {

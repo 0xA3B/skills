@@ -41,12 +41,16 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
 
 function formatObserved(caseResult: TriggerCaseResult): string {
   if (caseResult.invoked) {
-    return `invoke via ${caseResult.invocationSignal}`;
+    // A wrong skill firing alongside the target is trigger-contract overlap, so it is named even
+    // though the target invocation was also observed.
+    return caseResult.wrongSkill === undefined
+      ? `invoke via ${caseResult.invocationSignal}`
+      : `invoke plus wrong-skill ${caseResult.wrongSkill} via ${caseResult.invocationSignal}`;
   }
   // A different staged skill fired: a distinct failure on invoke cases, and worth surfacing even
   // on passing skip cases because it exposes trigger-contract overlap.
-  if (caseResult.invokedSkill !== undefined) {
-    return `wrong-skill ${caseResult.invokedSkill} via ${caseResult.invocationSignal}`;
+  if (caseResult.wrongSkill !== undefined) {
+    return `wrong-skill ${caseResult.wrongSkill} via ${caseResult.invocationSignal}`;
   }
 
   return formatSkip(caseResult.skipSignal);

@@ -46,12 +46,13 @@ export type TriggerCaseResult = {
   caseId: string;
   expect: TriggerExpectation;
   invocationSignal: InvocationSignal;
-  // True only when the target skill was invoked. A different staged skill firing instead leaves
-  // this false and names that skill in invokedSkill.
+  // True when the target skill was invoked, regardless of whether another staged skill also
+  // fired; simultaneous firings are recorded separately in wrongSkill.
   invoked: boolean;
-  // Label of the skill whose invocation was detected, when any skill fired: the target label when
-  // invoked is true, or the wrong skill's label when the prompt routed elsewhere.
-  invokedSkill?: string;
+  // Label of a non-target staged skill whose invocation was detected. Fails an invoke case even
+  // when the target also fired (simultaneous invocation is trigger-contract overlap); surfaced
+  // informationally on skip cases.
+  wrongSkill?: string;
   passed: boolean;
   // How a skip verdict was reached: the run finished naturally, was stopped at the decision-item
   // budget, or was cut off by the case timeout (a weak signal — the model might have invoked
