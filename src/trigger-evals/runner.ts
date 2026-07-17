@@ -261,11 +261,13 @@ function buildCaseResult(options: {
     options.agent,
   );
   const anyInvocation = detection.signal !== "none";
-  const invoked = anyInvocation && detection.invokedSkill === skillTargetLabel(options.target);
-  // A wrong-skill invocation fails an invoke case (the target lost the prompt to a sibling) but
-  // not a skip case: the fixture only encodes expectations about the target, and a sibling firing
-  // on a target-negative prompt may be exactly right. It is still recorded in invokedSkill.
-  const matchedExpectation = options.testCase.expect === "invoke" ? invoked : !invoked;
+  const invoked = detection.targetInvoked;
+  // A wrong-skill invocation fails an invoke case even when the target also fired — simultaneous
+  // firing is trigger-contract overlap, the very thing the eval exists to expose. It does not fail
+  // a skip case: the fixture only encodes expectations about the target, and a sibling firing on a
+  // target-negative prompt may be exactly right. It is still recorded in wrongSkill.
+  const matchedExpectation =
+    options.testCase.expect === "invoke" ? invoked && detection.wrongSkill === undefined : !invoked;
   const endedBy = options.runResult.endedBy ?? "completed";
   // Isolation leaks poison the case in both directions — an unstaged skill can steal an invoke or
   // provoke one — so the check applies even when the target fired. Other environmental checks only
@@ -286,7 +288,7 @@ function buildCaseResult(options: {
     expect: options.testCase.expect,
     invocationSignal: detection.signal,
     invoked,
-    ...(detection.invokedSkill === undefined ? {} : { invokedSkill: detection.invokedSkill }),
+    ...(detection.wrongSkill === undefined ? {} : { wrongSkill: detection.wrongSkill }),
     passed,
     ...(skipSignal === undefined ? {} : { skipSignal }),
     ...(environmentalFailure === undefined ? {} : { environmentalFailure }),
@@ -598,14 +600,16 @@ function countDecisionItems(stdout: string, agent: TriggerEvalAgent): number {
 
 type InvocationDetection = {
   signal: InvocationSignal;
-  invokedSkill?: string;
+  targetInvoked: boolean;
+  wrongSkill?: string;
 };
 
 // Claude Code invokes skills through the Skill tool, which is visible directly in the stream-json
 // events. Codex evals rely on eval-only canaries appended to the staged skill copies; older Codex
 // CLIs also emitted codex.skill.injected stderr telemetry, which is kept as a secondary signal.
-// Both lanes name the skill that fired, so invoking the wrong staged skill is a distinct,
-// attributable observation instead of an undifferentiated miss.
+// Both lanes collect every skill that fired — target and non-target — so a wrong skill firing
+// alongside the target is still an attributable observation instead of being masked by the
+// target's own invocation.
 function detectInvocation(
   output: StreamingCliOutput,
   target: SkillTarget,
@@ -614,61 +618,72 @@ function detectInvocation(
 ): InvocationDetection {
   const targetLabel = skillTargetLabel(target);
   if (agent === "claude") {
+    // Attribution is exact-label only: substring matching against the serialized tool input would
+    // credit the target for a prefix-named sibling (foo:bar matching inside foo:bar-baz).
     const invokedSkills = listSkillToolUseTargets(output.stdout);
-    if (
-      invokedSkills.includes(targetLabel) ||
-      streamContainsSkillToolUse(output.stdout, targetLabel)
-    ) {
-      return { signal: "stream-skill-tool-use", invokedSkill: targetLabel };
-    }
-
-    const wrongSkill = invokedSkills[0];
-    return wrongSkill === undefined
-      ? { signal: "none" }
-      : { signal: "stream-skill-tool-use", invokedSkill: wrongSkill };
+    const wrongSkill = invokedSkills.find((skillLabel) => skillLabel !== targetLabel);
+    return {
+      signal: invokedSkills.length > 0 ? "stream-skill-tool-use" : "none",
+      targetInvoked: invokedSkills.includes(targetLabel),
+      ...(wrongSkill === undefined ? {} : { wrongSkill }),
+    };
   }
 
-  if (target.kind === "plugin" && output.stderr.includes("codex.skill.injected")) {
-    if (output.stderr.includes(targetLabel)) {
-      return { signal: "stderr-skill-injected", invokedSkill: targetLabel };
-    }
-    for (const skillLabel of canaryLabels.values()) {
-      if (skillLabel !== targetLabel && output.stderr.includes(skillLabel)) {
-        return { signal: "stderr-skill-injected", invokedSkill: skillLabel };
-      }
-    }
-  }
-
-  // When the target and a wrong skill both surface canaries, the target invocation is the fact the
-  // fixture asserts on, so it wins.
   const messageText = agentMessageTexts(output.stdout).join("\n");
-  let wrongSkillDetection: InvocationDetection | undefined;
+  let targetInvoked = false;
+  let wrongSkill: string | undefined;
   for (const [canary, skillLabel] of canaryLabels) {
     if (!messageText.includes(canary)) {
       continue;
     }
     if (skillLabel === targetLabel) {
-      return { signal: "stdout-skill-canary", invokedSkill: skillLabel };
+      targetInvoked = true;
+    } else {
+      wrongSkill ??= skillLabel;
     }
-    wrongSkillDetection ??= { signal: "stdout-skill-canary", invokedSkill: skillLabel };
+  }
+  if (targetInvoked || wrongSkill !== undefined) {
+    return {
+      signal: "stdout-skill-canary",
+      targetInvoked,
+      ...(wrongSkill === undefined ? {} : { wrongSkill }),
+    };
   }
 
-  return wrongSkillDetection ?? { signal: "none" };
+  if (target.kind === "plugin" && output.stderr.includes("codex.skill.injected")) {
+    let stderrTargetInvoked = false;
+    let stderrWrongSkill: string | undefined;
+    for (const skillLabel of new Set([targetLabel, ...canaryLabels.values()])) {
+      if (!stderrNamesSkill(output.stderr, skillLabel)) {
+        continue;
+      }
+      if (skillLabel === targetLabel) {
+        stderrTargetInvoked = true;
+      } else {
+        stderrWrongSkill ??= skillLabel;
+      }
+    }
+    if (stderrTargetInvoked || stderrWrongSkill !== undefined) {
+      return {
+        signal: "stderr-skill-injected",
+        targetInvoked: stderrTargetInvoked,
+        ...(stderrWrongSkill === undefined ? {} : { wrongSkill: stderrWrongSkill }),
+      };
+    }
+  }
+
+  return { signal: "none", targetInvoked: false };
 }
 
-export function streamContainsSkillToolUse(stdout: string, skillLabel: string): boolean {
-  for (const block of skillToolUseBlocks(stdout)) {
-    if (JSON.stringify(block["input"] ?? {}).includes(skillLabel)) {
-      return true;
-    }
-  }
-
-  return false;
+// Boundary-match a skill label in stderr telemetry so a label is never credited from inside a
+// longer sibling label (foo:bar inside foo:bar-baz).
+function stderrNamesSkill(stderr: string, skillLabel: string): boolean {
+  const escaped = skillLabel.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+  return new RegExp(String.raw`(?<![\w:-])${escaped}(?![\w-])`).test(stderr);
 }
 
 // The Skill tool names its target under the "command" key in stream-json events; "skill" is
-// accepted as a fallback shape. streamContainsSkillToolUse stays alongside as the shape-agnostic
-// matcher for the target label.
+// accepted as a fallback shape.
 export function listSkillToolUseTargets(stdout: string): string[] {
   const skillLabels: string[] = [];
   for (const block of skillToolUseBlocks(stdout)) {

@@ -163,8 +163,9 @@ cases where loaded repository instructions should affect the trigger boundary, s
   signal.
 - Every staged skill keeps its real invocation policy, and each implicitly invokable staged skill
   gets its own canary, so invoking the wrong skill is a distinct, attributable observation. A
-  `wrong-skill <plugin>:<skill>` result fails an invoke case and is surfaced on passing skip cases
-  too, because either direction exposes trigger-contract overlap between loaded skills.
+  `wrong-skill <plugin>:<skill>` result fails an invoke case — even when the target also fires,
+  because simultaneous invocation is itself trigger-contract overlap — and is surfaced on passing
+  skip cases too, because either direction exposes overlap between loaded skills.
 - For repo-local skills on Codex, the runner additionally rewrites the copied description to
   reference the canary because Codex surfaces repo-local skills without any other observable signal.
 - On Claude Code, the runner launches `claude -p` with a read-only tool surface and classifies

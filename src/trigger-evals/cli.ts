@@ -70,10 +70,20 @@ async function main(): Promise<void> {
           }
         }
 
-        if (selection.mode !== "skill" && ranSkills > 0) {
-          console.log(
-            `${selection.mode === "plugin" ? "Plugin" : "Marketplace"} suite on ${agent}: ${passedSkills}/${ranSkills} skills passed.`,
-          );
+        if (selection.mode !== "skill") {
+          const suiteName = selection.mode === "plugin" ? "Plugin" : "Marketplace";
+          if (ranSkills > 0) {
+            console.log(
+              `${suiteName} suite on ${agent}: ${passedSkills}/${ranSkills} skills passed.`,
+            );
+          } else if (!abortController.signal.aborted) {
+            // Zero runs must not read as a green suite: this happens when every fixture-bearing
+            // skill is manual-only on this agent, so no eval actually executed.
+            console.error(
+              `${suiteName} suite on ${agent}: ran 0 skills — every fixture-bearing skill is manual-only on this agent.`,
+            );
+            process.exitCode = 1;
+          }
         }
       }
     } catch (caught: unknown) {
