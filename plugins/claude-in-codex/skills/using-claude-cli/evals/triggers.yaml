@@ -21,12 +21,14 @@ cases:
     expect: invoke
     rationale: The request delegates write-capable implementation work through the Claude CLI.
 
-  - id: delegate-read-only-research
+  - id: delegate-research
     prompt: >-
       Have a Claude proxy agent research how authentication is wired in this repository and report
       file-and-line evidence without changing anything.
     expect: invoke
-    rationale: The request requires a read-only Claude proxy run with an explicit evidence contract.
+    rationale:
+      The request requires a review-and-research Claude proxy run with an explicit evidence
+      contract.
 
   - id: capture-claude-json
     prompt: >-
