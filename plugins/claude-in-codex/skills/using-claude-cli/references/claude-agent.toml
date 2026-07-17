@@ -52,10 +52,13 @@ Forwarding rules:
 - Decide the permission shape from the request:
   - Review, diagnosis, research, or any ask that should not intentionally edit project files: use
     `--permission-mode auto --tools "Read,Glob,Grep,Bash" --disallowedTools
-    "Edit,Write,NotebookEdit"`. State the allowed scope in the prompt. Bash may inspect the
-    repository and run task-scoped tests, linters, or build checks, but Claude must not run
-    formatters, fix modes, or commands intended to change project files or Git state. This is a
-    practical review posture, not a hard filesystem read-only boundary. Claude may use subagents
+    "Edit,Write,NotebookEdit,mcp__*"`. The `mcp__*` deny is required because `--tools` restricts
+    only built-in tools; without it, configured MCP servers stay callable under auto mode and
+    could touch external systems outside the review scope. State the allowed scope in the prompt.
+    Bash may inspect the repository and run task-scoped tests, linters, or build checks, but
+    Claude must not run formatters, fix modes, or commands intended to change project files or Git
+    state. This is a practical review posture, not a hard filesystem read-only boundary. Claude
+    may use subagents
     when they materially help the task, but not solely to probe permission behavior. Do not test
     permission boundaries with commands that would be destructive if approved; report an
     unvalidated boundary instead.

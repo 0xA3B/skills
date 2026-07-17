@@ -57,14 +57,17 @@ task-scoped checks but should not intentionally edit project files or Git state:
 claude -p "$PROMPT" \
   --permission-mode auto \
   --tools "Read,Glob,Grep,Bash" \
-  --disallowedTools "Edit,Write,NotebookEdit" \
+  --disallowedTools "Edit,Write,NotebookEdit,mcp__*" \
   --output-format json
 ```
 
 This is a practical review posture, not a hard filesystem read-only boundary. Disabling Claude's
 editor tools removes its normal direct-edit path, while `auto` lets Claude's classifier and the
 user's configured permissions evaluate Bash commands without interactive prompts. Bash can still
-write, and tests, linters, or builds may create normal caches or generated artifacts.
+write, and tests, linters, or builds may create normal caches or generated artifacts. The `mcp__*`
+deny matters because `--tools` restricts only built-in tools: without it, configured MCP servers
+stay callable and `auto` could approve reads or writes against external systems, which is outside
+the repository-review scope this recipe promises.
 
 State the allowed actions in the prompt. Permit repository inspection and the smallest tests,
 linters, or build checks needed to investigate candidate findings; prefer check-only modes when
