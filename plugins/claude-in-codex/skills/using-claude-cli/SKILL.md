@@ -56,7 +56,7 @@ task-scoped checks but should not intentionally edit project files or Git state:
 ```bash
 claude -p "$PROMPT" \
   --permission-mode auto \
-  --tools "Read,Glob,Grep,Bash" \
+  --tools "Read,Glob,Grep,Bash,Agent" \
   --disallowedTools "Edit,Write,NotebookEdit,mcp__*" \
   --output-format json
 ```
@@ -72,10 +72,11 @@ the repository-review scope this recipe promises.
 State the allowed actions in the prompt. Permit repository inspection and the smallest tests,
 linters, or build checks needed to investigate candidate findings; prefer check-only modes when
 available. Tell Claude not to run formatters, fix modes, or commands intended to change project
-files or Git state. Claude may use subagents when they materially help the task. Do not use
-subagents solely to probe permission behavior, and do not test permission boundaries with commands
-that would be destructive if approved; report an unvalidated boundary instead. Preserve important
-local work first when the working tree is not recoverable.
+files or Git state. `Agent` is allowed so Claude may use subagents when they materially help the
+task; the allowlist and deny list also govern subagent tool surfaces, so subagents cannot edit files
+or reach MCP tools either. Do not use subagents solely to probe permission behavior, and do not test
+permission boundaries with commands that would be destructive if approved; report an unvalidated
+boundary instead. Preserve important local work first when the working tree is not recoverable.
 
 ## Write-Capable Recipe
 

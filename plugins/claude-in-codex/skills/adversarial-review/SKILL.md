@@ -43,8 +43,8 @@ before they are accepted.
 
 - Claude's assigned role is reviewer. Always run review turns with the review and research recipe
   from the `using-claude-cli` skill, which disables Claude's editor and MCP tools while retaining
-  Bash for inspection and targeted validation. Never use that skill's write-capable recipe from this
-  workflow.
+  Bash and subagent fan-out for inspection and targeted validation. Never use that skill's
+  write-capable recipe from this workflow.
 - This is not a hard filesystem read-only boundary: Bash and validation tools may write caches or
   generated artifacts. Claude must not intentionally modify project files or Git state.
 - Codex is the only actor allowed to intentionally modify source, tests, documentation, or Git
