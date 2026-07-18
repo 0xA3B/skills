@@ -40,6 +40,10 @@ Classify each feedback item before acting:
 ## Triage Rules
 
 - Verify feedback against repository reality before accepting it.
+- Merge items from independent sources — separate review lanes, a PR bot, CI, the user — that
+  converge on one mechanism or remedy, and record every corroborating source on the merged item so
+  the corroboration survives into the report. Independent convergence is strong validity evidence,
+  not duplication; treat as duplicate only repeats from the same source.
 - Ask follow-up questions when a finding is unclear or missing critical context.
 - Push back with technical evidence when feedback is wrong, under-evidenced, or conflicts with
   established project decisions.
