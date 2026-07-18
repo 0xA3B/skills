@@ -60,6 +60,7 @@ For each candidate include:
 - observed friction and evidence;
 - proposed responsibility and seam change in plain language;
 - benefits to locality, leverage, callers, and tests;
+- approximate refactor size and the specific future change it makes cheaper;
 - risks, compatibility or migration costs, and uncertainty.
 
 Do not propose a detailed interface during the first pass. Ask which candidate the user wants to
@@ -74,6 +75,8 @@ For the selected candidate, make explicit:
 - dependencies and adapter strategy;
 - invariants, errors, ordering, configuration, and performance that remain part of the interface;
 - tests that should survive the refactor;
+- durable concepts the refactor introduces or renames, with proposed `AGENTS.md ## Terminology`
+  entries when a name is new or collides with an existing term;
 - migration and compatibility constraints.
 
 When the interface shape is still uncertain, apply the design-it-twice reference from
@@ -85,3 +88,12 @@ recommend an explicit `engineering-workflows:grill-me` handoff.
 End with either a prioritized architecture review and next decision, or an implementation-ready plan
 for the selected candidate with validation steps. Stop when the strongest defensible candidates are
 clear; do not continue into theoretical cleanup after the evidence is sufficient.
+
+When the session also implements the selected candidate, demonstrate each claimed benefit before
+finishing: a test that exercises the new seam, caller knowledge that no longer exists, or an
+equivalent observable change. A benefit that cannot be demonstrated is a risk to report, not a
+result.
+
+Record declined and deferred candidates with their evidence so a later architecture pass builds on
+them instead of re-deriving them. Prefer the repository's existing convention for ignored working
+artifacts, as with handoff documents; fall back to agent memory when no such convention exists.
