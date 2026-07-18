@@ -83,6 +83,7 @@ When maintaining the terminology:
 | **Handoff document**         | An ignored local continuation artifact that preserves session-specific decisions, state, pointers, and next actions for a fresh agent session.                                                                | project documentation     |
 | **Trigger fixture**          | A committed YAML file of positive and negative cases used to evaluate implicit invocation behavior.                                                                                                           | skill test                |
 | **Trigger eval**             | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code).                                          | validation gate           |
+| **Eval lane**                | The per-agent adapter a trigger eval runs through, owning that agent's staging, case execution, and invocation observations. Distinct from a **Review lane**, which is a focused review pass.                 | review lane, harness      |
 | **Invocation signal**        | The observed evidence that the agent invoked the target skill: an eval canary in Codex output, Claude Code Skill tool events, or legacy Codex skill-injection telemetry as a secondary signal.                | telemetry                 |
 | **Eval canary**              | An eval-only token injected into a staged skill copy so its appearance in agent output proves invocation: body-only for plugin skills, description-rewrite for repo-local skills on Codex.                    | invocation signal         |
 | **Eval artifact**            | Generated trigger-eval output under `.local/skill-evals/`, not committed project state.                                                                                                                       | fixture                   |
@@ -130,6 +131,7 @@ Relationships:
   symlink.
 - A **Trigger eval** runs **Trigger fixtures** against one implicitly invokable **Plugin skill** or
   **Repo-local skill** on one agent; **Trigger fixtures** are shared across agents.
+- A **Trigger eval** executes through exactly one **Eval lane**, the adapter for the selected agent.
 - **Eval artifacts** are generated under `.local/` and should not be committed.
 - A **Behavior pressure test** evaluates behavior after a skill is loaded; it does not evaluate
   whether the skill should load.
