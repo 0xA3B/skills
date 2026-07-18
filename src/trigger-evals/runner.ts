@@ -1,30 +1,13 @@
 import crypto from "node:crypto";
-import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { appendEvalSectionToFile, createCanary, withTriggerEvalInstructions } from "./canary.js";
-import { runClaudeExec } from "./claude-exec.js";
-import { runCodexExec } from "./codex-exec.js";
-import { prepareCodexHome, removeCopiedAuth } from "./codex-home.js";
-import type { CliRunResult, StreamingCliOutput } from "./exec.js";
 import { loadTriggerFixture } from "./fixtures.js";
-import {
-  EVAL_MARKETPLACE_NAME,
-  prepareHarness,
-  type SkillCanary,
-  type StagedPlugin,
-} from "./harness.js";
-import { isRecord, parseJsonlEvents } from "./json.js";
+import { type AgentLane, createLane, DEFAULT_EVAL_EFFORT, DEFAULT_EVAL_MODELS } from "./lanes.js";
 import { listMarketplacePlugins } from "./marketplace.js";
 import { readAllowImplicitInvocation, resolveSkillTarget, skillTargetLabel } from "./target.js";
-import type {
-  InvocationSignal,
-  SkillTarget,
-  TriggerCase,
-  TriggerCaseResult,
-  TriggerEvalAgent,
-  TriggerEvalResult,
-} from "./types.js";
+import type { TriggerCaseResult, TriggerEvalAgent, TriggerEvalResult } from "./types.js";
+import { buildCaseResult, shouldStopEarly } from "./verdict.js";
 
 export type RunTriggerEvalOptions = {
   repoRoot?: string;
@@ -44,27 +27,13 @@ export type RunTriggerEvalOptions = {
   // description change in an unrelated plugin can flip results.
   stageMarketplacePlugins?: boolean;
   abortSignal?: AbortSignal;
+  // Lane override for the agent seam; defaults to the agent's real lane. Primarily an
+  // orchestration test seam.
+  lane?: AgentLane;
 };
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_CONCURRENCY = 3;
-
-// The trigger decision happens at the front of the turn, so once this many substantive items
-// (agent messages, command executions — not reasoning) complete without an invocation signal, the
-// run is stopped and classified as a clean skip instead of waiting for the full workflow or the
-// case timeout. Observed invocations surface the canary within about three items, so five keeps
-// late invocations safe while cutting long skip runs short.
-const SKIP_DECISION_ITEM_BUDGET = 5;
-
-// Trigger evals default to the models this repository's skills are used with day to day, so
-// results predict real invocation behavior. Full-sweep comparisons showed trigger boundaries are
-// model-specific, so proxying with smaller models measures the wrong thing. Override with
-// --model/--effort to spot-check other models.
-export const DEFAULT_EVAL_MODELS: Record<TriggerEvalAgent, string> = {
-  claude: "opus",
-  codex: "gpt-5.6-sol",
-};
-export const DEFAULT_EVAL_EFFORT = "medium";
 
 export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<TriggerEvalResult> {
   const runStartedAt = Date.now();
@@ -105,17 +74,26 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   if (options.stageMarketplacePlugins === true && target.kind !== "plugin") {
     throw new Error("Marketplace staging applies to plugin skills, not repo-local skills.");
   }
-  const harness = await prepareHarness(
+  const lane =
+    options.lane ??
+    createLane(agent, {
+      ...(options.sourceCodexHome === undefined
+        ? {}
+        : { sourceCodexHome: options.sourceCodexHome }),
+      ...(options.claudeConfigDir === undefined
+        ? {}
+        : { claudeConfigDir: options.claudeConfigDir }),
+    });
+  const laneRun = await lane.prepareRun({
     runDir,
     target,
-    options.stageMarketplacePlugins === true
-      ? { agent, extraPlugins: await listMarketplacePlugins(repoRoot, agent) }
-      : { agent },
-  );
-  const harnessCanaryLabels = new Map(
-    harness.skillCanaries.map((skillCanary) => [skillCanary.canary, skillCanary.skillLabel]),
-  );
-  const stagedSkillLabels = new Set(harness.stagedSkillLabels);
+    model,
+    effort,
+    ...(options.stageMarketplacePlugins === true
+      ? { extraPlugins: await listMarketplacePlugins(repoRoot, agent) }
+      : {}),
+  });
+  const targetLabel = skillTargetLabel(target);
 
   const results: Array<TriggerCaseResult | undefined> = new Array(fixture.cases.length);
   const concurrency = normalizeConcurrency(options.concurrency ?? DEFAULT_CONCURRENCY);
@@ -125,111 +103,29 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         return;
       }
       const caseDir = path.join(runDir, "cases", testCase.id);
-      const caseWorkspace = await prepareCaseWorkspace({
-        baseWorkspacePath: harness.workspacePath,
-        workspaceRoot: harness.workspaceRoot,
-        caseDir,
-        target,
-        testCase,
-        agent,
-      });
-      // Repo-local targets canary per case; plugin targets share the per-run canary map that also
-      // names every implicitly invokable staged sibling.
-      const canaryLabels =
-        caseWorkspace.canary === undefined
-          ? harnessCanaryLabels
-          : new Map([[caseWorkspace.canary, skillTargetLabel(target)]]);
-
-      // Any invocation — target or wrong skill — settles the trigger decision, so the run stops.
-      const stopWhen = (output: StreamingCliOutput): boolean =>
-        detectInvocation(output, target, canaryLabels, agent).signal !== "none" ||
-        countDecisionItems(output.stdout, agent) >= SKIP_DECISION_ITEM_BUDGET;
-
-      if (agent === "claude") {
-        const claudeRunOptions = {
-          workspacePath: caseWorkspace.workspacePath,
-          prompt: testCase.prompt,
-          caseDir,
-          timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-          model,
-          effort,
-          stopWhen,
-          ...(target.kind === "plugin"
-            ? {
-                pluginDirs: harness.stagedPlugins.map((stagedPlugin) =>
-                  path.join(caseWorkspace.workspacePath, "plugins", stagedPlugin.pluginName),
-                ),
-              }
-            : {}),
-          ...(options.claudeConfigDir === undefined ? {} : { configDir: options.claudeConfigDir }),
-          ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
-        };
-        const caseStartedAt = Date.now();
-        const claudeResult = await runClaudeExec(claudeRunOptions);
-        results[index] = buildCaseResult({
-          testCase,
-          runResult: claudeResult,
-          target,
-          canaryLabels,
-          stagedSkillLabels,
-          durationMs: Date.now() - caseStartedAt,
-          agent,
-        });
-        return;
-      }
-
-      const codexHome = path.join(runDir, "codex-home", "cases", testCase.id);
-      // The copied auth.json must be removed even when case setup fails after prepareCodexHome,
-      // so the whole setup-and-run sequence stays inside this try/finally.
+      const laneCase = await laneRun.prepareCase(testCase);
       try {
-        await prepareCodexHome({
-          codexHome,
-          workspacePath: caseWorkspace.workspacePath,
-          model,
-          effort,
-          ...(target.kind === "plugin"
-            ? {
-                marketplaceName: EVAL_MARKETPLACE_NAME,
-                pluginNames: harness.stagedPlugins.map((stagedPlugin) => stagedPlugin.pluginName),
-              }
-            : {}),
-          ...(options.sourceCodexHome === undefined
-            ? {}
-            : { sourceCodexHome: options.sourceCodexHome }),
-        });
-        if (target.kind === "plugin") {
-          await prepareCasePluginCaches(codexHome, harness.stagedPlugins, harness.skillCanaries);
-        }
-        const sandboxMode: "read-only" | "workspace-write" =
-          target.kind === "repo-local" ? "workspace-write" : "read-only";
-        const codexRunOptions = {
-          codexHome,
-          workspacePath: caseWorkspace.workspacePath,
-          prompt: testCase.prompt,
+        const caseStartedAt = Date.now();
+        const runResult = await laneCase.execute({
           caseDir,
           timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-          sandboxMode,
-          stopWhen,
+          stopWhen: (output) => shouldStopEarly(laneCase.observe(output)),
           ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
-        };
-
-        const caseStartedAt = Date.now();
-        const codexResult = await runCodexExec(codexRunOptions);
+        });
         results[index] = buildCaseResult({
           testCase,
-          runResult: codexResult,
-          target,
-          canaryLabels,
-          stagedSkillLabels,
+          targetLabel,
+          stagedSkillLabels: laneRun.stagedSkillLabels,
+          observations: laneCase.observe(runResult),
+          runResult,
           durationMs: Date.now() - caseStartedAt,
-          agent,
         });
       } finally {
-        await removeCopiedAuth(codexHome);
+        await laneCase.cleanup();
       }
     });
   } finally {
-    await removeCopiedAuth(harness.codexHome);
+    await laneRun.cleanup();
   }
 
   const reportPath = path.join(runDir, "report.json");
@@ -243,62 +139,6 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   };
   await writeFile(reportPath, JSON.stringify(result, null, 2));
   return result;
-}
-
-function buildCaseResult(options: {
-  testCase: { id: string; expect: "invoke" | "skip" };
-  runResult: CliRunResult;
-  target: SkillTarget;
-  canaryLabels: Map<string, string>;
-  stagedSkillLabels: Set<string>;
-  durationMs: number;
-  agent: TriggerEvalAgent;
-}): TriggerCaseResult {
-  const detection = detectInvocation(
-    options.runResult,
-    options.target,
-    options.canaryLabels,
-    options.agent,
-  );
-  const anyInvocation = detection.signal !== "none";
-  const invoked = detection.targetInvoked;
-  // A wrong-skill invocation fails an invoke case even when the target also fired — simultaneous
-  // firing is trigger-contract overlap, the very thing the eval exists to expose. It does not fail
-  // a skip case: the fixture only encodes expectations about the target, and a sibling firing on a
-  // target-negative prompt may be exactly right. It is still recorded in wrongSkill.
-  const matchedExpectation =
-    options.testCase.expect === "invoke" ? invoked && detection.wrongSkill === undefined : !invoked;
-  const endedBy = options.runResult.endedBy ?? "completed";
-  // Isolation leaks poison the case in both directions — an unstaged skill can steal an invoke or
-  // provoke one — so the check applies even when the target fired. Other environmental checks only
-  // apply when no skill fired, because any observed invocation proves the run executed.
-  const isolationFailure =
-    options.agent === "claude"
-      ? detectSkillIsolationFailure(options.runResult.stdout, options.stagedSkillLabels)
-      : undefined;
-  const environmentalFailure =
-    isolationFailure ??
-    (anyInvocation
-      ? undefined
-      : detectEnvironmentalFailure(options.runResult, options.agent, endedBy));
-  const skipSignal = anyInvocation ? undefined : classifySkipSignal(endedBy);
-  const passed = environmentalFailure === undefined && matchedExpectation;
-  return {
-    caseId: options.testCase.id,
-    expect: options.testCase.expect,
-    invocationSignal: detection.signal,
-    invoked,
-    ...(detection.wrongSkill === undefined ? {} : { wrongSkill: detection.wrongSkill }),
-    passed,
-    ...(skipSignal === undefined ? {} : { skipSignal }),
-    ...(environmentalFailure === undefined ? {} : { environmentalFailure }),
-    durationMs: options.durationMs,
-    exitCode: options.runResult.exitCode,
-    finalMessagePath: options.runResult.finalMessagePath,
-    stdoutPath: options.runResult.stdoutPath,
-    stderrPath: options.runResult.stderrPath,
-    ...(options.runResult.error === undefined ? {} : { error: options.runResult.error }),
-  };
 }
 
 async function runConcurrently<T>(
@@ -333,94 +173,6 @@ function normalizeConcurrency(value: number): number {
   return value;
 }
 
-async function prepareCaseWorkspace(options: {
-  baseWorkspacePath: string;
-  workspaceRoot: string;
-  caseDir: string;
-  target: SkillTarget;
-  testCase: TriggerCase;
-  agent: TriggerEvalAgent;
-}): Promise<{ workspacePath: string; canary?: string }> {
-  if (options.target.kind === "plugin" && options.testCase.workspaceFiles === undefined) {
-    return { workspacePath: options.baseWorkspacePath };
-  }
-
-  const workspacePath = path.join(options.workspaceRoot, "cases", options.testCase.id, "workspace");
-  await mkdir(options.caseDir, { recursive: true });
-  await cp(options.baseWorkspacePath, workspacePath, { recursive: true });
-
-  for (const [relativeFilePath, content] of Object.entries(options.testCase.workspaceFiles ?? {})) {
-    const absoluteFilePath = path.join(workspacePath, relativeFilePath);
-    await mkdir(path.dirname(absoluteFilePath), { recursive: true });
-    await writeFile(absoluteFilePath, content);
-  }
-
-  // Only the Codex lane stages repo-local skills under .agents/skills and needs the per-case
-  // canary; the Claude lane stages a pristine .claude/skills copy and detects invocation from
-  // Skill tool events.
-  if (options.target.kind === "repo-local" && options.agent === "codex") {
-    const canary = createCanary();
-    await injectSkillEvalInstructions(workspacePath, options.target, canary);
-    return { workspacePath, canary };
-  }
-
-  return { workspacePath };
-}
-
-async function injectSkillEvalInstructions(
-  workspacePath: string,
-  target: SkillTarget,
-  canary: string,
-): Promise<void> {
-  const skillFilePath = copiedSkillFilePath(workspacePath, target);
-  const content = await readFile(skillFilePath, "utf8");
-  await writeFile(skillFilePath, withTriggerEvalInstructions(content, canary));
-}
-
-function copiedSkillFilePath(workspacePath: string, target: SkillTarget): string {
-  if (target.kind === "plugin") {
-    return path.join(
-      workspacePath,
-      "plugins",
-      target.pluginName,
-      "skills",
-      target.skillName,
-      "SKILL.md",
-    );
-  }
-
-  return path.join(workspacePath, ".agents", "skills", target.skillName, "SKILL.md");
-}
-
-async function prepareCasePluginCaches(
-  codexHome: string,
-  stagedPlugins: StagedPlugin[],
-  skillCanaries: SkillCanary[],
-): Promise<void> {
-  for (const stagedPlugin of stagedPlugins) {
-    const cachedPluginPath = path.join(
-      codexHome,
-      "plugins",
-      "cache",
-      EVAL_MARKETPLACE_NAME,
-      stagedPlugin.pluginName,
-      stagedPlugin.version,
-    );
-    await mkdir(path.dirname(cachedPluginPath), { recursive: true });
-    await cp(stagedPlugin.sourcePath, cachedPluginPath, { recursive: true });
-    // Codex reads skill bodies from the plugin cache, so the canaries must be present there too.
-    for (const skillCanary of skillCanaries) {
-      if (skillCanary.pluginName !== stagedPlugin.pluginName) {
-        continue;
-      }
-      await appendEvalSectionToFile(
-        path.join(cachedPluginPath, "skills", skillCanary.skillName, "SKILL.md"),
-        skillCanary.canary,
-      );
-    }
-  }
-}
-
 async function createRunDir(
   repoRoot: string,
   skillName: string,
@@ -444,296 +196,4 @@ async function createRunDir(
 
 function sanitize(value: string): string {
   return value.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-}
-
-// A skip verdict is only trustworthy when the agent demonstrably ran: a case whose subprocess died
-// before producing any agent output would otherwise read as a clean skip and mask an environment
-// problem (bad auth, blocked network, sandbox nesting) as a trigger miss. Only checked when no
-// invocation signal was observed, because an observed signal proves the run actually executed.
-// The sandbox_apply marker is an OS-level (macOS Seatbelt) failure that leaves the agent alive but
-// unable to execute any command, so it is checked separately from the dead-run case.
-function detectEnvironmentalFailure(
-  runResult: StreamingCliOutput,
-  agent: TriggerEvalAgent,
-  endedBy: string,
-): string | undefined {
-  if (runResult.stderr.includes("sandbox_apply: Operation not permitted")) {
-    return (
-      "sandbox_apply: Operation not permitted — case subprocesses could not apply their OS " +
-      "sandbox (macOS refuses to nest Seatbelt sandboxes), so no command ran. Run trigger evals " +
-      "from an unsandboxed context."
-    );
-  }
-
-  if (
-    endedBy !== "stop-when" &&
-    endedBy !== "abort" &&
-    !hasAgentActivity(runResult.stdout, agent)
-  ) {
-    const stderrHint = firstNonEmptyLine(runResult.stderr);
-    return (
-      "the run produced no agent output, so the case cannot be classified as a skip." +
-      (stderrHint === undefined ? " Check the case stderr log." : ` stderr: ${stderrHint}`)
-    );
-  }
-
-  return undefined;
-}
-
-// Bundled skills Claude Code loads even when disableBundledSkills is honored (observed on
-// 2.1.210). Extend when a new Claude version exempts more skills from the setting.
-const DISABLE_BUNDLED_SKILLS_EXEMPT = new Set(["doctor"]);
-
-// Claude's init event lists every loaded skill: plugin skills as <plugin>:<skill>, project and
-// bundled skills as bare names. With the workspace's disableBundledSkills setting honored, only
-// staged skills (plus the exempt set) appear; anything else means the isolation the eval depends
-// on did not hold — an unstaged skill can steal an invoke or provoke one — so the verdict cannot
-// be trusted in either direction. Runs without an init event (older CLIs) skip the check.
-function detectSkillIsolationFailure(
-  stdout: string,
-  stagedSkillLabels: Set<string>,
-): string | undefined {
-  const loadedSkills = initEventSkills(stdout);
-  if (loadedSkills === undefined) {
-    return undefined;
-  }
-
-  const unexpected = loadedSkills.filter(
-    (skill) => !stagedSkillLabels.has(skill) && !DISABLE_BUNDLED_SKILLS_EXEMPT.has(skill),
-  );
-  if (unexpected.length === 0) {
-    return undefined;
-  }
-
-  return (
-    `unstaged skills loaded despite disableBundledSkills: ${unexpected.join(", ")} — the run was ` +
-    "not isolated, so the verdict is not trustworthy. Check the Claude version's " +
-    "disableBundledSkills support, or extend the exempt list if a new bundled skill ignores the " +
-    "setting."
-  );
-}
-
-function initEventSkills(stdout: string): string[] | undefined {
-  for (const event of parseJsonlEvents(stdout)) {
-    if (!isRecord(event) || event["type"] !== "system" || event["subtype"] !== "init") {
-      continue;
-    }
-
-    const skills = event["skills"];
-    return Array.isArray(skills)
-      ? skills.filter((skill): skill is string => typeof skill === "string")
-      : undefined;
-  }
-
-  return undefined;
-}
-
-function hasAgentActivity(stdout: string, agent: TriggerEvalAgent): boolean {
-  for (const event of parseJsonlEvents(stdout)) {
-    if (!isRecord(event)) {
-      continue;
-    }
-    if (agent === "claude") {
-      if (event["type"] === "assistant" || event["type"] === "result") {
-        return true;
-      }
-    } else if (event["type"] === "item.completed" || event["type"] === "turn.completed") {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function firstNonEmptyLine(text: string): string | undefined {
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed.length > 0) {
-      return trimmed;
-    }
-  }
-
-  return undefined;
-}
-
-function classifySkipSignal(endedBy: string): "completed" | "item-budget" | "timeout" | undefined {
-  if (endedBy === "completed") {
-    return "completed";
-  }
-  if (endedBy === "stop-when") {
-    return "item-budget";
-  }
-  if (endedBy === "timeout") {
-    return "timeout";
-  }
-
-  return undefined;
-}
-
-// Counts completed substantive items so a run can be stopped as a clean skip once the trigger
-// decision has demonstrably been made. Reasoning items are excluded because they arrive frequently
-// before the model has committed to acting.
-function countDecisionItems(stdout: string, agent: TriggerEvalAgent): number {
-  let count = 0;
-  for (const event of parseJsonlEvents(stdout)) {
-    if (!isRecord(event)) {
-      continue;
-    }
-    if (agent === "claude") {
-      if (event["type"] === "assistant") {
-        count += 1;
-      }
-      continue;
-    }
-
-    if (event["type"] !== "item.completed") {
-      continue;
-    }
-    const item = event["item"];
-    if (isRecord(item) && item["type"] !== "reasoning") {
-      count += 1;
-    }
-  }
-
-  return count;
-}
-
-type InvocationDetection = {
-  signal: InvocationSignal;
-  targetInvoked: boolean;
-  wrongSkill?: string;
-};
-
-// Claude Code invokes skills through the Skill tool, which is visible directly in the stream-json
-// events. Codex evals rely on eval-only canaries appended to the staged skill copies; older Codex
-// CLIs also emitted codex.skill.injected stderr telemetry, which is kept as a secondary signal.
-// Both lanes collect every skill that fired — target and non-target — so a wrong skill firing
-// alongside the target is still an attributable observation instead of being masked by the
-// target's own invocation.
-function detectInvocation(
-  output: StreamingCliOutput,
-  target: SkillTarget,
-  canaryLabels: Map<string, string>,
-  agent: TriggerEvalAgent,
-): InvocationDetection {
-  const targetLabel = skillTargetLabel(target);
-  if (agent === "claude") {
-    // Attribution is exact-label only: substring matching against the serialized tool input would
-    // credit the target for a prefix-named sibling (foo:bar matching inside foo:bar-baz).
-    const invokedSkills = listSkillToolUseTargets(output.stdout);
-    const wrongSkill = invokedSkills.find((skillLabel) => skillLabel !== targetLabel);
-    return {
-      signal: invokedSkills.length > 0 ? "stream-skill-tool-use" : "none",
-      targetInvoked: invokedSkills.includes(targetLabel),
-      ...(wrongSkill === undefined ? {} : { wrongSkill }),
-    };
-  }
-
-  const messageText = agentMessageTexts(output.stdout).join("\n");
-  let targetInvoked = false;
-  let wrongSkill: string | undefined;
-  for (const [canary, skillLabel] of canaryLabels) {
-    if (!messageText.includes(canary)) {
-      continue;
-    }
-    if (skillLabel === targetLabel) {
-      targetInvoked = true;
-    } else {
-      wrongSkill ??= skillLabel;
-    }
-  }
-  if (targetInvoked || wrongSkill !== undefined) {
-    return {
-      signal: "stdout-skill-canary",
-      targetInvoked,
-      ...(wrongSkill === undefined ? {} : { wrongSkill }),
-    };
-  }
-
-  if (target.kind === "plugin" && output.stderr.includes("codex.skill.injected")) {
-    let stderrTargetInvoked = false;
-    let stderrWrongSkill: string | undefined;
-    for (const skillLabel of new Set([targetLabel, ...canaryLabels.values()])) {
-      if (!stderrNamesSkill(output.stderr, skillLabel)) {
-        continue;
-      }
-      if (skillLabel === targetLabel) {
-        stderrTargetInvoked = true;
-      } else {
-        stderrWrongSkill ??= skillLabel;
-      }
-    }
-    if (stderrTargetInvoked || stderrWrongSkill !== undefined) {
-      return {
-        signal: "stderr-skill-injected",
-        targetInvoked: stderrTargetInvoked,
-        ...(stderrWrongSkill === undefined ? {} : { wrongSkill: stderrWrongSkill }),
-      };
-    }
-  }
-
-  return { signal: "none", targetInvoked: false };
-}
-
-// Boundary-match a skill label in stderr telemetry so a label is never credited from inside a
-// longer sibling label (foo:bar inside foo:bar-baz).
-function stderrNamesSkill(stderr: string, skillLabel: string): boolean {
-  const escaped = skillLabel.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-  return new RegExp(String.raw`(?<![\w:-])${escaped}(?![\w-])`).test(stderr);
-}
-
-// The Skill tool names its target under the "command" key in stream-json events; "skill" is
-// accepted as a fallback shape.
-export function listSkillToolUseTargets(stdout: string): string[] {
-  const skillLabels: string[] = [];
-  for (const block of skillToolUseBlocks(stdout)) {
-    const input = block["input"];
-    if (!isRecord(input)) {
-      continue;
-    }
-    const skillLabel = input["command"] ?? input["skill"];
-    if (typeof skillLabel === "string" && skillLabel.length > 0) {
-      skillLabels.push(skillLabel);
-    }
-  }
-
-  return skillLabels;
-}
-
-function* skillToolUseBlocks(stdout: string): Generator<Record<string, unknown>> {
-  for (const event of parseJsonlEvents(stdout)) {
-    if (!isRecord(event)) {
-      continue;
-    }
-
-    const message = event["message"];
-    const content = isRecord(message) ? message["content"] : undefined;
-    if (!Array.isArray(content)) {
-      continue;
-    }
-
-    for (const block of content) {
-      if (isRecord(block) && block["type"] === "tool_use" && block["name"] === "Skill") {
-        yield block;
-      }
-    }
-  }
-}
-
-function agentMessageTexts(stdout: string): string[] {
-  const texts: string[] = [];
-  for (const event of parseJsonlEvents(stdout)) {
-    if (!isRecord(event) || event["type"] !== "item.completed") {
-      continue;
-    }
-
-    const item = event["item"];
-    if (!isRecord(item) || item["type"] !== "agent_message") {
-      continue;
-    }
-
-    texts.push(typeof item["text"] === "string" ? item["text"] : "");
-  }
-
-  return texts;
 }

@@ -10,7 +10,7 @@ export type TriggerEvalSelection =
 
 export type TriggerEvalCliOptions = Omit<
   RunTriggerEvalOptions,
-  "skillPath" | "agent" | "stageMarketplacePlugins" | "abortSignal"
+  "skillPath" | "agent" | "stageMarketplacePlugins" | "abortSignal" | "lane"
 > & {
   agents: TriggerEvalAgent[];
   selection: TriggerEvalSelection;

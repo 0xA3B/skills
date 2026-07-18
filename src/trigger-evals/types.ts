@@ -42,6 +42,20 @@ export type InvocationSignal =
   | "stream-skill-tool-use"
   | "none";
 
+// Normalized observations parsed from one case's raw CLI output. Lanes produce these; verdict
+// classification consumes them without knowing any agent's stream format.
+export type CaseObservations = {
+  signal: InvocationSignal;
+  // Labels of skills whose invocation was detected, in detection order. May name skills other
+  // than the target; attribution to target vs wrong skill happens in the verdict.
+  invokedSkills: string[];
+  hasActivity: boolean;
+  decisionItemCount: number;
+  // Skills the agent reported loading at session start (Claude's init event); undefined when the
+  // lane has no such signal.
+  loadedSkills?: string[];
+};
+
 export type TriggerCaseResult = {
   caseId: string;
   expect: TriggerExpectation;
