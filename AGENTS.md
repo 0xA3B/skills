@@ -29,11 +29,12 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 
 - Commit messages must follow Conventional Commits.
 - Keep tests co-located in `src/`.
-- Use mise for runtime management.
+- `.node-version` is the canonical Node version; mise resolves it locally and CI reads it via
+  `actions/setup-node`.
+- `package.json#packageManager` is the canonical pnpm version; pnpm self-management switches any
+  ambient pnpm to it, and CI bootstraps it via `pnpm/action-setup`.
 - Use `mise exec --` in non-interactive shells when the command relies on a runtime tool managed by
   mise.
-- `package.json#packageManager` is the canonical pnpm version; mise only ensures a pnpm launcher is
-  available.
 - Use the `package.json` script surface for validation and formatting instead of raw tool commands.
 - Use `pnpm run check` as the default full local gate.
 - Use the smallest relevant targeted script when narrowing validation.
