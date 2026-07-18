@@ -1,325 +1,93 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { parse as parseYaml } from "yaml";
+import { describe, expect, it } from "vitest";
 
-import type { CliRunResult } from "./exec.js";
+import type { CliRunResult, StreamingCliOutput } from "./exec.js";
+import type { AgentLane, CaseExecuteOptions, LaneRunOptions } from "./lanes.js";
+import { runTriggerEval } from "./runner.js";
+import { buildCliRunResult, writeRepoFixture, writeRepoLocalSkillFixture } from "./test-utils.js";
+import type { CaseObservations, TriggerCase } from "./types.js";
 
-const mockState = vi.hoisted(() => ({
-  codexResults: [] as Array<{
-    exitCode: number | null;
-    finalMessage: string;
-    stdout: string;
-    stderr: string;
-    stdoutPath: string;
-    stderrPath: string;
-    finalMessagePath: string;
-    endedBy?: "completed" | "stop-when" | "timeout" | "abort" | "spawn-error";
-    error?: string;
-    delayMs?: number;
-  }>,
-  activeExecs: 0,
-  maxActiveExecs: 0,
-  codexHomes: [] as string[],
-  workspacePaths: [] as string[],
-  sandboxModes: [] as string[],
-  stopWhenPredicates: [] as Array<(output: { stdout: string; stderr: string }) => boolean>,
-  claudePluginDirs: [] as string[][],
-  claudeWorkspacePaths: [] as string[],
-  claudeModels: [] as string[],
-  claudeEfforts: [] as string[],
-  codexHomeModels: [] as string[],
-  codexHomeEfforts: [] as string[],
-  codexHomePluginNames: [] as string[][],
-  claudeInitSkills: undefined as string[] | undefined,
-}));
+type FakeLaneOptions = {
+  observationsFor?: (testCase: TriggerCase, output: StreamingCliOutput) => CaseObservations;
+  executeResult?: (testCase: TriggerCase) => Promise<CliRunResult>;
+};
 
-vi.mock(import("./codex-exec.js"), () => ({
-  runCodexExec: vi.fn<
-    (options: {
-      codexHome: string;
-      prompt: string;
-      workspacePath: string;
-      sandboxMode: "read-only" | "workspace-write";
-      stopWhen?: (output: { stdout: string; stderr: string }) => boolean;
-    }) => Promise<CliRunResult>
-  >(async (options) => {
-    mockState.codexHomes.push(options.codexHome);
-    mockState.workspacePaths.push(options.workspacePath);
-    mockState.sandboxModes.push(options.sandboxMode);
-    if (options.stopWhen !== undefined) {
-      mockState.stopWhenPredicates.push(options.stopWhen);
-    }
-    mockState.activeExecs += 1;
-    mockState.maxActiveExecs = Math.max(mockState.maxActiveExecs, mockState.activeExecs);
+type FakeLaneState = {
+  runOptions: LaneRunOptions | undefined;
+  preparedCaseIds: string[];
+  executed: Array<{ testCase: TriggerCase; executeOptions: CaseExecuteOptions }>;
+  caseCleanups: number;
+  runCleanups: number;
+  activeExecs: number;
+  maxActiveExecs: number;
+};
 
-    try {
-      const result = mockState.codexResults.shift() ?? (await buildMockCodexResult(options));
-      if (result.delayMs !== undefined) {
-        await new Promise((resolve) => setTimeout(resolve, result.delayMs));
-      }
-      return result;
-    } finally {
-      mockState.activeExecs -= 1;
-    }
-  }),
-}));
+// Orchestration tests exercise the runner through the lane seam with a fake adapter; real lane
+// behavior is covered by the lane and staging tests.
+function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state: FakeLaneState } {
+  const state: FakeLaneState = {
+    runOptions: undefined,
+    preparedCaseIds: [],
+    executed: [],
+    caseCleanups: 0,
+    runCleanups: 0,
+    activeExecs: 0,
+    maxActiveExecs: 0,
+  };
+  const defaultObservations = (testCase: TriggerCase): CaseObservations =>
+    testCase.expect === "invoke"
+      ? {
+          signal: "stdout-skill-canary",
+          invokedSkills: ["demo:auto-skill"],
+          hasActivity: true,
+          decisionItemCount: 1,
+        }
+      : { signal: "none", invokedSkills: [], hasActivity: true, decisionItemCount: 1 };
 
-vi.mock(import("./codex-home.js"), () => ({
-  prepareCodexHome: vi.fn<
-    (options: { model: string; effort: string; pluginNames?: string[] }) => Promise<void>
-  >(async (options) => {
-    mockState.codexHomeModels.push(options.model);
-    mockState.codexHomeEfforts.push(options.effort);
-    mockState.codexHomePluginNames.push(options.pluginNames ?? []);
-  }),
-  removeCopiedAuth: vi.fn<() => Promise<void>>(async () => undefined),
-}));
-
-vi.mock(import("./claude-exec.js"), () => ({
-  runClaudeExec: vi.fn<
-    (options: {
-      pluginDirs?: string[];
-      prompt: string;
-      workspacePath: string;
-      model: string;
-      effort: string;
-    }) => Promise<{
-      exitCode: number | null;
-      finalMessage: string;
-      stdout: string;
-      stderr: string;
-      stdoutPath: string;
-      stderrPath: string;
-      finalMessagePath: string;
-    }>
-  >(async (options) => {
-    mockState.claudePluginDirs.push(options.pluginDirs ?? []);
-    mockState.claudeWorkspacePaths.push(options.workspacePath);
-    mockState.claudeModels.push(options.model);
-    mockState.claudeEfforts.push(options.effort);
-    // Plugin skills surface as plugin:skill labels in Skill tool input; repo-local project skills
-    // (no pluginDirs passed) surface as bare names.
-    const targetLabel = options.pluginDirs === undefined ? "auto-skill" : "demo:auto-skill";
-    const invokedSkills = options.prompt.startsWith("Invoke both")
-      ? [targetLabel, "demo:sibling-skill"]
-      : options.prompt.startsWith("Invoke a prefixed impostor")
-        ? ["demo:auto-skill-extra"]
-        : options.prompt.startsWith("Invoke the sibling")
-          ? ["demo:sibling-skill"]
-          : options.prompt.startsWith("Do not invoke")
-            ? []
-            : [targetLabel];
-    const events =
-      mockState.claudeInitSkills === undefined
-        ? []
-        : [JSON.stringify({ type: "system", subtype: "init", skills: mockState.claudeInitSkills })];
-    events.push(
-      invokedSkills.length > 0
-        ? JSON.stringify({
-            type: "assistant",
-            message: {
-              content: invokedSkills.map((invokedSkill) => ({
-                type: "tool_use",
-                name: "Skill",
-                input: { command: invokedSkill },
-              })),
+  const lane: AgentLane = {
+    async prepareRun(runOptions) {
+      state.runOptions = runOptions;
+      return {
+        stagedSkillLabels: new Set(["demo:auto-skill"]),
+        async prepareCase(testCase) {
+          state.preparedCaseIds.push(testCase.id);
+          return {
+            workspacePath: `/fake/${testCase.id}`,
+            observe: (output) =>
+              options.observationsFor?.(testCase, output) ?? defaultObservations(testCase),
+            async execute(executeOptions) {
+              state.executed.push({ testCase, executeOptions });
+              state.activeExecs += 1;
+              state.maxActiveExecs = Math.max(state.maxActiveExecs, state.activeExecs);
+              try {
+                if (options.executeResult !== undefined) {
+                  return await options.executeResult(testCase);
+                }
+                await new Promise((resolve) => setTimeout(resolve, 20));
+                return buildCliRunResult();
+              } finally {
+                state.activeExecs -= 1;
+              }
             },
-          })
-        : JSON.stringify({
-            type: "assistant",
-            message: { content: [{ type: "text", text: "I answered without any skill." }] },
-          }),
-    );
-    return {
-      exitCode: 0,
-      finalMessage: "",
-      stdout: events.join("\n"),
-      stderr: "",
-      stdoutPath: "/tmp/events.jsonl",
-      stderrPath: "/tmp/stderr.log",
-      finalMessagePath: "/tmp/final.txt",
-    };
-  }),
-}));
+            cleanup: async () => {
+              state.caseCleanups += 1;
+            },
+          };
+        },
+        cleanup: async () => {
+          state.runCleanups += 1;
+        },
+      };
+    },
+  };
 
-import { listSkillToolUseTargets, runTriggerEval } from "./runner.js";
+  return { lane, state };
+}
 
 describe("runTriggerEval", () => {
-  beforeEach(() => {
-    mockState.codexResults = [];
-    mockState.activeExecs = 0;
-    mockState.maxActiveExecs = 0;
-    mockState.codexHomes = [];
-    mockState.workspacePaths = [];
-    mockState.sandboxModes = [];
-    mockState.stopWhenPredicates = [];
-    mockState.claudePluginDirs = [];
-    mockState.claudeWorkspacePaths = [];
-    mockState.claudeModels = [];
-    mockState.claudeEfforts = [];
-    mockState.codexHomeModels = [];
-    mockState.codexHomeEfforts = [];
-    mockState.codexHomePluginNames = [];
-    mockState.claudeInitSkills = undefined;
-  });
-
-  it("passes cases when invocation expectation matches even if codex exec errors", async () => {
-    const repoRoot = await writeRepoFixture();
-    mockState.codexResults.push({
-      exitCode: 1,
-      finalMessage: "",
-      stdout: agentMessageEvent("I looked at the request and answered it directly."),
-      stderr: "",
-      stdoutPath: "/tmp/stdout.jsonl",
-      stderrPath: "/tmp/stderr.log",
-      finalMessagePath: "/tmp/final.txt",
-      error: "codex exec exited with code 1.",
-    });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-    });
-
-    expect(result.results).toHaveLength(1);
-    expect(result.results[0]).toMatchObject({
-      caseId: "skip-case",
-      expect: "skip",
-      invoked: false,
-      passed: true,
-      error: "codex exec exited with code 1.",
-    });
-    expect(result.durationMs).toBeGreaterThanOrEqual(result.results[0]?.durationMs ?? 0);
-    expect(result.results[0]?.durationMs).toBeGreaterThanOrEqual(0);
-  });
-
-  it("reports an environmental failure instead of a skip when sandbox_apply is refused", async () => {
-    const repoRoot = await writeRepoFixture();
-    mockState.codexResults.push({
-      exitCode: 1,
-      finalMessage: "",
-      stdout: "",
-      stderr: "sandbox-exec: sandbox_apply: Operation not permitted",
-      stdoutPath: "/tmp/stdout.jsonl",
-      stderrPath: "/tmp/stderr.log",
-      finalMessagePath: "/tmp/final.txt",
-      error: "codex exec exited with code 1.",
-    });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-    });
-
-    expect(result.results).toHaveLength(1);
-    expect(result.results[0]).toMatchObject({
-      caseId: "skip-case",
-      expect: "skip",
-      invoked: false,
-      passed: false,
-    });
-    expect(result.results[0]?.environmentalFailure).toContain(
-      "sandbox_apply: Operation not permitted",
-    );
-  });
-
-  it("reports an environmental failure when a run produces no agent output", async () => {
-    const repoRoot = await writeRepoFixture();
-    mockState.codexResults.push({
-      exitCode: 1,
-      finalMessage: "",
-      stdout: "",
-      stderr: "codex: unable to authenticate",
-      stdoutPath: "/tmp/stdout.jsonl",
-      stderrPath: "/tmp/stderr.log",
-      finalMessagePath: "/tmp/final.txt",
-      endedBy: "completed",
-      error: "codex exec exited with code 1.",
-    });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-    });
-
-    expect(result.results[0]).toMatchObject({
-      caseId: "skip-case",
-      invoked: false,
-      passed: false,
-    });
-    expect(result.results[0]?.environmentalFailure).toContain("no agent output");
-    expect(result.results[0]?.environmentalFailure).toContain("codex: unable to authenticate");
-  });
-
-  it("classifies skip signals from how the run ended", async () => {
-    const repoRoot = await writeRepoFixture();
-    const baseResult = {
-      exitCode: 0,
-      finalMessage: "",
-      stdout: agentMessageEvent("I answered the request without the skill."),
-      stderr: "",
-      stdoutPath: "/tmp/stdout.jsonl",
-      stderrPath: "/tmp/stderr.log",
-      finalMessagePath: "/tmp/final.txt",
-    };
-    mockState.codexResults.push({ ...baseResult, endedBy: "stop-when" });
-
-    const budgetResult = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-    });
-    expect(budgetResult.results[0]).toMatchObject({
-      invoked: false,
-      passed: true,
-      skipSignal: "item-budget",
-    });
-
-    mockState.codexResults.push({
-      ...baseResult,
-      exitCode: null,
-      endedBy: "timeout",
-      error: "codex exec timed out after 60000ms.",
-    });
-    const timeoutResult = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-    });
-    expect(timeoutResult.results[0]).toMatchObject({
-      invoked: false,
-      passed: true,
-      skipSignal: "timeout",
-    });
-  });
-
-  it("stops a case at the decision-item budget when no invocation signal appears", async () => {
-    const repoRoot = await writeRepoFixture();
-    await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-    });
-
-    const stopWhen = mockState.stopWhenPredicates[0];
-    expect(stopWhen).toBeDefined();
-
-    const reasoningEvent = `${JSON.stringify({
-      type: "item.completed",
-      item: { type: "reasoning", text: "thinking" },
-    })}\n`;
-    const fourItems = agentMessageEvent("one").repeat(4);
-    expect(stopWhen?.({ stdout: fourItems + reasoningEvent.repeat(3), stderr: "" })).toBe(false);
-    expect(stopWhen?.({ stdout: fourItems + agentMessageEvent("five"), stderr: "" })).toBe(true);
-  });
-
-  it("runs cases concurrently while preserving fixture order", async () => {
+  it("runs cases concurrently, preserves fixture order, and writes the report", async () => {
     const repoRoot = await writeRepoFixture({
       cases: [
         { id: "case-a", expect: "invoke" },
@@ -328,11 +96,13 @@ describe("runTriggerEval", () => {
         { id: "case-d", expect: "skip" },
       ],
     });
+    const { lane, state } = createFakeLane();
 
     const result = await runTriggerEval({
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       concurrency: 2,
+      lane,
     });
 
     expect(result.results.map((caseResult) => caseResult.caseId)).toStrictEqual([
@@ -342,965 +112,192 @@ describe("runTriggerEval", () => {
       "case-d",
     ]);
     expect(result.results.every((caseResult) => caseResult.passed)).toBe(true);
-    // Invoke cases classify through the primary plugin signal on Codex: the staged target canary
-    // surfacing in the agent's output.
     expect(result.results[0]).toMatchObject({
       invoked: true,
       invocationSignal: "stdout-skill-canary",
     });
+    expect(state.maxActiveExecs).toBe(2);
+    expect(state.caseCleanups).toBe(4);
+    expect(state.runCleanups).toBe(1);
     expect(result.results.every((caseResult) => caseResult.durationMs >= 0)).toBe(true);
     expect(result.durationMs).toBeGreaterThanOrEqual(
       Math.max(...result.results.map((caseResult) => caseResult.durationMs)),
     );
-    expect(mockState.maxActiveExecs).toBe(2);
-    expect(new Set(mockState.codexHomes).size).toBe(4);
-    expect(new Set(mockState.sandboxModes)).toStrictEqual(new Set(["read-only"]));
-    expect(new Set(mockState.codexHomeModels)).toStrictEqual(new Set(["gpt-5.6-sol"]));
-    expect(new Set(mockState.codexHomeEfforts)).toStrictEqual(new Set(["medium"]));
-    expect(
-      mockState.stopWhenPredicates[0]?.({
-        stdout: "",
-        stderr: "codex.skill.injected demo:auto-skill",
-      }),
-    ).toBe(true);
-    const sharedWorkspace = mockState.workspacePaths[0];
-    const stagedSkill = await readFile(
-      path.join(sharedWorkspace ?? "", "plugins", "demo", "skills", "auto-skill", "SKILL.md"),
-      "utf8",
+    // Case artifacts land under the run directory, one directory per case; the run directory
+    // names the skill and agent so codex and claude artifacts stay distinguishable on disk.
+    expect(state.executed[0]?.executeOptions.caseDir).toBe(
+      path.join(result.runDir, "cases", "case-a"),
     );
-    expect(stagedSkill).toContain("Trigger Eval Instructions");
-    expect(stagedSkill).not.toContain("Eval only:");
-    const canary = stagedSkill.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-    expect(canary).toBeDefined();
-    expect(
-      mockState.stopWhenPredicates[0]?.({
-        stdout: JSON.stringify({
-          type: "item.completed",
-          item: { type: "agent_message", text: canary },
-        }),
-        stderr: "",
-      }),
-    ).toBe(true);
+    expect(result.runDir).toContain("auto_skill-codex-");
+    const report = JSON.parse(await readFile(result.reportPath, "utf8")) as {
+      results: unknown[];
+    };
+    expect(report.results).toHaveLength(4);
   });
 
-  it("classifies wrong-skill invocations distinctly on Codex via sibling canaries", async () => {
-    const repoRoot = await writeRepoFixture({
-      cases: [
-        { id: "sibling-invoke", expect: "invoke", prompt: "Invoke the sibling skill." },
-        { id: "sibling-skip", expect: "skip", prompt: "Invoke the sibling skill instead." },
-      ],
-      siblingSkills: [{ name: "sibling-skill" }],
-    });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-    });
-
-    expect(result.results[0]).toMatchObject({
-      caseId: "sibling-invoke",
-      expect: "invoke",
-      invocationSignal: "stdout-skill-canary",
-      invoked: false,
-      wrongSkill: "demo:sibling-skill",
-      passed: false,
-    });
-    expect(result.results[0]?.skipSignal).toBeUndefined();
-    expect(result.results[0]?.environmentalFailure).toBeUndefined();
-    expect(result.results[1]).toMatchObject({
-      caseId: "sibling-skip",
-      expect: "skip",
-      invoked: false,
-      wrongSkill: "demo:sibling-skill",
-      passed: true,
-    });
-
-    const sharedWorkspace = mockState.workspacePaths[0];
-    const stagedSibling = await readFile(
-      path.join(sharedWorkspace ?? "", "plugins", "demo", "skills", "sibling-skill", "SKILL.md"),
-      "utf8",
-    );
-    const siblingCanary = stagedSibling.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-    expect(siblingCanary).toBeDefined();
-    expect(
-      mockState.stopWhenPredicates[0]?.({
-        stdout: agentMessageEvent(siblingCanary ?? ""),
-        stderr: "",
-      }),
-    ).toBe(true);
-  });
-
-  it("leaves manual-only siblings canary-free", async () => {
-    const repoRoot = await writeRepoFixture({
-      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
-    });
-
-    await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-    });
-
-    const sharedWorkspace = mockState.workspacePaths[0];
-    const stagedManualSibling = await readFile(
-      path.join(sharedWorkspace ?? "", "plugins", "demo", "skills", "manual-skill", "SKILL.md"),
-      "utf8",
-    );
-    expect(stagedManualSibling).not.toContain("Trigger Eval Instructions");
-  });
-
-  it("classifies wrong-skill invocations distinctly on Claude via Skill tool names", async () => {
-    const repoRoot = await writeRepoFixture({
-      cases: [
-        { id: "sibling-invoke", expect: "invoke", prompt: "Invoke the sibling skill." },
-        { id: "sibling-skip", expect: "skip", prompt: "Invoke the sibling skill instead." },
-      ],
-      siblingSkills: [{ name: "sibling-skill" }],
-    });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      agent: "claude",
-    });
-
-    expect(result.results[0]).toMatchObject({
-      caseId: "sibling-invoke",
-      expect: "invoke",
-      invocationSignal: "stream-skill-tool-use",
-      invoked: false,
-      wrongSkill: "demo:sibling-skill",
-      passed: false,
-    });
-    expect(result.results[1]).toMatchObject({
-      caseId: "sibling-skip",
-      expect: "skip",
-      invoked: false,
-      wrongSkill: "demo:sibling-skill",
-      passed: true,
-    });
-  });
-
-  it("fails an invoke case when the target and a sibling fire together", async () => {
-    const cases = [
-      { id: "both-invoke", expect: "invoke" as const, prompt: "Invoke both skills." },
-      { id: "skip-case", expect: "skip" as const, prompt: "Do not invoke the skill." },
-    ];
-    const siblingSkills = [{ name: "sibling-skill" }];
-
-    for (const agent of ["codex", "claude"] as const) {
-      const repoRoot = await writeRepoFixture({ cases, siblingSkills });
-      const result = await runTriggerEval({
-        repoRoot,
-        skillPath: "plugins/demo/skills/auto-skill",
-        agent,
-        caseId: "both-invoke",
-      });
-
-      // Simultaneous firing is trigger-contract overlap: the target invocation must not mask the
-      // sibling's.
-      expect(result.results[0]).toMatchObject({
-        caseId: "both-invoke",
-        expect: "invoke",
-        invocationSignal: agent === "codex" ? "stdout-skill-canary" : "stream-skill-tool-use",
-        invoked: true,
-        wrongSkill: "demo:sibling-skill",
-        passed: false,
-      });
-      expect(result.results[0]?.environmentalFailure).toBeUndefined();
-    }
-  });
-
-  it("attributes prefix-named impostors as wrong skills on Claude", async () => {
-    const repoRoot = await writeRepoFixture({
-      cases: [
-        {
-          id: "impostor-invoke",
-          expect: "invoke",
-          prompt: "Invoke a prefixed impostor skill.",
-        },
-        { id: "skip-case", expect: "skip", prompt: "Do not invoke the skill." },
-      ],
-    });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      agent: "claude",
-      caseId: "impostor-invoke",
-    });
-
-    // demo:auto-skill-extra contains the target label demo:auto-skill as a prefix; exact-label
-    // attribution must not credit the target for it.
-    expect(result.results[0]).toMatchObject({
-      caseId: "impostor-invoke",
-      expect: "invoke",
-      invocationSignal: "stream-skill-tool-use",
-      invoked: false,
-      wrongSkill: "demo:auto-skill-extra",
-      passed: false,
-    });
-  });
-
-  it("boundary-matches labels in legacy Codex stderr telemetry", async () => {
-    const repoRoot = await writeRepoFixture({
-      cases: [
-        { id: "invoke-case", expect: "invoke", prompt: "Trigger the demo skill." },
-        { id: "skip-case", expect: "skip", prompt: "Do not invoke the skill." },
-      ],
-      siblingSkills: [{ name: "auto-skill-extra" }],
-    });
-    mockState.codexResults.push({
-      exitCode: 0,
-      finalMessage: "",
-      stdout: agentMessageEvent("I handled the request."),
-      stderr: "codex.skill.injected demo:auto-skill-extra",
-      stdoutPath: "/tmp/stdout.jsonl",
-      stderrPath: "/tmp/stderr.log",
-      finalMessagePath: "/tmp/final.txt",
-    });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "invoke-case",
-    });
-
-    // The telemetry names the sibling demo:auto-skill-extra; the target demo:auto-skill must not
-    // be credited from inside the longer label.
-    expect(result.results[0]).toMatchObject({
-      caseId: "invoke-case",
-      expect: "invoke",
-      invocationSignal: "stderr-skill-injected",
-      invoked: false,
-      wrongSkill: "demo:auto-skill-extra",
-      passed: false,
-    });
-  });
-
-  it("still classifies target invocations from legacy Codex stderr telemetry", async () => {
-    const repoRoot = await writeRepoFixture({
-      cases: [
-        { id: "invoke-case", expect: "invoke", prompt: "Trigger the demo skill." },
-        { id: "skip-case", expect: "skip", prompt: "Do not invoke the skill." },
-      ],
-    });
-    mockState.codexResults.push({
-      exitCode: 0,
-      finalMessage: "",
-      stdout: agentMessageEvent("I handled the request."),
-      stderr: "codex.skill.injected demo:auto-skill",
-      stdoutPath: "/tmp/stdout.jsonl",
-      stderrPath: "/tmp/stderr.log",
-      finalMessagePath: "/tmp/final.txt",
-    });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "invoke-case",
-    });
-
-    expect(result.results[0]).toMatchObject({
-      caseId: "invoke-case",
-      expect: "invoke",
-      invocationSignal: "stderr-skill-injected",
-      invoked: true,
-      passed: true,
-    });
-    expect(result.results[0]?.wrongSkill).toBeUndefined();
-  });
-
-  it("stages only the evaluated lane's surfaces", async () => {
+  it("resolves per-agent default models before handing the run to the lane", async () => {
     const repoRoot = await writeRepoFixture();
-
+    const codex = createFakeLane();
     await runTriggerEval({
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       caseId: "skip-case",
+      lane: codex.lane,
     });
-    const codexWorkspace = mockState.workspacePaths[0] ?? "";
-    await expect(
-      readFile(path.join(codexWorkspace, ".claude", "settings.json"), "utf8"),
-    ).rejects.toThrow(/ENOENT/);
-    await expect(
-      readFile(path.join(codexWorkspace, ".agents", "plugins", "marketplace.json"), "utf8"),
-    ).resolves.toContain('"demo"');
+    expect(codex.state.runOptions).toMatchObject({ model: "gpt-5.6-sol", effort: "medium" });
 
+    const claude = createFakeLane();
     await runTriggerEval({
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       agent: "claude",
       caseId: "skip-case",
+      lane: claude.lane,
     });
-    const claudeWorkspace = mockState.claudeWorkspacePaths[0] ?? "";
-    await expect(
-      readFile(path.join(claudeWorkspace, ".agents", "plugins", "marketplace.json"), "utf8"),
-    ).rejects.toThrow(/ENOENT/);
-    await expect(
-      readFile(path.join(claudeWorkspace, ".claude", "settings.json"), "utf8"),
-    ).resolves.toContain("disableBundledSkills");
+    expect(claude.state.runOptions).toMatchObject({ model: "opus", effort: "medium" });
   });
 
-  it("stages repo-local skills only for the evaluated lane", async () => {
+  it("wires lane observations into the early-stop condition", async () => {
+    const repoRoot = await writeRepoFixture();
+    const { lane, state } = createFakeLane({
+      observationsFor: (_testCase, output) => ({
+        signal: output.stdout.includes("CANARY") ? "stdout-skill-canary" : "none",
+        invokedSkills: output.stdout.includes("CANARY") ? ["demo:auto-skill"] : [],
+        hasActivity: true,
+        decisionItemCount: output.stdout.split("ITEM").length - 1,
+      }),
+    });
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+      lane,
+    });
+
+    const stopWhen = state.executed[0]?.executeOptions.stopWhen;
+    expect(stopWhen).toBeDefined();
+    expect(stopWhen?.({ stdout: "ITEM".repeat(4), stderr: "" })).toBe(false);
+    expect(stopWhen?.({ stdout: "ITEM".repeat(5), stderr: "" })).toBe(true);
+    expect(stopWhen?.({ stdout: "CANARY", stderr: "" })).toBe(true);
+  });
+
+  it("classifies case results from lane observations and run results", async () => {
+    const repoRoot = await writeRepoFixture();
+    const { lane } = createFakeLane({
+      executeResult: async () =>
+        buildCliRunResult({ exitCode: 1, error: "codex exec exited with code 1." }),
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseId: "skip-case",
+      lane,
+    });
+
+    // The expectation matched, so the CLI error is recorded without failing the case.
+    expect(result.results[0]).toMatchObject({
+      caseId: "skip-case",
+      expect: "skip",
+      invoked: false,
+      passed: true,
+      error: "codex exec exited with code 1.",
+    });
+  });
+
+  it("skips manual-only skills without preparing the lane", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
+    await writeFile(
+      path.join(repoRoot, ".agents", "skills", "auto-skill", "agents", "openai.yaml"),
+      "version: 1\npolicy:\n  allow_implicit_invocation: false\n",
+    );
+    const { lane, state } = createFakeLane();
 
-    await runTriggerEval({
+    const result = await runTriggerEval({
       repoRoot,
       skillPath: ".agents/skills/auto-skill",
-      caseId: "repo-local-case",
-    });
-    const codexWorkspace = mockState.workspacePaths[0] ?? "";
-    await expect(
-      readFile(path.join(codexWorkspace, ".claude", "skills", "auto-skill", "SKILL.md"), "utf8"),
-    ).rejects.toThrow(/ENOENT/);
-
-    await runTriggerEval({
-      repoRoot,
-      skillPath: ".agents/skills/auto-skill",
-      agent: "claude",
-      caseId: "repo-local-case",
-    });
-    const claudeWorkspace = mockState.claudeWorkspacePaths[0] ?? "";
-    await expect(
-      readFile(path.join(claudeWorkspace, ".agents", "skills", "auto-skill", "SKILL.md"), "utf8"),
-    ).rejects.toThrow(/ENOENT/);
-  });
-
-  it("accepts staged skills and the exempt set in the Claude init event", async () => {
-    const repoRoot = await writeRepoFixture({
-      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
-    });
-    mockState.claudeInitSkills = ["demo:auto-skill", "demo:manual-skill", "doctor"];
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      agent: "claude",
+      lane,
     });
 
-    expect(result.results.every((caseResult) => caseResult.passed)).toBe(true);
-    expect(
-      result.results.every((caseResult) => caseResult.environmentalFailure === undefined),
-    ).toBe(true);
-  });
-
-  it("fails cases environmentally when unstaged skills leak into a Claude run", async () => {
-    const repoRoot = await writeRepoFixture();
-    mockState.claudeInitSkills = ["demo:auto-skill", "code-review", "doctor"];
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      agent: "claude",
-    });
-
-    // The leak poisons every case, including the invoke case whose expectation matched.
-    expect(result.results).toHaveLength(2);
-    for (const caseResult of result.results) {
-      expect(caseResult.passed).toBe(false);
-      expect(caseResult.environmentalFailure).toContain("code-review");
-      expect(caseResult.environmentalFailure).toContain("disableBundledSkills");
-    }
-    expect(result.results[0]?.invoked).toBe(true);
-  });
-
-  it("stages every marketplace plugin on Codex when marketplace staging is requested", async () => {
-    const repoRoot = await writeRepoFixture({ marketplace: true });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-      stageMarketplacePlugins: true,
-    });
-
-    expect(result.results[0]?.passed).toBe(true);
-    const workspace = mockState.workspacePaths[0] ?? "";
-    const marketplace = JSON.parse(
-      await readFile(path.join(workspace, ".agents", "plugins", "marketplace.json"), "utf8"),
-    ) as { plugins: Array<{ name: string }> };
-    expect(marketplace.plugins.map((plugin) => plugin.name)).toStrictEqual(["demo", "other"]);
-    expect(mockState.codexHomePluginNames[0]).toStrictEqual(["demo", "other"]);
-
-    const stagedOtherSkill = await readFile(
-      path.join(workspace, "plugins", "other", "skills", "other-skill", "SKILL.md"),
-      "utf8",
-    );
-    expect(stagedOtherSkill).toContain("Trigger Eval Instructions");
-    const otherCanary = stagedOtherSkill.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-    expect(otherCanary).toBeDefined();
-    // Cross-plugin wrong-skill detection: the other plugin's canary is a recognized invocation.
-    expect(
-      mockState.stopWhenPredicates[0]?.({
-        stdout: agentMessageEvent(otherCanary ?? ""),
-        stderr: "",
-      }),
-    ).toBe(true);
-
-    const cachedOtherSkill = await readFile(
-      path.join(
-        mockState.codexHomes[0] ?? "",
-        "plugins",
-        "cache",
-        "trigger-eval",
-        "other",
-        "2.0.0",
-        "skills",
-        "other-skill",
-        "SKILL.md",
-      ),
-      "utf8",
-    );
-    expect(cachedOtherSkill).toContain(otherCanary ?? "missing-canary");
-  });
-
-  it("passes every staged plugin dir to Claude when marketplace staging is requested", async () => {
-    const repoRoot = await writeRepoFixture({ marketplace: true });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      agent: "claude",
-      caseId: "skip-case",
-      stageMarketplacePlugins: true,
-    });
-
-    expect(result.results[0]?.passed).toBe(true);
-    expect(mockState.claudePluginDirs[0]).toHaveLength(2);
-    expect(mockState.claudePluginDirs[0]?.[0]).toContain(path.join("plugins", "demo"));
-    expect(mockState.claudePluginDirs[0]?.[1]).toContain(path.join("plugins", "other"));
+    expect(result.skippedReason).toContain("manual-only");
+    expect(result.results).toStrictEqual([]);
+    expect(state.runOptions).toBeUndefined();
+    const report = JSON.parse(await readFile(result.reportPath, "utf8")) as {
+      skippedReason?: string;
+    };
+    expect(report.skippedReason).toContain("manual-only");
   });
 
   it("rejects marketplace staging for repo-local targets", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
+    const { lane } = createFakeLane();
 
     await expect(
       runTriggerEval({
         repoRoot,
         skillPath: ".agents/skills/auto-skill",
         stageMarketplacePlugins: true,
+        lane,
       }),
     ).rejects.toThrow("Marketplace staging applies to plugin skills");
   });
 
-  it("applies fixture workspace files in a case-isolated workspace", async () => {
-    const repoRoot = await writeRepoFixture({
-      cases: [
-        {
-          id: "agents-case",
-          expect: "skip",
-          workspaceFiles: {
-            "AGENTS.md": "Commit messages must use Gitmoji, not Conventional Commits.\n",
-          },
-        },
-        { id: "plain-case", expect: "invoke" },
-      ],
-    });
+  it("hands the marketplace catalog's plugins to the lane when staging is requested", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const { lane, state } = createFakeLane();
 
     await runTriggerEval({
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
-      concurrency: 2,
+      caseId: "skip-case",
+      stageMarketplacePlugins: true,
+      lane,
     });
 
-    const agentsWorkspace = mockState.workspacePaths.find((workspacePath) =>
-      workspacePath.includes(path.join("cases", "agents-case", "workspace")),
-    );
-    const plainWorkspace = mockState.workspacePaths.find(
-      (workspacePath) => !workspacePath.includes(path.join("cases")),
-    );
-    expect(agentsWorkspace).toBeDefined();
-    expect(plainWorkspace).toBeDefined();
-    expect(agentsWorkspace).toContain(path.join("cases", "agents-case", "workspace"));
-    await expect(readFile(path.join(agentsWorkspace ?? "", "AGENTS.md"), "utf8")).resolves.toBe(
-      "Commit messages must use Gitmoji, not Conventional Commits.\n",
-    );
-    expect(plainWorkspace).toContain(os.tmpdir());
-    expect(plainWorkspace).not.toContain(path.join("cases", "plain-case", "workspace"));
+    expect(state.runOptions?.extraPlugins?.map((entry) => entry.pluginName)).toStrictEqual([
+      "demo",
+      "other",
+    ]);
   });
 
-  it("evaluates plugin skills on Claude via the Skill tool stream signal", async () => {
+  it("cleans up the case and the run when execution fails", async () => {
     const repoRoot = await writeRepoFixture();
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      agent: "claude",
-    });
-
-    expect(result.agent).toBe("claude");
-    expect(result.runDir).toContain("-claude-");
-    expect(result.results).toHaveLength(2);
-    expect(result.results[0]).toMatchObject({
-      caseId: "invoke-case",
-      expect: "invoke",
-      invocationSignal: "stream-skill-tool-use",
-      invoked: true,
-      passed: true,
-    });
-    expect(result.results[1]).toMatchObject({
-      caseId: "skip-case",
-      expect: "skip",
-      invoked: false,
-      passed: true,
-    });
-    expect(mockState.codexHomes).toStrictEqual([]);
-    expect(new Set(mockState.claudeModels)).toStrictEqual(new Set(["opus"]));
-    expect(new Set(mockState.claudeEfforts)).toStrictEqual(new Set(["medium"]));
-    expect(mockState.claudePluginDirs).toHaveLength(2);
-    expect(mockState.claudePluginDirs[0]).toHaveLength(1);
-    expect(mockState.claudePluginDirs[0]?.[0]).toContain(path.join("plugins", "demo"));
-    expect(mockState.claudePluginDirs[0]?.[0]).toContain(
-      mockState.claudeWorkspacePaths[0] ?? "missing-workspace",
-    );
-    const claudeProjectSettings = JSON.parse(
-      await readFile(
-        path.join(mockState.claudeWorkspacePaths[0] ?? "", ".claude", "settings.json"),
-        "utf8",
-      ),
-    ) as unknown;
-    expect(claudeProjectSettings).toStrictEqual({ disableBundledSkills: true });
-  });
-
-  it("evaluates Claude-only plugins on the Claude lane without Codex metadata", async () => {
-    const repoRoot = await writeRepoFixture({ claudeOnly: true });
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: "plugins/demo/skills/auto-skill",
-      agent: "claude",
-    });
-
-    expect(result.agent).toBe("claude");
-    expect(result.results).toHaveLength(2);
-    expect(result.results.every((caseResult) => caseResult.passed)).toBe(true);
-    expect(mockState.codexHomes).toStrictEqual([]);
-  });
-
-  it("evaluates repo-local skill targets on Claude as pristine project skills", async () => {
-    const repoRoot = await writeRepoLocalSkillFixture();
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: ".agents/skills/auto-skill",
-      agent: "claude",
-    });
-
-    expect(result.agent).toBe("claude");
-    expect(result.results).toHaveLength(2);
-    expect(result.results[0]).toMatchObject({
-      caseId: "repo-local-case",
-      expect: "invoke",
-      invocationSignal: "stream-skill-tool-use",
-      invoked: true,
-      passed: true,
-    });
-    expect(result.results[1]).toMatchObject({
-      caseId: "skip-case",
-      expect: "skip",
-      invoked: false,
-      passed: true,
-    });
-    expect(mockState.claudePluginDirs).toStrictEqual([[], []]);
-    const stagedProjectSkill = await readFile(
-      path.join(
-        mockState.claudeWorkspacePaths[0] ?? "",
-        ".claude",
-        "skills",
-        "auto-skill",
-        "SKILL.md",
-      ),
-      "utf8",
-    );
-    expect(stagedProjectSkill).not.toContain("Eval only:");
-    expect(stagedProjectSkill).not.toContain("Trigger Eval Instructions");
-  });
-
-  it("evaluates repo-local skill targets with an injected canary", async () => {
-    const repoRoot = await writeRepoLocalSkillFixture();
-
-    const result = await runTriggerEval({
-      repoRoot,
-      skillPath: ".agents/skills/auto-skill",
-      caseId: "repo-local-case",
-    });
-
-    expect(result.target).toMatchObject({ kind: "repo-local", skillName: "auto-skill" });
-    expect(result.results).toHaveLength(1);
-    expect(result.results[0]).toMatchObject({
-      caseId: "repo-local-case",
-      expect: "invoke",
-      invocationSignal: "stdout-skill-canary",
-      invoked: true,
-      passed: true,
-    });
-    expect(result.results[0]?.durationMs).toBeGreaterThanOrEqual(0);
-    expect(mockState.sandboxModes).toStrictEqual(["workspace-write"]);
-    const repoLocalWorkspace = mockState.workspacePaths[0];
-    const skillBody = await readFile(
-      path.join(repoLocalWorkspace ?? "", ".agents", "skills", "auto-skill", "SKILL.md"),
-      "utf8",
-    );
-    const canary = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-    expect(canary).toBeDefined();
-    const description = frontmatterDescription(skillBody);
-    expect(description).toContain(`Eval only: if used, first output ${canary}.`);
-    expect(description).toContain("Use when the user asks to invoke this repo-local skill.");
-    expect(description.length).toBeLessThanOrEqual(1024);
-    expect(
-      mockState.stopWhenPredicates[0]?.({
-        stdout: [
-          JSON.stringify({
-            type: "item.completed",
-            item: { type: "agent_message", text: canary },
-          }),
-        ].join("\n"),
-        stderr: "",
-      }),
-    ).toBe(true);
-  });
-});
-
-describe("listSkillToolUseTargets", () => {
-  it("collects Skill tool_use targets from the command key", () => {
-    const stdout = [
-      "non-json noise",
-      JSON.stringify({ type: "system", subtype: "init" }),
-      JSON.stringify({
-        type: "assistant",
-        message: {
-          content: [
-            { type: "text", text: "Loading the skill." },
-            { type: "tool_use", name: "Skill", input: { command: "demo:auto-skill" } },
-          ],
-        },
-      }),
-    ].join("\n");
-
-    expect(listSkillToolUseTargets(stdout)).toStrictEqual(["demo:auto-skill"]);
-  });
-
-  it("accepts the skill key as a fallback shape", () => {
-    const stdout = JSON.stringify({
-      type: "assistant",
-      message: {
-        content: [{ type: "tool_use", name: "Skill", input: { skill: "demo:auto-skill" } }],
+    const { lane, state } = createFakeLane({
+      executeResult: async () => {
+        throw new Error("exec blew up");
       },
     });
 
-    expect(listSkillToolUseTargets(stdout)).toStrictEqual(["demo:auto-skill"]);
+    await expect(
+      runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        caseId: "skip-case",
+        lane,
+      }),
+    ).rejects.toThrow("exec blew up");
+    expect(state.caseCleanups).toBe(1);
+    expect(state.runCleanups).toBe(1);
   });
 
-  it("ignores other tool_use blocks and assistant text mentioning a label", () => {
-    const stdout = [
-      JSON.stringify({
-        type: "assistant",
-        message: {
-          content: [
-            { type: "text", text: "I could use demo:auto-skill here." },
-            { type: "tool_use", name: "Read", input: { file_path: "demo:auto-skill" } },
-          ],
-        },
-      }),
-    ].join("\n");
+  it("skips case preparation and execution when the run is already aborted", async () => {
+    const repoRoot = await writeRepoFixture();
+    const { lane, state } = createFakeLane();
+    const abortController = new AbortController();
+    abortController.abort();
 
-    expect(listSkillToolUseTargets(stdout)).toStrictEqual([]);
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      abortSignal: abortController.signal,
+      lane,
+    });
+
+    // Aborted cases are dropped from results rather than reported as skips.
+    expect(state.preparedCaseIds).toStrictEqual([]);
+    expect(state.executed).toStrictEqual([]);
+    expect(result.results).toStrictEqual([]);
+    expect(state.runCleanups).toBe(1);
   });
 });
-
-async function buildMockCodexResult(options: {
-  prompt: string;
-  workspacePath: string;
-}): Promise<CliRunResult & { delayMs: number }> {
-  const repoLocalSkillPath = path.join(
-    options.workspacePath,
-    ".agents",
-    "skills",
-    "auto-skill",
-    "SKILL.md",
-  );
-  try {
-    const skillBody = await readFile(repoLocalSkillPath, "utf8");
-    const canary = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-    if (canary !== undefined) {
-      return {
-        exitCode: 0,
-        finalMessage: "",
-        stdout: [
-          JSON.stringify({
-            type: "item.completed",
-            item: { type: "agent_message", text: canary },
-          }),
-        ].join("\n"),
-        stderr: "",
-        stdoutPath: "/tmp/stdout.jsonl",
-        stderrPath: "/tmp/stderr.log",
-        finalMessagePath: "/tmp/final.txt",
-        delayMs: 50,
-      };
-    }
-  } catch {
-    // Plugin fixture workspaces do not include repo-local skills.
-  }
-
-  const prompt = options.prompt;
-  if (prompt.startsWith("Invoke both")) {
-    const canaries = await Promise.all([
-      readWorkspacePluginCanary(options.workspacePath, "auto-skill"),
-      readWorkspacePluginCanary(options.workspacePath, "sibling-skill"),
-    ]);
-    return {
-      exitCode: 0,
-      finalMessage: "",
-      stdout: agentMessageEvent(canaries.join(" and ")),
-      stderr: "",
-      stdoutPath: "/tmp/stdout.jsonl",
-      stderrPath: "/tmp/stderr.log",
-      finalMessagePath: "/tmp/final.txt",
-      delayMs: 50,
-    };
-  }
-  if (prompt.startsWith("Invoke the sibling")) {
-    return {
-      exitCode: 0,
-      finalMessage: "",
-      stdout: agentMessageEvent(
-        await readWorkspacePluginCanary(options.workspacePath, "sibling-skill"),
-      ),
-      stderr: "",
-      stdoutPath: "/tmp/stdout.jsonl",
-      stderrPath: "/tmp/stderr.log",
-      finalMessagePath: "/tmp/final.txt",
-      delayMs: 50,
-    };
-  }
-
-  // The default invoke path surfaces the target's canary in stdout — the primary signal on
-  // current Codex CLIs, which no longer emit codex.skill.injected stderr telemetry.
-  const shouldInvoke = !prompt.startsWith("Do not invoke");
-  return {
-    exitCode: 0,
-    finalMessage: "",
-    stdout: agentMessageEvent(
-      shouldInvoke
-        ? await readWorkspacePluginCanary(options.workspacePath, "auto-skill")
-        : "I handled the request.",
-    ),
-    stderr: "",
-    stdoutPath: "/tmp/stdout.jsonl",
-    stderrPath: "/tmp/stderr.log",
-    finalMessagePath: "/tmp/final.txt",
-    delayMs: 50,
-  };
-}
-
-async function readWorkspacePluginCanary(
-  workspacePath: string,
-  skillName: string,
-): Promise<string> {
-  const skillBody = await readFile(
-    path.join(workspacePath, "plugins", "demo", "skills", skillName, "SKILL.md"),
-    "utf8",
-  );
-  return skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0] ?? `missing-${skillName}-canary`;
-}
-
-function agentMessageEvent(text: string): string {
-  return `${JSON.stringify({ type: "item.completed", item: { type: "agent_message", text } })}\n`;
-}
-
-function frontmatterDescription(content: string): string {
-  const match = content.match(/^---\r?\n(?<frontmatter>[\s\S]*?)\r?\n---/);
-  expect(match?.groups?.["frontmatter"]).toBeDefined();
-  const metadata = parseYaml(match?.groups?.["frontmatter"] ?? "") as { description?: unknown };
-  expect(metadata.description).toBeTypeOf("string");
-  return metadata.description as string;
-}
-
-async function writeRepoFixture(
-  options: {
-    cases?: Array<{
-      id: string;
-      expect: "invoke" | "skip";
-      prompt?: string;
-      workspaceFiles?: Record<string, string>;
-    }>;
-    claudeOnly?: boolean;
-    siblingSkills?: Array<{ name: string; manualOnly?: boolean }>;
-    marketplace?: boolean;
-  } = {},
-): Promise<string> {
-  const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
-  const pluginPath = path.join(repoRoot, "plugins", "demo");
-  const skillPath = path.join(pluginPath, "skills", "auto-skill");
-
-  if (options.marketplace === true) {
-    const otherSkillPath = path.join(repoRoot, "plugins", "other", "skills", "other-skill");
-    await mkdir(path.join(otherSkillPath, "agents"), { recursive: true });
-    await mkdir(path.join(repoRoot, "plugins", "other", ".codex-plugin"), { recursive: true });
-    await writeFile(
-      path.join(repoRoot, "plugins", "other", ".codex-plugin", "plugin.json"),
-      JSON.stringify({ name: "other", version: "2.0.0", skills: "./skills/" }),
-    );
-    await writeFile(
-      path.join(otherSkillPath, "SKILL.md"),
-      [
-        "---",
-        "name: other-skill",
-        "description: Use when the user asks for the other plugin's skill.",
-        "---",
-        "",
-      ].join("\n"),
-    );
-    await writeFile(
-      path.join(otherSkillPath, "agents", "openai.yaml"),
-      "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
-    );
-
-    await mkdir(path.join(repoRoot, ".agents", "plugins"), { recursive: true });
-    await writeFile(
-      path.join(repoRoot, ".agents", "plugins", "marketplace.json"),
-      JSON.stringify({
-        name: "fixture-marketplace",
-        plugins: [
-          { name: "demo", source: { source: "local", path: "./plugins/demo" } },
-          { name: "other", source: { source: "local", path: "./plugins/other" } },
-        ],
-      }),
-    );
-    await mkdir(path.join(repoRoot, ".claude-plugin"), { recursive: true });
-    await writeFile(
-      path.join(repoRoot, ".claude-plugin", "marketplace.json"),
-      JSON.stringify({
-        name: "fixture-marketplace",
-        plugins: [
-          { name: "demo", source: "./plugins/demo" },
-          { name: "other", source: "./plugins/other" },
-        ],
-      }),
-    );
-  }
-
-  for (const sibling of options.siblingSkills ?? []) {
-    const siblingPath = path.join(pluginPath, "skills", sibling.name);
-    await mkdir(path.join(siblingPath, "agents"), { recursive: true });
-    await writeFile(
-      path.join(siblingPath, "SKILL.md"),
-      [
-        "---",
-        `name: ${sibling.name}`,
-        "description: Use when the user asks for the sibling skill.",
-        ...(sibling.manualOnly === true ? ["disable-model-invocation: true"] : []),
-        "---",
-        "",
-      ].join("\n"),
-    );
-    await writeFile(
-      path.join(siblingPath, "agents", "openai.yaml"),
-      `version: 1\npolicy:\n  allow_implicit_invocation: ${sibling.manualOnly === true ? "false" : "true"}\n`,
-    );
-  }
-
-  await mkdir(path.join(skillPath, "evals"), { recursive: true });
-  if (options.claudeOnly === true) {
-    await mkdir(path.join(pluginPath, ".claude-plugin"), { recursive: true });
-    await writeFile(
-      path.join(pluginPath, ".claude-plugin", "plugin.json"),
-      JSON.stringify({ name: "demo", version: "1.0.0", description: "Demo plugin" }),
-    );
-  } else {
-    await mkdir(path.join(pluginPath, ".codex-plugin"), { recursive: true });
-    await mkdir(path.join(skillPath, "agents"), { recursive: true });
-    await writeFile(
-      path.join(pluginPath, ".codex-plugin", "plugin.json"),
-      JSON.stringify({ name: "demo", version: "1.0.0", skills: "./skills/" }),
-    );
-    await writeFile(
-      path.join(skillPath, "agents", "openai.yaml"),
-      "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
-    );
-  }
-  await writeFile(path.join(skillPath, "SKILL.md"), "---\nname: auto-skill\n---\n");
-  await writeFile(
-    path.join(skillPath, "evals", "triggers.yaml"),
-    [
-      "version: 1",
-      "cases:",
-      ...fixtureCaseLines(
-        options.cases ?? [
-          { id: "invoke-case", expect: "invoke" },
-          { id: "skip-case", expect: "skip" },
-        ],
-      ),
-      "",
-    ].join("\n"),
-  );
-
-  return repoRoot;
-}
-
-async function writeRepoLocalSkillFixture(): Promise<string> {
-  const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
-  const skillPath = path.join(repoRoot, ".agents", "skills", "auto-skill");
-
-  await mkdir(path.join(skillPath, "agents"), { recursive: true });
-  await mkdir(path.join(skillPath, "evals"), { recursive: true });
-  await writeFile(
-    path.join(skillPath, "SKILL.md"),
-    [
-      "---",
-      "name: auto-skill",
-      "description: Use when the user asks to invoke this repo-local skill.",
-      "---",
-      "",
-    ].join("\n"),
-  );
-  await writeFile(
-    path.join(skillPath, "agents", "openai.yaml"),
-    "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
-  );
-  await writeFile(
-    path.join(skillPath, "evals", "triggers.yaml"),
-    [
-      "version: 1",
-      "cases:",
-      "  - id: repo-local-case",
-      "    prompt: Invoke the skill.",
-      "    expect: invoke",
-      "  - id: skip-case",
-      "    prompt: Do not invoke the skill.",
-      "    expect: skip",
-      "",
-    ].join("\n"),
-  );
-
-  return repoRoot;
-}
-
-function fixtureCaseLines(
-  cases: Array<{
-    id: string;
-    expect: "invoke" | "skip";
-    prompt?: string;
-    workspaceFiles?: Record<string, string>;
-  }>,
-): string[] {
-  return cases.flatMap((testCase) => {
-    const prompt =
-      testCase.prompt ?? `${testCase.expect === "invoke" ? "Invoke" : "Do not invoke"} the skill.`;
-    const lines = [
-      `  - id: ${testCase.id}`,
-      `    prompt: ${prompt}`,
-      `    expect: ${testCase.expect}`,
-    ];
-    if (testCase.workspaceFiles !== undefined) {
-      lines.push("    workspace_files:");
-      for (const [filePath, content] of Object.entries(testCase.workspaceFiles)) {
-        lines.push(`      ${filePath}: |`);
-        lines.push(...content.split("\n").map((line) => `        ${line}`));
-      }
-    }
-    return lines;
-  });
-}

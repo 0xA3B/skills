@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 export type StreamingCliOutput = {
   stdout: string;
@@ -28,6 +30,43 @@ export type CliRunResult = {
   endedBy?: CliEndReason;
   error?: string;
 };
+
+export type CaseArtifactPaths = {
+  stdoutPath: string;
+  stderrPath: string;
+  finalMessagePath: string;
+};
+
+// Creates the per-case artifact directory and names the three artifact files every lane writes.
+export async function prepareCaseArtifacts(caseDir: string): Promise<CaseArtifactPaths> {
+  await mkdir(caseDir, { recursive: true });
+  return {
+    stdoutPath: path.join(caseDir, "events.jsonl"),
+    stderrPath: path.join(caseDir, "stderr.log"),
+    finalMessagePath: path.join(caseDir, "final.txt"),
+  };
+}
+
+// Persists the raw streams and assembles the lane-agnostic case run result.
+export async function finishCliRun(options: {
+  result: StreamingCliResult;
+  label: string;
+  paths: CaseArtifactPaths;
+  finalMessage: string;
+}): Promise<CliRunResult> {
+  await writeFile(options.paths.stdoutPath, options.result.stdout);
+  await writeFile(options.paths.stderrPath, options.result.stderr);
+  const error = cliRunError(options.result, options.label);
+  return {
+    exitCode: options.result.exitCode,
+    finalMessage: options.finalMessage,
+    stdout: options.result.stdout,
+    stderr: options.result.stderr,
+    ...options.paths,
+    endedBy: options.result.endedBy,
+    ...(error === undefined ? {} : { error }),
+  };
+}
 
 export function cliRunError(result: StreamingCliResult, label: string): string | undefined {
   if (result.error === undefined && result.exitCode === 0) {
