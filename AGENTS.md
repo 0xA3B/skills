@@ -45,6 +45,23 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 - Treat `AGENTS.md` as canonical agent guidance; sibling `CLAUDE.md` files must import `@AGENTS.md`
   and may add Claude-specific guidance only when it doesn't belong in `AGENTS.md`.
 
+## Dependency Policy
+
+- Treat `package.json` as a compatibility manifest. Leave direct dependencies unbounded unless a
+  compatibility or security requirement justifies a constraint.
+- Add lower bounds for required features or vulnerable older releases, upper bounds for
+  intentionally deferred incompatibilities, exclusions for known-bad releases, and exact pins only
+  when a single version is required.
+- Treat `pnpm-lock.yaml` as the exact tested resolutions; Renovate keeps them updated through
+  routine maintenance; do not update the lockfile locally during routine dependency maintenance.
+- Renovate does not update Node or TypeScript majors. `.node-version`, `package.json` engines,
+  `typescript`, and `@types/node` remain explicit, manual updates.
+- Renovate proposes every other major update in its own PR so release notes can be reviewed. Green
+  CI is the baseline signal that a major is safe to merge.
+- All dependencies follow a three-day cooldown to new releases from public registries, enforced
+  consistently through pnpm and Renovate.
+- The three-day cooldown policy can be bypassed for security patches.
+
 ## Terminology
 
 Use this section for durable domain terms that should guide future work in this repository. Add or
