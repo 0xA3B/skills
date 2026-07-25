@@ -60,7 +60,12 @@ evaluated, and improved over time. Changes should preserve these outcomes:
   CI is the baseline signal that a major is safe to merge.
 - All dependencies follow a three-day cooldown to new releases from public registries, enforced
   consistently through pnpm and Renovate.
-- The three-day cooldown policy can be bypassed for security patches.
+- The three-day cooldown can be bypassed for security patches, but only on the Renovate side. pnpm
+  enforces it independently during lockfile generation, so a fix younger than three days also needs
+  a temporary `minimumReleaseAgeExclude` entry in `pnpm-workspace.yaml`, removed once the version
+  ages out.
+- Reserve that manual exception for vulnerabilities urgent enough to interrupt the weekly cadence.
+  Renovate PRs and Dependabot alerts are the signal to review, not an instruction to expedite.
 
 ## Terminology
 
