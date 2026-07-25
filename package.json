@@ -38,7 +38,7 @@
       "pnpm exec oxlint --deny-warnings --report-unused-disable-directives --fix",
       "pnpm exec oxfmt --write"
     ],
-    "*.{json,jsonc,yaml,yml,md}": "pnpm exec oxfmt --write"
+    "*.{json,jsonc,yaml,yml,md}": "pnpm exec oxfmt --write --no-error-on-unmatched-pattern"
   },
   "commitlint": {
     "extends": [
