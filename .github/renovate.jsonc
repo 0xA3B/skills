@@ -1,0 +1,43 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "America/New_York",
+  // Weekly cadence on Friday mornings.
+  "schedule": ["* 0-9 * * 5"],
+  // Three-day cooldown, consistent with pnpm minimumReleaseAge.
+  "minimumReleaseAge": "3 days",
+  // Direct dependencies are intentionally unbounded (see AGENTS.md Dependency
+  // Policy); in-range updates must land as lockfile-only PRs.
+  "rangeStrategy": "update-lockfile",
+  "labels": ["dependencies"],
+  // Full lockfile and transitive refresh, offset a day after the regular schedule
+  // so per-package PRs are proposed first; direct dependencies are unbounded, so
+  // an unoffset refresh would sweep up majors before their own PR is reviewed.
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 0-9 * * 6"]
+  },
+  "packageRules": [
+    { "matchManagers": ["npm"], "groupName": "npm dependencies" },
+    // Majors get their own PR so release notes can be reviewed before merging.
+    // Lock file maintenance is never grouped and carries no per-package update
+    // type, so it stays a separate PR regardless of this rule.
+    {
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "npm major dependencies"
+    },
+    { "matchManagers": ["github-actions"], "groupName": "github actions" },
+    // Node and TypeScript majors are manual decisions: never update .node-version,
+    // package.json engines, or the typescript and @types/node majors. These disable
+    // rules are last so they win over the groups.
+    { "matchManagers": ["nodenv"], "enabled": false },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript", "@types/node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    { "matchManagers": ["npm"], "matchDepTypes": ["engines"], "enabled": false }
+  ]
+}
