@@ -17,6 +17,13 @@
     "enabled": true,
     "schedule": ["* 0-9 * * 6"]
   },
+  // Security patches bypass the cooldown (see AGENTS.md Dependency Policy).
+  // Vulnerability PRs already ignore schedule and rate limits, but not
+  // minimumReleaseAge, so it has to be cleared explicitly.
+  "vulnerabilityAlerts": {
+    "minimumReleaseAge": null,
+    "labels": ["dependencies", "security"]
+  },
   "packageRules": [
     { "matchManagers": ["npm"], "groupName": "npm dependencies" },
     // Majors get their own PR so release notes can be reviewed before merging.
