@@ -13,5 +13,13 @@
   "sortPackageJson": {
     "sortScripts": true
   },
+  "overrides": [
+    {
+      "files": ["*.jsonc"],
+      "options": {
+        "trailingComma": "none"
+      }
+    }
+  ],
   "ignorePatterns": ["dist", "node_modules", ".cache", ".pnpm-store", ".local", "pnpm-lock.yaml"]
 }
