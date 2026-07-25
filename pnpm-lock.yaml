@@ -9,40 +9,40 @@ importers:
   .:
     devDependencies:
       '@commitlint/cli':
-        specifier: ^21.0.0
+        specifier: '*'
         version: 21.2.1(@types/node@26.1.1)(conventional-commits-parser@7.1.0)(typescript@6.0.3)
       '@commitlint/config-conventional':
-        specifier: ^21.0.0
+        specifier: '*'
         version: 21.2.0
       '@types/node':
         specifier: ^26.0.0
         version: 26.1.1
       husky:
-        specifier: ^9.1.7
+        specifier: '*'
         version: 9.1.7
       lint-staged:
-        specifier: ^17.0.2
+        specifier: '*'
         version: 17.0.8
       oxfmt:
-        specifier: ^0.58.0
+        specifier: '*'
         version: 0.58.0
       oxlint:
-        specifier: ^1.62.0
+        specifier: '*'
         version: 1.73.0
       tsx:
-        specifier: ^4.21.0
+        specifier: '*'
         version: 4.23.0
       typescript:
-        specifier: ^6.0.3
+        specifier: ^6.0.0
         version: 6.0.3
       vite:
-        specifier: ^8.0.16
+        specifier: '*'
         version: 8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.6.1)(tsx@4.23.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.5
+        specifier: '*'
         version: 4.1.10(@types/node@26.1.1)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.6.1)(tsx@4.23.0)(yaml@2.9.0))
       yaml:
-        specifier: ^2.8.3
+        specifier: '*'
         version: 2.9.0
 
 packages:
@@ -1059,10 +1059,6 @@ packages:
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
-  picomatch@4.0.4:
-    resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
-    engines: {node: '>=12'}
-
   picomatch@4.0.5:
     resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
     engines: {node: '>=12'}
@@ -1984,7 +1980,7 @@ snapshots:
   lint-staged@17.0.8:
     dependencies:
       listr2: 10.2.2
-      picomatch: 4.0.4
+      picomatch: 4.0.5
       string-argv: 0.3.2
       tinyexec: 1.2.4
     optionalDependencies:
@@ -2080,8 +2076,6 @@ snapshots:
   pathe@2.0.3: {}
 
   picocolors@1.1.1: {}
-
-  picomatch@4.0.4: {}
 
   picomatch@4.0.5: {}
 
