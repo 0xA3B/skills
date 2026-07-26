@@ -5,7 +5,8 @@ description: >-
   merge, merge only ready updates, sync local dependency state, refresh repo-pinned tooling through
   small maintenance PRs, and create linked follow-up issues for breaking changes, validation
   failures, or useful new features. Use when the user asks to review Dependabot, Renovate, lockfile
-  maintenance, security, runtime, package-manager, or other dependency update PRs.
+  maintenance, security, runtime, package-manager, or other dependency update PRs, or to establish a
+  dependency policy for a repository that has none.
 license: MIT
 disable-model-invocation: true
 ---
@@ -29,6 +30,18 @@ The repository's dependency update queue is triaged with clear evidence:
   blocker and next action.
 - Breaking changes, required migrations, failed validation, and concrete feature opportunities are
   captured as follow-up issues instead of being implemented in this workflow.
+- Decisions follow the repository's own dependency policy, and a repository that lacks one is left
+  with a written policy when the user wants it.
+
+## Repository Policy Precedence
+
+Everything in this skill is a default. When the repository states its own dependency policy — in
+agent guidance, a dependency policy document, contributing docs, or updater configuration — that
+policy wins on any point it covers: bound posture, lockfile ownership, lock and transitive refresh,
+update cadence, cooldowns, merge signals, and which pins are repo-owned.
+
+Read that policy during discovery, before classifying anything. Apply these defaults only where the
+repository is silent, and say which of the two you followed when they differ.
 
 ## Boundaries
 
@@ -44,10 +57,13 @@ The repository's dependency update queue is triaged with clear evidence:
   task.
 - Do not change runtime majors, package-manager policy, or CI setup behavior as a drive-by tooling
   refresh when the release notes or diff indicate migration work is needed.
+- Do not write a dependency policy the user did not ask for, and do not change an existing policy as
+  a drive-by edit. Report the gap or the conflict instead.
 
 Allowed side effects are limited to dependency PR review, safe dependency PR merges, local
-fast-forward and install/runtime refreshes, PR labels/comments, follow-up issue creation, and
-repo-pinned tooling update PRs for full maintenance passes.
+fast-forward and install/runtime refreshes, PR labels/comments, follow-up issue creation,
+repo-pinned tooling update PRs for full maintenance passes, and an initial dependency policy
+document when the user asks for one.
 
 ## Workflow
 
@@ -58,12 +74,21 @@ open dependency PRs, and local validation commands.
 
 Look for evidence in:
 
+- The repository's dependency policy, wherever it lives: agent guidance, a linked policy document,
+  contributing docs, or updater configuration. Read it before classifying anything; it outranks the
+  defaults in this skill.
 - Forge metadata: PR title, author, labels, checks, merge state, review state, linked issues, and
   bot comments.
 - Repository metadata: `AGENTS.md`, README, CI workflows, package manager files, lockfiles,
   tool-version files, and dependency bot configuration.
 - Existing labels that express state such as dependency, blocked, migration, security,
   breaking-change, needs-investigation, or do-not-merge.
+
+Note whether a written dependency policy exists, separately from whether the repository has updater
+configuration. Configured rules bind this workflow's decisions, but a repository can be fully
+configured and still have nothing written down explaining the decisions behind it. If no written
+policy exists, continue the maintenance pass with these defaults and raise the gap in the final
+report.
 
 Use the repository's own CLIs and auth wrappers when present. For GitHub, GitLab, or other forges,
 choose the appropriate tool from local context instead of assuming a specific bot or CLI.
@@ -163,9 +188,15 @@ Prefer the repository's canonical runtime and package-manager workflow:
 
 - Fast-forward the default branch.
 - Install or activate pinned runtimes.
-- Refresh dependencies from existing lockfiles using frozen, locked, or equivalent install modes
-  unless the user asked to regenerate locks.
+- Refresh dependencies from existing lockfiles using frozen, locked, or equivalent install modes,
+  unless the user asked to regenerate locks or the repository's dependency policy assigns lock or
+  transitive refresh to routine maintenance.
 - Run the smallest complete validation gate defined by the repository.
+
+When a refresh does regenerate locks, prefer commands that leave manifests untouched. Update
+commands in several package managers rewrite declared version specs as a side effect, which silently
+violates a repository's bound posture. Verify the flag against the tool's own `--help` rather than
+assuming.
 
 Keep local environment refresh separate from source edits. If install or validation fails, report
 the failing command, classify the remaining work, and create durable follow-up state when
@@ -187,7 +218,9 @@ separate local-change phase, and validate it through the repository's canonical 
 workflow.
 
 When a tooling update changes tracked project state, include every generated manifest, version-pin,
-lockfile, and related metadata change needed to make the update reproducible. Create a small
+lockfile, and related metadata change needed to make the update reproducible. Check for sibling
+surfaces pinning the same tool — a tool lockfile, a `packageManager` field, `engines`, a version
+file, or a CI setup action can each pin one tool and drift apart in a single update. Create a small
 maintenance PR through the repository's normal branch, commit, and forge workflow, then merge it
 after its required checks pass and the diff remains limited to the repo-pinned tooling update. If
 local validation, PR creation, checks, or merge permissions fail, leave the PR or branch with
@@ -196,6 +229,19 @@ durable blocker context instead of forcing the change through another path.
 If an update would require migration, policy changes, major runtime changes, or unrelated source
 edits, create a follow-up issue with the current version, available version, ownership surface,
 reason to update, and suggested validation instead of broadening the maintenance PR.
+
+### 9. Establish a Missing Dependency Policy
+
+Only when the user asked for a written dependency policy, either up front or after discovery
+reported the gap. Existing updater configuration does not satisfy this request; it is one of the
+inputs the policy should describe. Read [POLICY-SETUP.md](references/POLICY-SETUP.md) and follow it.
+
+Write the policy from the repository's real manifests, lockfiles, updater configuration, and CI, not
+from the defaults in this skill. Where a decision is genuinely open — bound posture, cooldown
+length, what stays manual — ask the user rather than choosing for them.
+
+Keep this out of a maintenance pass's other changes. Land the policy document and its pointer as
+their own change, after PR triage and any tooling refresh are complete.
 
 ## Final Report
 
@@ -208,5 +254,8 @@ Report:
 - Local sync and validation results, including commands run and failures.
 - Tooling updates discovered, any local-update PRs created or merged, and any follow-up issues
   created.
+- Which repository policy applied, and any point where it overrode a default in this skill.
+- Whether the repository has a dependency policy at all, and if not, that one can be established on
+  request.
 
 Always state when no unsafe or blocked PRs remain.

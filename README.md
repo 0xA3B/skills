@@ -102,8 +102,8 @@ should continue from an ignored local context document.
 - [`engineering-workflows:codebase-design`](./plugins/engineering-workflows/skills/codebase-design/):
   Applies shared deep-module and interface-design discipline.
 - [`engineering-workflows:dependency-maintenance`](./plugins/engineering-workflows/skills/dependency-maintenance/):
-  Reviews dependency update PRs, merges ready ones, syncs local state, and files linked follow-up
-  issues.
+  Reviews dependency update PRs, merges ready ones, syncs local state, files linked follow-up
+  issues, and can establish a dependency policy for a repository that has none.
 - [`engineering-workflows:diagnose`](./plugins/engineering-workflows/skills/diagnose/): Runs a
   disciplined diagnosis loop for bugs, flaky behavior, and performance regressions.
 - [`engineering-workflows:grill-me`](./plugins/engineering-workflows/skills/grill-me/): Stress-tests
