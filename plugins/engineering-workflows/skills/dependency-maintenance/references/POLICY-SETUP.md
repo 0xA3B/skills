@@ -15,8 +15,9 @@ place to import generic best practice.
 ## Ground Rules
 
 - **Describe the repository, not the ideal.** Read the actual manifests, lockfiles, updater config,
-  and CI before writing a line. If the document and the configuration disagree, either change the
-  configuration in the same pass or write down what is actually true.
+  and CI before writing a line. Where the intended policy and the current configuration disagree,
+  write down what is actually configured and report the gap. Changing configuration to match is a
+  behavioral change beyond writing a policy; propose it and get explicit approval first.
 - **Verify tool-specific details.** Confirm config keys and command flags against the installed
   tool's `--help` or current documentation before putting them in the policy. Guessed flags become
   policy the next reader trusts.
