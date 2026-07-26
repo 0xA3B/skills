@@ -67,6 +67,11 @@ document when the user asks for one.
 
 ## Workflow
 
+Steps 2 through 8 are the maintenance pass. When the user asked only for a written dependency
+policy, run step 1 to understand the repository, then go straight to step 9: triaging PRs, merging,
+syncing local state, and refreshing tooling are unrelated state-changing actions the user did not
+request. Offer the maintenance pass separately instead.
+
 ### 1. Discover
 
 Identify the repository, current branch, default branch, forge, dependency update bot conventions,
@@ -87,8 +92,7 @@ Look for evidence in:
 Note whether a written dependency policy exists, separately from whether the repository has updater
 configuration. Configured rules bind this workflow's decisions, but a repository can be fully
 configured and still have nothing written down explaining the decisions behind it. If no written
-policy exists, continue the maintenance pass with these defaults and raise the gap in the final
-report.
+policy exists, continue with these defaults and raise the gap in the final report.
 
 Use the repository's own CLIs and auth wrappers when present. For GitHub, GitLab, or other forges,
 choose the appropriate tool from local context instead of assuming a specific bot or CLI.
@@ -240,8 +244,9 @@ Write the policy from the repository's real manifests, lockfiles, updater config
 from the defaults in this skill. Where a decision is genuinely open — bound posture, cooldown
 length, what stays manual — ask the user rather than choosing for them.
 
-Keep this out of a maintenance pass's other changes. Land the policy document and its pointer as
-their own change, after PR triage and any tooling refresh are complete.
+Land the policy document and its pointer as their own change, never folded into a dependency or
+tooling PR. When this step runs as part of a full maintenance pass, do it after PR triage and any
+tooling refresh are complete.
 
 ## Final Report
 
