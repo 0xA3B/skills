@@ -49,24 +49,13 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 
 - Treat `package.json` as a compatibility manifest. Leave direct dependencies unbounded unless a
   compatibility or security requirement justifies a constraint.
-- Add lower bounds for required features or vulnerable older releases, upper bounds for
-  intentionally deferred incompatibilities, exclusions for known-bad releases, and exact pins only
-  when a single version is required.
-- Treat `pnpm-lock.yaml` as the exact tested resolutions; Renovate keeps them updated through
-  routine maintenance; do not update the lockfile locally during routine dependency maintenance.
-- Renovate does not update Node or TypeScript majors. `.node-version`, `package.json` engines,
-  `typescript`, and `@types/node` remain explicit, manual updates.
-- Renovate proposes every other major update in its own PR so release notes can be reviewed. Green
-  CI is the baseline signal that a major is safe to merge.
-- All dependencies follow a three-day cooldown to new releases from public registries, enforced
-  consistently through pnpm and Renovate.
-- The three-day cooldown can be bypassed for security patches. Renovate will automatically create
-  security PRs, but pnpm enforces the cooldown independently during lockfile generation, so a fix
-  younger than three days needs a temporary `minimumReleaseAgeExclude` entry in
-  `pnpm-workspace.yaml`. This can be removed during weekly dependency maintenance once the version
-  ages out.
-- Reserve that manual exception for vulnerabilities urgent enough to interrupt the weekly cadence.
-  Renovate PRs and Dependabot alerts are the signal to review, not an instruction to expedite.
+- Treat `pnpm-lock.yaml` as the exact tested resolutions. Renovate owns lockfile updates; do not
+  update the lockfile locally during routine dependency maintenance.
+- All dependencies follow a three-day cooldown to new releases from public registries, bypassed only
+  for security patches.
+- Read [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) before adding or bounding a dependency, running
+  a dependency maintenance pass, or changing Renovate or cooldown configuration. It is the full
+  policy, and it outranks any general dependency defaults an agent or skill brings with it.
 
 ## Terminology
 
