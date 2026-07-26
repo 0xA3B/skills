@@ -250,7 +250,15 @@ tooling refresh are complete.
 
 ## Final Report
 
-Report:
+Always report:
+
+- Which repository policy applied, and any point where it overrode a default in this skill.
+- Whether the repository has a written dependency policy, and if not, that one can be established on
+  request.
+- The policy document written, if step 9 ran, and which decisions came from existing configuration
+  versus the user.
+
+When the maintenance pass ran, also report:
 
 - PRs merged and the evidence that made them safe.
 - PRs left open, their classification, labels/comments/issues created, and next action.
@@ -259,8 +267,7 @@ Report:
 - Local sync and validation results, including commands run and failures.
 - Tooling updates discovered, any local-update PRs created or merged, and any follow-up issues
   created.
-- Which repository policy applied, and any point where it overrode a default in this skill.
-- Whether the repository has a dependency policy at all, and if not, that one can be established on
-  request.
+- That no unsafe or blocked PRs remain, when that is the case.
 
-Always state when no unsafe or blocked PRs remain.
+Do not make claims about the dependency queue on a policy-only run. Say the queue was not inspected
+and offer the maintenance pass instead.
