@@ -11,6 +11,7 @@
     "format:check": "oxfmt --check",
     "install:frozen": "pnpm install --frozen-lockfile",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives",
+    "lint:commits": "commitlint --verbose",
     "lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix",
     "lint:plugins": "tsx src/lint-plugins/cli.ts",
     "lint:plugins:external": "tsx src/lint-plugins/cli.ts --external",
