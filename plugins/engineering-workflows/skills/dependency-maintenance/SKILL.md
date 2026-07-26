@@ -68,7 +68,7 @@ document when the user asks for one.
 ## Workflow
 
 Steps 2 through 8 are the maintenance pass. When the user asked only for a written dependency
-policy, run step 1 to understand the repository, then go straight to step 9: triaging PRs, merging,
+policy, run the policy-only subset of step 1, then go straight to step 9: triaging PRs, merging,
 syncing local state, and refreshing tooling are unrelated state-changing actions the user did not
 request. Offer the maintenance pass separately instead.
 
@@ -96,6 +96,11 @@ policy exists, continue with these defaults and raise the gap in the final repor
 
 Use the repository's own CLIs and auth wrappers when present. For GitHub, GitLab, or other forges,
 choose the appropriate tool from local context instead of assuming a specific bot or CLI.
+
+On a policy-only run, limit discovery to local surfaces: manifests, lockfiles, updater
+configuration, CI configuration, version and tool pins, and existing documentation. Do not query the
+forge for open dependency PRs, checks, or labels — that queue is not part of what was asked, and the
+final report has to be able to say it was not inspected.
 
 ### 2. Understand Each PR
 
