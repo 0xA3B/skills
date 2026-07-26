@@ -10,7 +10,9 @@ place to import generic best practice.
   before adding, bounding, or updating a dependency.
 - A short pointer from the repository's canonical agent guidance (`AGENTS.md`, `CLAUDE.md`, or
   equivalent) carrying only the rules that apply to any change, plus a link to the full document.
-- Every claim in the document backed by real configuration in the repository.
+- Every claim grounded in either repository evidence or an explicit user decision, and identifiable
+  as enforced by a tool or held as a convention. A repository with no updater can still have a
+  policy; it just has more conventions and fewer enforced rules.
 
 ## Ground Rules
 
