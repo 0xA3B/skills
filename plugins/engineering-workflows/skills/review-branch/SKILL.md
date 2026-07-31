@@ -39,8 +39,8 @@ merge target. Include relevant uncommitted changes only when present and call th
 
 Always require:
 
-- `code review`;
-- `simplification`.
+- `code review`
+- `simplification`
 
 Use `reviewing-code` to add conditional lanes. Be deliberately greedier than `review-changes`
 because a branch is the pre-merge integration boundary:
