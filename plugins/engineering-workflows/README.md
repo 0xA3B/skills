@@ -32,8 +32,7 @@ MIT license notice from the source repository is preserved in [LICENSE](./LICENS
 - `engineering-workflows:build`: Implement working slices with pragmatic validation.
 - `engineering-workflows:codebase-design`: Apply shared deep-module and interface-design discipline.
 - `engineering-workflows:dependency-maintenance`: Review dependency update PRs, merge ready ones,
-  sync local state, refresh repo-pinned tooling, file linked follow-up issues, and establish a
-  dependency policy for a repository that has none.
+  sync local state, refresh repo-pinned tooling, and file linked follow-up issues.
 - `engineering-workflows:diagnose`: Diagnose bugs through a tight red-capable loop, minimization,
   falsifiable probes, and regression evidence.
 - `engineering-workflows:grill-me`: Stress-test a plan, decision, idea, or design until the user

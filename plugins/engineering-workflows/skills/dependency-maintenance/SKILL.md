@@ -5,8 +5,7 @@ description: >-
   merge, merge only ready updates, sync local dependency state, refresh repo-pinned tooling through
   small maintenance PRs, and create linked follow-up issues for breaking changes, validation
   failures, or useful new features. Use when the user asks to review Dependabot, Renovate, lockfile
-  maintenance, security, runtime, package-manager, or other dependency update PRs, or to establish a
-  dependency policy for a repository that has none.
+  maintenance, security, runtime, package-manager, or other dependency update PRs.
 license: MIT
 disable-model-invocation: true
 ---
@@ -30,8 +29,8 @@ The repository's dependency update queue is triaged with clear evidence:
   blocker and next action.
 - Breaking changes, required migrations, failed validation, and concrete feature opportunities are
   captured as follow-up issues instead of being implemented in this workflow.
-- Decisions follow the repository's own dependency policy, and a repository that lacks one is left
-  with a written policy when the user wants it.
+- Decisions follow the repository's own dependency policy, and a missing or contradictory policy is
+  reported as a distinct gap.
 
 ## Repository Policy Precedence
 
@@ -57,20 +56,14 @@ repository is silent, and say which of the two you followed when they differ.
   task.
 - Do not change runtime majors, package-manager policy, or CI setup behavior as a drive-by tooling
   refresh when the release notes or diff indicate migration work is needed.
-- Do not write a dependency policy the user did not ask for, and do not change an existing policy as
-  a drive-by edit. Report the gap or the conflict instead.
+- Do not create or change dependency policy in this workflow. Report the gap or conflict to the user
+  at the end of the workflow.
 
 Allowed side effects are limited to dependency PR review, safe dependency PR merges, local
-fast-forward and install/runtime refreshes, PR labels/comments, follow-up issue creation,
-repo-pinned tooling update PRs for full maintenance passes, and an initial dependency policy
-document when the user asks for one.
+fast-forward and install/runtime refreshes, PR labels/comments, follow-up issue creation, and
+repo-pinned tooling update PRs for full maintenance passes.
 
 ## Workflow
-
-Steps 2 through 8 are the maintenance pass. When the user asked only for a written dependency
-policy, run the policy-only subset of step 1, then go straight to step 9: triaging PRs, merging,
-syncing local state, and refreshing tooling are unrelated state-changing actions the user did not
-request. Offer the maintenance pass separately instead.
 
 ### 1. Discover
 
@@ -92,15 +85,10 @@ Look for evidence in:
 Note whether a written dependency policy exists, separately from whether the repository has updater
 configuration. Configured rules bind this workflow's decisions, but a repository can be fully
 configured and still have nothing written down explaining the decisions behind it. If no written
-policy exists, continue with these defaults and raise the gap in the final report.
+policy exists, continue with these defaults, and mention it in the final report.
 
 Use the repository's own CLIs and auth wrappers when present. For GitHub, GitLab, or other forges,
 choose the appropriate tool from local context instead of assuming a specific bot or CLI.
-
-On a policy-only run, limit discovery to local surfaces: manifests, lockfiles, updater
-configuration, CI configuration, version and tool pins, and existing documentation. Do not query the
-forge for open dependency PRs, checks, or labels — that queue is not part of what was asked, and the
-final report has to be able to say it was not inspected.
 
 ### 2. Understand Each PR
 
@@ -239,29 +227,12 @@ If an update would require migration, policy changes, major runtime changes, or 
 edits, create a follow-up issue with the current version, available version, ownership surface,
 reason to update, and suggested validation instead of broadening the maintenance PR.
 
-### 9. Establish a Missing Dependency Policy
-
-Only when the user asked for a written dependency policy, either up front or after discovery
-reported the gap. Existing updater configuration does not satisfy this request; it is one of the
-inputs the policy should describe. Read [POLICY-SETUP.md](references/POLICY-SETUP.md) and follow it.
-
-Write the policy from the repository's real manifests, lockfiles, updater configuration, and CI, not
-from the defaults in this skill. Where a decision is genuinely open — bound posture, cooldown
-length, what stays manual — ask the user rather than choosing for them.
-
-Land the policy document and its pointer as their own change, never folded into a dependency or
-tooling PR. When this step runs as part of a full maintenance pass, do it after PR triage and any
-tooling refresh are complete.
-
 ## Final Report
 
 Always report:
 
 - Which repository policy applied, and any point where it overrode a default in this skill.
-- Whether the repository has a written dependency policy, and if not, that one can be established on
-  request.
-- The policy document written, if step 9 ran, and which decisions came from existing configuration
-  versus the user.
+- Whether the repository has a written dependency policy and any gap or conflict discovered.
 
 When the maintenance pass ran, also report:
 
@@ -273,6 +244,3 @@ When the maintenance pass ran, also report:
 - Tooling updates discovered, any local-update PRs created or merged, and any follow-up issues
   created.
 - That no unsafe or blocked PRs remain, when that is the case.
-
-Do not make claims about the dependency queue on a policy-only run. Say the queue was not inspected
-and offer the maintenance pass instead.
