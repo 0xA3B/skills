@@ -2,45 +2,29 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "timezone": "America/New_York",
-  // Weekly cadence on Friday mornings.
   "schedule": ["* 0-9 * * 5"],
-  // Three-day cooldown, consistent with pnpm minimumReleaseAge.
   "minimumReleaseAge": "3 days",
-  // Direct dependencies are intentionally unbounded (see docs/DEPENDENCIES.md);
-  // in-range updates must land as lockfile-only PRs.
+  // Preserve unbounded manifest entries by updating only the lockfile.
   "rangeStrategy": "update-lockfile",
   "labels": ["dependencies"],
-  // Full lockfile and transitive refresh, offset a day after the regular schedule
-  // so the update PRs are proposed first; direct dependencies are unbounded, so
-  // an unoffset refresh would sweep up majors before the major group is reviewed.
+  // Run after regular updates so unbounded majors stay in reviewable PRs.
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["* 0-9 * * 6"]
   },
-  // Clears the Renovate-side cooldown for security patches; vulnerability PRs
-  // already ignore schedule and rate limits, but not minimumReleaseAge. pnpm
-  // enforces its own cooldown during lockfile generation, so a fix younger than
-  // three days also needs a temporary pnpm-workspace.yaml exception (see
-  // docs/DEPENDENCIES.md).
+  // Allow vulnerability alerts to bypass the three-day cooldown.
   "vulnerabilityAlerts": {
     "minimumReleaseAge": null,
     "labels": ["dependencies", "security"]
   },
   "packageRules": [
     { "matchManagers": ["npm"], "groupName": "npm dependencies" },
-    // Majors share a group separate from the non-major group, so major release
-    // notes can be reviewed apart from routine bumps before merging.
-    // Lock file maintenance is never grouped and carries no per-package update
-    // type, so it stays a separate PR regardless of this rule.
     {
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["major"],
       "groupName": "npm major dependencies"
     },
     { "matchManagers": ["github-actions"], "groupName": "github actions" },
-    // Node and TypeScript majors are manual decisions: never update .node-version,
-    // package.json engines, or the typescript and @types/node majors. These disable
-    // rules are last so they win over the groups.
     { "matchManagers": ["nodenv"], "enabled": false },
     {
       "matchManagers": ["npm"],

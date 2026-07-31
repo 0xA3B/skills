@@ -27,12 +27,9 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 
 ## Project Conventions
 
-- Commit messages must follow Conventional Commits.
 - Keep tests co-located in `src/`.
-- `.node-version` is the canonical Node version; mise resolves it locally and CI reads it via
-  `actions/setup-node`.
-- `package.json#packageManager` is the canonical pnpm version; pnpm self-management switches any
-  ambient pnpm to it, and CI bootstraps it via `pnpm/action-setup`.
+- `.node-version` is the canonical Node version; `package.json#packageManager` is the canonical pnpm
+  version.
 - Use `mise exec --` in non-interactive shells when the command relies on a runtime tool managed by
   mise.
 - Use the `package.json` script surface for validation and formatting instead of raw tool commands.
@@ -40,22 +37,40 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 - Use the smallest relevant targeted script when narrowing validation.
 - Scripts with the `check` suffix should be non-mutating.
 - Keep README user-facing and lightweight.
-- Keep AGENTS files agent-facing, lightweight, and focused on durable guidance. Avoid temporary
-  notes or details that may go stale quickly.
+- Keep AGENTS files lean, agent-facing, and limited to durable guidance that affects most work. Put
+  conditional detail behind clear pointers, and avoid temporary notes or restating configuration
+  that agents can inspect directly.
 - Treat `AGENTS.md` as canonical agent guidance; sibling `CLAUDE.md` files must import `@AGENTS.md`
   and may add Claude-specific guidance only when it doesn't belong in `AGENTS.md`.
 
+## Commit Conventions
+
+- Commits must follow
+  [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification).
+- Include a `scope` when it meaningfully improves clarity.
+- Partition changes into separate commits by type, scope, or rollback boundary when feasible.
+
 ## Dependency Policy
 
-- Treat `package.json` as a compatibility manifest. Leave direct dependencies unbounded unless a
-  compatibility or security requirement justifies a constraint.
-- Treat `pnpm-lock.yaml` as the exact tested resolutions. Renovate owns lockfile updates; do not
-  update the lockfile locally during routine dependency maintenance.
-- All dependencies follow a three-day cooldown to new releases from public registries, bypassed only
-  for security patches.
-- Read [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) before adding or bounding a dependency, running
-  a dependency maintenance pass, or changing Renovate or cooldown configuration. It is the full
-  policy, and it outranks any general dependency defaults an agent or skill brings with it.
+- Prefer built-in or standard-library capabilities when they fit the problem; otherwise prefer
+  widely adopted, well-maintained ecosystem-standard packages over custom implementations.
+- Treat `package.json` as a compatibility manifest. Leave direct dependencies without version
+  constraints by default; add constraints only for documented compatibility or security
+  requirements.
+- Use lower bounds for required features or to exclude vulnerable older releases, upper bounds for
+  intentionally deferred incompatibilities, exclusions for known-bad releases, and exact pins only
+  when no version range is acceptable. Use the least restrictive constraint that expresses the
+  requirement, and remove it when the requirement ends.
+- When a transitive dependency must be constrained, use the owning package manager's constraint or
+  override mechanism. Do not declare it as a direct dependency solely to control its resolved
+  version.
+- Treat `pnpm-lock.yaml` as the exact tested resolution. Let Renovate perform routine lockfile
+  refreshes; regenerate it locally when a requested dependency change requires a new resolution.
+- Update major Node.js and TypeScript versions manually; Renovate must not update them.
+- Require a three-day cooldown before selecting releases from public registries. Enforce it in every
+  resolver and updater that can select those releases.
+- Bypass the cooldown only for an urgent security fix. Keep explicit exceptions package-specific in
+  every applicable resolver or updater, and remove them once the release has aged out.
 
 ## Terminology
 
