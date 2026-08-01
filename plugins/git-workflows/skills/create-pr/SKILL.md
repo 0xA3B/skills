@@ -67,8 +67,11 @@ repository branch-naming convention when one exists. Otherwise infer a concise t
 from the intended change, asking only when the intent is genuinely ambiguous.
 
 Apply `git-workflows:commit` to all intended uncommitted changes. Continue only with a clean
-worktree. If an open change request already exists for the topic branch, reuse it; never create a
-duplicate. A closed or merged change request is not reusable without an explicit user decision.
+worktree. If an open change request already exists for the topic branch, compare its target with the
+resolved target. Reuse it only when they match. When the user explicitly selected a different
+target, retarget through the forge lane, refetch its metadata, and reassess its diff and
+mergeability. Stop for a user decision on any other mismatch; never create a duplicate. A closed or
+merged change request is not reusable without an explicit user decision.
 
 ### 2. Select A Merge Path
 
