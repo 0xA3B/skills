@@ -131,6 +131,10 @@ When maintaining the terminology:
 | **Metadata surface**         | Any file that exposes plugin or skill metadata and must stay aligned with adjacent surfaces.                                                                                                                  | docs                      |
 | **Default prompt**           | A suggested prompt shown by Codex for invoking a plugin or skill.                                                                                                                                             | description               |
 | **Trigger contract**         | The `description` text that defines when a skill should be implicitly invoked.                                                                                                                                | skill summary             |
+| **Change request**           | A forge-hosted proposal to integrate a topic branch into a target branch, called a pull request on GitHub and a merge request on GitLab.                                                                      | PR/MR                     |
+| **Review adapter**           | Bot- and forge-specific instructions for observing and advancing one automated review protocol.                                                                                                               | review bot                |
+| **Available adapter**        | A review adapter shipped with a skill and therefore eligible for selection.                                                                                                                                   | configured adapter        |
+| **Active adapter**           | An available adapter selected for one invocation through explicit input or reliable repository and prior-change-request evidence.                                                                             | enabled adapter           |
 
 Relationships:
 
@@ -168,3 +172,6 @@ Relationships:
   opt-in.
 - A **Review lane** separates review intent from review scope; scope belongs to the invoking review
   workflow.
+- A **Change request** is a pull request in a GitHub lane and a merge request in a GitLab lane.
+- An **Active adapter** is selected from one or more **Available adapters**; only active adapters
+  run during an automated-review workflow.

@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Create PR"
+  short_description: "Prepare and open a merge-ready change request"
+  default_prompt: "Use $git-workflows:create-pr to prepare this branch and open its change request."
+policy:
+  allow_implicit_invocation: false
