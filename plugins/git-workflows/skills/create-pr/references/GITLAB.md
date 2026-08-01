@@ -27,7 +27,10 @@ glab mr create --source-branch <topic> --target-branch <target> --fill --yes
 Provide an explicit title or description only when required by repository rules or user content. Add
 `--draft` only when requested. Do not enable `--auto-merge`.
 
-If `glab mr view <topic>` finds an open merge request, reuse it rather than creating another.
+If `glab mr view <topic>` finds an open merge request, compare its target branch with the resolved
+target. When the core workflow authorizes retargeting, use
+`glab mr update <mr> --target-branch <target> --yes`, then refetch and reassess the merge request.
+Reuse it only after the targets match; never create another.
 
 ## Initial CI
 

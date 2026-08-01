@@ -27,8 +27,9 @@ GitHub pull requests do not support true fast-forward merge. Select `--rebase`, 
 gh pr merge <pr> --match-head-commit <head-sha> <method-flag>
 ```
 
-Do not pass `--admin` or `--auto`. Do not request branch deletion in the merge command; verify the
-remote result first.
+Do not pass `--auto`. Pass `--admin` only when the core workflow's same-invocation authorization and
+repository-policy gates are satisfied; otherwise stop on the protection. Do not request branch
+deletion in the merge command; verify the remote result first.
 
 When a protected target requires a merge queue, checks must already pass before invoking merge. The
 command should add the pull request to the queue. Poll `gh pr view` until `state=MERGED` and

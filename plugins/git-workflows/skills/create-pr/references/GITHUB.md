@@ -31,8 +31,9 @@ gh pr create --base <target> --head <topic> --fill
 Provide explicit title or body values only when needed to satisfy repository rules or preserve
 user-supplied content. Add `--draft` only when requested.
 
-If `gh pr view <topic>` finds an open pull request, reuse its URL and metadata instead of creating
-another.
+If `gh pr view <topic>` finds an open pull request, compare `baseRefName` with the resolved target.
+When the core workflow authorizes retargeting, use `gh pr edit <pr> --base <target>`, then refetch
+and reassess the pull request. Reuse its URL only after the targets match; never create another.
 
 ## Initial CI
 
