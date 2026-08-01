@@ -10,8 +10,8 @@
       "source": "./plugins/codex-in-claude"
     },
     {
-      "name": "conventional-commits",
-      "source": "./plugins/conventional-commits"
+      "name": "git-workflows",
+      "source": "./plugins/git-workflows"
     },
     {
       "name": "engineering-workflows",

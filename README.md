@@ -36,7 +36,7 @@ Then install the desired plugins:
 
 ```text
 /plugin install codex-in-claude@0xa3b-marketplace
-/plugin install conventional-commits@0xa3b-marketplace
+/plugin install git-workflows@0xa3b-marketplace
 /plugin install engineering-workflows@0xa3b-marketplace
 ```
 
@@ -72,14 +72,22 @@ ships a `codex` subagent for delegating tasks to Codex.
 - [`codex-in-claude:using-codex-cli`](./plugins/codex-in-claude/skills/using-codex-cli/): Internal
   contract for running the Codex CLI non-interactively, with GPT-5.5 prompting guidance.
 
-### `conventional-commits`
+### `git-workflows`
 
-Skills for drafting and creating Conventional Commits.
+Skills for creating Conventional Commits and driving GitHub or GitLab change requests from
+operational preparation through automated review and verified merge cleanup.
 
-- [`conventional-commits:commit`](./plugins/conventional-commits/skills/commit/): Reviews current
-  changes, stages logical units, and creates git commits with Conventional Commit messages.
-- [`conventional-commits:draft-message`](./plugins/conventional-commits/skills/draft-message/):
-  Drafts Conventional Commit messages without staging or committing.
+`address-pr-feedback` requires the `engineering-workflows` plugin so it can apply the shared
+`receiving-feedback` discipline.
+
+- [`git-workflows:commit`](./plugins/git-workflows/skills/commit/): Reviews current changes, stages
+  logical units, and creates git commits with Conventional Commit messages.
+- [`git-workflows:create-pr`](./plugins/git-workflows/skills/create-pr/): Prepares a branch, creates
+  or refreshes its pull request or merge request, and observes initial CI.
+- [`git-workflows:address-pr-feedback`](./plugins/git-workflows/skills/address-pr-feedback/): Drives
+  active automated-review adapters to approval or a reported exception.
+- [`git-workflows:merge-pr`](./plugins/git-workflows/skills/merge-pr/): Verifies merge gates, merges
+  synchronously, and cleans up verified local and remote branch state.
 
 ### `engineering-workflows`
 

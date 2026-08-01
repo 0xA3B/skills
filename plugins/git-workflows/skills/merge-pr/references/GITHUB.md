@@ -1,0 +1,45 @@
+# GitHub Pull Request Merge
+
+Use this reference only after selecting a GitHub pull request.
+
+Commands and fields below are exemplars of the stated invariants. If the installed CLI lacks one,
+use an equivalent CLI or API path that preserves the invariant and report the deviation.
+
+## Inspect Native Gates
+
+- Follow loaded account-routing guidance before identity-sensitive or mutating `gh` operations.
+- Inspect `gh pr view --json` fields including `state`, `isDraft`, `headRefOid`, `baseRefName`,
+  `mergeable`, `mergeStateStatus`, `reviewDecision`, `reviewRequests`, `statusCheckRollup`,
+  `autoMergeRequest`, `mergedAt`, and `mergeCommit`.
+- Inspect required checks with `gh pr checks <pr> --required --json`.
+- Query pull-request review threads through `gh api graphql`; require every returned thread's
+  `isResolved` value to be true, regardless of author.
+
+Do not treat `mergeStateStatus=CLEAN` or green CI as proof that a non-required bot review passed.
+This skill enforces only native required checks and approvals plus universal thread resolution.
+
+## Merge
+
+GitHub pull requests do not support true fast-forward merge. Select `--rebase`, `--merge`, or
+`--squash` under the core policy. Guard the operation with:
+
+```text
+gh pr merge <pr> --match-head-commit <head-sha> <method-flag>
+```
+
+Do not pass `--admin` or `--auto`. Do not request branch deletion in the merge command; verify the
+remote result first.
+
+When a protected target requires a merge queue, checks must already pass before invoking merge. The
+command should add the pull request to the queue. Poll `gh pr view` until `state=MERGED` and
+`mergedAt` is present, or until the core queue timeout expires.
+
+## Verify And Delete
+
+Refetch the target and pull-request metadata. GitHub rebase merge rewrites every topic commit;
+squash creates one new commit; merge commit preserves topic commits and adds a merge commit. Verify
+the result according to that method rather than assuming the original head is an ancestor.
+
+After verification, check whether the remote head ref still exists. Delete it through the
+appropriate authenticated remote only when the pull request is merged and the head repository
+permits deletion. Then fetch with prune before local cleanup.

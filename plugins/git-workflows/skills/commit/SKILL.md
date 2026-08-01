@@ -21,8 +21,8 @@ git state inspection, commit partitioning, Conventional Commit message policy, s
 execution. Its successful outcome is a clean sequence of repository commits that matches the user's
 requested scope and can be explained briefly after execution.
 
-Use this skill when the user wants commits created. Use `conventional-commits:draft-message` when
-the user wants commit message text without staging or committing.
+Use this skill when the user wants commits created. If it is explicitly invoked for message text,
+stay in dry-run mode and return a proposal without staging or committing.
 
 ## Invocation Behavior
 

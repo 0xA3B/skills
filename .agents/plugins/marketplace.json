@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "conventional-commits",
+      "name": "git-workflows",
       "source": {
         "source": "local",
-        "path": "./plugins/conventional-commits"
+        "path": "./plugins/git-workflows"
       },
       "policy": {
         "installation": "AVAILABLE",

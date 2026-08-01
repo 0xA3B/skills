@@ -62,7 +62,7 @@ cases:
     prompt: >-
       Draft a Conventional Commit message for these changes.
     expect: skip
-    rationale: The user wants message text only, not commit execution.
+    rationale: The user wants message text only, not the commit execution owned by this skill.
 
   - id: split-guidance-only
     prompt: >-
