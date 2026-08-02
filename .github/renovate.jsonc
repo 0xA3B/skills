@@ -32,6 +32,12 @@
       "matchUpdateTypes": ["major"],
       "enabled": false
     },
-    { "matchManagers": ["npm"], "matchDepTypes": ["engines"], "enabled": false }
+    { "matchManagers": ["npm"], "matchDepTypes": ["engines"], "enabled": false },
+    {
+      // pnpm enforces the cooldown while regenerating the lockfile.
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "minimumReleaseAge": null
+    }
   ]
 }
