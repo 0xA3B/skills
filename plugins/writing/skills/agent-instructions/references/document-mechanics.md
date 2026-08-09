@@ -1,4 +1,4 @@
-# Document Mechanics
+# Document mechanics
 
 Structural mechanics for documents agents consume. Read this file when creating a document,
 splitting or merging documents, moving material between files, or deciding what stays always-loaded.
@@ -86,6 +86,22 @@ Splitting one document into two spends one of the two loads, so split only when 
 - **By sequence** — split a run of steps where the visible later steps tempt the agent to rush the
   current one. Merging sequences has the reverse cost: it exposes each step to what follows.
 - **By invocation** — skill-specific; see [skill-mechanics.md](skill-mechanics.md).
+
+## Formatting
+
+Form carries meaning for an agent; choose the form that encodes the intent:
+
+- Use a numbered list only when order matters. A numbered list reads as a sequence to execute; a
+  bulleted list reads as rules that all apply.
+- Keep list items parallel in structure; the model continues the pattern it sees.
+- Use sentence case in headings and do not skip heading levels — the same heading convention the
+  sibling documentation skill applies to human-facing docs, so both file families read alike.
+- Use a table only for rows that share the same attributes; keep cells short and put explanation in
+  prose.
+- Make every command block run as pasted: mark placeholders in one consistent form and define each
+  near its first use. The agent executes commands verbatim.
+- Write timeless text. "Currently", "new", and references to the change that introduced a rule are
+  sediment the moment they land.
 
 ## Leading words
 
