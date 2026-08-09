@@ -1,4 +1,4 @@
-# Project Instructions
+# Project instructions
 
 ## Purpose
 
@@ -14,7 +14,7 @@ evaluated, and improved over time. Preserve these outcomes:
 - Documentation explains how to use and maintain the skills without duplicating temporary workflow
   details that will drift.
 
-## Repository Model
+## Repository model
 
 - This is a skills repository first; Claude Code and Codex plugins are the current distribution
   formats.
@@ -25,7 +25,7 @@ evaluated, and improved over time. Preserve these outcomes:
   exposes them to Claude Code sessions in this checkout.
 - Keep generated eval output and local working artifacts under `.local/`, not tracked project state.
 
-## Project Conventions
+## Project conventions
 
 - Use Conventional Commits.
 - Keep tests co-located in `src/`.
@@ -44,7 +44,7 @@ evaluated, and improved over time. Preserve these outcomes:
 - Treat `AGENTS.md` as canonical agent guidance; sibling `CLAUDE.md` files must import `@AGENTS.md`
   and may add Claude-specific guidance only when it doesn't belong in `AGENTS.md`.
 
-## Dependency Policy
+## Dependency policy
 
 - Prefer built-in or standard-library capabilities when they fit the problem; otherwise prefer
   widely adopted, well-maintained ecosystem-standard packages over custom implementations.

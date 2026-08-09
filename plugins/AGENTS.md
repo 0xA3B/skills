@@ -1,6 +1,6 @@
-# Plugin Development
+# Plugin development
 
-## Plugin Rules
+## Plugin rules
 
 - Plugin names use lowercase kebab-case and match the plugin directory name.
 - Plugins target both Claude Code and Codex by default. A plugin targets an agent by shipping that
@@ -16,19 +16,19 @@
 - When adding or renaming a plugin, keep the marketplace entries, plugin directory, and manifest
   `name` values aligned across every targeted agent.
 
-## Default Prompt Policy
+## Default prompt policy
 
 - Keep plugin-level `interface.defaultPrompt` to three prompts or fewer; Codex UI surfaces only the
   first three prompts.
 - Use plugin-level prompts to highlight the most useful or interesting entry points, not every skill
   in the plugin.
 - Use concise action wording that fits the UI prompt card.
-- Include an explicit `$plugin-name:skill-name` callout in plugin-level prompts and in skill-level
-  `interface.default_prompt` when the target skill is manual-only. Natural-language prompts are
+- When the target skill is manual-only, include an explicit `$plugin-name:skill-name` callout in
+  plugin-level prompts and in skill-level `interface.default_prompt`. Natural-language prompts are
   acceptable for implicitly invokable skills when the trigger contract is clear, though explicit
   callouts are still fine when they improve determinism.
 
-## Plugin Version Policy
+## Plugin version policy
 
 - Bump at least the patch version for any plugin-directory change that should reach existing
   installs, including skill instructions, descriptions, prompts, references, README copy, and
@@ -52,7 +52,7 @@
   later change needs a larger bump (for example patch to minor), instead of stacking bumps.
 - Apply every version bump to all of the plugin's agent manifests in the same change.
 
-## Skill Rules
+## Skill rules
 
 - Skill names use lowercase kebab-case and match the skill directory name.
 - Each skill must include `SKILL.md`. Skills in Codex-targeted plugins must also include
@@ -66,7 +66,7 @@
 - Do not use the `arguments` frontmatter key. It powers Claude-only `$name` substitution in the
   skill body, which breaks agent-agnostic bodies on Codex; handle arguments in prose instead. The
   linter warns on use (`repo/skill-arguments`).
-- Add `argument-hint` when a skill takes meaningful arguments on invocation; skip it for zero-arg
+- When a skill takes meaningful arguments on invocation, add `argument-hint`; skip it for zero-arg
   skills rather than writing filler hints.
 - Use `when_to_use` only when Claude Code needs different trigger tuning than the shared
   `description`; it is appended to the description in Claude's skill listing and the combined text
@@ -97,7 +97,7 @@
   the user asks in prose. Reference manual-only skills only as hand offs that recommend an explicit
   user invocation.
 
-## Skill Authoring Baseline
+## Skill authoring baseline
 
 - Keep skill bodies agent-agnostic; use the repository's metadata surfaces for target-specific
   behavior.

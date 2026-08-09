@@ -23,7 +23,7 @@ guidance that should be useful in future sessions, not as a standalone DDD artif
 `AGENTS.md ## Terminology` accurately captures stable domain terms, aliases to avoid, and important
 relationships, or the user receives a focused terminology review with concrete proposed changes.
 
-## Evidence Rules
+## Evidence rules
 
 - Read the existing `AGENTS.md ## Terminology` section before changing it.
 - Use repository evidence: conversation context, README files, nearby docs, code names, tests, and
@@ -61,14 +61,14 @@ the work that speaks it happens:
 
 Judge placement by where the work happens, not where the topic's files sit.
 
-## Section Structure
+## Section structure
 
 - Keep one table by default. Use grouped tables only when the domain is large enough that one table
   hurts scanability.
 - Avoid a permanent "Flagged ambiguities" section unless an ambiguity is intentionally unresolved;
   otherwise resolve it through canonical terms, aliases to avoid, definitions, or relationships.
 
-## Term Rules
+## Term rules
 
 - A term earns its row by resolving an ambiguity, canonicalizing an alias, or fixing a non-obvious
   relationship. Terminology is not a dictionary of every term in the repository; skip terms no one
