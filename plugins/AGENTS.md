@@ -101,9 +101,8 @@
 
 - Keep skill bodies agent-agnostic; use the repository's metadata surfaces for target-specific
   behavior.
-- Use the repo-local `writing-skills` discipline when authoring or materially revising `SKILL.md`.
-  It owns instruction quality, invocation design, information hierarchy, completion criteria, and
-  pruning; this file owns repository placement, metadata, versioning, and validation conventions.
+- Skill-body instruction quality belongs to the `writing:agent-instructions` skill; this file owns
+  repository placement, metadata, versioning, and validation conventions.
 - Use `pressure-test-skill` for non-trivial behavior shaping and `optimize-trigger` for implicit
   invocation behavior. Keep their generated artifacts under `.local/` unless the repository
   intentionally adds repeatable regression coverage.

@@ -12,10 +12,10 @@ license: MIT
 argument-hint: "[skill-path]"
 ---
 
-# Pressure Test Skill
+# Pressure test skill
 
 Repo-local workflow for manually testing whether a loaded skill changes agent behavior under
-realistic pressure. This is a reusable review workflow, not a validation gate.
+realistic pressure. This skill is a reusable review workflow, not a validation gate.
 
 ## Outcome
 
@@ -26,11 +26,11 @@ were made or recommended.
 Stop when the target skill either survives the pressure prompts, has been tightened for meaningful
 failures, or needs a user decision about its intended behavior.
 
-## When To Use
+## When to use
 
-Use this for behavior-shaping skills: skills that ask an agent to resist a shortcut, spend extra
-effort, stop before acting, preserve a safety boundary, or follow a workflow that may feel slower
-than the immediate user request.
+Use this workflow for behavior-shaping skills: skills that ask an agent to resist a shortcut, spend
+extra effort, stop before acting, preserve a safety boundary, or follow a workflow that may feel
+slower than the immediate user request.
 
 Examples:
 
@@ -44,7 +44,7 @@ there is no meaningful rule for the agent to rationalize around.
 
 ## Workflow
 
-### 1. Inspect The Target
+### 1. Inspect the target
 
 Read the target skill body, metadata, and nearby repo guidance:
 
@@ -60,7 +60,7 @@ This skill should prevent the agent from <shortcut or rationalization> when <pre
 
 If the target behavior is unclear, ask the user before testing.
 
-### 2. Write Temporary Pressure Prompts
+### 2. Write temporary pressure prompts
 
 Create one to three prompts that make a fresh agent want to violate or soften the target behavior.
 Combine at least two realistic pressures:
@@ -76,7 +76,7 @@ Combine at least two realistic pressures:
 Good pressure prompts force an action, not a lecture. Prefer concrete choices, paths, and stakes.
 Avoid asking only what the skill says.
 
-### 3. Run In An Isolated Context
+### 3. Run in an isolated context
 
 Run each prompt where the agent cannot rely on the current discussion for the desired answer. Use
 the lightest available isolation:
@@ -101,7 +101,7 @@ Use $<plugin-name>:<skill-name> to handle this scenario:
 
 Do not pass your expected answer, previous analysis, or the wording change you are considering.
 
-### 4. Evaluate Manually
+### 4. Evaluate manually
 
 Treat the output as evidence, not a binary test result.
 
@@ -124,7 +124,7 @@ Failing behavior:
 Record the exact rationalization when it is useful. The wording of the failure is usually the best
 input for tightening `SKILL.md`.
 
-### 5. Tighten The Skill
+### 5. Tighten the skill
 
 If a failure exposes a real loophole, edit the target skill narrowly:
 

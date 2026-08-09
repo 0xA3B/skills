@@ -14,14 +14,14 @@ license: MIT
 argument-hint: "[skill-name]"
 ---
 
-# Add Skill
+# Add skill
 
 Repo-local wrapper for adding a plugin skill under `plugins/<plugin-name>/skills/`.
 
-Use the repo-local `writing-skills` discipline for drafting or materially revising `SKILL.md`, and
-the built-in `skill-creator` guidance for general skill scaffolding and bundled-resource structure.
-Use this skill for this repository's plugin placement, metadata, documentation, invocation-policy,
-and validation conventions.
+Use the `writing:agent-instructions` skill for drafting or materially revising `SKILL.md`, and the
+built-in `skill-creator` guidance for general skill scaffolding and bundled-resource structure. Use
+this skill for this repository's plugin placement, metadata, documentation, invocation-policy, and
+validation conventions.
 
 ## Outcome
 
@@ -32,10 +32,10 @@ Stop when the new skill is present, relevant metadata/docs are updated, and vali
 If the target plugin is ambiguous, the skill already exists, or validation fails for a reason that
 is not clearly caused by this change, report the blocker and the safest next action.
 
-## Source Of Truth
+## Source of truth
 
 - Follow `plugins/AGENTS.md` for skill metadata placement and authoring rules.
-- Follow the repo-local `writing-skills` discipline for skill-body drafting, instruction quality,
+- Follow the `writing:agent-instructions` skill for skill-body drafting, instruction quality,
   information hierarchy, and completion criteria.
 - Follow the built-in `skill-creator` skill for general skill scaffolding and bundled-resource
   structure. Do not take target paths or repo layout from `skill-creator`.
@@ -65,9 +65,9 @@ is not clearly caused by this change, report the blocker and the safest next act
    plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml
    ```
 
-4. Apply the `writing-skills` discipline to draft `SKILL.md`, using `skill-creator` guidance for
-   scaffolding and bundled-resource structure; apply `plugins/AGENTS.md` for this repo's frontmatter
-   and placement rules.
+4. Apply the `writing:agent-instructions` discipline to draft `SKILL.md`, using `skill-creator`
+   guidance for scaffolding and bundled-resource structure; apply `plugins/AGENTS.md` for this
+   repo's frontmatter and placement rules.
 5. Write `agents/openai.yaml` with `interface.display_name`, `interface.short_description`,
    `interface.default_prompt`, and `policy.allow_implicit_invocation`. For manual-only skills, make
    `interface.default_prompt` include the explicit `$plugin-name:skill-name` callout. Use
@@ -86,15 +86,15 @@ is not clearly caused by this change, report the blocker and the safest next act
    plugins/<plugin-name>/skills/<skill-name>/evals/triggers.yaml
    ```
 
-8. Update the plugin README and root `README.md` when the new skill should be visible to plugin
-   users.
-9. Update Codex plugin default prompts when the skill should be visible from plugin-level prompt
-   examples. Keep `interface.defaultPrompt` to three prompts or fewer, choose the most useful entry
+8. When the new skill should be visible to plugin users, update the plugin README and root
+   `README.md`.
+9. When the skill should be visible from plugin-level prompt examples, update Codex plugin default
+   prompts. Keep `interface.defaultPrompt` to three prompts or fewer, choose the most useful entry
    points, and include explicit `$plugin-name:skill-name` callouts for manual-only skills.
 10. Bump the patch version in every plugin manifest the plugin ships (`.codex-plugin/plugin.json`
     and `.claude-plugin/plugin.json`) so both agents treat the installed skill set as changed. The
     linter requires the versions to stay in lockstep.
-11. Run the skill-creator validator when `uv` is available:
+11. When `uv` is available, run the skill-creator validator:
 
 ```bash
 mise exec -- uv run --with pyyaml python \
@@ -104,8 +104,8 @@ mise exec -- uv run --with pyyaml python \
 
 If `uv` or Python with PyYAML is unavailable, skip this optional validator and rely on the
 repository validation below. This validator only knows the core Agent Skills frontmatter keys, so
-ignore its "Unexpected key" finding for `disable-model-invocation` on manual-only skills; the
-repository linter validates that key.
+ignore its "Unexpected key" findings for Claude-only keys such as `disable-model-invocation` and
+`user-invocable`; the repository linter validates those keys.
 
 12. If implicit invocation is enabled, run trigger validation on both agents:
 
@@ -126,6 +126,6 @@ mise exec -- pnpm format:check
 - Do not change plugin metadata unless the new skill affects plugin descriptions, prompts, keywords,
   or visible docs.
 - Do not duplicate broad skill-authoring guidance here; keep repo-wide review guidance in
-  `plugins/AGENTS.md`, use `writing-skills` for skill-body quality, and use `skill-creator` for
-  general scaffolding details.
+  `plugins/AGENTS.md`, use `writing:agent-instructions` for skill-body quality, and use
+  `skill-creator` for general scaffolding details.
 - Do not stage or commit changes unless the user asks.

@@ -11,7 +11,7 @@ license: MIT
 argument-hint: "[skill-path]"
 ---
 
-# Optimize Trigger
+# Optimize trigger
 
 Repo-local workflow for improving when a plugin skill is automatically invoked. This skill owns
 fixture review, eval execution, failure interpretation, and description edits. The eval script only
@@ -26,7 +26,7 @@ Stop when trigger evals pass for the target skill, when `policy.allow_implicit_i
 makes the workflow inapplicable, or when the remaining failures require a user decision about the
 skill's intended trigger boundary.
 
-## Target Scope
+## Target scope
 
 - Target repo plugin skills under `plugins/<plugin>/skills/<skill>/` or repo-local skills under
   `.agents/skills/<skill>/`.
@@ -38,7 +38,7 @@ skill's intended trigger boundary.
   explicitly ask for advisory review.
 - Optimize trigger behavior only. Do not evaluate output quality in this workflow.
 
-## Fixture Contract
+## Fixture contract
 
 Trigger fixtures live at:
 
@@ -113,8 +113,8 @@ cases where loaded repository instructions should affect the trigger boundary, s
    description change in another plugin can flip marketplace results — so the single-skill default
    remains the day-to-day loop.
 
-   Trigger cases run with bounded parallelism by default. Use `--concurrency <n>` when the target
-   fixture needs a slower or faster run than the default concurrency of 3. The default per-case
+   Trigger cases run with bounded parallelism by default. When the target fixture needs a slower or
+   faster run than the default concurrency of 3, use `--concurrency <n>`. The default per-case
    timeout is 60 seconds because trigger evals measure whether the skill is invoked, not whether the
    requested workflow completes.
 
@@ -141,7 +141,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
    mise exec -- pnpm typecheck
    ```
 
-## Harness Notes
+## Harness notes
 
 - The runner writes reports and Codex homes under `.local/skill-evals/`, and creates isolated
   workspaces outside the repository so parent repo-local skills cannot contaminate the trigger
