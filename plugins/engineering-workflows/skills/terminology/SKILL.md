@@ -38,40 +38,15 @@ relationships, or the user receives a focused terminology review with concrete p
 
 ## Workflow
 
-Choose the mode that matches the request.
+Run one mode per invocation. Read only the matching mode's reference, then follow it; the rules in
+this file apply in every mode.
 
-### Create
-
-Use when `AGENTS.md` has no terminology section and the user wants durable domain language.
-
-1. Identify stable domain concepts from the conversation and repository evidence.
-2. Add `## Terminology` to `AGENTS.md`.
-3. Include the section introduction, a terms table, and relationships when useful.
-4. Keep the first version small; defer uncertain or contested terms.
-
-### Update
-
-Use when stable terms, aliases, ambiguities, or relationships have emerged.
-
-1. Compare the proposed language with existing terminology.
-2. Add or revise only terms that are stable enough to guide future work.
-3. Resolve synonyms by choosing one canonical term and listing aliases to avoid.
-4. Resolve overloaded words by splitting concepts or flagging the ambiguity in the relevant
-   definition.
-5. Update relationships when they clarify ownership, lifecycle, or cardinality.
-6. Exercise changed relationships with concrete scenarios and record only language that still holds
-   at the edge cases.
-
-### Review
-
-Use when the user asks whether terminology is complete, consistent, or aligned with code and docs.
-
-1. Inspect `AGENTS.md`, README files, nearby docs, code names, and tests relevant to the request.
-2. Find missing, vague, overloaded, contradictory, stale, or duplicative terms — including entries
-   whose definition restates an installed skill's description or another section of the same file.
-3. Cross-check important definitions and relationships against code and tests.
-4. Report findings with file references and concrete wording changes.
-5. Edit `AGENTS.md` only when the user asked for changes or clearly wants the review applied.
+- If `AGENTS.md` has no terminology section and the user wants durable domain language, read
+  [references/create.md](references/create.md).
+- If the section exists and stable terms, aliases, ambiguities, or relationships have emerged, read
+  [references/update.md](references/update.md).
+- If the user asks whether terminology is complete, consistent, or aligned with code and docs, read
+  [references/review.md](references/review.md).
 
 ## Placement
 
@@ -86,30 +61,12 @@ the work that speaks it happens:
 
 Judge placement by where the work happens, not where the topic's files sit.
 
-## Section Format
+## Section Structure
 
-Use this structure in `AGENTS.md`:
-
-```md
-## Terminology
-
-Use this section for durable domain terms that should guide future work in this repository. Add or
-update entries when a term becomes stable during adversarial review, architecture review, or
-implementation.
-
-| Term        | Definition                                     | Aliases to Avoid |
-| ----------- | ---------------------------------------------- | ---------------- |
-| **Example** | A stable domain concept in one tight sentence. | stale alias      |
-
-Relationships:
-
-- An **Example** owns zero or more **Related Examples**.
-```
-
-Keep one table by default. Use grouped tables only when the domain is large enough that one table
-hurts scanability. Avoid a permanent "Flagged ambiguities" section unless an ambiguity is
-intentionally unresolved; otherwise resolve it through canonical terms, aliases to avoid,
-definitions, or relationships.
+- Keep one table by default. Use grouped tables only when the domain is large enough that one table
+  hurts scanability.
+- Avoid a permanent "Flagged ambiguities" section unless an ambiguity is intentionally unresolved;
+  otherwise resolve it through canonical terms, aliases to avoid, definitions, or relationships.
 
 ## Term Rules
 
@@ -128,15 +85,3 @@ definitions, or relationships.
 - Preserve established terms unless evidence shows they are wrong or misleading.
 - When code names conflict with durable terminology, recommend whether to rename code, update
   terminology, or defer the decision.
-
-## Final Response
-
-End with:
-
-- Terms added, changed, or intentionally deferred.
-- Ambiguities resolved or still open.
-- Any files updated, or review findings if no edit was made.
-- Validation run when files changed.
-
-Stop when the terminology section is updated or the review identifies the next terminology decision
-the user needs to make.
