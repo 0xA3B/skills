@@ -18,11 +18,11 @@ cases:
     expect: invoke
     rationale: The user is asking for a new plugin skill, even without saying "add-skill".
 
-  - id: use-skill-creator-wrapper
+  - id: skill-creation-workflow-request
     prompt: >-
       Use the repo's skill-creation workflow to add a new skill to engineering-workflows.
     expect: invoke
-    rationale: The skill intentionally wraps skill-creator with this repo's plugin conventions.
+    rationale: The skill owns the repo's skill-creation workflow for plugin skills.
 
   - id: create-new-plugin
     prompt: >-
