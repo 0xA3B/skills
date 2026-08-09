@@ -10,7 +10,7 @@ license: MIT
 argument-hint: "[plugin]"
 ---
 
-# Update Plugin Metadata
+# Update plugin metadata
 
 Repo-local workflow for keeping plugin metadata consistent across the Claude Code and Codex
 marketplaces.
@@ -24,19 +24,11 @@ Stop when the affected surfaces are aligned and validation has passed. If the re
 change implies a plugin rename, schema change, or new skill body, update only the safe surfaces and
 report the remaining work instead of guessing.
 
-## Source Of Truth
+## Source of truth
 
-- Follow `plugins/AGENTS.md` for manifest conventions and skill metadata placement.
-- Codex plugin metadata lives in `plugins/<plugin-name>/.codex-plugin/plugin.json`; Claude Code
-  plugin metadata lives in `plugins/<plugin-name>/.claude-plugin/plugin.json`.
-- Codex marketplace entries live in `.agents/plugins/marketplace.json`; Claude Code marketplace
-  entries live in `.claude-plugin/marketplace.json`.
-- Skill-level Codex UI metadata lives in
-  `plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml`.
-- Skill-level Claude Code invocation policy lives in `SKILL.md` frontmatter
-  (`disable-model-invocation`).
-- Plugin README files carry user-facing plugin summaries.
-- Plugin version changes follow the version policy in `plugins/AGENTS.md`.
+- Follow `plugins/AGENTS.md` for manifest conventions, metadata placement, the default prompt
+  policy, invocation-policy parity, and the plugin version policy; do not restate them here.
+- Plugin README files and the root `README.md` carry the user-facing plugin summaries.
 
 ## Workflow
 
@@ -59,15 +51,13 @@ report the remaining work instead of guessing.
    mise exec -- pnpm format:check
    ```
 
-9. Run `mise exec -- pnpm lint` and `mise exec -- pnpm typecheck` when validation tooling changed.
+9. When validation tooling changed, run `mise exec -- pnpm lint` and `mise exec -- pnpm typecheck`.
 
-## Consistency Rules
+## Consistency rules
 
 - Keep plugin `name`, `version`, `description`, `author`, `repository`, `keywords`, and `skills`
   aligned across the plugin manifests, marketplace catalogs, and plugin directory.
 - Keep README skill lists aligned with actual `plugins/<plugin-name>/skills/` directories.
-- Apply the default prompt policy, invocation-policy parity rules, and plugin version policy from
-  `plugins/AGENTS.md` instead of restating or reinventing them here.
 
 ## Boundaries
 

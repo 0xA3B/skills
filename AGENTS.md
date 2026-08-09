@@ -37,10 +37,6 @@ evaluated, and improved over time. Preserve these outcomes:
 - Use `pnpm run check` as the default full local gate.
 - Use the smallest relevant targeted script when narrowing validation.
 - Keep `check`-suffixed scripts non-mutating.
-- Keep README user-facing and lightweight.
-- Keep AGENTS files lean, agent-facing, and limited to durable guidance that affects most work. Put
-  conditional detail behind clear pointers, and avoid temporary notes or restating configuration
-  that agents can inspect directly.
 - Treat `AGENTS.md` as canonical agent guidance; sibling `CLAUDE.md` files must import `@AGENTS.md`
   and may add Claude-specific guidance only when it doesn't belong in `AGENTS.md`.
 
