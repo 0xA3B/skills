@@ -6,6 +6,11 @@ reference out of the file, and link to both.
 
 ## Section order
 
+This order fits a project README whose reader installs and runs something. For a catalog or
+subdirectory README, such as a plugin list or a package index, keep the gateway shape — orient
+first, then the content list, then requirements and pointers — and drop the sections that do not
+apply.
+
 Use this order, and include a section only when it has real content:
 
 1. Title, then one sentence that states what the project does and for whom.
