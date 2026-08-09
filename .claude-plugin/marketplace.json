@@ -16,6 +16,10 @@
     {
       "name": "engineering-workflows",
       "source": "./plugins/engineering-workflows"
+    },
+    {
+      "name": "writing",
+      "source": "./plugins/writing"
     }
   ]
 }

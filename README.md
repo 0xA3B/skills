@@ -38,6 +38,7 @@ Then install the desired plugins:
 /plugin install codex-in-claude@0xa3b-marketplace
 /plugin install git-workflows@0xa3b-marketplace
 /plugin install engineering-workflows@0xa3b-marketplace
+/plugin install writing@0xa3b-marketplace
 ```
 
 Update the marketplace later with `/plugin marketplace update 0xa3b-marketplace`.
@@ -138,3 +139,18 @@ should continue from an ignored local context document.
   temporary visual report, diagram, or presentation artifact from the current session.
 - [`engineering-workflows:wayfinder`](./plugins/engineering-workflows/skills/wayfinder/): Maps a
   loose idea into decisions, dependencies, frontier, fog, and excluded scope.
+
+### `writing`
+
+Writing disciplines for the documents agents and humans read, plus chat output styles for Claude
+Code sessions. The document-mechanics guidance is adapted from Matt Pocock's MIT-licensed
+[`mattpocock/skills`](https://github.com/mattpocock/skills) repository with source attribution
+preserved in the skill's Agent Skills frontmatter metadata.
+
+- [`writing:agent-instructions`](./plugins/writing/skills/agent-instructions/): House style and
+  document mechanics for files that instruct agents — `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, agent
+  definitions, and system-prompt fragments.
+
+Output styles ship in [`plugins/writing/output-styles/`](./plugins/writing/output-styles/) and
+materialize in Claude Code only: `google-developer-style` and `simplified-technical-english` apply
+their respective style guides to chat responses.
