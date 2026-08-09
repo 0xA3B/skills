@@ -40,6 +40,20 @@ the pointer rules from `SKILL.md` and document-mechanics in full:
 When the repository has trigger tooling, validate positive and negative cases on every supported
 agent before treating a description change as done.
 
+## Splitting by mode
+
+When a skill runs one of several mutually exclusive workflows per invocation — create vs update vs
+review — each mode's steps, formats, and final-response shape are conditional detail: only one mode
+is live in any run. Move each mode into its own reference file, keep the rules every mode shares in
+`SKILL.md`, and route with a per-mode pointer predicate that names which file to read for which
+request. When one mode can flow into another, end its reference with a pointer to the next mode's
+file.
+
+Split only when each mode owns a substantial body of exclusive instructions. Modes that share one
+workflow spine and differ by a stopping point, a parameter, or a small delta stay inline as branch
+rules — splitting them either duplicates the spine in every file or yields references too thin to
+earn the pointer hop.
+
 ## Splitting by invocation
 
 Split off a model-invoked skill when a distinct leading word should trigger it on its own — a
