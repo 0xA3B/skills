@@ -150,6 +150,9 @@ preserved in the skill's Agent Skills frontmatter metadata.
 - [`writing:agent-instructions`](./plugins/writing/skills/agent-instructions/): House style and
   document mechanics for files that instruct agents — `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, agent
   definitions, and system-prompt fragments.
+- [`writing:documentation`](./plugins/writing/skills/documentation/): Simplified Technical English
+  wording and Google developer style formatting for human-facing documentation — READMEs, guides,
+  runbooks, reference prose, and release notes.
 
 Output styles ship in [`plugins/writing/output-styles/`](./plugins/writing/output-styles/) and
 materialize in Claude Code only: `google-developer-style` and `simplified-technical-english` apply
