@@ -6,7 +6,9 @@ import type { TriggerEvalAgent } from "./types.js";
 export type TriggerEvalSelection =
   | { mode: "skill"; skillPath: string }
   | { mode: "plugin"; pluginPath: string }
-  | { mode: "marketplace" };
+  // An empty skillPaths runs every marketplace skill; a non-empty list stages the full
+  // marketplace but executes only the named skills' fixtures.
+  | { mode: "marketplace"; skillPaths: string[] };
 
 export type TriggerEvalCliOptions = Omit<
   RunTriggerEvalOptions,
@@ -83,16 +85,13 @@ function parseSelection(
     throw new Error("Use either --plugin or --marketplace, not both.");
   }
 
+  if (values.marketplace === true) {
+    return { mode: "marketplace", skillPaths: positionals };
+  }
+
   const [firstPositional, extra] = positionals;
   if (extra !== undefined) {
     throw new Error(usageLine());
-  }
-
-  if (values.marketplace === true) {
-    if (firstPositional !== undefined) {
-      throw new Error("--marketplace runs every marketplace skill; do not pass a path.");
-    }
-    return { mode: "marketplace" };
   }
 
   if (values.plugin === true) {
@@ -138,7 +137,7 @@ export function usage(): string {
     "Usage:",
     "  pnpm eval:trigger -- <skill-path> [options]",
     "  pnpm eval:trigger -- --plugin plugins/<plugin> [options]",
-    "  pnpm eval:trigger -- --marketplace [options]",
+    "  pnpm eval:trigger -- --marketplace [skill-path ...] [options]",
     "",
     "Skill paths:",
     "  plugins/<plugin>/skills/<skill>",
@@ -148,7 +147,9 @@ export function usage(): string {
     "  --agent <agent>            Agent(s) to evaluate: codex, claude, or both. Defaults to codex.",
     "  --plugin                   Run every trigger eval in the plugin at the given path.",
     "  --marketplace              Stage every marketplace plugin and run every trigger eval in the",
-    "                             marketplace, so cross-plugin trigger overlap is exercised.",
+    "                             marketplace, so cross-plugin trigger overlap is exercised. Pass",
+    "                             skill paths to run only those skills' fixtures with the full",
+    "                             marketplace still staged.",
     "  --fixture <path>           Use a fixture file other than evals/triggers.yaml.",
     "  --case <id>                Run one trigger fixture case.",
     "  --model <model>            Model override. Defaults: codex gpt-5.6-sol, claude opus.",

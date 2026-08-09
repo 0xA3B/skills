@@ -12,10 +12,14 @@ describe("selectPluginSuite", () => {
 
     const suite = await selectPluginSuite(repoRoot, "plugins/demo", "codex");
 
-    expect(suite.skillPaths).toStrictEqual([path.join("plugins", "demo", "skills", "auto-skill")]);
+    expect(suite.skillPaths).toStrictEqual([
+      path.join("plugins", "demo", "skills", "auto-skill"),
+      path.join("plugins", "demo", "skills", "extra-skill"),
+    ]);
     expect(suite.manualOnlySkillPaths).toStrictEqual([
       path.join("plugins", "demo", "skills", "manual-skill"),
     ]);
+    expect(suite.outOfCatalogSkillPaths).toStrictEqual([]);
   });
 
   it("rejects paths that are not plugin directories", async () => {
@@ -43,22 +47,93 @@ describe("selectMarketplaceSuite", () => {
     const codexSuite = await selectMarketplaceSuite(repoRoot, "codex");
     expect(codexSuite.skillPaths).toStrictEqual([
       path.join("plugins", "demo", "skills", "auto-skill"),
+      path.join("plugins", "demo", "skills", "extra-skill"),
     ]);
 
     const claudeSuite = await selectMarketplaceSuite(repoRoot, "claude");
     expect(claudeSuite.skillPaths).toStrictEqual([
       path.join("plugins", "demo", "skills", "auto-skill"),
+      path.join("plugins", "demo", "skills", "extra-skill"),
       path.join("plugins", "claude-only", "skills", "claude-skill"),
     ]);
   });
+
+  it("runs only the selected skills in suite order, normalizing and deduping paths", async () => {
+    const repoRoot = await writeSuiteFixture();
+
+    const suite = await selectMarketplaceSuite(repoRoot, "codex", [
+      "plugins/demo/skills/extra-skill/",
+      "plugins/demo/skills/auto-skill",
+      "plugins/demo/skills/auto-skill",
+    ]);
+
+    expect(suite.skillPaths).toStrictEqual([
+      path.join("plugins", "demo", "skills", "auto-skill"),
+      path.join("plugins", "demo", "skills", "extra-skill"),
+    ]);
+    expect(suite.manualOnlySkillPaths).toStrictEqual([]);
+    expect(suite.outOfCatalogSkillPaths).toStrictEqual([]);
+  });
+
+  it("reports selected manual-only skills instead of running them", async () => {
+    const repoRoot = await writeSuiteFixture();
+
+    const suite = await selectMarketplaceSuite(repoRoot, "codex", [
+      "plugins/demo/skills/auto-skill",
+      "plugins/demo/skills/manual-skill",
+    ]);
+
+    expect(suite.skillPaths).toStrictEqual([path.join("plugins", "demo", "skills", "auto-skill")]);
+    expect(suite.manualOnlySkillPaths).toStrictEqual([
+      path.join("plugins", "demo", "skills", "manual-skill"),
+    ]);
+  });
+
+  it("reports selected skills whose plugin is outside the agent's catalog", async () => {
+    const repoRoot = await writeSuiteFixture();
+
+    const suite = await selectMarketplaceSuite(repoRoot, "codex", [
+      "plugins/claude-only/skills/claude-skill",
+    ]);
+
+    expect(suite.skillPaths).toStrictEqual([]);
+    expect(suite.outOfCatalogSkillPaths).toStrictEqual([
+      path.join("plugins", "claude-only", "skills", "claude-skill"),
+    ]);
+  });
+
+  it("rejects selected skills without a trigger fixture", async () => {
+    const repoRoot = await writeSuiteFixture();
+
+    await expect(
+      selectMarketplaceSuite(repoRoot, "codex", ["plugins/demo/skills/no-fixture-skill"]),
+    ).rejects.toThrow("has no trigger fixture at evals/triggers.yaml");
+  });
+
+  it("rejects selected repo-local skills", async () => {
+    const repoRoot = await writeSuiteFixture();
+
+    await expect(
+      selectMarketplaceSuite(repoRoot, "codex", [".agents/skills/local-skill"]),
+    ).rejects.toThrow("--marketplace runs plugin skills; ");
+  });
+
+  it("rejects malformed selected paths", async () => {
+    const repoRoot = await writeSuiteFixture();
+
+    await expect(selectMarketplaceSuite(repoRoot, "codex", ["plugins/demo"])).rejects.toThrow(
+      "Expected a skill path like plugins/<plugin>/skills/<skill>",
+    );
+  });
 });
 
-// Repo fixture: plugin "demo" with an implicit skill (fixture), a manual-only skill (fixture),
+// Repo fixture: plugin "demo" with two implicit skills (fixtures), a manual-only skill (fixture),
 // and an implicit skill without a fixture; plugin "claude-only" listed only in the Claude catalog.
 async function writeSuiteFixture(): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-suite-"));
 
   await writeSkill(repoRoot, "demo", "auto-skill", { fixture: true });
+  await writeSkill(repoRoot, "demo", "extra-skill", { fixture: true });
   await writeSkill(repoRoot, "demo", "manual-skill", { fixture: true, manualOnly: true });
   await writeSkill(repoRoot, "demo", "no-fixture-skill", { fixture: false });
   await writeSkill(repoRoot, "claude-only", "claude-skill", { fixture: true });
