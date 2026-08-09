@@ -12,7 +12,7 @@ Use when the user asks whether terminology is complete, consistent, or aligned w
 5. If the user asked for changes or clearly wants the review applied, apply the findings with the
    [Update](update.md) workflow; otherwise leave `AGENTS.md` unchanged.
 
-## Final Response
+## Final response
 
 End with:
 

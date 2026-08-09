@@ -1,4 +1,4 @@
-# Review Checklist
+# Review checklist
 
 Audit questions for a diff to an instruction file, and for periodic sweeps of a whole file. Each
 question names the rule it applies from `SKILL.md`.

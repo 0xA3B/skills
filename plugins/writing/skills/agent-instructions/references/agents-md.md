@@ -1,4 +1,4 @@
-# AGENTS.md Mechanics
+# AGENTS.md mechanics
 
 What changes when the document is a repository instruction file — an `AGENTS.md` or `CLAUDE.md`:
 loading is scope-driven, not trigger-driven. The harness decides when the file loads from where it
@@ -54,22 +54,22 @@ terminology section's presence usually means that workflow generated it and owns
 A proven root-file skeleton — adapt sections to the repository rather than forcing the full set:
 
 ```markdown
-# Project Instructions
+# Project instructions
 
 ## Purpose
 
 What the repository maintains, then "Preserve these outcomes:" with the outcome bullets changes are
 judged against.
 
-## Repository Model
+## Repository model
 
 What kind of repository this is, what lives where, and the ownership boundaries.
 
-## Project Conventions
+## Project conventions
 
 Testable imperatives: commands, paths, and thresholds.
 
-## Dependency Policy
+## Dependency policy
 
 How dependencies are chosen, constrained, and updated.
 

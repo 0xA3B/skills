@@ -14,7 +14,7 @@ relationships have emerged.
 6. Exercise changed relationships with concrete scenarios and record only language that still holds
    at the edge cases.
 
-## Final Response
+## Final response
 
 End with:
 

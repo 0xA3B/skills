@@ -1,4 +1,4 @@
-# Formatting and Layout
+# Formatting and layout
 
 Formatting rules in the spirit of the Google developer documentation style guide. These rules govern
 document structure; the wording inside any sentence follows `SKILL.md`, and `SKILL.md` wins when the

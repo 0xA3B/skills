@@ -16,7 +16,7 @@ metadata:
 user-invocable: false
 ---
 
-# Agent Instructions
+# Agent instructions
 
 Instruction files spend a shared attention budget: every sentence competes with every other, and the
 agent resolves ambiguity by pattern, not by charity. This style removes ambiguity and keeps the

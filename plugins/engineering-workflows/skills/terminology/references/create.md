@@ -10,7 +10,7 @@ Use when `AGENTS.md` has no terminology section and the user wants durable domai
    cardinality.
 3. Keep the first version small; defer uncertain or contested terms.
 
-## Section Template
+## Section template
 
 ```md
 ## Terminology
@@ -28,7 +28,7 @@ Relationships:
 - An **Example** owns zero or more **Related Examples**.
 ```
 
-## Final Response
+## Final response
 
 End with:
 
