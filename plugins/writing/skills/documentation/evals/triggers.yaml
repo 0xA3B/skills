@@ -1,0 +1,74 @@
+version: 1
+cases:
+  - id: write-readme
+    prompt: >-
+      Write a README for this project. It is a CLI that syncs dotfiles across machines.
+    expect: invoke
+    rationale: Authoring a README is the primary documentation branch.
+
+  - id: clarify-setup-guide
+    prompt: >-
+      The setup section in our CONTRIBUTING.md keeps confusing new contributors. Rewrite it so it is
+      easier to follow.
+    expect: invoke
+    rationale: Revising a contributor setup guide for clarity is human-facing documentation work.
+
+  - id: draft-runbook
+    prompt: >-
+      Draft a runbook for restoring the staging database from last night's snapshot.
+    expect: invoke
+    rationale: A runbook is an operational procedure the skill owns.
+
+  - id: release-notes
+    prompt: >-
+      Write the release notes for v2.0, covering the breaking change to the config file format.
+    expect: invoke
+    rationale: Release notes are a listed documentation type.
+
+  - id: simplify-non-native
+    prompt: >-
+      Make this migration guide easier to read for people who are not native English speakers.
+    expect: invoke
+    rationale: Simplifying existing documentation for non-native readers is an explicit trigger.
+
+  - id: agents-md-rule
+    prompt: >-
+      Add a rule to AGENTS.md that tests must be co-located in src/.
+    expect: skip
+    rationale: Agent instruction files are owned by the agent-instructions skill.
+
+  - id: skill-md-diff-review
+    prompt: >-
+      Review this SKILL.md diff for instruction quality before I commit it.
+    expect: skip
+    rationale: SKILL.md review is agent-instruction work, not human-facing documentation.
+
+  - id: commit-message
+    prompt: >-
+      Write the commit message for this change.
+    expect: skip
+    rationale: Commit messages are excluded from the documentation style.
+
+  - id: pr-description
+    prompt: >-
+      Draft the pull request description for this branch.
+    expect: skip
+    rationale: Pull request descriptions are excluded from the documentation style.
+
+  - id: conceptual-ste-question
+    prompt: >-
+      What is Simplified Technical English and where did it come from?
+    expect: skip
+    rationale: A conceptual question about the standard is not a documentation task.
+
+  - id: code-comments
+    prompt: >-
+      Add comments explaining what this parsing function does.
+    expect: skip
+    rationale: Code comments follow code conventions, not documentation style.
+
+  - id: chat-style-request
+    prompt: >-
+      From now on, keep your chat replies short and direct.
+    expect: skip
+    rationale: Chat response style is not documentation authoring.

@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Documentation"
+  short_description: "STE wording and Google-style layout for project documentation"
+  default_prompt: "Rewrite this README in Simplified Technical English."
+policy:
+  allow_implicit_invocation: true

@@ -12,13 +12,14 @@
   "interface": {
     "displayName": "Writing",
     "shortDescription": "Write precise agent instructions and documentation.",
-    "longDescription": "Writing disciplines for the documents agents and humans read: a house style and document mechanics for agent-facing instruction files such as AGENTS.md, CLAUDE.md, and SKILL.md, with human-facing documentation guidance to follow.",
+    "longDescription": "Writing disciplines for the documents agents and humans read: a house style and document mechanics for agent-facing instruction files such as AGENTS.md, CLAUDE.md, and SKILL.md, and Simplified Technical English wording with Google developer style formatting for human-facing documentation.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Write"],
     "defaultPrompt": [
       "Review this AGENTS.md against the writing:agent-instructions style.",
-      "Tighten this SKILL.md so every rule earns its context budget."
+      "Tighten this SKILL.md so every rule earns its context budget.",
+      "Rewrite this README in Simplified Technical English."
     ]
   }
 }
