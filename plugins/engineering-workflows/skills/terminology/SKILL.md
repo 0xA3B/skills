@@ -1,15 +1,16 @@
 ---
 name: terminology
 description: >-
-  Create, update, or review durable project terminology in AGENTS.md. Use when the user wants to
-  define domain terms, harden naming, resolve ambiguous language, align code or docs with a
-  terminology section, review aliases to avoid, or adapt glossary/ubiquitous-language guidance into
-  repository agent guidance.
+  Create, update, prune, or review durable project terminology in AGENTS.md. Use when the user wants
+  to define domain terms, harden naming, resolve ambiguous language, record aliases to avoid, align
+  code or docs with a terminology section, capture a term that stabilized during review or
+  implementation, or adapt glossary/ubiquitous-language guidance into repository agent guidance. Do
+  not use for general instruction-file style or structure editing, for renaming code identifiers
+  without a terminology decision, or for conceptual questions about terminology or domain language.
 license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/aaf2453fbdfe7a15c07f11d861224f34ab4b53cb/skills/deprecated/ubiquitous-language
-disable-model-invocation: true
 ---
 
 # Terminology
@@ -45,7 +46,7 @@ Use when `AGENTS.md` has no terminology section and the user wants durable domai
 
 1. Identify stable domain concepts from the conversation and repository evidence.
 2. Add `## Terminology` to `AGENTS.md`.
-3. Include the standard maintenance guidance, a terms table, and relationships when useful.
+3. Include the section introduction, a terms table, and relationships when useful.
 4. Keep the first version small; defer uncertain or contested terms.
 
 ### Update
@@ -66,10 +67,24 @@ Use when stable terms, aliases, ambiguities, or relationships have emerged.
 Use when the user asks whether terminology is complete, consistent, or aligned with code and docs.
 
 1. Inspect `AGENTS.md`, README files, nearby docs, code names, and tests relevant to the request.
-2. Find missing, vague, overloaded, contradictory, or stale terms.
+2. Find missing, vague, overloaded, contradictory, stale, or duplicative terms — including entries
+   whose definition restates an installed skill's description or another section of the same file.
 3. Cross-check important definitions and relationships against code and tests.
 4. Report findings with file references and concrete wording changes.
 5. Edit `AGENTS.md` only when the user asked for changes or clearly wants the review applied.
+
+## Placement
+
+A term anchors shared language only while its file is loaded, so place each term at the scope where
+the work that speaks it happens:
+
+- Keep terms the whole repository speaks in the root `AGENTS.md`.
+- If a term is spoken only while working under one directory, keep it in that directory's
+  `AGENTS.md`.
+- If a term is spoken only inside one workflow, leave it to that workflow's own documents and skip
+  the table entry.
+
+Judge placement by where the work happens, not where the topic's files sit.
 
 ## Section Format
 
@@ -81,16 +96,6 @@ Use this structure in `AGENTS.md`:
 Use this section for durable domain terms that should guide future work in this repository. Add or
 update entries when a term becomes stable during adversarial review, architecture review, or
 implementation.
-
-When maintaining the terminology:
-
-- Prefer the canonical term used by domain experts or project maintainers.
-- Define what the term is in one tight sentence.
-- List aliases to avoid when multiple words could refer to the same concept.
-- Flag ambiguous words when the same word is used for different concepts.
-- Include relationships between terms when they clarify ownership, lifecycle, or cardinality.
-- Skip generic programming terms and incidental class, function, or module names unless they are
-  part of the domain language.
 
 | Term        | Definition                                     | Aliases to Avoid |
 | ----------- | ---------------------------------------------- | ---------------- |
@@ -108,6 +113,12 @@ definitions, or relationships.
 
 ## Term Rules
 
+- A term earns its row by resolving an ambiguity, canonicalizing an alias, or fixing a non-obvious
+  relationship. Terminology is not a dictionary of every term in the repository; skip terms no one
+  confuses.
+- Skip entries whose definition restates an always-loaded surface, such as an installed skill's
+  description or another section of the same file; skip relationships that restate workflow behavior
+  the owning skill or document already encodes.
 - Include only terms relevant to domain experts, maintainers, or future agents working in the
   repository.
 - Skip generic programming concepts unless they have domain-specific meaning in the project.

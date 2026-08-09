@@ -1,0 +1,65 @@
+version: 1
+cases:
+  - id: add-stable-term
+    prompt: >-
+      Add "reconciliation window" to our AGENTS.md terminology — people keep calling it the sync
+      gap.
+    expect: invoke
+    rationale: The user wants a stabilized domain term recorded with its alias to avoid.
+
+  - id: resolve-ambiguous-naming
+    prompt: >-
+      We use "job", "task", and "run" interchangeably in this codebase. Pick one canonical term and
+      record it in the terminology.
+    expect: invoke
+    rationale: The user wants ambiguous language resolved into durable canonical terminology.
+
+  - id: prune-terminology-table
+    prompt: >-
+      Review our AGENTS.md terminology table for stale or duplicated entries.
+    expect: invoke
+    rationale: The user is asking for a terminology review, which this skill owns.
+
+  - id: capture-term-from-review
+    prompt: >-
+      We settled on calling these "eval lanes" during that review. Capture the term so future
+      sessions use it.
+    expect: invoke
+    rationale: A term stabilized during review and should become durable terminology.
+
+  - id: adapt-glossary-guidance
+    prompt: >-
+      Adapt this domain glossary document into our repository's agent guidance.
+    expect: invoke
+    rationale: The user wants glossary material converted into a terminology section.
+
+  - id: general-agents-md-tightening
+    prompt: >-
+      Tighten our AGENTS.md; it has grown bloated and agents miss the important rules.
+    expect: skip
+    rationale:
+      General instruction-file editing is owned by an instruction-writing skill, not terminology.
+
+  - id: rename-code-identifiers
+    prompt: >-
+      Rename the JobRunner class to TaskRunner across the codebase.
+    expect: skip
+    rationale: The user wants a code refactor, not a terminology decision.
+
+  - id: conceptual-ubiquitous-language
+    prompt: >-
+      What is a ubiquitous language in domain-driven design?
+    expect: skip
+    rationale: The user is asking a conceptual question, not maintaining terminology.
+
+  - id: human-facing-glossary-page
+    prompt: >-
+      Write a glossary page for our user documentation site.
+    expect: skip
+    rationale: The deliverable is human-facing documentation, not agent-facing terminology.
+
+  - id: word-definition-question
+    prompt: >-
+      What does "idempotent" mean?
+    expect: skip
+    rationale: The user wants a definition in chat, not durable project terminology.
