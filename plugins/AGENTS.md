@@ -84,6 +84,10 @@ These instructions apply to plugin directories under `plugins/`.
   reads as an action or workflow the user runs; a `user-invocable: false` skill's name reads as a
   state or discipline, typically a gerund phrase (`receiving-feedback`), so the model reads it as
   applicable knowledge rather than an action.
+- Judge these naming rules against the namespaced form `plugin-name:skill-name`. When the plugin
+  name supplies the leading verb or gerund, the skill name may be the noun phrase that completes it
+  (`writing:agent-instructions` reads as a discipline even though the bare directory name carries no
+  verb).
 - Default user-invocable names to an imperative verb phrase (`commit`, `visualize`, `build`).
   Compact workflow names (`handoff`, `wayfinder`) are acceptable when they cannot be read as a
   background discipline.
