@@ -1,16 +1,15 @@
 # Engineering Workflows
 
-Engineering workflow skills for breadth-first decision mapping, adversarial design review,
-dependency maintenance, durable terminology, shared codebase design, disposable prototyping,
-building, TDD, diagnosis, scoped code review, session handoffs, feedback triage, and visual
-presentation artifacts.
+These skills cover the engineering loop from decision mapping and design review through
+implementation, diagnosis, code review, and session handoff. The skills list below names each
+workflow.
 
-Typical implementation flow: `wayfinder` maps a loose or oversized idea into decision-sized chunks,
-`grill-me` resolves a selected direction through adversarial questioning, and `prototype` answers
-questions that need disposable executable evidence. Use `build` for greenfield or high-churn
-implementation and `tdd` for stable behavior. `review-changes` reviews the worktree before commit
-and `review-branch` reviews a branch before merge. Use `handoff` when another agent session should
-continue the work from an ignored local context document.
+The typical implementation flow starts with `wayfinder`, which maps a loose or oversized idea into
+decision-sized chunks. `grill-me` resolves a selected direction through adversarial questioning, and
+`prototype` answers questions that need disposable executable evidence. Use `build` for greenfield
+or high-churn implementation and `tdd` for stable behavior. `review-changes` reviews the worktree
+before commit and `review-branch` reviews a branch before merge. Use `handoff` when another agent
+session should continue the work from an ignored local context document.
 
 `codebase-design` and `reviewing-code` are shared background disciplines consumed by the user-facing
 workflows. `terminology`, `diagnose`, `improve-codebase-architecture`, `dependency-maintenance`, and
@@ -18,14 +17,14 @@ workflows. `terminology`, `diagnose`, `improve-codebase-architecture`, `dependen
 
 On Claude Code, the bundled `code-review` skill competes for generic review prompts. Treat the
 manual `review-changes` and `review-branch` invocations as the primary entry points. To keep the
-bundled skill typable as `/code-review` while stopping it from triggering implicitly, set
-`"skillOverrides": { "code-review": "user-invocable-only" }` in settings; set
-`disableBundledSkills: true` instead when no bundled skills should load at all.
+bundled skill typable as `/code-review` but stop its implicit invocation, set
+`"skillOverrides": { "code-review": "user-invocable-only" }` in settings. When no bundled skills
+should load at all, set `disableBundledSkills: true` instead.
 
-Some skills are adapted from Matt Pocock's MIT-licensed
+Some skills come from Matt Pocock's MIT-licensed
 [`mattpocock/skills`](https://github.com/mattpocock/skills) repository. Adapted skills include Agent
 Skills frontmatter with `license: MIT` plus metadata for the original author and source path. The
-MIT license notice from the source repository is preserved in [LICENSE](./LICENSE).
+MIT license notice from the source repository is in [LICENSE](./LICENSE).
 
 ## Skills
 

@@ -1,12 +1,12 @@
 # Skills
 
-These are my skills and workflows for AI agents. You can use them directly or just explore for
-inspiration.
+This repository holds my reusable skills and workflows for AI agents, packaged as Claude Code and
+Codex plugins. Use them directly, or explore them for inspiration.
 
 ## Install
 
-Plugins install from this repository in both Codex and Claude Code. Every plugin is available to
-both agents unless its section below says otherwise.
+You can install plugins from this repository in both Codex and Claude Code. Every plugin is
+available to both agents unless its section below says otherwise.
 
 ### Codex
 
@@ -22,7 +22,7 @@ Upgrade the marketplace later:
 codex plugin marketplace upgrade 0xa3b-marketplace
 ```
 
-After adding or upgrading the marketplace, install the desired plugins from Codex.
+After you add or upgrade the marketplace, install the plugins that you want from Codex.
 
 ### Claude Code
 
@@ -32,7 +32,7 @@ Add the marketplace inside Claude Code:
 /plugin marketplace add 0xA3B/skills
 ```
 
-Then install the desired plugins:
+Then install the plugins that you want:
 
 ```text
 /plugin install codex-in-claude@0xa3b-marketplace
@@ -47,10 +47,11 @@ Update the marketplace later with `/plugin marketplace update 0xa3b-marketplace`
 
 ### `claude-in-codex`
 
-> Codex-only: this plugin exists to drive Claude Code from Codex, so it is not published to the
-> Claude Code marketplace.
+> Codex-only: this plugin exists to drive Claude Code from Codex, so this repository does not
+> publish it to the Claude Code marketplace.
 
-Runs Claude Code from Codex for adversarial code review, feedback triage, and in-scope fixes.
+This plugin runs Claude Code from Codex for adversarial code review, feedback triage, and in-scope
+fixes.
 
 - [`claude-in-codex:adversarial-review`](./plugins/claude-in-codex/skills/adversarial-review/):
   Invokes Claude Code as a review-scoped adversarial reviewer, triages findings as external
@@ -61,11 +62,11 @@ Runs Claude Code from Codex for adversarial code review, feedback triage, and in
 
 ### `codex-in-claude`
 
-> Claude Code-only: this plugin exists to drive Codex from Claude Code, so it is not published to
-> the Codex marketplace.
+> Claude Code-only: this plugin exists to drive Codex from Claude Code, so this repository does not
+> publish it to the Codex marketplace.
 
-Runs Codex from Claude Code for adversarial code review, feedback triage, and in-scope fixes, and
-ships a `codex` subagent for delegating tasks to Codex.
+This plugin runs Codex from Claude Code for adversarial code review, feedback triage, and in-scope
+fixes. It also ships a `codex` subagent that delegates tasks to Codex.
 
 - [`codex-in-claude:adversarial-review`](./plugins/codex-in-claude/skills/adversarial-review/):
   Invokes Codex as a sandboxed read-only adversarial reviewer, triages findings as external
@@ -75,8 +76,8 @@ ships a `codex` subagent for delegating tasks to Codex.
 
 ### `git-workflows`
 
-Skills for creating Conventional Commits and driving GitHub or GitLab change requests from
-operational preparation through automated review and verified merge cleanup.
+These skills create Conventional Commits and drive GitHub or GitLab change requests from operational
+preparation through automated review and verified merge cleanup.
 
 `address-pr-feedback` requires the `engineering-workflows` plugin so it can apply the shared
 `receiving-feedback` discipline.
@@ -92,17 +93,15 @@ operational preparation through automated review and verified merge cleanup.
 
 ### `engineering-workflows`
 
-Engineering workflow skills for decision mapping, adversarial design review, dependency maintenance,
-disposable prototyping, building, TDD, diagnosis, architecture review, durable terminology, scoped
-code review, session handoffs, feedback triage, and visual presentation artifacts. Some skills are
-adapted from Matt Pocock's MIT-licensed [`mattpocock/skills`](https://github.com/mattpocock/skills)
-repository with source attribution preserved in each adapted skill's Agent Skills frontmatter
-metadata.
+These skills cover the engineering loop from decision mapping and design review through
+implementation, diagnosis, code review, and session handoff. Some skills come from Matt Pocock's
+MIT-licensed [`mattpocock/skills`](https://github.com/mattpocock/skills) repository; each adapted
+skill records its original author and source in its Agent Skills frontmatter metadata.
 
-Typical implementation flow: `wayfinder` maps a loose idea into decision-sized chunks, `grill-me`
-resolves a selected direction, and `prototype` answers questions that need executable evidence. Use
-`build` for greenfield or high-churn implementation and `tdd` for stable behavior. Use
-`review-changes` before commit and `review-branch` before merge. `codebase-design` and
+The typical implementation flow starts with `wayfinder`, which maps a loose idea into decision-sized
+chunks. `grill-me` resolves a selected direction, and `prototype` answers questions that need
+executable evidence. Use `build` for greenfield or high-churn implementation and `tdd` for stable
+behavior. Use `review-changes` before commit and `review-branch` before merge. `codebase-design` and
 `reviewing-code` provide shared background discipline. Use `handoff` when another agent session
 should continue from an ignored local context document.
 
@@ -142,10 +141,10 @@ should continue from an ignored local context document.
 
 ### `writing`
 
-Writing disciplines for the documents agents and humans read, plus chat output styles for Claude
-Code sessions. The document-mechanics guidance is adapted from Matt Pocock's MIT-licensed
-[`mattpocock/skills`](https://github.com/mattpocock/skills) repository with source attribution
-preserved in the skill's Agent Skills frontmatter metadata.
+These skills govern the documents agents and humans read; the plugin also ships chat output styles
+for Claude Code sessions. The document-mechanics guidance comes from Matt Pocock's MIT-licensed
+[`mattpocock/skills`](https://github.com/mattpocock/skills) repository, with the attribution
+recorded in the skill's Agent Skills frontmatter metadata.
 
 - [`writing:agent-instructions`](./plugins/writing/skills/agent-instructions/): House style and
   document mechanics for files that instruct agents — `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, agent
@@ -157,3 +156,8 @@ preserved in the skill's Agent Skills frontmatter metadata.
 Output styles ship in [`plugins/writing/output-styles/`](./plugins/writing/output-styles/) and
 materialize in Claude Code only: `google-developer-style` and `simplified-technical-english` apply
 their respective style guides to chat responses.
+
+## License
+
+This repository is under the MIT license. See [LICENSE](./LICENSE), and see each plugin's license
+file for adapted content.
