@@ -70,7 +70,23 @@ describe("parseTriggerEvalCliOptions", () => {
   it("selects marketplace suite mode with --marketplace", () => {
     expect(parseTriggerEvalCliOptions(["--marketplace"])).toStrictEqual({
       agents: ["codex"],
-      selection: { mode: "marketplace" },
+      selection: { mode: "marketplace", skillPaths: [] },
+    });
+  });
+
+  it("accepts selected skill paths with --marketplace", () => {
+    expect(
+      parseTriggerEvalCliOptions([
+        "--marketplace",
+        "plugins/foo/skills/bar",
+        "plugins/baz/skills/qux",
+      ]),
+    ).toStrictEqual({
+      agents: ["codex"],
+      selection: {
+        mode: "marketplace",
+        skillPaths: ["plugins/foo/skills/bar", "plugins/baz/skills/qux"],
+      },
     });
   });
 
@@ -86,9 +102,9 @@ describe("parseTriggerEvalCliOptions", () => {
     );
   });
 
-  it("rejects a path with --marketplace", () => {
-    expect(() => parseTriggerEvalCliOptions(["--marketplace", "plugins/foo"])).toThrow(
-      "--marketplace runs every marketplace skill; do not pass a path.",
+  it("still rejects extra positionals in plugin mode", () => {
+    expect(() => parseTriggerEvalCliOptions(["--plugin", "plugins/foo", "plugins/bar"])).toThrow(
+      "Usage: pnpm eval:trigger",
     );
   });
 

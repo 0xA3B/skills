@@ -46,6 +46,11 @@ async function main(): Promise<void> {
             `Skipping manual-only skills on ${agent}: ${suite.manualOnlySkillPaths.join(", ")}.`,
           );
         }
+        if (suite.outOfCatalogSkillPaths.length > 0) {
+          console.log(
+            `Skipping skills whose plugin is not in the ${agent} marketplace catalog: ${suite.outOfCatalogSkillPaths.join(", ")}.`,
+          );
+        }
 
         let passedSkills = 0;
         let ranSkills = 0;
@@ -77,10 +82,11 @@ async function main(): Promise<void> {
               `${suiteName} suite on ${agent}: ${passedSkills}/${ranSkills} skills passed.`,
             );
           } else if (!abortController.signal.aborted) {
-            // Zero runs must not read as a green suite: this happens when every fixture-bearing
-            // skill is manual-only on this agent, so no eval actually executed.
+            // Zero runs must not read as a green suite: this happens when every candidate skill
+            // was excluded as manual-only or, for a marketplace selection, outside this agent's
+            // catalog, so no eval actually executed.
             console.error(
-              `${suiteName} suite on ${agent}: ran 0 skills — every fixture-bearing skill is manual-only on this agent.`,
+              `${suiteName} suite on ${agent}: ran 0 skills — every candidate skill is manual-only or outside this agent's marketplace catalog.`,
             );
             process.exitCode = 1;
           }
@@ -101,13 +107,17 @@ async function resolveSuite(
 ): Promise<TriggerEvalSuite> {
   const repoRoot = process.cwd();
   if (selection.mode === "skill") {
-    return { skillPaths: [selection.skillPath], manualOnlySkillPaths: [] };
+    return {
+      skillPaths: [selection.skillPath],
+      manualOnlySkillPaths: [],
+      outOfCatalogSkillPaths: [],
+    };
   }
   if (selection.mode === "plugin") {
     return selectPluginSuite(repoRoot, selection.pluginPath, agent);
   }
 
-  return selectMarketplaceSuite(repoRoot, agent);
+  return selectMarketplaceSuite(repoRoot, agent, selection.skillPaths);
 }
 
 void main();

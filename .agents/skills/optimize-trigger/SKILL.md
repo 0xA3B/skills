@@ -113,6 +113,13 @@ cases where loaded repository instructions should affect the trigger boundary, s
    description change in another plugin can flip marketplace results — so the single-skill default
    remains the day-to-day loop.
 
+   To test one cross-plugin boundary without paying for the full suite, pass skill paths to the
+   marketplace mode:
+   `mise exec -- pnpm eval:trigger:marketplace -- plugins/<plugin>/skills/<skill> [more paths] --agent both`.
+   This stages the full marketplace, so every catalog description competes in context, but runs only
+   the named skills' fixtures. A selected skill whose plugin ships in only one agent's catalog is
+   skipped with a notice on the other agent's lane.
+
    Trigger cases run with bounded parallelism by default. When the target fixture needs a slower or
    faster run than the default concurrency of 3, use `--concurrency <n>`. The default per-case
    timeout is 60 seconds because trigger evals measure whether the skill is invoked, not whether the
