@@ -1,9 +1,5 @@
 # Plugin Development
 
-## Scope
-
-These instructions apply to plugin directories under `plugins/`.
-
 ## Plugin Rules
 
 - Plugin names use lowercase kebab-case and match the plugin directory name.
@@ -15,12 +11,10 @@ These instructions apply to plugin directories under `plugins/`.
 - Claude-targeted plugins include `.claude-plugin/plugin.json` and an entry in
   `.claude-plugin/marketplace.json`.
 - Keep Codex plugin manifests pointed at `./skills/`; do not add per-skill manifest paths.
-- Do not set a `skills` path in Claude plugin manifests. Claude Code auto-discovers `./skills/`, and
-  the field adds extra skill paths instead of replacing the default.
+- Leave the `skills` field unset in Claude plugin manifests. Claude Code auto-discovers `./skills/`,
+  and the field adds extra skill paths instead of replacing the default.
 - When adding or renaming a plugin, keep the marketplace entries, plugin directory, and manifest
   `name` values aligned across every targeted agent.
-- Keep `version` identical across a plugin's Claude and Codex manifests; the linter enforces
-  lockstep versions.
 
 ## Default Prompt Policy
 
@@ -105,8 +99,8 @@ These instructions apply to plugin directories under `plugins/`.
 
 ## Skill Authoring Baseline
 
-- Skills ship to both Claude Code and Codex. Keep bodies agent-agnostic and use the repository's
-  metadata surfaces for target-specific behavior.
+- Keep skill bodies agent-agnostic; use the repository's metadata surfaces for target-specific
+  behavior.
 - Use the repo-local `writing-skills` discipline when authoring or materially revising `SKILL.md`.
   It owns instruction quality, invocation design, information hierarchy, completion criteria, and
   pruning; this file owns repository placement, metadata, versioning, and validation conventions.
@@ -116,16 +110,16 @@ These instructions apply to plugin directories under `plugins/`.
 
 ## Validation
 
-- Run `pnpm lint:plugins` after adding or changing plugin manifests, marketplace entries, skill
-  frontmatter, or `agents/openai.yaml`.
-- Run trigger evals when changing an implicitly invokable skill's `SKILL.md` frontmatter
-  `description`, invocation policy, or trigger fixtures. The `description` is the trigger contract
-  shared by both agents; use `pnpm eval:trigger -- <skill-path> --agent both` to check that a
-  description change triggers correctly on Codex and Claude Code. Body-only `SKILL.md` changes
-  affect behavior after invocation and do not require trigger evals.
+- After adding or changing plugin manifests, marketplace entries, skill frontmatter, or
+  `agents/openai.yaml`, run `pnpm lint:plugins`.
+- When changing an implicitly invokable skill's `SKILL.md` frontmatter `description`, invocation
+  policy, or trigger fixtures, run trigger evals. The `description` is the trigger contract shared
+  by both agents; use `pnpm eval:trigger -- <skill-path> --agent both` to check that a description
+  change triggers correctly on Codex and Claude Code. Body-only `SKILL.md` changes affect behavior
+  after invocation and do not require trigger evals.
 - When a description change risks overlapping another skill's trigger contract, use the opt-in suite
   modes: `pnpm eval:trigger:plugin -- plugins/<plugin>` runs every trigger eval in the plugin, and
   `pnpm eval:trigger:marketplace` stages all marketplace plugins and runs every trigger eval across
   them, reporting wrong-skill invocations distinctly.
-- Run `pnpm format:check` when Markdown, JSON, YAML, or TypeScript files changed.
-- Run `pnpm lint` and `pnpm typecheck` when TypeScript validation tooling changed.
+- When Markdown, JSON, YAML, or TypeScript files changed, run `pnpm format:check`.
+- When TypeScript validation tooling changed, run `pnpm lint` and `pnpm typecheck`.
