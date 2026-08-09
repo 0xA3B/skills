@@ -1,0 +1,76 @@
+version: 1
+cases:
+  - id: create-agents-md
+    prompt: >-
+      Create an AGENTS.md for this repository covering the build, test, and commit conventions.
+    expect: invoke
+    rationale: The user is asking to create an agent-facing instruction file.
+
+  - id: add-claude-md-rule
+    prompt: >-
+      Add a rule to CLAUDE.md that the linter must run before every commit.
+    expect: invoke
+    rationale: The user is asking to edit an agent-facing instruction file.
+
+  - id: review-skill-body-diff
+    prompt: >-
+      Review this diff to our deploy skill's SKILL.md for instruction quality.
+    expect: invoke
+    rationale: The user is asking to review changes to a skill body, an agent-facing file.
+
+  - id: system-prompt-fragment
+    prompt: >-
+      Write the system prompt for our triage subagent.
+    expect: invoke
+    rationale: The user is asking to author a system-prompt fragment that instructs an agent.
+
+  - id: tighten-bloated-agents-md
+    prompt: >-
+      Our AGENTS.md has grown to 400 lines and agents keep missing the important rules. Tighten it.
+    expect: invoke
+    rationale: The user is asking to prune and restructure an agent-facing instruction file.
+
+  - id: human-readme
+    prompt: >-
+      Write a README for this package.
+    expect: skip
+    rationale: A README is human-facing documentation, which this skill excludes.
+
+  - id: code-comments
+    prompt: >-
+      Add comments explaining what this function does.
+    expect: skip
+    rationale: Code comments are excluded from this skill's scope.
+
+  - id: commit-message
+    prompt: >-
+      Draft a commit message for these changes.
+    expect: skip
+    rationale: Commit messages are excluded from this skill's scope.
+
+  - id: implement-software-agent
+    prompt: >-
+      Implement an agent that polls the job queue and retries failed jobs with backoff.
+    expect: skip
+    rationale:
+      The user wants software implemented; "agent" here is program code, not an instruction file.
+
+  - id: conceptual-agents-md-question
+    prompt: >-
+      What is the difference between AGENTS.md and CLAUDE.md?
+    expect: skip
+    rationale: The user is asking a conceptual question, not creating, editing, or reviewing a file.
+
+  - id: add-terminology-term
+    prompt: >-
+      Add a "staging lane" entry to the terminology table in our AGENTS.md.
+    expect: skip
+    rationale:
+      Terminology-section content is owned by a terminology workflow, which this skill excludes.
+
+  - id: ci-workflow-instructions
+    prompt: >-
+      Update the GitHub Actions workflow so the deploy job runs after tests pass.
+    expect: skip
+    rationale:
+      A CI workflow configures automation infrastructure; it is not a file that instructs agents.
