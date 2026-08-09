@@ -2,17 +2,17 @@
 
 ![Git Workflows plugin logo](assets/logo.png)
 
-Skills for creating Conventional Commits and driving GitHub or GitLab change requests from
-operational preparation through automated review and verified merge cleanup.
+These skills create Conventional Commits and drive GitHub or GitLab change requests from operational
+preparation through automated review and verified merge cleanup.
 
 `address-pr-feedback` requires the `engineering-workflows` plugin so it can apply
 `engineering-workflows:receiving-feedback`.
 
-`commit` may be invoked implicitly. The three change-request skills are manual-only and stop at
-explicit handoffs instead of automatically chaining into the next workflow.
+An agent can invoke `commit` implicitly. The three change-request skills are manual-only; each stops
+at an explicit hand off instead of a chain into the next workflow.
 
 Conflict resolution is intentionally outside these lifecycle skills; `create-pr` and `merge-pr` stop
-and report when merging or rebasing would require it.
+and report when a merge or a rebase would require it.
 
 ## Skills
 

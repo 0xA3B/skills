@@ -1,11 +1,11 @@
 # Writing
 
-Writing disciplines for the documents agents and humans read, plus chat output styles for Claude
-Code sessions.
+This plugin ships writing disciplines for the documents agents and humans read, plus chat output
+styles for Claude Code sessions.
 
-Both skills may be invoked implicitly: `agent-instructions` whenever a session writes or revises
-agent-facing instruction files, and `documentation` whenever it writes or revises human-facing
-project documentation.
+An agent can invoke both skills implicitly: `agent-instructions` when a session writes or revises
+agent-facing instruction files, and `documentation` when it writes or revises human-facing project
+documentation.
 
 ## Skills
 
@@ -14,7 +14,7 @@ project documentation.
 - `documentation`: Simplified Technical English wording and Google developer style formatting for
   human-facing documentation — READMEs, guides, runbooks, reference prose, and release notes.
 
-## Output Styles
+## Output styles
 
 Output styles apply to chat responses only and materialize in Claude Code; Codex ignores them.
 
