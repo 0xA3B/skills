@@ -1,9 +1,9 @@
-# Project Overview
+# Project Instructions
 
 ## Purpose
 
 This repository maintains reusable AI-agent skills and workflow guidance that can be installed,
-evaluated, and improved over time. Changes should preserve these outcomes:
+evaluated, and improved over time. Preserve these outcomes:
 
 - Skill instructions remain portable, durable, and useful across agent sessions.
 - Plugin distribution stays valid for both Claude Code and Codex through plugin bundles under
@@ -27,28 +27,22 @@ evaluated, and improved over time. Changes should preserve these outcomes:
 
 ## Project Conventions
 
+- Use Conventional Commits.
 - Keep tests co-located in `src/`.
 - `.node-version` is the canonical Node version; `package.json#packageManager` is the canonical pnpm
   version.
-- Use `mise exec --` in non-interactive shells when the command relies on a runtime tool managed by
-  mise.
+- When a command relies on a runtime tool managed by mise, run it with `mise exec --` in
+  non-interactive shells.
 - Use the `package.json` script surface for validation and formatting instead of raw tool commands.
 - Use `pnpm run check` as the default full local gate.
 - Use the smallest relevant targeted script when narrowing validation.
-- Scripts with the `check` suffix should be non-mutating.
+- Keep `check`-suffixed scripts non-mutating.
 - Keep README user-facing and lightweight.
 - Keep AGENTS files lean, agent-facing, and limited to durable guidance that affects most work. Put
   conditional detail behind clear pointers, and avoid temporary notes or restating configuration
   that agents can inspect directly.
 - Treat `AGENTS.md` as canonical agent guidance; sibling `CLAUDE.md` files must import `@AGENTS.md`
   and may add Claude-specific guidance only when it doesn't belong in `AGENTS.md`.
-
-## Commit Conventions
-
-- Commits must follow
-  [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification).
-- Include a `scope` when it meaningfully improves clarity.
-- Partition changes into separate commits by type, scope, or rollback boundary when feasible.
 
 ## Dependency Policy
 
@@ -78,16 +72,6 @@ Use this section for durable domain terms that should guide future work in this 
 update entries when a term becomes stable during adversarial review, architecture review, or
 implementation.
 
-When maintaining the terminology:
-
-- Prefer the canonical term used by domain experts or project maintainers.
-- Define what the term is in one tight sentence.
-- List aliases to avoid when multiple words could refer to the same concept.
-- Flag ambiguous words when the same word is used for different concepts.
-- Include relationships between terms when they clarify ownership, lifecycle, or cardinality.
-- Skip generic programming terms and incidental class, function, or module names unless they are
-  part of the domain language.
-
 | Term                         | Definition                                                                                                                                                                                                    | Aliases to Avoid          |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | **Skills repository**        | This repository, which maintains reusable agent skills and publishes the current Claude Code and Codex distribution surfaces.                                                                                 | plugin repo, package      |
@@ -107,34 +91,21 @@ When maintaining the terminology:
 | **Manual-only skill**        | A skill with `allow_implicit_invocation: false` and `disable-model-invocation: true`; it should be invoked explicitly by the user.                                                                            | disabled skill            |
 | **Implicit invocation**      | An agent automatically loading a skill because the user prompt matches the skill description.                                                                                                                 | auto-trigger              |
 | **Hand off**                 | A workflow boundary where the current skill stops, summarizes transfer context, and recommends the next explicit skill.                                                                                       | auto-invoke, delegate     |
-| **Handoff document**         | An ignored local continuation artifact that preserves session-specific decisions, state, pointers, and next actions for a fresh agent session.                                                                | project documentation     |
 | **Trigger fixture**          | A committed YAML file of positive and negative cases used to evaluate implicit invocation behavior.                                                                                                           | skill test                |
 | **Trigger eval**             | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code).                                          | validation gate           |
 | **Eval lane**                | The per-agent adapter a trigger eval runs through, owning that agent's staging, case execution, and invocation observations. Distinct from a **Review lane**, which is a focused review pass.                 | review lane, harness      |
 | **Invocation signal**        | The observed evidence that the agent invoked the target skill: an eval canary in Codex output, Claude Code Skill tool events, or legacy Codex skill-injection telemetry as a secondary signal.                | telemetry                 |
 | **Eval canary**              | An eval-only token injected into a staged skill copy so its appearance in agent output proves invocation: body-only for plugin skills, description-rewrite for repo-local skills on Codex.                    | invocation signal         |
-| **Eval artifact**            | Generated trigger-eval output under `.local/skill-evals/`, not committed project state.                                                                                                                       | fixture                   |
-| **Behavior pressure test**   | A manual or ad hoc check that runs a loaded skill against realistic shortcut pressure to see whether the skill changes agent behavior.                                                                        | trigger eval, fixture     |
-| **Pressure prompt**          | A temporary prompt used in a behavior pressure test to make an agent want to skip, soften, or rationalize around a workflow rule.                                                                             | trigger fixture           |
 | **Plugin linter**            | The local validator behind `pnpm lint:plugins`, covering marketplace, manifest, skill, and metadata consistency.                                                                                              | validator                 |
 | **External validation**      | Opt-in network or remote URL checks run separately from default local plugin linting.                                                                                                                         | normal linting            |
 | **Review lane**              | A focused review pass over the same target with one intent, such as code review, simplification, codebase design, API/seam review, test review, or spec adherence.                                            | review scope              |
 | **Decision map**             | The tracker-neutral output of Wayfinder: a destination, known ground, decision-sized chunks, dependencies, frontier, unresolved fog, and excluded scope.                                                      | ticket list, spec         |
 | **Frontier**                 | The precise, unblocked chunks on a Decision map that are useful to start next.                                                                                                                                | backlog                   |
-| **Wayfinder**                | A breadth-first, read-only workflow that turns a loose or oversized idea into a Decision map without resolving or implementing its chunks.                                                                    | brainstorm, idea list     |
-| **Grill Me**                 | A depth-first convergence workflow that stress-tests a plan, decision, idea, or design until the user confirms shared understanding.                                                                          | plan                      |
-| **Prototype**                | A disposable executable artifact used to answer one design question before real implementation.                                                                                                               | build, spike              |
-| **Build**                    | The implementation workflow that delivers working vertical slices with pragmatic validation while interfaces settle.                                                                                          | prototype                 |
-| **TDD**                      | The implementation workflow that delivers behavior through red-green-refactor cycles.                                                                                                                         | testing phase             |
 | **Diagnostic**               | A structured plugin-linter finding with a code, file, message, and pointer.                                                                                                                                   | error string              |
 | **Validation context**       | The shared lint-run state passed through plugin-linter checks instead of module-level mutable globals.                                                                                                        | globals                   |
 | **Metadata surface**         | Any file that exposes plugin or skill metadata and must stay aligned with adjacent surfaces.                                                                                                                  | docs                      |
 | **Default prompt**           | A suggested prompt shown by Codex for invoking a plugin or skill.                                                                                                                                             | description               |
 | **Trigger contract**         | The `description` text that defines when a skill should be implicitly invoked.                                                                                                                                | skill summary             |
-| **Change request**           | A forge-hosted proposal to integrate a topic branch into a target branch, called a pull request on GitHub and a merge request on GitLab.                                                                      | PR/MR                     |
-| **Review adapter**           | Bot- and forge-specific instructions for observing and advancing one automated review protocol.                                                                                                               | review bot                |
-| **Available adapter**        | A review adapter shipped with a skill and therefore eligible for selection.                                                                                                                                   | configured adapter        |
-| **Active adapter**           | An available adapter selected for one invocation through explicit input or reliable repository and prior-change-request evidence.                                                                             | enabled adapter           |
 
 Relationships:
 
@@ -146,32 +117,10 @@ Relationships:
   skills**.
 - A **Plugin skill** owns one **Skill body**, plus one **Codex UI metadata** file when the plugin
   targets Codex.
-- A **Hand off** recommends an explicit **Manual-only skill** invocation; it does not automatically
-  load another skill.
-- A **Handoff document** preserves a **Hand off** across agent sessions without becoming committed
-  project state.
-- A **Skill body** may direct the model to use another skill only when the referenced skill is
-  implicitly invokable; manual-only skills are referenced through a **Hand off** instead.
-- **Wayfinder** produces a **Decision map** whose **Frontier** routes focused chunks to later
-  research, questioning, prototyping, or implementation workflows.
-- **Wayfinder** and **Grill Me** can hand off unresolved executable questions to **Prototype**.
-- **Prototype** can hand off a validated decision to **Build** or **TDD**.
-- **Wayfinder** can hand off a frontier decision to **Grill Me**; **Grill Me** can hand off a
-  sufficiently resolved approach to **Build** or **TDD**.
-- A **Repo-local skill** is exposed to Claude Code as a project skill through the `.claude/skills`
-  symlink.
 - A **Trigger eval** runs **Trigger fixtures** against one implicitly invokable **Plugin skill** or
   **Repo-local skill** on one agent; **Trigger fixtures** are shared across agents.
 - A **Trigger eval** executes through exactly one **Eval lane**, the adapter for the selected agent.
-- **Eval artifacts** are generated under `.local/` and should not be committed.
-- A **Behavior pressure test** evaluates behavior after a skill is loaded; it does not evaluate
-  whether the skill should load.
-- **Pressure prompts** are temporary by default and should not become **Trigger fixtures** unless
-  the repository intentionally adds repeatable behavior regression coverage.
 - **Plugin linter** checks are local and deterministic by default; **External validation** is
   opt-in.
 - A **Review lane** separates review intent from review scope; scope belongs to the invoking review
   workflow.
-- A **Change request** is a pull request in a GitHub lane and a merge request in a GitLab lane.
-- An **Active adapter** is selected from one or more **Available adapters**; only active adapters
-  run during an automated-review workflow.
