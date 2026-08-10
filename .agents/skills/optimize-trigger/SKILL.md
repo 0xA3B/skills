@@ -118,7 +118,9 @@ cases where loaded repository instructions should affect the trigger boundary, s
    `mise exec -- pnpm eval:trigger:marketplace -- plugins/<plugin>/skills/<skill> [more paths] --agent both`.
    This stages the full marketplace, so every catalog description competes in context, but runs only
    the named skills' fixtures. A selected skill whose plugin ships in only one agent's catalog is
-   skipped with a notice on the other agent's lane.
+   skipped with a notice on the other agent's lane. When the selection names exactly one skill,
+   `--case <id>` and `--fixture <path>` narrow the run further — the cheap retest for one flaky case
+   under full-marketplace staging.
 
    Trigger cases run with bounded parallelism by default. When the target fixture needs a slower or
    faster run than the default concurrency of 3, use `--concurrency <n>`. The default per-case

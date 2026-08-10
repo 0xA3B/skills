@@ -60,18 +60,26 @@ export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOption
     options.force = true;
   }
 
-  if (selection.mode !== "skill") {
-    // Suite runs iterate whole fixture files per skill and already exclude manual-only skills, so
-    // the per-skill narrowing flags have no coherent meaning there.
+  // The per-skill narrowing flags need exactly one target skill. Besides single-skill runs, a
+  // marketplace selection of one skill qualifies: that is the retest path for a single case under
+  // full-marketplace staging. Multi-skill suites have no coherent per-skill narrowing.
+  const narrowsToOneSkill =
+    selection.mode === "skill" ||
+    (selection.mode === "marketplace" && selection.skillPaths.length === 1);
+  if (!narrowsToOneSkill) {
     for (const [flag, present] of [
       ["--fixture", options.fixturePath !== undefined],
       ["--case", options.caseId !== undefined],
-      ["--force", options.force === true],
     ] as const) {
       if (present) {
-        throw new Error(`${flag} applies to single-skill runs, not --plugin or --marketplace.`);
+        throw new Error(
+          `${flag} requires one target skill: pass a single skill path, or --marketplace with exactly one skill path.`,
+        );
       }
     }
+  }
+  if (selection.mode !== "skill" && options.force === true) {
+    throw new Error("--force applies to single-skill runs, not --plugin or --marketplace.");
   }
 
   return { ...options, agents, selection };
@@ -150,8 +158,9 @@ export function usage(): string {
     "                             marketplace, so cross-plugin trigger overlap is exercised. Pass",
     "                             skill paths to run only those skills' fixtures with the full",
     "                             marketplace still staged.",
-    "  --fixture <path>           Use a fixture file other than evals/triggers.yaml.",
-    "  --case <id>                Run one trigger fixture case.",
+    "  --fixture <path>           Use a fixture file other than evals/triggers.yaml. Requires one",
+    "                             target skill.",
+    "  --case <id>                Run one trigger fixture case. Requires one target skill.",
     "  --model <model>            Model override. Defaults: codex gpt-5.6-sol, claude opus.",
     "  --effort <effort>          Reasoning effort override. Defaults to medium.",
     "  --timeout-ms <ms>          Per-case timeout. Defaults to 60000.",

@@ -108,16 +108,53 @@ describe("parseTriggerEvalCliOptions", () => {
     );
   });
 
-  it("rejects per-skill narrowing flags in suite modes", () => {
+  it("rejects per-skill narrowing flags without exactly one target skill", () => {
     expect(() =>
       parseTriggerEvalCliOptions(["--plugin", "plugins/foo", "--case", "case-a"]),
-    ).toThrow("--case applies to single-skill runs, not --plugin or --marketplace.");
-    expect(() => parseTriggerEvalCliOptions(["--marketplace", "--fixture", "custom.yaml"])).toThrow(
-      "--fixture applies to single-skill runs, not --plugin or --marketplace.",
+    ).toThrow(
+      "--case requires one target skill: pass a single skill path, or --marketplace with exactly one skill path.",
     );
+    expect(() => parseTriggerEvalCliOptions(["--marketplace", "--fixture", "custom.yaml"])).toThrow(
+      "--fixture requires one target skill: pass a single skill path, or --marketplace with exactly one skill path.",
+    );
+    expect(() =>
+      parseTriggerEvalCliOptions([
+        "--marketplace",
+        "plugins/foo/skills/bar",
+        "plugins/baz/skills/qux",
+        "--case",
+        "case-a",
+      ]),
+    ).toThrow(
+      "--case requires one target skill: pass a single skill path, or --marketplace with exactly one skill path.",
+    );
+  });
+
+  it("accepts narrowing flags with a single-skill marketplace selection", () => {
+    expect(
+      parseTriggerEvalCliOptions([
+        "--marketplace",
+        "plugins/foo/skills/bar",
+        "--case",
+        "case-a",
+        "--fixture",
+        "custom.yaml",
+      ]),
+    ).toStrictEqual({
+      agents: ["codex"],
+      selection: { mode: "marketplace", skillPaths: ["plugins/foo/skills/bar"] },
+      caseId: "case-a",
+      fixturePath: "custom.yaml",
+    });
+  });
+
+  it("rejects --force in every suite mode", () => {
     expect(() => parseTriggerEvalCliOptions(["--marketplace", "--force"])).toThrow(
       "--force applies to single-skill runs, not --plugin or --marketplace.",
     );
+    expect(() =>
+      parseTriggerEvalCliOptions(["--marketplace", "plugins/foo/skills/bar", "--force"]),
+    ).toThrow("--force applies to single-skill runs, not --plugin or --marketplace.");
   });
 
   it("rejects unknown agents", () => {
