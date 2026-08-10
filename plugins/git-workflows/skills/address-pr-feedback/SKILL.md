@@ -138,11 +138,7 @@ session-only counters or assumptions.
 Report the current source head, active adapters, rounds completed, feedback dispositions, thread
 resolution, required CI state, and one terminal status per adapter.
 
-When every active adapter is `approved`, stop and recommend:
-
-```text
-$git-workflows:merge-pr
-```
+When every active adapter is `approved`, stop and recommend invoking `git-workflows:merge-pr` next.
 
 For `resolved-with-exceptions`, include every exception and the missing green signal in the same
 hand off. The user decides whether to rerun this skill or explicitly invoke `merge-pr`. For

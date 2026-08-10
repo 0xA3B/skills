@@ -75,13 +75,10 @@ Wait through required CI using ten minutes without observable job, step, log, or
 soft inactivity timeout. Continue while CI is clearly advancing. Stop immediately on failure or
 error. Do not troubleshoot CI in this workflow.
 
-When target drift makes the branch unmergeable or requires new commits, stop and recommend:
+When target drift makes the branch unmergeable or requires new commits, stop and recommend invoking
+`git-workflows:create-pr` next.
 
-```text
-$git-workflows:create-pr
-```
-
-After any head change, recommend an explicit `$git-workflows:address-pr-feedback` round before
+After any head change, recommend an explicit `git-workflows:address-pr-feedback` round before
 returning to this skill.
 
 ## Merge method
