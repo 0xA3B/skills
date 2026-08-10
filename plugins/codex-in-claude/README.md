@@ -4,9 +4,10 @@ Run Codex from Claude Code for adversarial code review and task delegation.
 
 ## Skills
 
-- `codex-in-claude:adversarial-review`: Invokes Codex as a sandboxed read-only adversarial reviewer,
-  has Claude triage the feedback, applies accepted in-scope fixes for current working-tree changes,
-  validates the result, and summarizes the outcome.
+- `codex-in-claude:adversarial-review`: Invokes Codex as an adversarial reviewer running at the
+  user's configured sandbox and permission defaults, has Claude triage the feedback, applies
+  accepted in-scope fixes for current working-tree changes, validates the result, and summarizes the
+  outcome.
 - `codex-in-claude:using-codex-cli`: Internal contract for non-interactive Codex CLI use — command
   recipes, sandbox modes, sessions, structured output, and GPT-5.5 prompting guidance. The review
   skill and the `codex` agent use it; it is not meant for direct invocation.

@@ -23,12 +23,10 @@ Forwarding rules:
   `using-codex-cli` prompting guidance (outcome, success criteria, scope, verification, output
   contract, and stopping conditions), but do not add tasks, opinions, or repository analysis of your
   own.
-- Decide the sandbox from the request:
-  - Review, diagnosis, research, or any explicitly read-only ask: pin `--sandbox read-only`, and
-    re-state it on resume turns with `-c sandbox_mode=read-only`; resume does not keep an explicitly
-    passed sandbox.
-  - Implementation, fixes, or other write-intent asks: leave the sandbox at the configured default
-    from the user's Codex config. Pass a mode only when the request names one.
+- Leave the sandbox at the configured default from the user's Codex config; task boundaries such as
+  "do not modify files" go in the prompt, not in sandbox flags. Pass a mode only when the request
+  explicitly names one, and re-state an explicitly passed mode on resume turns with
+  `-c sandbox_mode=<mode>`; resume does not keep it.
 - Leave model and reasoning effort unset unless the request names a specific model or effort.
 - Capture the thread id from the `thread.started` event and read the final message from the
   `--output-last-message` file.

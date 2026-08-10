@@ -15,7 +15,7 @@ compatibility:
 # Using the Claude CLI
 
 This skill owns the mechanics of running Claude Code non-interactively: command shapes, models,
-effort, sessions, structured output, and permission recipes. The caller owns the task contract: what
+effort, sessions, structured output, and permission posture. The caller owns the task contract: what
 Claude is asked to do, the scope, and how its output is used.
 
 ## CLI basics
@@ -61,59 +61,37 @@ Claude is asked to do, the scope, and how its output is used.
   `--output-format json` result. Check whether the work actually completed before acting, and
   reissue a fresh run rather than guessing at a session to resume.
 
-## Review and research recipe
+## Command shape and permission posture
 
-Use this shape for review, diagnosis, or research where Claude may inspect the repository and run
-task-scoped checks but should not intentionally edit project files or Git state:
+Use this shape for every delegated turn, review and implementation alike:
 
 ```bash
 claude -p "$PROMPT" \
-  --permission-mode auto \
-  --tools "Read,Glob,Grep,Bash,Agent" \
-  --disallowedTools "Edit,Write,NotebookEdit,mcp__*" \
-  --output-format json
-```
-
-This is a practical review posture, not a hard filesystem read-only boundary. Disabling Claude's
-editor tools removes its normal direct-edit path, while `auto` lets Claude's classifier and the
-user's configured permissions evaluate Bash commands without interactive prompts. Bash can still
-write, and tests, linters, or builds may create normal caches or generated artifacts. The `mcp__*`
-deny matters because `--tools` restricts only built-in tools: without it, configured MCP servers
-stay callable and `auto` could approve reads or writes against external systems, which is outside
-the repository-review scope this recipe promises.
-
-State the allowed actions in the prompt. Permit repository inspection and the smallest tests,
-linters, or build checks needed to investigate candidate findings; prefer check-only modes when
-available. Tell Claude not to run formatters, fix modes, or commands intended to change project
-files or Git state. `Agent` is allowed so Claude may use subagents when they materially help the
-task; the allowlist and deny list also govern subagent tool surfaces, so subagents cannot edit files
-or reach MCP tools either. Do not use subagents solely to probe permission behavior, and do not test
-permission boundaries with commands that would be destructive if approved; report an unvalidated
-boundary instead. Preserve important local work first when the working tree is not recoverable.
-
-## Write-capable recipe
-
-Use this shape when the caller intends Claude to change files, such as a delegated implementation or
-fix task:
-
-```bash
-claude -p "$TASK_PROMPT" \
   --output-format json
 ```
 
 - The command sets no permission flags on purpose: Claude runs with the user's configured permission
-  defaults, which are treated as the intended write posture. Add `--permission-mode` only when the
-  user explicitly requests one.
+  defaults, which are the intended posture for every task shape. Task boundaries live in the prompt;
+  sandbox and permission hardening lives in the user's Claude settings, not in flags this skill
+  chooses for them. Add `--permission-mode` or tool filters only when the user explicitly requests
+  them.
 - Treat a permission denial as a failure to report, not a boundary to work around: it means the
-  configured defaults do not cover the task's writes non-interactively, and the fix is the user
-  adjusting their Claude settings or naming a permission mode. Never use
-  `--dangerously-skip-permissions`; an escalated run has no outer sandbox, so Claude's permission
-  system is the only boundary left.
-- State the intended change scope in the prompt and validate Claude's changes after the run; a
-  write-capable Claude run is a delegation, not an oracle.
+  configured defaults do not cover the task non-interactively, and the fix is the user adjusting
+  their Claude settings or naming a permission mode. Never use `--dangerously-skip-permissions`; an
+  escalated run has no outer sandbox, so Claude's permission system is the only boundary left.
+- State the task boundary in the prompt. For review, diagnosis, or research, permit repository
+  inspection and the smallest tests, linters, or build checks needed to investigate candidate
+  findings, prefer check-only modes when available, and tell Claude not to intentionally modify
+  project files or Git state — no formatters, fix modes, commits, or commands intended to change
+  tracked files, though validation runs may write normal caches or generated artifacts.
+- For write-intent tasks, state the intended change scope in the prompt and validate Claude's
+  changes after the run; a write-capable Claude run is a delegation, not an oracle.
+- Do not test permission boundaries with commands that would be destructive if approved; report an
+  unvalidated boundary instead. Preserve important local work first when the working tree is not
+  recoverable.
 
-When either recipe changes, apply the same change to `references/claude-agent.toml`, which inlines
-both recipes for the copyable Codex proxy agent.
+When this recipe changes, apply the same change to `references/claude-agent.toml`, which inlines it
+for the copyable Codex proxy agent.
 
 ## Prompting Claude
 
