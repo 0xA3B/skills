@@ -53,8 +53,8 @@ selection:
 - [GITHUB.md](references/GITHUB.md)
 - [GITLAB.md](references/GITLAB.md)
 
-This skill is adapter-blind. Adapter-specific outcomes belong to `address-pr-feedback` and its
-handoff. Enforce adapter approval only when the forge exposes it as a required check or approval.
+This skill is adapter-blind. Adapter-specific outcomes belong to `address-pr-feedback` and its hand
+off. Enforce adapter approval only when the forge exposes it as a required check or approval.
 
 ## Pre-merge gate
 
@@ -67,7 +67,7 @@ Before merging, require:
 - a forge source head matching the reviewed and local source head;
 - all required CI passing on that head;
 - all required approvals present and no blocking review decision;
-- every review thread resolved, including threads from unknown or non-active adapters;
+- every review thread resolved, regardless of author;
 - a mergeable result under repository policy;
 - a clean local worktree for any post-merge mutation.
 
@@ -81,34 +81,22 @@ When target drift makes the branch unmergeable or requires new commits, stop and
 $git-workflows:create-pr
 ```
 
-Any changed head must later pass `address-pr-feedback` again.
+After any head change, recommend an explicit `$git-workflows:address-pr-feedback` round before
+returning to this skill.
 
 ## Merge method
 
-Select the method in this order:
+When selecting the method, read [MERGE-METHOD.md](../../references/MERGE-METHOD.md) and apply its
+selection order and durable-SHA search.
 
-1. repository-enforced policy;
-2. explicit user choice;
-3. true fast-forward when supported;
-4. rebase when linear history is preferred and commit identity is disposable;
-5. merge commit when the topic is shared, signed commits or stable identities matter, durable files
-   reference topic commits, or rebase is unsuitable;
-6. squash only when explicitly justified by one semantic unit or unusable topic history.
+If the repository forbids the merge commit that a durable match requires, stop for a user decision.
+Inspect ignored text only when repository guidance, the invocation, or the `create-pr` hand off
+identifies a local artifact; record matching paths and SHAs without crawling ignored trees. Their
+presence does not block rebase.
 
-Before choosing rebase or squash, search tracked and non-ignored untracked text for exact full or
-unambiguous abbreviated topic SHAs. Start with changed files and likely durable surfaces such as
-documentation, changelogs, configuration, and release metadata, then use bounded repository-aware
-text search. Exclude binary, generated, dependency, and cache trees. If credible coverage is
-impractical, select a merge commit and report the uncertainty.
-
-Treat a durable match as a commit-identity requirement and use a merge commit. If the repository
-forbids merge commits, stop for a user decision. Inspect ignored text only when repository guidance,
-the invocation, or the `create-pr` handoff identifies a local artifact; record matching paths and
-SHAs without crawling ignored trees. Their presence does not block rebase.
-
-Merge through the forge with a head-SHA match guard. Do not enable ordinary auto-merge. If the
-repository requires a merge queue, enqueue only after current gates pass, then wait up to ten
-minutes for the forge to report the actual merge. A queue timeout reports `queued, not merged` and
+Merge through the forge with a head-SHA match guard. If the repository requires a merge queue,
+enqueue only after current gates pass, then wait up to ten minutes — the queue timeout — for the
+forge to report the actual merge. Reaching the queue timeout reports `queued, not merged` and
 performs no cleanup.
 
 ## Remote verification
@@ -119,8 +107,8 @@ After the forge reports success:
 2. verify the request is merged, not merely closed or queued;
 3. verify the target contains the expected merge result under the selected method;
 4. record the resulting target and merge commit identities;
-5. verify the remote topic branch was deleted;
-6. if it still exists and permissions allow, delete it only after steps 1–4 succeed.
+5. check whether the remote topic branch still exists;
+6. if it exists and permissions allow, delete it only after steps 1–4 succeed.
 
 Do not infer success from a CLI exit code alone.
 

@@ -7,7 +7,7 @@ use an equivalent CLI or API path that preserves the invariant and report the de
 
 ## Inspect native gates
 
-- Follow loaded authentication and environment guidance before mutating `glab` operations.
+- Follow loaded account-routing guidance before identity-sensitive or mutating `glab` operations.
 - Inspect `glab mr view <mr> --output json` and use `glab api` for fields the CLI omits, including
   source SHA, target branch, draft state, detailed merge status, blocking discussions, pipeline,
   approvals, merge trains, and project merge policy.

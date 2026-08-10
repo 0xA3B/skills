@@ -30,17 +30,11 @@ Do not call an exception, timeout, or stale approval green.
 
 ## Required feedback discipline
 
-This skill has a runtime dependency on `engineering-workflows:receiving-feedback`. Confirm that the
-skill is available before triage. If it is absent, stop and report that the `engineering-workflows`
-plugin must be installed or enabled. Do not duplicate a weaker fallback.
+Before triage, confirm `engineering-workflows:receiving-feedback` is available. If it is absent,
+stop and report that the `engineering-workflows` plugin must be installed or enabled.
 
-Apply `engineering-workflows:receiving-feedback` to every finding. In particular:
-
-- verify before accepting;
-- automatically fix only low-risk findings permitted by that discipline;
-- present gated decisions one at a time;
-- reject invalid feedback with technical evidence;
-- stop when feedback conflicts with the user or durable repository direction.
+Apply `engineering-workflows:receiving-feedback` to every finding. This invocation permits fixing
+only the low-risk findings that discipline marks `auto-accepted`; gate everything else.
 
 ## Authority and boundaries
 
@@ -98,8 +92,8 @@ thread as a user gate unless the invocation already authorized handling unknown 
 Poll once per minute. Each adapter defines which signals count as acknowledgment, progress,
 findings, and current-head approval.
 
-Use ten minutes without adapter-defined activity as a soft timeout. Reset the timer only for a
-recognized adapter state transition tied to the current review round or source head. Unrelated
+Use ten minutes without adapter-defined activity as the inactivity timeout. Reset the timer only for
+a recognized adapter state transition tied to the current review round or source head. Unrelated
 comments, stale reactions, and old approvals do not reset it. A terminal response ends the wait
 immediately.
 
@@ -151,5 +145,5 @@ $git-workflows:merge-pr
 ```
 
 For `resolved-with-exceptions`, include every exception and the missing green signal in the same
-handoff. The user decides whether to rerun this skill or explicitly invoke `merge-pr`. For
+hand off. The user decides whether to rerun this skill or explicitly invoke `merge-pr`. For
 `timed-out` or `blocked`, do not suggest that the review gate passed.

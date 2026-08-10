@@ -3,15 +3,18 @@
 Use this reference only after selecting a GitLab remote.
 
 Commands and fields below are exemplars of the stated invariants. If the installed CLI lacks one,
-use an equivalent CLI or API path that preserves the invariant and report the deviation.
+use an equivalent CLI or API path that preserves the invariant and report the deviation. `<topic>`
+is the topic branch name and `<mr>` is the merge request number; `glab` accepts the branch name
+wherever it accepts a number.
 
 ## Inspect
 
-- Follow loaded authentication and environment guidance before mutating `glab` operations.
+- Follow loaded account-routing guidance before identity-sensitive or mutating `glab` operations.
 - Resolve project defaults and merge policy through `glab api` when `glab mr view` does not expose
   enough project metadata.
 - Resolve an existing merge request by branch with `glab mr view <branch> --output json`.
-- Treat the merge request's source-branch SHA as the published source-head identity.
+- Treat the merge request's `sha` field from `glab mr view <topic> --output json` as the published
+  source-head identity.
 
 ## Create or refresh
 
@@ -40,8 +43,10 @@ Inspect the source branch's current pipeline with:
 glab ci status --branch <topic> --output json
 ```
 
-Use `glab api` when the CLI summary cannot distinguish pipeline or job progress. A running job whose
-steps or trace continue advancing may exceed the core ten-minute inactivity threshold.
+A pipeline status of `failed` or `canceled` is terminal; `running`, `pending`, or `created` needs
+progress evidence before extending the wait. Use `glab api` when the CLI summary cannot distinguish
+pipeline or job progress. A running job whose steps or trace continue advancing may exceed the core
+workflow's inactivity threshold.
 
 ## GitLab merge semantics
 

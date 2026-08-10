@@ -16,20 +16,23 @@ The adapter does not initiate the first review merely because this skill was inv
 
 Treat a Codex 👀 reaction associated with the pull request or its trigger as acknowledgment and
 activity, not approval. The reaction may be transient. If neither acknowledgment nor a current-head
-review appears before the core inactivity timeout, return `timed-out` and report that the repository
-or automatic-review configuration may need checking.
+review appears before the inactivity timeout, return `timed-out` and report that the repository or
+automatic-review configuration may need checking.
 
 ## Findings and approval
 
 Inspect:
 
 ```text
-gh api repos/{owner}/{repo}/pulls/{number}/reviews
-gh api repos/{owner}/{repo}/pulls/{number}/comments
-gh api repos/{owner}/{repo}/issues/{number}/comments
-gh api repos/{owner}/{repo}/issues/{number}/reactions
-gh pr view {number} --json headRefOid,mergeStateStatus,statusCheckRollup
+gh api repos/{owner}/{repo}/pulls/<pr>/reviews
+gh api repos/{owner}/{repo}/pulls/<pr>/comments
+gh api repos/{owner}/{repo}/issues/<pr>/comments
+gh api repos/{owner}/{repo}/issues/<pr>/reactions
+gh pr view <pr> --json headRefOid,mergeStateStatus,statusCheckRollup
 ```
+
+`gh` resolves `{owner}` and `{repo}` from the current repository; substitute the pull request number
+for `<pr>` yourself.
 
 Findings appear as a Codex review plus inline review comments. Track inline comment IDs and review
 thread IDs. GitHub may re-anchor unresolved comments to a newer commit, so `commit_id` is not a
@@ -43,9 +46,13 @@ requirement.
 
 Bind the 👍 to a head before trusting it. When the current head is the only head the pull request
 has ever had, the 👍 binds to that head. After any push, a pre-existing 👍 is stale; request a new
-round and require a new terminal signal for the new head. Never reuse an approval for an older head.
+round and require a new terminal signal for the new head.
 
 ## Responses and thread resolution
+
+Query review threads through `gh api graphql` and act through its mutations —
+`addPullRequestReviewThreadReply` to reply and `resolveReviewThread` to resolve, both fed by the
+thread `id` from that query. `gh` has no native subcommand for either action.
 
 Apply the shared feedback discipline before acting. After disposition:
 

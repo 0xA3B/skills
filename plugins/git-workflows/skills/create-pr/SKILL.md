@@ -24,8 +24,6 @@ authorization, validation, or forge state prevent that outcome.
 
 ## Authority and boundaries
 
-- Create a topic branch when the current branch is the target branch.
-- Apply `git-workflows:commit` to intended uncommitted changes before publishing.
 - Push normally after validation.
 - Rebase unpublished topic history when the merge policy selects rebase and the operation is
   conflict-free.
@@ -40,10 +38,12 @@ Use **Change request** for the forge-neutral object. Use **Pull request** in the
 **Merge request** in the GitLab lane.
 
 Resolve the forge from the selected remote. Support GitHub through `gh` and GitLab through `glab`;
-stop on another or ambiguous forge. After selecting the forge, read exactly one forge reference:
+stop on another or ambiguous forge. After selecting the forge, read exactly one forge lane:
 
-- [GITHUB.md](references/GITHUB.md)
-- [GITLAB.md](references/GITLAB.md)
+- GitHub remote: read [GITHUB.md](references/GITHUB.md) for `gh` inspection fields, create and
+  refresh commands, and merge semantics.
+- GitLab remote: read [GITLAB.md](references/GITLAB.md) for `glab` inspection fields, create and
+  refresh commands, and merge semantics.
 
 Resolve the target in this order:
 
@@ -73,27 +73,17 @@ target, retarget through the forge lane, refetch its metadata, and reassess its 
 mergeability. Stop for a user decision on any other mismatch; never create a duplicate. A closed or
 merged change request is not reusable without an explicit user decision.
 
+Step 1 is done when the worktree is clean on a topic branch, the resolved target is fixed, and
+either a reusable open change request is identified or none exists.
+
 ### 2. Select a merge path
 
-Select the expected merge method in this order:
+When selecting the expected merge method, read [MERGE-METHOD.md](../../references/MERGE-METHOD.md)
+and apply its selection order and durable-SHA search.
 
-1. repository-enforced policy;
-2. explicit user choice;
-3. true fast-forward when the forge supports it;
-4. rebase when linear history is preferred and commit identity is disposable;
-5. merge commit when the branch is shared, signed commits or stable commit identities matter,
-   durable files reference topic commits, or rebase is unsuitable;
-6. squash only when explicitly justified by one semantic unit or unusable branch history.
-
-Search tracked and non-ignored untracked text for exact full or unambiguous abbreviated SHAs that a
-rebase would rewrite. Start with changed files and likely durable surfaces such as documentation,
-changelogs, configuration, and release metadata, then use bounded repository-aware text search.
-Exclude binary, generated, dependency, and cache trees. If credible coverage is impractical, select
-a merge commit and report the uncertainty.
-
-Treat a durable match as a commit-identity requirement and select a merge commit. Inspect ignored
-text only when repository guidance, the invocation, or a known handoff artifact identifies it;
-record any matching local paths and SHAs for `merge-pr` cleanup rather than crawling ignored trees.
+Inspect ignored text only when repository guidance, the invocation, or a known hand-off artifact
+identifies it; record any matching local paths and SHAs for `git-workflows:merge-pr` cleanup rather
+than crawling ignored trees.
 
 Test rebase and final-merge feasibility without leaving the working branch partially rewritten. When
 rebase conflicts but the forge can merge the unchanged topic cleanly, retain the branch and select a
@@ -110,11 +100,11 @@ test set for the whole proposed change. Do not bypass hooks or weaken validation
 After validation:
 
 1. push the topic branch;
-2. create or refresh the change request through the selected forge lane;
-3. use repository templates and forge defaults for title and body;
-4. do not impose a universal description format;
-5. create a ready-for-review change request unless the user explicitly asks for a draft;
-6. record the change-request URL, target, and exact source-head SHA.
+2. create or refresh the change request through the selected forge lane, using repository templates
+   and forge defaults for title and body, ready for review unless the user explicitly asks for a
+   draft.
+
+Record the change-request URL, target, and exact source-head SHA.
 
 ### 4. Observe initial CI
 
@@ -137,11 +127,11 @@ Report:
 - local validation and initial CI state;
 - blockers or pending work.
 
-If the head was published and automated review adapters are expected, stop and recommend this exact
-next invocation:
+After publishing the head, stop and recommend this exact next invocation:
 
 ```text
 $git-workflows:address-pr-feedback
 ```
 
-If target drift later changes mergeability, rerun this skill against the existing change request.
+If target drift later changes mergeability, recommend an explicit `$git-workflows:create-pr` rerun
+against the existing change request.
