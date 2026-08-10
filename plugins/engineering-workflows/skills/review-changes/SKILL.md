@@ -36,11 +36,12 @@ the smallest relevant validation, and report concisely.
 Use the full lane workflow when the change is behavior-affecting, non-trivial, cross-cutting,
 security-sensitive, release-affecting, or explicitly requested as a full review.
 
-For every full review require the `code review` lane.
+For every full review require the content-owning lanes the diff selects, per the Lane Selection
+section of `engineering-workflows:reviewing-code`.
 
-Use the Lane Selection section of `engineering-workflows:reviewing-code` for conditional-lane
-triggers. Resolve a borderline trigger toward skipping the lane for a pre-commit worktree review,
-and select spec adherence only when the user supplies the intent source.
+Use that section for conditional-lane triggers. Resolve a borderline trigger toward skipping the
+lane for a pre-commit worktree review, and select spec adherence only when the user supplies the
+intent source.
 
 ## Review execution
 

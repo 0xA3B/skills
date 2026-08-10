@@ -2,11 +2,13 @@
 name: reviewing-code
 description: >-
   Shared review discipline for reviewing your own work through focused lanes. Use when coordinating
-  review lanes over changes this session or its user produced — a worktree, branch, PR, MR, or diff
-  — or when performing an assigned review lane such as test quality, simplification, codebase
-  design, API seams, or spec adherence. Do not use for generic requests to review arbitrary or
-  third-party code, existing reviewer feedback, first-party bug reports, implementation requests,
-  architecture-only audits, or conceptual review questions.
+  review lanes over changes this session or its user produced — a worktree, branch, PR, MR, or diff,
+  including changes to agent-instruction files such as AGENTS.md, CLAUDE.md, or SKILL.md and to
+  documentation such as READMEs — or when performing an assigned review lane such as test quality,
+  simplification, codebase design, API seams, spec adherence, or prose quality. Do not use for
+  generic requests to review arbitrary or third-party code, existing reviewer feedback, first-party
+  bug reports, implementation requests, architecture-only audits, writing or editing documentation,
+  or conceptual review questions.
 license: MIT
 metadata:
   original_author: Alex Baker
@@ -51,14 +53,27 @@ selected:
   high-risk behavior are proved.
 - [SPEC-ADHERENCE.md](references/SPEC-ADHERENCE.md): the remedy reconciles the implementation with
   an available spec, issue, PRD, acceptance criteria, or equivalent intended-behavior source.
+- [PROSE-REVIEW.md](references/PROSE-REVIEW.md): the remedy improves how changed agent-instruction
+  files or human-facing documentation read against their writing standard.
 
-Two lanes carry extra selection conditions:
+Two lanes are content-owning: `code review` owns changed code, configuration, schemas, and other
+behavior-affecting surface; `prose review` owns meaningfully changed agent-instruction files and
+human-facing documentation. A full review requires each content-owning lane whose content the diff
+changes and no content-owning lane for content the diff does not touch, so a prose-only diff runs
+without the `code review` lane.
+
+Three lanes carry extra selection conditions:
 
 - Select simplification only when the invoking workflow or the user names size, duplication, or
   expression bloat as a concern for the target; it is not a default lane.
 - Select spec adherence only when the intent source is independent of the implementation's author
   and effort; a spec written by the same author in the same effort mostly re-checks the author's
   consistency with themselves.
+- Select prose review only when the diff meaningfully changes prose — new or rewritten sections, not
+  mechanical or incidental wording edits — and only when the `writing` plugin's skills are
+  available. When the diff warrants the lane but the writing skills are absent, skip the lane and
+  state in the final report that prose review was skipped because the `writing` plugin is not
+  installed.
 
 When a finding crosses lanes, keep it in the lane that owns the primary remedy and add cross-lane
 context in the evidence. The coordinator deduplicates findings that share a mechanism or fix.
@@ -82,6 +97,9 @@ Provide every lane reviewer:
   simplification and codebase-design lanes;
 - the `engineering-workflows:codebase-design` skill body for the codebase-design and API/seam lanes,
   because some agents do not let an isolated reviewer load another skill;
+- the `writing:agent-instructions` or `writing:documentation` skill body matching each reviewed file
+  type for the prose-review lane, plus the agent-instructions review checklist reference when
+  instruction files are in scope, for the same reason;
 - [review-finding.schema.json](references/review-finding.schema.json) when structured output is
   available;
 - a prohibition on expanding scope or applying fixes.
@@ -96,8 +114,8 @@ run inherits the change, instead of adding lane instructions to one run's brief.
 Each lane returns the object defined by
 [review-finding.schema.json](references/review-finding.schema.json): `lane`, `verdict`, `summary`,
 `findings`, and `verified_sound`. Form each finding ID as the lane prefix — `CR`, `SIM`, `CBD`,
-`API`, `TEST`, or `SPEC` — a hyphen, and a number, as in `TEST-1`. When structured output is
-unavailable, report the same fields in prose.
+`API`, `TEST`, `SPEC`, or `PROSE` — a hyphen, and a number, as in `TEST-1`. When structured output
+is unavailable, report the same fields in prose.
 
 Ground findings in executed evidence: when a cheap check can demonstrate the failure — a mutation, a
 targeted test run, a command — run it and put the output, with counts and names, in `evidence`.
