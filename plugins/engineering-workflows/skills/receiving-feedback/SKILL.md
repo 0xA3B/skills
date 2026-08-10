@@ -49,6 +49,24 @@ Classify each feedback item before acting:
 - When edits are permitted, fix one coherent item or small batch at a time, then validate with the
   smallest relevant command.
 
+## Decision capture
+
+A finding rejected or deferred because of context only the authoring session holds is evidence that
+the code does not carry that context: the reviewer is a reader without the session, so every future
+reader will re-derive the same objection — or "fix" the deliberate choice and silently undo it.
+Capture the context while the author still holds it:
+
+- When a rejection rests on a deliberate decision, accepted tradeoff, or intentional limitation the
+  code does not show, record the why in the strongest surface the next actor will hit: a code
+  comment for a local constraint, a test asserting the deliberate behavior by name for behavioral
+  intent, or durable project instructions for a project-wide convention.
+- Give a valid deferred finding a TODO comment that names its trigger condition — what would make
+  the deferred work due — not just the gap.
+- State the constraint, not the review history: "X is intentionally unsupported because Y", never
+  "reviewer suggested X and we declined".
+- Capture nothing for findings the code already refutes or findings rejected as low-severity or
+  low-value; annotating every wrong or minor finding is comment bloat.
+
 ## User decisions
 
 When feedback needs human input, present one decision at a time in natural language, unless the user

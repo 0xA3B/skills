@@ -152,6 +152,13 @@ accepting the stated mechanism and fixing it yields a change that reviews well a
 Reproduce the failure before fixing it, and treat a reproduction that does not match the described
 mechanism as new information about the defect, not as a mistake in the setup.
 
+When a rejection or deferral rests on a deliberate decision the code does not show, capture the why
+in the strongest surface a future reader will hit: a comment stating the constraint, a test
+asserting the deliberate behavior, or a TODO naming the deferral's trigger condition. The reviewer
+is a reader without the authoring context, so without the capture every future reviewer re-derives
+the finding. Skip the capture for findings the code already refutes or findings rejected as
+low-value.
+
 When asking follow-up questions, reference Codex's finding IDs. Include only the context needed to
 resolve the dispute or ambiguity, such as a prior design decision, relevant code evidence, or a
 validation result.
