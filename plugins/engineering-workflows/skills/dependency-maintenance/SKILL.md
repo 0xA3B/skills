@@ -56,8 +56,11 @@ repository is silent, and say which of the two you followed when they differ.
   task.
 - Do not change runtime majors, package-manager policy, or CI setup behavior as a drive-by tooling
   refresh when the release notes or diff indicate migration work is needed.
-- Do not create or change dependency policy in this workflow. Report the gap or conflict to the user
-  at the end of the workflow.
+- Do not create or change dependency policy or updater configuration in this workflow. Updater
+  configuration is classification evidence only. When an updater defect blocks dependency PRs,
+  record the blocker, file a follow-up issue, and leave the PRs blocked; a user-authorized fix is a
+  separate task, and after it lands, reclassify the affected PRs from their refreshed heads. Report
+  the gap or conflict to the user at the end of the workflow.
 
 Allowed side effects are limited to dependency PR review, safe dependency PR merges, local
 fast-forward and install/runtime refreshes, PR labels/comments, follow-up issue creation, and
@@ -124,8 +127,9 @@ with that uncertainty visible.
 
 Classify every PR before acting:
 
-- `merge as-is`: checks are green, merge state is clean, diff scope is understood, and release-note
-  review found no required migration.
+- `merge as-is`: every check run and commit status on the head is green, merge state is clean, diff
+  scope is understood, and release-note review found no required migration. A green CI workflow with
+  any other check run or commit status pending or failed is not green.
 - `blocked`: checks, permissions, branch state, policy, or missing access prevent a safe decision.
 - `needs migration`: a breaking change or changed default likely requires code or configuration
   work.
@@ -151,7 +155,9 @@ When a PR is not merged, make the relationship easy to recover later:
 
 Follow-up issues should include:
 
-- Dependency name, old and new versions, ecosystem, and PR link.
+- For a dependency-specific issue: dependency name, old and new versions, ecosystem, and PR link.
+- For an updater or configuration investigation: the affected managers and PRs, the repository
+  policy invariant at stake, the observed status or log evidence, and reproduction or rerun steps.
 - Release-note or changelog evidence, with source links when available.
 - Expected repository impact and files, commands, or workflows likely involved.
 - Suggested next action and validation needed.
@@ -159,6 +165,10 @@ Follow-up issues should include:
 
 Do not create issues for routine minor notes or generic feature lists without a concrete reason this
 repository should care.
+
+When a blocker fix merges or a shared investigation issue closes while any dependency PR it covered
+is still open, recheck those PRs: every PR left blocked must link to an open, actionable issue. File
+a new issue for any unresolved remainder and update the PR's linked context.
 
 ### 6. Merge Ready PRs
 
@@ -168,10 +178,18 @@ Merge only through the repository's normal forge path and merge strategy. Before
 - Required checks and reviews are passing or explicitly not required by repo policy.
 - No linked blocker, migration issue, or release-note finding makes the PR unsafe as-is.
 
-Merge ready PRs serially. After each successful merge, expect the base branch to move; wait for the
-next PR's mergeability and required checks to recalculate, then re-verify it before merging. Do not
-merge multiple PRs in parallel unless the forge has an explicit merge queue or batching mechanism
-that owns that recalculation.
+Merge ready PRs serially. After each successful merge, expect the base branch to move and updater
+bots to produce new heads. A changed head or moved base invalidates the prior classification:
+classify the new head again from its effective diff against the current base — original PR bodies
+and prior release-note scope may be stale — then re-verify mergeability and checks before merging.
+Do not merge multiple PRs in parallel unless the forge has an explicit merge queue or batching
+mechanism that owns that recalculation.
+
+When an open vulnerability alert is in scope, map it to the affected dependency path and vulnerable
+range, identify which PR head actually contains the patched version, and merge that PR first.
+Require any overlapping PR recalculated afterward to retain the patched version. After merging,
+confirm the forge alert reaches its fixed state; a clean package-manager audit validates the fix but
+does not substitute for the alert closing.
 
 If merge permissions fail, inspect authentication and repository permissions before considering any
 local workaround. Do not merge locally unless the user explicitly asks for that fallback.
@@ -205,9 +223,13 @@ Treat an explicit invocation of this skill as a full maintenance pass unless the
 scope. In a full maintenance pass, inspect and refresh repo-pinned tools that dependency bots may
 not cover:
 
-- Runtime pins, package-manager pins, tool lockfiles, CI setup actions, plugin versions, and
-  repository-local updater policy.
-- Existing dependency bot coverage to avoid duplicating work.
+- Runtime pins, package-manager pins, tool lockfiles, CI setup actions, and plugin versions.
+- Existing dependency bot coverage and updater configuration, to avoid duplicating work and to
+  classify blocked PRs — not to repair updater behavior, which stays outside this workflow.
+
+Treat a newer release as actionable only when repository dependency policy permits selecting it. A
+release deferred by policy, such as one inside a cooldown window, needs no maintenance PR,
+exception, or follow-up issue unless it is an urgent security fix.
 
 If the user narrows scope to dependency PR triage only, skip tooling updates and say what was
 skipped. Otherwise, do this work after dependency PR decisions and merges are complete, keep it in a
