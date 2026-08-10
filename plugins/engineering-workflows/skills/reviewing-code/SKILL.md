@@ -4,10 +4,9 @@ description: >-
   Shared review discipline for reviewing your own work through focused lanes. Use when coordinating
   review lanes over changes this session or its user produced — a worktree, branch, PR, MR, or diff
   — or when performing an assigned review lane such as test quality, simplification, codebase
-  design, API seams, or spec adherence. Provides focused lanes, reviewer isolation, and structured
-  findings. Do not use for generic requests to review arbitrary or third-party code, existing
-  reviewer feedback, first-party bug reports, implementation requests, architecture-only audits, or
-  conceptual review questions.
+  design, API seams, or spec adherence. Do not use for generic requests to review arbitrary or
+  third-party code, existing reviewer feedback, first-party bug reports, implementation requests,
+  architecture-only audits, or conceptual review questions.
 license: MIT
 metadata:
   original_author: Alex Baker
