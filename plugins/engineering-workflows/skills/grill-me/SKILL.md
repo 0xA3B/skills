@@ -8,15 +8,16 @@ description: >-
 license: MIT
 metadata:
   original_author: Matt Pocock
-  original_source: https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills/productivity/grilling
+  original_source: https://github.com/mattpocock/skills/tree/84fdeffd12f2ee307994d1eb6feb48173b6e0502/skills/productivity/grilling
 disable-model-invocation: true
 argument-hint: "[approach]"
 ---
 
 # Grill Me
 
-Interview the user relentlessly until there is shared understanding of the work. Walk the decision
-tree one branch at a time, resolving dependencies before moving deeper.
+Interview the user relentlessly until there is shared understanding of the work. Map the work as a
+decision tree — every decision branches into the decisions that hang off it — and walk it in rounds
+of questions.
 
 ## Outcome
 
@@ -27,18 +28,43 @@ implement, defer, or reject.
 ## Facts And Decisions
 
 - Find facts by inspecting the environment: repository files, history, tools, configured services,
-  and current external sources when relevant.
+  and current external sources when relevant. When the harness provides sub-agents, delegate lookups
+  to them so questioning continues while they run.
 - Do not ask the user to supply facts that can be established safely from available evidence.
+- Treat a running lookup as an unsettled prerequisite: hold only the questions downstream of the
+  missing fact and ask the rest of the frontier now.
 - Decisions belong to the user. Present each material choice, your recommendation, and the tradeoff
   it resolves, then wait for the user's answer.
 - Keep assumptions distinct from facts and decisions. Make unresolved uncertainty explicit.
 
+## Interview Rounds
+
+The **frontier** is every decision whose prerequisites are already settled — the questions you can
+ask now without guessing at answers you have not heard yet. Work the tree in rounds:
+
+1. Ask the whole frontier as one numbered round, ordered by how much each question reduces
+   implementation risk or decision ambiguity. If a question depends on another question still open
+   in this round, hold it for a later round.
+2. Wait for the user's answers. Do not compute the next round until each answer is understood,
+   disagreement is explicit, and uncertainty is captured as an assumption, decision, or follow-up.
+3. Settled decisions push the frontier outward and unblock the questions that depended on them.
+   Recompute the frontier and ask the next round.
+
+Format each prose question like so:
+
+```
+❓ **Q1 — <question title>**: <question body, with options or scenarios when they help>
+
+➡️ <your recommended answer and the tradeoff it resolves>
+```
+
+When the harness provides a structured question tool, route a question through it only when the
+answer maps cleanly onto a few discrete options and selecting one would fully answer it. Keep a
+question in prose when it is open-ended or the useful answer is itself prose. A round may mix both:
+send the option-shaped questions through the tool and the rest as prose.
+
 ## Interview Behavior
 
-- Ask one question at a time and wait for the answer.
-- Do not move on until the current answer is understood, disagreement is explicit, and uncertainty
-  is captured as an assumption, decision, or follow-up.
-- Choose the next question that most reduces implementation risk or decision ambiguity.
 - Challenge vague, overloaded, or conflicting terms. Propose a canonical term, a tight definition,
   and aliases to avoid.
 - Test domain relationships, state transitions, and ownership with concrete edge-case scenarios.
@@ -54,7 +80,8 @@ recommend `engineering-workflows:terminology`.
 
 ## Completion
 
-Before declaring the interview complete:
+The interview is complete when the frontier is empty: every branch of the decision tree visited,
+nothing left silently assumed. Before declaring completion:
 
 1. Summarize the decisions, facts, assumptions, rejected paths, and remaining follow-ups.
 2. State why the approach is ready to implement, defer, or reject.
