@@ -35,9 +35,15 @@ Findings appear as a Codex review plus inline review comments. Track inline comm
 thread IDs. GitHub may re-anchor unresolved comments to a newer commit, so `commit_id` is not a
 stable indication that a finding is new.
 
-Treat approval as current only when the clean comment's reviewed commit matches `headRefOid` and the
-pull request carries the connector's 👍 clean signal. The 👍 is on the pull request issue, not
-necessarily on the comment that triggered review. Never reuse an approval for an older head.
+The connector's 👍 reaction on the pull request issue is the terminal clean signal. A clean round
+may be reaction-only: 👍 with zero reviews, zero inline comments, zero issue comments, and zero
+unresolved threads is approval, not a deviation. When a clean comment is also present, require its
+reviewed commit to match `headRefOid`, and treat the comment as corroborating evidence rather than a
+requirement.
+
+Bind the 👍 to a head before trusting it. When the current head is the only head the pull request
+has ever had, the 👍 binds to that head. After any push, a pre-existing 👍 is stale; request a new
+round and require a new terminal signal for the new head. Never reuse an approval for an older head.
 
 ## Responses And Thread Resolution
 
