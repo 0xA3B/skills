@@ -1,31 +1,41 @@
 ---
 name: review-changes
 description: >-
-  Review current worktree, WIP, staged, or narrow pre-commit changes after a coding session. Use
-  when the user asks to review current changes, worktree changes, staged changes, work-in-progress
-  changes, or review before committing. Applies accepted in-scope fixes and validates them. Do not
-  use for conceptual questions about review criteria or this skill's design.
+  Review changes authored in the current session — worktree, staged, or work-in-progress changes, or
+  the session's incremental commits up to a whole branch. Use when the user asks to review current
+  changes, session changes, or review before committing or opening a PR. Applies accepted in-scope
+  fixes and validates them. Do not use for reviewing work this session did not author or for
+  conceptual questions about review criteria or this skill's design.
 disable-model-invocation: true
 argument-hint: "[path]"
 ---
 
 # Review changes
 
-Review the current worktree before commit. This workflow owns scope, depth, fix policy, and
-completion. Apply `engineering-workflows:reviewing-code` for lane selection, reviewer isolation, and
-finding contracts.
+Review changes this session authored, before commit or before opening a PR. This workflow owns
+scope, depth, fix policy, and completion. Apply `engineering-workflows:reviewing-code` for lane
+selection, reviewer isolation, and finding contracts.
+
+The dividing line with `engineering-workflows:review-branch` is authoring context, not git shape:
+use this workflow when the current session holds the authoring context for the changes, whether they
+are an uncommitted diff, incremental commits, or a whole branch built this session. When the session
+lacks that context — including a branch the user authored in an earlier session — hand off to
+`engineering-workflows:review-branch`.
 
 ## Outcome
 
-Find and fix valid, in-scope issues in current changes.
+Find and fix valid, in-scope issues in the session's changes.
 
 ## Scope
 
-Default to staged, unstaged, and untracked non-ignored files in the current worktree. If the user
-provides a path or narrow target, review only that target.
+Default to staged, unstaged, and untracked non-ignored files in the current worktree, plus any
+commits this session created as part of the current effort. Diff session commits from their merge
+base with the target branch, or from where this session's work began when that is narrower. If the
+user provides a path or narrow target, review only that target.
 
-If there are no worktree changes, say so and ask whether the user wants a specific commit range or a
-branch review through `engineering-workflows:review-branch`.
+If the session authored nothing — no worktree changes and no session commits — say so and ask
+whether the user wants a specific commit range or a fresh-context review through
+`engineering-workflows:review-branch`.
 
 ## Review depth
 
@@ -39,9 +49,9 @@ security-sensitive, release-affecting, or explicitly requested as a full review.
 For every full review require the content-owning lanes the diff selects, per the Lane Selection
 section of `engineering-workflows:reviewing-code`.
 
-Use that section for conditional-lane triggers. Resolve a borderline trigger toward skipping the
-lane for a pre-commit worktree review, and select spec adherence only when the user supplies the
-intent source.
+Use that section for conditional-lane triggers. Resolve a borderline trigger by the review moment:
+toward skipping the lane for an incremental pre-commit check, toward selecting the lane when this
+review gates a PR or merge. Select spec adherence only when the user supplies the intent source.
 
 ## Review execution
 
@@ -55,10 +65,16 @@ Apply `engineering-workflows:receiving-feedback` to the collected findings:
 - deduplicate findings with the same mechanism or remedy;
 - classify each with the `receiving-feedback` status taxonomy.
 
+The session's authoring context is triage context: judge findings against the decisions and
+constraints from the development session, and triage autonomously instead of replaying findings to
+the user. Report every rejection with its rationale; autonomy covers judging findings, not
+discarding them silently.
+
 Automatically apply accepted or auto-accepted behavior-preserving fixes within the changed surface
 or directly adjacent tests and docs.
 
-Ask about one gated finding at a time. Defer unrelated cleanup rather than expanding the worktree.
+Ask about one gated finding at a time; gate by the `receiving-feedback` taxonomy, not by finding
+size alone. Defer unrelated cleanup rather than expanding the worktree.
 
 ## Validation and output
 

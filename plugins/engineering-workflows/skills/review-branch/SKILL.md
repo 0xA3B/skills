@@ -1,17 +1,27 @@
 ---
 name: review-branch
 description: >-
-  Review a branch, WIP branch, PR, MR, or branch-vs-base diff before merge. Runs focused review
-  lanes, resolves gated findings one at a time, and applies approved fixes when edits are permitted.
+  Review a branch, WIP branch, PR, MR, or branch-vs-base diff that the current session did not
+  author, before merge. Runs focused review lanes with fresh context, resolves gated findings one at
+  a time, and applies approved fixes when edits are permitted.
 disable-model-invocation: true
 argument-hint: "[base|pr|mr]"
 ---
 
 # Review branch
 
-Review a full branch or PR/MR before merge. This workflow owns scope, base resolution,
-decision-first triage, edit policy, and completion. Apply `engineering-workflows:reviewing-code` for
-lane selection, reviewer isolation, and finding contracts.
+Review a full branch or PR/MR before merge, from a session that did not author it. This workflow
+owns scope, base resolution, decision-first triage, edit policy, and completion. Apply
+`engineering-workflows:reviewing-code` for lane selection, reviewer isolation, and finding
+contracts.
+
+The dividing line with `engineering-workflows:review-changes` is authoring context, not git shape:
+this workflow's decision-first, interactive posture exists because the reviewing session lacks the
+authoring context and cannot self-judge findings that depend on intent or scope decisions. When the
+current session authored the target changes, use `engineering-workflows:review-changes` instead,
+whatever their git shape. The target is still work the user produced — for example a branch authored
+in an earlier session; generic third-party review stays outside the
+`engineering-workflows:reviewing-code` contract.
 
 ## Outcome
 
