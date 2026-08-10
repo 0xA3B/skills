@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Improve Codebase Tests"
+  short_description: "Find test-suite improvement opportunities"
+  default_prompt:
+    "Use $engineering-workflows:improve-codebase-tests to review this repository's test suite."
+policy:
+  allow_implicit_invocation: false

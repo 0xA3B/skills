@@ -12,8 +12,8 @@ before commit and `review-branch` reviews a branch before merge. Use `handoff` w
 session should continue the work from an ignored local context document.
 
 `codebase-design` and `reviewing-code` are shared background disciplines consumed by the user-facing
-workflows. `terminology`, `diagnose`, `improve-codebase-architecture`, `dependency-maintenance`, and
-`visualize` remain focused workflows for their respective concerns.
+workflows. `terminology`, `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`,
+`dependency-maintenance`, and `visualize` remain focused workflows for their respective concerns.
 
 On Claude Code, the bundled `code-review` skill competes for generic review prompts. Treat the
 manual `review-changes` and `review-branch` invocations as the primary entry points. To keep the
@@ -40,6 +40,8 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
   session.
 - `engineering-workflows:improve-codebase-architecture`: Find focused, evidence-backed module
   deepening opportunities.
+- `engineering-workflows:improve-codebase-tests`: Find evidence-backed test-suite improvement
+  opportunities.
 - `engineering-workflows:prototype`: Create disposable exploratory code to answer one design
   question.
 - `engineering-workflows:receiving-feedback`: Triage and respond to existing review feedback.
