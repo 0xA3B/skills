@@ -14,6 +14,10 @@ Look for:
 - broad slow tests where a smaller stable interface provides the same confidence;
 - tests that would fail during a behavior-preserving refactor or miss a real regression.
 
+For each meaningful changed behavior, name a specific mutation — a deleted branch, an inverted
+condition, a widened catch — and say whether any existing test would catch it. When the mutation is
+cheap to apply and revert, run it and report the resulting test failures by count and name.
+
 Require expected values from an independent authority such as a known-good literal, worked example,
 protocol rule, or specification. Do not demand tests for every line or private branch; prioritize
 public behavior and risk.
