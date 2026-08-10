@@ -8,7 +8,9 @@ description: >-
 license: MIT
 metadata:
   original_author: Matt Pocock
-  original_source: https://github.com/mattpocock/skills/tree/aaf2453fbdfe7a15c07f11d861224f34ab4b53cb/skills/engineering/prototype
+  original_source: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/engineering/prototype
+  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
+  upstream_divergence: prototypes are never committed or archived as primary sources
 disable-model-invocation: true
 argument-hint: "[design-question]"
 ---
@@ -41,11 +43,11 @@ Identify the question the prototype must answer. If the question is ambiguous, s
 and choose the branch that best matches the surrounding code.
 
 - For business logic, state transitions, data shape, or interface feel, read
-  [LOGIC.md](references/LOGIC.md) and build a tiny interactive terminal app.
+  [LOGIC.md](references/LOGIC.md) and build a single shareable HTML demo anyone can drive.
 - For visual direction, layout, information hierarchy, interaction shape, or choosing between design
   approaches, read [UI.md](references/UI.md) and build switchable UI variants.
 
-A UI prototype will not prove a state model, and a terminal prototype will not settle layout.
+A UI prototype will not prove a state model, and a logic demo will not settle layout.
 
 ## Placement
 
@@ -108,7 +110,7 @@ of `engineering-workflows:build` or `engineering-workflows:tdd`.
 2. Pick the smallest runtime and command that match the project conventions.
 3. Build only enough code to make the question inspectable.
 4. Surface the relevant state after every action or variant switch.
-5. Give the user one command or URL to run.
+5. Give the user one command, URL, or file to open.
 6. Capture the question, observed evidence, and decision in chat or a local `NOTES.md` next to the
    prototype.
 

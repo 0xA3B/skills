@@ -12,7 +12,8 @@ description: >-
 license: MIT
 metadata:
   original_author: Alex Baker
-  mechanics_adapted_from: https://github.com/mattpocock/skills/tree/main/skills/productivity/writing-for-agents
+  mechanics_adapted_from: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/productivity/writing-for-agents
+  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
 user-invocable: false
 ---
 
