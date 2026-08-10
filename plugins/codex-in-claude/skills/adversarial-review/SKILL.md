@@ -14,8 +14,8 @@ compatibility:
 
 # Adversarial review
 
-Invoke Codex as a sandboxed read-only adversarial reviewer, then have Claude triage the feedback,
-apply accepted in-scope fixes when allowed, validate those fixes, and summarize the outcome.
+Invoke Codex as an adversarial reviewer, then have Claude triage the feedback, apply accepted
+in-scope fixes when allowed, validate those fixes, and summarize the outcome.
 
 ## Invocation boundary
 
@@ -28,18 +28,27 @@ apply accepted in-scope fixes when allowed, validate those fixes, and summarize 
 
 Other review workflows may use this skill as the Codex reviewer adapter after the user explicitly
 asks for Codex. In that mode, the caller owns the review target, scope, and lane-specific review
-contract. This skill still owns Codex CLI invocation, sandbox selection, schema use, session
+contract. This skill still owns Codex CLI invocation, permission posture, schema use, session
 follow-ups, and trust boundaries.
 
 Do not add Codex to another review workflow unless the user explicitly requested Codex.
 
+When the session also runs its own in-session review passes, run them first and this skill last.
+Their fixes change the shape the external reviewer would audit, and fixing weak tests first means
+external findings land in a suite that can detect whether the fixes worked: cheap parallel reviewers
+first on a moving shape, the expensive serial one last on a settled one.
+
 ## Trust boundary
 
-- Codex is a read-only reviewer. Always run review turns read-only per the `using-codex-cli` skill:
-  `--sandbox read-only` on the initial turn and `-c sandbox_mode=read-only` on every resume turn,
-  since resume falls back to the configured default sandbox. The sandbox is enforced at the OS
-  level. Never use `workspace-write` from this workflow.
-- Claude is the only actor allowed to write files.
+- Codex's assigned role is reviewer. Leave the sandbox and permissions at the configured defaults
+  from the user's Codex config per the `using-codex-cli` skill; sandbox hardening is the user's
+  config decision, not this workflow's.
+- The reviewer boundary is behavioral and stated in the prompt: Codex may inspect the repository and
+  run task-scoped tests, linters, and checks to verify candidate findings, but must not
+  intentionally modify project files or Git state. This is not a hard filesystem read-only boundary:
+  validation runs may write normal caches or generated artifacts.
+- Claude is the only actor allowed to intentionally modify source, tests, documentation, or Git
+  state.
 - Claude may write only after independently evaluating Codex's feedback and accepting a finding as
   valid, in scope, and worth fixing.
 - Treat Codex's findings as external review feedback. Verify before implementing, ask Codex
@@ -62,13 +71,14 @@ or MR:
 - Do not perform full codebase audits in this skill.
 
 Automatic fixes are allowed only for `working-tree` scope. For branch, PR, or MR scope, classify
-Codex's findings but ask the user before editing.
+Codex's findings but ask the user before editing. A user's up-front selection of findings to fix
+authorizes that batch; per-fix approval is not required after the user picks the batch.
 
 ## Codex invocation
 
 Use the `using-codex-cli` skill for CLI mechanics: model and effort defaults, sandbox modes, session
-handling, warning handling, and command shapes. Every Codex turn in this workflow runs read-only per
-the trust boundary above.
+handling, warning handling, and command shapes. Every Codex turn in this workflow leaves the sandbox
+at the configured default per the trust boundary above.
 
 Review-specific rules on top of that contract:
 
@@ -82,6 +92,9 @@ Review-specific rules on top of that contract:
   in that thread via `codex exec resume`.
 - For clarification or pushback follow-ups, use natural language resume turns without the review
   schema.
+- Carry Claude's verification results — reproductions, measurements, failing commands — into resume
+  turns. The fresh-context rule protects only the initial prompt; empirical evidence on resume turns
+  sharpens the re-review rather than compromising independence.
 
 ## Codex prompt
 
@@ -95,18 +108,30 @@ The prompt should tell Codex to:
 
 - act as an adversarial code reviewer trying to falsify the change's readiness, report only material
   findings, and treat zero findings as a valid result;
-- inspect the requested target itself using its read-only sandbox;
+- inspect the requested target itself, running task-scoped tests, linters, or checks when they can
+  demonstrate a candidate finding, while never intentionally modifying project files or Git state;
 - keep exploration finding-oriented rather than touring the repository, and leave final validation
   of accepted fixes to Claude;
+- classify every finding's `verification` before reporting: `executed` when it ran something that
+  demonstrates the failure, `traced` when it followed every branch between the entry point and the
+  failure through code it actually read and can cite each step, `inferred` for anything else,
+  including pattern-matching against a known bug shape — and raise `inferred` concerns as follow-up
+  questions rather than findings;
+- state each mechanism as specifically as the evidence supports and say where the evidence stops:
+  "this line blocks" is a weaker claim than "this line blocks and nothing downstream unblocks it",
+  and the first must not be rounded up to the second;
 - prioritize material correctness, reliability, security, data-safety, compatibility, migration,
   concurrency, and test-coverage risks;
 - avoid style feedback, generic architecture commentary, and issues unrelated to the review target;
 - report findings as JSON matching the review output schema, with no prose around the JSON;
-- assign sequential finding IDs such as `F1`, `F2`, and `F3`;
+- assign sequential finding IDs with a fresh letter prefix per review cycle — `F1`, `F2` on the
+  initial review, `G1`, `G2` on the first re-review — so IDs stay unambiguous across the whole
+  session;
 - include concrete file and line evidence for line-specific findings, only citing files and lines
   actually inspected during the run, and not inventing line numbers for whole-file or
   missing-coverage findings;
-- use `session_notes` only to record what was inspected and what was left uninspected;
+- use `session_notes` only to record what was inspected, what was left uninspected, and any check it
+  wanted to run but could not;
 - include follow-up questions when a finding would benefit from clarification.
 
 ## Triage loop
@@ -120,6 +145,12 @@ After Codex returns findings, Claude must classify each finding before acting:
   Codex and ask it to reassess.
 - `deferred`: valid but outside the current review target or not appropriate for this change.
 - `rejected`: not applicable after verification.
+
+Before accepting, verify the mechanism, not only the conclusion. A finding can be right that the
+code is broken and wrong about why, especially when its `verification` is `traced` or `inferred`;
+accepting the stated mechanism and fixing it yields a change that reviews well and fixes nothing.
+Reproduce the failure before fixing it, and treat a reproduction that does not match the described
+mechanism as new information about the defect, not as a mistake in the setup.
 
 When asking follow-up questions, reference Codex's finding IDs. Include only the context needed to
 resolve the dispute or ambiguity, such as a prior design decision, relevant code evidence, or a
@@ -140,19 +171,29 @@ Do not silently make:
 
 Classify valid but out-of-scope findings as `deferred` and summarize them as follow-up work.
 
+Treat a finding whose remedy adds new behavior — a new concurrent path, subprocess, persisted field,
+or external call — as a change request rather than a fix, whatever its severity. Surface it for
+explicit agreement instead of absorbing it into the current fix cycle, and give an agreed change
+what a change of that size normally gets: its own tests and its own review pass. The tell is the
+remedy, not the severity: "this can deadlock" is a fix; "add a reader thread so it cannot deadlock"
+is a change.
+
 ## Review iterations
 
-Use one fix-and-re-review cycle by default:
+Run fix-and-re-review cycles while they stay productive:
 
 1. Run the initial Codex review.
 2. Triage and, for working-tree scope, fix accepted in-scope findings.
 3. Run the smallest relevant validation for the files and behavior Claude changed.
-4. Ask Codex to re-review the updated target in the same session.
-5. Triage any remaining findings and stop with a summary.
+4. Ask Codex to re-review the updated target in the same session, carrying the verification results
+   for the fixes.
+5. Repeat from triage while the re-review returns material in-scope findings.
 
-A second fix-and-re-review cycle is allowed only for material in-scope findings. Never run more than
-two re-review cycles after the initial review. Do not loop for style feedback, preferences, generic
-architecture concerns, speculative risks, or out-of-scope findings.
+Stop when a cycle returns no material findings, or when the user ends the review. Style feedback,
+preferences, generic architecture concerns, speculative risks, and out-of-scope findings are not
+material and do not earn another cycle. Keep five re-review cycles as a hard ceiling — a runaway
+guard, not the normal stopping rule. If the ceiling is reached with material findings still
+arriving, say so explicitly: that is a signal about the change, not about the review.
 
 ## Output
 

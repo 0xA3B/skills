@@ -10,8 +10,8 @@ Run Claude Code from Codex for adversarial code review and task delegation.
   has Codex triage the feedback, applies accepted in-scope fixes for current working-tree changes,
   validates the result, and summarizes the outcome.
 - `claude-in-codex:using-claude-cli`: Internal contract for non-interactive Claude Code CLI use —
-  command recipes, sessions, structured output, and prompting guidance. The review skill and the
-  Claude proxy subagent use it; it is not meant for direct invocation.
+  command shape, permission posture, sessions, structured output, and prompting guidance. The review
+  skill and the Claude proxy subagent use it; it is not meant for direct invocation.
 
 ## Claude as a Codex subagent
 

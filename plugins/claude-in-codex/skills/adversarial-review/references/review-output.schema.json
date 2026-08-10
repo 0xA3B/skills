@@ -16,11 +16,20 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "severity", "title", "body", "file", "confidence", "recommendation"],
+        "required": [
+          "id",
+          "severity",
+          "title",
+          "body",
+          "file",
+          "verification",
+          "confidence",
+          "recommendation"
+        ],
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^F[1-9][0-9]*$"
+            "pattern": "^[A-Z][1-9][0-9]*$"
           },
           "severity": {
             "type": "string",
@@ -45,6 +54,10 @@
           "line_end": {
             "type": "integer",
             "minimum": 1
+          },
+          "verification": {
+            "type": "string",
+            "enum": ["executed", "traced", "inferred"]
           },
           "confidence": {
             "type": "number",
