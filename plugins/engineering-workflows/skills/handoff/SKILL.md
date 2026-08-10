@@ -21,13 +21,14 @@ The handoff document must never become tracked project state.
 
 Inside a repository, prefer the repository's ignored scratch convention when project instructions
 define one or an ignored scratch directory already exists (for example `.local/` or `.scratch/`),
-and save the document as `<scratch-dir>/handoffs/<timestamp>-<slug>.md`. Confirm the path is
-ignored, for example with `git check-ignore`, before writing. When no ignored convention exists or
-the path is not ignored, fall back to the operating system's temporary directory instead of changing
-ignore rules. Outside a repository, use the temporary directory.
+and save the document as `<scratch-dir>/handoffs/<YYYYMMDD-HHMMSS>-<slug>.md`, for example
+`.local/handoffs/20260809-142530-auth-refactor.md`. Confirm the path is ignored, for example with
+`git check-ignore`, before writing. When no ignored convention exists or the path is not ignored,
+fall back to the operating system's temporary directory instead of changing ignore rules. Outside a
+repository, use the temporary directory.
 
-Create only the handoff document and its parent directory. Do not edit project files or ignore
-rules, stage, commit, push, or create tracker items.
+Create only the handoff document and its parent directory; leave project files, ignore rules, the
+index, branches, and trackers untouched.
 
 ## Content
 
@@ -44,16 +45,15 @@ Include only context the next session cannot cheaply recover:
 - suggested skills to invoke explicitly.
 
 Reference existing specs, plans, diffs, commits, issues, and generated artifacts instead of copying
-their contents. Keep durable facts in their owning artifacts and make the handoff an index into
-them.
+their contents: the handoff is an index into them, and durable facts stay in their owning artifacts.
 
 Redact secrets, credentials, tokens, personal data unrelated to the task, and sensitive command
 output. Do not preserve secret values merely because they appeared earlier in the conversation.
 
 ## Completion
 
-Read the saved file back and verify that its pointers resolve locally where practical. Report the
-absolute handoff path and one-sentence next action.
+Read the saved file back and confirm every file path it names exists and every commit or branch it
+names resolves locally. Report the absolute handoff path and one-sentence next action.
 
 Stop when a fresh agent could continue the named focus without reading the full conversation and
 without mistaking the handoff for committed project state.

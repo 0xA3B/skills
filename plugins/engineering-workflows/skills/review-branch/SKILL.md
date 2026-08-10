@@ -1,10 +1,8 @@
 ---
 name: review-branch
 description: >-
-  Review a branch, WIP branch, PR, MR, or branch-vs-base diff before merge. Use when the user asks
-  for branch review, pre-merge review, PR review, MR review, or review against a base branch. Runs
-  focused review lanes, resolves gated findings one at a time, and applies approved fixes when edits
-  are permitted.
+  Review a branch, WIP branch, PR, MR, or branch-vs-base diff before merge. Runs focused review
+  lanes, resolves gated findings one at a time, and applies approved fixes when edits are permitted.
 disable-model-invocation: true
 argument-hint: "[base|pr|mr]"
 ---
@@ -17,8 +15,7 @@ lane selection, reviewer isolation, and finding contracts.
 
 ## Outcome
 
-Produce a triaged pre-merge review, resolve gated decisions one finding at a time, apply approved
-fixes when permitted, and finish with fresh validation evidence.
+Produce a triaged pre-merge review before the branch merges.
 
 ## Scope And Base
 
@@ -42,47 +39,33 @@ Always require:
 - `code review`
 - `simplification`
 
-Use `reviewing-code` to add conditional lanes. Be deliberately greedier than `review-changes`
-because a branch is the pre-merge integration boundary:
-
-- codebase design for new modules, structural refactors, cross-module policy, or repeated seam
-  changes;
-- API/seam for new or materially changed public contracts;
-- test review for meaningful test additions, broad behavior changes, or high-risk test strategy;
-- spec adherence when a spec, issue, PRD, acceptance criteria, or equivalent intent source is
-  available.
+Use the Lane Selection section of `engineering-workflows:reviewing-code` for conditional-lane
+triggers. Resolve every borderline trigger toward selecting the lane, because a branch is the
+pre-merge integration boundary.
 
 Do not add lanes merely to increase reviewer count. Each selected lane needs a distinct question
 that the required lanes would otherwise overload.
 
 ## Review Execution
 
-Use the coordinator mode from `engineering-workflows:reviewing-code`. If this session authored or
-substantially edited the branch, keep the main agent as coordinator and use independent reviewers
-for required lanes when subagents are permitted. For large or high-risk branches, independently run
-all selected lanes when capacity allows.
-
-Lane reviewers report findings only; they do not edit or negotiate user decisions.
+Use the coordinator role from `engineering-workflows:reviewing-code`. For large or high-risk
+branches, independently run all selected lanes when capacity allows.
 
 ## Decision First, Edits Second
 
 Apply `engineering-workflows:receiving-feedback` to every finding:
 
 1. collect all lane results;
-2. normalize and deduplicate by mechanism and remedy;
-3. mark obvious low-risk findings as auto-accepted without editing yet;
-4. present gated findings to the user one at a time;
-5. record each decision before moving to the next finding;
-6. apply approved fixes in dependency order after the queue is resolved;
-7. validate high-risk fixes independently and low-risk fixes in coherent batches.
+2. mark obvious low-risk findings as auto-accepted without editing yet;
+3. apply approved fixes in dependency order after the queue is resolved;
+4. validate high-risk fixes independently and low-risk fixes in coherent batches.
 
 Fix immediately only when an issue blocks understanding later findings, the user asks to handle it
 now, a decision changes review scope, or an isolated risky fix needs evidence before triage can
 continue.
 
 Do not dump gated findings into a bulk approval list, even when the user asks to approve everything
-at once. Do not silently auto-accept broad refactors, public-interface changes, data-model changes,
-migrations, dependencies, security policy, product behavior, or fixes outside branch scope.
+at once.
 
 ## Output
 

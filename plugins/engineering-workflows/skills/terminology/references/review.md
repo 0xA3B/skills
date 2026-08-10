@@ -1,16 +1,12 @@
 # Review
 
-Use when the user asks whether terminology is complete, consistent, or aligned with code and docs.
-
 ## Steps
 
 1. Inspect `AGENTS.md`, README files, nearby docs, code names, and tests relevant to the request.
-2. Find missing, vague, overloaded, contradictory, stale, or duplicative terms — including entries
-   whose definition restates an installed skill's description or another section of the same file.
+2. Find missing, vague, overloaded, contradictory, stale, or duplicative terms.
 3. Cross-check important definitions and relationships against code and tests.
-4. Report findings with file references and concrete wording changes.
-5. If the user asked for changes or clearly wants the review applied, apply the findings with the
-   [Update](update.md) workflow; otherwise leave `AGENTS.md` unchanged.
+4. If the user asked for the findings to be applied, apply them with the [Update](update.md)
+   workflow; otherwise report the findings and leave `AGENTS.md` unchanged.
 
 ## Final response
 

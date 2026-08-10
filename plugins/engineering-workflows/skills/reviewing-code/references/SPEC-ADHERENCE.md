@@ -1,7 +1,7 @@
 # Spec Adherence Lane
 
-Compare the review target with the supplied source of intended behavior. Cite that source for every
-finding.
+Ask whether the review target matches the supplied source of intended behavior. Cite that source for
+every finding.
 
 Look for:
 

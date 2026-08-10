@@ -13,8 +13,8 @@ argument-hint: "[task]"
 
 # Test-Driven Development
 
-Use a red-green-refactor loop with vertical slices. Tests should verify behavior through public
-interfaces, not implementation details.
+Use a red-green-refactor loop with vertical slices. Verify behavior through public interfaces, not
+implementation details.
 
 ## Outcome
 
@@ -31,9 +31,9 @@ project validation passing.
 
 ## Philosophy
 
-Good tests are integration-style where practical: they exercise real code paths through public APIs
-and describe what the system does. They survive refactors because they do not care about private
-structure.
+Good tests are integration-style where practical: they exercise real code paths through public
+interfaces and describe what the system does. They survive refactors because they do not care about
+private structure.
 
 Bad tests couple to implementation details: private methods, internal collaborators, incidental data
 shape, or mocks that mirror the current implementation. The warning sign is a test that fails during
@@ -42,10 +42,11 @@ a harmless refactor but misses real behavior breakage.
 Tautological tests recompute the expected value through the same logic as production, so they pass
 by construction; take expected values from an independent authority instead.
 
-Use [tests.md](references/tests.md) for the independent-authority rule and examples, and
-[mocking.md](references/mocking.md) for mocking guidance.
+Read [tests.md](references/tests.md) before writing a test whose expected value is computed rather
+than known, or when a test asserts on calls rather than results. Reference examples may use
+TypeScript; apply the testing principles in the repository's actual language and test framework.
 
-## Avoid Horizontal Slices
+## Tracer Bullets
 
 Do not treat RED as "write every test" and GREEN as "write all the code." That produces tests for
 imagined behavior before the implementation teaches you anything.
@@ -85,15 +86,16 @@ Watch for rationalizations:
 - "Manual testing proves the same thing."
 - "This is just a refactor, so RED does not matter."
 
-These are signals to reduce the slice size, find a cheaper seam, or switch honestly to
-`engineering-workflows:build` if test-first work is the wrong feedback loop for this task.
+These are signals to reduce the slice size, find a cheaper seam, or — when test-first work is the
+wrong feedback loop for this task — stop and recommend an explicit invocation of
+`engineering-workflows:build`.
 
 ## Workflow
 
 ### 1. Plan The Test Surface
 
-Before editing, inspect the relevant code, tests, docs, and project commands. Use the project's
-domain language from `AGENTS.md`, README files, nearby docs, and code names.
+Before editing, inspect the relevant code, tests, docs, and project commands. Keep domain names
+aligned with `AGENTS.md ## Terminology` when present.
 
 Identify:
 
@@ -103,8 +105,8 @@ Identify:
 - Opportunities for deep modules with simple interfaces.
 - The validation command that will run quickly in the loop.
 
-When the interface or behavior priority is ambiguous, ask the user to choose. When it is clear,
-state the assumption and proceed.
+When the interface or behavior priority is ambiguous, state the assumption and proceed if low risk;
+ask the user to choose only when the wrong choice would waste work or lock in the wrong interface.
 
 Apply `engineering-workflows:codebase-design` when the interface, seam, module depth, or test
 surface needs design.
@@ -131,9 +133,9 @@ Improve the code and tests while keeping behavior unchanged:
 - Remove duplication introduced by the green step.
 - Improve names and module shape.
 - Move behavior behind a better interface when the current shape is shallow.
+- Move logic to where its data lives, and replace repeated primitives with a value object.
 - Keep tests focused on behavior.
-
-Use [refactoring.md](references/refactoring.md) for detailed refactoring guidance.
+- Report existing code the new code reveals as problematic; change it only when the user asks.
 
 ### 5. Repeat
 
@@ -142,12 +144,9 @@ Each new behavior should be a thin vertical slice.
 
 ## Mocking
 
-Mock only at real external boundaries or slow/unstable dependencies. Do not mock internal modules to
-make implementation-shaped tests easier. Use [mocking.md](references/mocking.md) when choosing what
-to fake.
-
-Reference examples may use TypeScript, but apply the testing principles in the repository's actual
-language and test framework.
+Mock at system boundaries only: external APIs, databases, the clock, randomness, and the file
+system. Test internal collaborators through the public interface. Read
+[mocking.md](references/mocking.md) before faking anything a slice touches.
 
 ## Completion
 

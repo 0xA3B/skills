@@ -1,8 +1,5 @@
 # Logic Prototype
 
-Use this branch when the question is about business logic, state transitions, data shape, or API
-feel: something that looks reasonable on paper but needs to be driven through cases.
-
 ## Process
 
 1. Write one paragraph naming the state model and the question being answered.
@@ -27,14 +24,4 @@ Render the whole frame on every tick rather than appending scrollback.
 - Pretty-print state one field per line or as formatted JSON.
 - Use native ANSI escape codes if helpful; avoid dependencies unless the project already has them.
 - Read one key or line at a time.
-- Dispatch actions through the pure interface.
-- Re-render after every action.
 - Keep the frame small enough to fit on one screen.
-
-## Anti-Patterns
-
-- Adding tests.
-- Wiring the prototype to real production data.
-- Generalizing for future possibilities.
-- Mixing terminal code into the state model.
-- Shipping the terminal shell into production.

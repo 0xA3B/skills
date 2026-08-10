@@ -2,7 +2,7 @@
 name: wayfinder
 description: >-
   Turn a loose or oversized idea into a breadth-first map of its destination, known facts, open
-  decisions, meaningful work chunks, dependencies, frontier, unresolved fog, and excluded scope. Use
+  decisions, decision-sized chunks, dependencies, frontier, unresolved fog, and excluded scope. Use
   when the user wants to brainstorm, scope a large effort, decompose an unclear goal, or find the
   next decisions before deeper planning or implementation.
 license: MIT
@@ -20,9 +20,8 @@ decision space and the first actionable frontier without resolving every branch.
 
 ## Outcome
 
-Produce a tracker-neutral decision map that names the destination, scope boundary, known facts, open
-decisions, dependencies, work chunks, and next useful workflow. The map should make a large effort
-navigable without turning planning into implementation.
+Produce a tracker-neutral decision map, in the shape the Output section defines, that makes a large
+effort navigable without turning planning into implementation.
 
 ## Allowed Side Effects
 
@@ -40,7 +39,7 @@ State what reaching the end of this effort means in one or two sentences. Separa
 from attractive follow-on work; the destination defines the scope boundary.
 
 If the destination is still a user decision, ask one focused question and provide a recommendation.
-If it is a fact discoverable from the environment, inspect instead of asking.
+If the destination is a fact discoverable from the environment, inspect instead of asking.
 
 ### 2. Establish The Known Ground
 
@@ -56,21 +55,22 @@ ownership boundary is unclear, and verify important claims against code.
 
 ### 3. Map Breadth-First
 
-Fan out across the effort before going deep on one path. Create meaningful chunks sized for a future
-focused session. Each chunk should name the question or outcome it resolves, not prescribe a
-premature implementation.
+Fan out across the effort before going deep on one path. Create decision-sized chunks, each small
+enough for one future focused session. Each chunk should name the question or outcome it resolves,
+not prescribe a premature implementation.
 
-Classify each visible chunk by its best next workflow:
+Classify each visible chunk by the workflow the user should invoke next. Every skill named below is
+manual-only, so recommend its explicit invocation instead of invoking it from this workflow:
 
-- research for an external or repository fact;
+- research, with no skill, for an external or repository fact;
 - `engineering-workflows:grill-me` for a user-owned decision;
 - `engineering-workflows:prototype` for executable evidence;
 - `engineering-workflows:build` or `engineering-workflows:tdd` only when the shape is already clear
   enough to implement;
 - a manual prerequisite when access, setup, or human action blocks a later decision.
 
-Record dependencies between chunks. The **frontier** is the set that is precise, unblocked, and
-useful to start next.
+Record dependencies between chunks. The **frontier** is the set of chunks that are precise,
+unblocked, and useful to start next.
 
 ### 4. Preserve The Fog
 
@@ -82,16 +82,16 @@ scope does not return unless the destination changes.
 
 ### 5. Stop At The Map
 
-Do not resolve mapped chunks, prototype, implement, create tickets, or produce a spec during this
-workflow. If the entire effort is already clear and small enough for one session, say that a map is
-unnecessary and recommend the next explicit workflow instead.
+Leave mapped chunks unresolved; resolving one belongs to the workflow it is classified under. If the
+entire effort is already clear and small enough for one session, say that a map is unnecessary and
+recommend the next explicit workflow instead.
 
 ## Output
 
 End with:
 
 - **Destination**
-- **Known facts and decisions**
+- **Known ground**: established facts, decisions already made, and constraints
 - **Frontier**: actionable chunks, dependencies, and recommended next workflow
 - **Blocked chunks**
 - **Not yet specified**

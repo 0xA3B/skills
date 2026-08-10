@@ -26,12 +26,7 @@ created.
 ## Allowed Side Effects
 
 - Create temporary files outside tracked project state.
-- Create files under `.local/` only when the user wants the artifact near the repository.
-- Use Tailwind, Mermaid, image generation, or remote assets when they improve the artifact.
-- Present a generated HTML artifact locally: a harness built-in browser, the OS opener, or the
-  reported file path.
-- Start and stop a temporary localhost server for an HTML artifact when that is the most reliable
-  way to present it in an in-app browser.
+- Fetch remote assets and CDN-hosted libraries when they improve the artifact.
 - Do not stage, commit, publish, or persist the artifact as project documentation unless the user
   explicitly asks.
 
@@ -74,19 +69,20 @@ artifact.
 Keep the artifact local by default. Use the strongest local presentation surface the harness
 provides:
 
-- If the harness has a built-in browser or preview surface, present the artifact there. For the
-  Codex in-app Browser, use the loopback-server workflow below.
+- If the harness has a built-in browser or preview surface, present the artifact there. If it
+  rejects `file://` navigation, use the loopback server workflow below.
 - Otherwise, open the file with the OS opener (`open` on macOS, `xdg-open` on Linux) when the
   environment allows launching it, and always report the absolute `file://` path ready to copy.
 - Publish to a hosted artifact surface only when the user explicitly asks; hosting uploads session
   content off the machine. Hosted surfaces typically block remote requests, so inline all CSS and
-  JavaScript, embed images as data URIs, and style for both light and dark viewer themes.
+  JavaScript, embed images as data URIs, and keep the artifact legible when the viewer wraps it in
+  its own light or dark chrome.
 
-### Codex In-App Browser
+### Loopback Server Fallback
 
-Prefer a temporary local server over direct `file://` navigation when opening HTML in the Codex
-in-app Browser. Browser Use may reject agent-driven `file://` navigation even when the user can open
-the same file manually.
+If the harness browser rejects agent-driven `file://` navigation — Codex's in-app Browser does, even
+when the user can open the same file manually — serve the artifact from a temporary local server
+instead.
 
 1. Start a temporary static server bound to `127.0.0.1` from the directory containing the HTML
    artifact. Use an available high port.
@@ -121,7 +117,7 @@ Make the artifact readable before making it decorative.
 
 ## Final Response
 
-Always include:
+Include:
 
 - What artifact was created, or why no file was needed.
 - The absolute path for any generated file.

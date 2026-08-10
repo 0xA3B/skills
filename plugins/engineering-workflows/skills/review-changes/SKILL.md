@@ -11,22 +11,21 @@ argument-hint: "[path]"
 
 # Review Changes
 
-Review the current worktree before commit. This workflow owns review scope, depth, fix policy, and
+Review the current worktree before commit. This workflow owns scope, depth, fix policy, and
 completion. Apply `engineering-workflows:reviewing-code` for lane selection, reviewer isolation, and
 finding contracts.
 
 ## Outcome
 
-Find and fix valid, in-scope issues in current changes. Finish with accepted fixes, deferred or
-rejected findings, and fresh validation evidence.
+Find and fix valid, in-scope issues in current changes.
 
 ## Scope
 
 Default to staged, unstaged, and untracked non-ignored files in the current worktree. If the user
 provides a path or narrow target, review only that target.
 
-If there are no worktree changes, say so and ask whether the user wants a commit or branch review.
-Do not silently broaden into `review-branch`.
+If there are no worktree changes, say so and ask whether the user wants a specific commit range or a
+branch review through `engineering-workflows:review-branch`.
 
 ## Review Depth
 
@@ -42,24 +41,13 @@ For every full review require:
 - `code review`;
 - `simplification`.
 
-Add conditional lanes through `reviewing-code` only when the changed surface justifies them. Be
-conservative about extra lanes for a pre-commit worktree review:
-
-- codebase design for structural or cross-module changes;
-- API/seam for a new or materially changed public interface;
-- test review for substantial test changes or high-risk test strategy;
-- spec adherence when the user supplies a source of intended behavior.
+Use the Lane Selection section of `engineering-workflows:reviewing-code` for conditional-lane
+triggers. Resolve a borderline trigger toward skipping the lane for a pre-commit worktree review,
+and select spec adherence only when the user supplies the intent source.
 
 ## Review Execution
 
-Use the coordinator mode from `engineering-workflows:reviewing-code`. When subagents are permitted,
-give each required lane an independent reviewer if this session authored the changes. Do not waive
-authorship-bias concerns merely because the user wants to save time or asks the main agent to
-personally handle every lane; state the limitation and use independent reviewers when review can
-proceed. If reviewers are unavailable, complete the strongest local review and state that
-independence was unavailable.
-
-Do not ask lane reviewers to apply fixes or broaden scope.
+Use the coordinator role from `engineering-workflows:reviewing-code`.
 
 ## Triage And Fixes
 
@@ -67,14 +55,12 @@ Apply `engineering-workflows:receiving-feedback` to the collected findings:
 
 - verify before accepting;
 - deduplicate findings with the same mechanism or remedy;
-- classify each as accepted, auto-accepted, needs-clarification, gated, deferred, or rejected.
+- classify each with the `receiving-feedback` status taxonomy.
 
 Automatically apply accepted or auto-accepted behavior-preserving fixes within the changed surface
 or directly adjacent tests and docs.
 
-Ask about one finding at a time when it changes intended behavior, public interfaces, data models,
-dependencies, migrations, security policy, broad architecture, or prior user direction. Defer
-unrelated cleanup rather than expanding the worktree.
+Ask about one gated finding at a time. Defer unrelated cleanup rather than expanding the worktree.
 
 ## Validation And Output
 

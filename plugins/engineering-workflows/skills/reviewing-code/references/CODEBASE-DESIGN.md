@@ -20,8 +20,7 @@ Read [FOWLER-SMELLS.md](FOWLER-SMELLS.md), focusing on Feature Envy, Data Clumps
 Obsession, Repeated Switches, Shotgun Surgery, Divergent Change, and Refused Bequest.
 
 Before flagging a structure as misplaced, shallow, or unnecessary, read the comments, docs, and
-terminology that govern it. A documented, deliberate structure is a finding only when evidence shows
-its stated rationale no longer holds; restating the rationale back as a defect is noise.
+terminology that govern it; restating a documented rationale back as a defect is noise.
 
 Do not turn every local cleanup into an architecture finding. Require concrete repository evidence
 and a structural remedy.

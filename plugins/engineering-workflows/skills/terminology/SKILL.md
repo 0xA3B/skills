@@ -15,22 +15,23 @@ metadata:
 
 # Terminology
 
-Create, update, or review the project's durable domain language. Treat terminology as agent-facing
-guidance that should be useful in future sessions, not as a standalone DDD artifact.
+Treat terminology as agent-facing guidance that should be useful in future sessions, not as a
+standalone domain-modeling artifact.
 
 ## Outcome
 
 `AGENTS.md ## Terminology` accurately captures stable domain terms, aliases to avoid, and important
 relationships, or the user receives a focused terminology review with concrete proposed changes.
 
-## Evidence rules
+## Evidence Rules
 
 - Read the existing `AGENTS.md ## Terminology` section before changing it.
 - Use repository evidence: conversation context, README files, nearby docs, code names, tests, and
   established maintainer language.
 - Prefer the canonical term used by domain experts or project maintainers.
 - State uncertainty when a term is not stable enough to make durable.
-- Do not invent domain language from implementation details alone.
+- Ground each term in maintainer, domain-expert, or user-facing language; implementation names on
+  their own are corroborating evidence, not a source.
 - Test important relationships, state transitions, and ownership boundaries with concrete edge-case
   scenarios instead of relying only on happy-path examples.
 - When the user states how a concept behaves, verify the claim against relevant code and tests. If
@@ -38,8 +39,9 @@ relationships, or the user receives a focused terminology review with concrete p
 
 ## Workflow
 
-Run one mode per invocation. Read only the matching mode's reference, then follow it; the rules in
-this file apply in every mode.
+Run one mode per invocation, and read only that mode's reference; the rules in this file apply in
+every mode. Review mode is the exception: when the user asks for the review's findings to be
+applied, read [references/update.md](references/update.md) as well.
 
 - If `AGENTS.md` has no terminology section and the user wants durable domain language, read
   [references/create.md](references/create.md).
@@ -61,18 +63,18 @@ the work that speaks it happens:
 
 Judge placement by where the work happens, not where the topic's files sit.
 
-## Section structure
+## Section Structure
 
 - Keep one table by default. Use grouped tables only when the domain is large enough that one table
   hurts scanability.
-- Avoid a permanent "Flagged ambiguities" section unless an ambiguity is intentionally unresolved;
-  otherwise resolve it through canonical terms, aliases to avoid, definitions, or relationships.
+- Resolve each ambiguity with a canonical term, an alias to avoid, a sharper definition, or a
+  relationship. Add a permanent "Flagged ambiguities" section only for an ambiguity the project
+  intentionally leaves unresolved.
 
-## Term rules
+## Term Rules
 
 - A term earns its row by resolving an ambiguity, canonicalizing an alias, or fixing a non-obvious
-  relationship. Terminology is not a dictionary of every term in the repository; skip terms no one
-  confuses.
+  relationship; skip terms no one confuses.
 - Skip entries whose definition restates an always-loaded surface, such as an installed skill's
   description or another section of the same file; skip relationships that restate workflow behavior
   the owning skill or document already encodes.

@@ -14,6 +14,6 @@ Look for:
 - broad slow tests where a smaller stable interface provides the same confidence;
 - tests that would fail during a behavior-preserving refactor or miss a real regression.
 
-Expected values should come from an independent authority such as a known-good literal, worked
-example, protocol rule, or specification. Do not demand tests for every line or private branch;
-prioritize public behavior and risk.
+Require expected values from an independent authority such as a known-good literal, worked example,
+protocol rule, or specification. Do not demand tests for every line or private branch; prioritize
+public behavior and risk.

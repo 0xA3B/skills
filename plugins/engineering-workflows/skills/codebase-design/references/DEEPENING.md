@@ -26,8 +26,6 @@ adapter that models only the external behavior the module depends on.
 
 ## Seam Discipline
 
-- Treat one-adapter seams as suspect indirection. Production plus a real test adapter often
-  establishes justified variation.
 - Keep internal seams private to the implementation. Do not expand the public interface merely
   because internal tests need control.
 - Put transport and protocol details in adapters; keep the interface expressed in caller and domain
@@ -36,5 +34,5 @@ adapter that models only the external behavior the module depends on.
 ## Test Migration
 
 Replace tests on shallow internals with behavior tests at the deepened interface once equivalent
-coverage exists. Avoid layering both suites indefinitely. The surviving tests should assert
-observable results and remain stable across implementation refactors.
+coverage exists. Surviving tests assert observable results and stay stable across implementation
+refactors.

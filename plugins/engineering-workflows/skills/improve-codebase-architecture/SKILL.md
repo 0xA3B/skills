@@ -17,7 +17,8 @@ argument-hint: "[scope]"
 Find architectural friction and propose deepening opportunities: changes that put more useful
 behavior behind simpler interfaces and improve locality, leverage, testability, and navigation.
 
-Apply `engineering-workflows:codebase-design` throughout this workflow.
+Load `engineering-workflows:codebase-design` before scanning, and use its vocabulary, deletion test,
+and seam rules throughout this workflow.
 
 ## Outcome
 
@@ -29,12 +30,10 @@ refactor. The first pass is analysis-only unless the user explicitly requests im
 Deepening pays off where future change is likely. Choose the review area before searching:
 
 1. Use the module, subsystem, pain point, or path named by the user.
-2. Otherwise inspect a meaningful stretch of recent history for files and areas that change
-   repeatedly, and start with those hot spots.
+2. Otherwise rank files by change frequency over recent history (for example
+   `git log --since='6 months ago' --name-only --pretty=format:`) and start with the top hot spots.
 3. Widen only when changes are scattered or evidence shows the initial area depends on a broader
    architectural problem.
-
-Do not manufacture repository-wide candidates when the likely change surface is narrower.
 
 ## Explore
 
@@ -79,15 +78,14 @@ For the selected candidate, make explicit:
   entries when a name is new or collides with an existing term;
 - migration and compatibility constraints.
 
-When the interface shape is still uncertain, apply the design-it-twice reference from
-`engineering-workflows:codebase-design`. When the remaining choices are user-owned decisions,
-recommend an explicit `engineering-workflows:grill-me` handoff.
+When the remaining choices are user-owned decisions, recommend an explicit invocation of
+`engineering-workflows:grill-me`.
 
 ## Completion
 
 End with either a prioritized architecture review and next decision, or an implementation-ready plan
-for the selected candidate with validation steps. Stop when the strongest defensible candidates are
-clear; do not continue into theoretical cleanup after the evidence is sufficient.
+for the selected candidate with validation steps. Stop when every candidate is tied to specific
+files, callers, tests, or history, and no unexamined hot spot from the scoped area remains.
 
 When the session also implements the selected candidate, demonstrate each claimed benefit before
 finishing: a test that exercises the new seam, caller knowledge that no longer exists, or an
@@ -95,5 +93,6 @@ equivalent observable change. A benefit that cannot be demonstrated is a risk to
 result.
 
 Record declined and deferred candidates with their evidence so a later architecture pass builds on
-them instead of re-deriving them. Prefer the repository's existing convention for ignored working
-artifacts, as with handoff documents; fall back to agent memory when no such convention exists.
+them instead of re-deriving them. Write them to the repository's ignored scratch directory,
+confirming the path is ignored with `git check-ignore` before writing. When no ignored convention
+exists, record them in the final response instead.

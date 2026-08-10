@@ -14,26 +14,17 @@ Triage feedback from reviewers before acting. Feedback is evidence to evaluate, 
 follow. This skill supplies the feedback-handling discipline; the invoking workflow or user decides
 whether accepted findings may be edited immediately.
 
-## Trigger Boundary
-
-Use this skill when there is existing feedback to handle, such as review comments, sub-agent
-findings, Claude findings, PR comments, CI review summaries, or user-provided reviewer suggestions.
-
-Do not use this skill for:
-
-- first-party bug reports such as "this crashes" or "fix this failing test";
-- requests to review code that have not produced findings yet;
-- ordinary user corrections during design discussion;
-- implementation requests with no review artifact.
-
 ## Status Taxonomy
 
 Classify each feedback item before acting:
 
-- `accepted`: valid, in scope, and should be fixed.
+- `accepted`: valid, in scope, and the remedy is obvious; fix it when the invoking workflow permits
+  edits, otherwise report it for approval.
 - `auto-accepted`: valid, low-risk, and the invoking workflow permits fixing without user review.
 - `needs-clarification`: plausible but unclear; ask the reviewer or user before deciding.
-- `gated`: valid or plausible, but needs a user decision before fixing.
+- `gated`: valid or plausible, but the remedy needs a user decision. Gate a fix that changes
+  intended behavior, a public interface, a data model, a migration, a dependency, security policy,
+  broad architecture, or prior user direction, or that falls outside the requested scope.
 - `deferred`: valid but outside current scope or not worth fixing now.
 - `rejected`: invalid, duplicate, already addressed, or based on wrong context.
 
@@ -44,27 +35,26 @@ Classify each feedback item before acting:
   converge on one mechanism or remedy, and record every corroborating source on the merged item so
   the corroboration survives into the report. Independent convergence is strong validity evidence,
   not duplication; treat as duplicate only repeats from the same source.
-- Ask follow-up questions when a finding is unclear or missing critical context.
 - Push back with technical evidence when feedback is wrong, under-evidenced, or conflicts with
   established project decisions.
 - If feedback conflicts with user direction or durable project guidance, stop and ask the user.
 - Clarify unclear multi-item feedback before implementing any item that may depend on the unclear
   part.
-- Fix one coherent item or small batch at a time when edits are permitted, then validate with the
+- When edits are permitted, fix one coherent item or small batch at a time, then validate with the
   smallest relevant command.
 
 ## User Decisions
 
-When feedback needs human input, present one decision at a time in natural language. Include:
+When feedback needs human input, present one decision at a time in natural language, unless the user
+asks for a summary of everything. Include:
 
 - the finding;
 - evidence and impact;
 - your recommended approach;
 - the exact decision needed.
 
-Do not present a wall of unresolved findings unless the user asks for a summary. Avoid long code
-snippets by default; provide pseudocode or code only when it materially clarifies the decision or
-the user asks.
+Avoid long code snippets by default; provide pseudocode or code only when it materially clarifies
+the decision or the user asks.
 
 ## Output
 
