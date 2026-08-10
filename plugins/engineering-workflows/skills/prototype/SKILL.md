@@ -28,14 +28,14 @@ Create a runnable disposable artifact, let the user or agent inspect what it pro
 the answer and either delete the prototype or hand the validated decision to a real implementation
 workflow.
 
-## Allowed Side Effects
+## Allowed side effects
 
 - Create disposable prototype artifacts in the locations `## Placement` defines.
 - Add one local run command when the project task runner supports it.
 - Do not stage, commit, publish, or present prototype code as durable implementation.
 - Do not add tests, broad abstractions, production persistence, or unrelated cleanup.
 
-## Choose The Shape
+## Choose the shape
 
 Identify the question the prototype must answer. If the question is ambiguous, state the assumption
 and choose the branch that best matches the surrounding code.
@@ -65,7 +65,7 @@ If you use a worktree, keep the main checkout clean and report the worktree path
 is done, delete the worktree or leave a clear cleanup instruction. Do not commit, branch, or archive
 prototype code as a primary source; preserve the question, observed evidence, and decision.
 
-## Subagent Use
+## Subagent use
 
 The parent session owns the design context; the subagent owns the disposable build.
 

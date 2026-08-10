@@ -1,4 +1,4 @@
-# Fowler Smell Baseline
+# Fowler smell baseline
 
 Treat these as judgment heuristics, never automatic violations. Documented repository conventions
 override the baseline, and formatter or linter findings do not need manual duplication.

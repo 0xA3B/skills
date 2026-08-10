@@ -1,9 +1,9 @@
-# Design It Twice
+# Design it twice
 
 Use this branch when interface shape is the unresolved decision. Compare at least three materially
 different designs; cosmetic signature variations do not count.
 
-## Frame The Problem
+## Frame the problem
 
 State:
 
@@ -13,7 +13,7 @@ State:
 - current caller pain and compatibility constraints;
 - a small illustrative sketch that grounds the problem without proposing the answer.
 
-## Generate Alternatives
+## Generate alternatives
 
 Vary designs along these axes, one design per axis:
 

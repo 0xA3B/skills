@@ -13,7 +13,7 @@ metadata:
 user-invocable: false
 ---
 
-# Codebase Design
+# Codebase design
 
 Design deep modules: useful behavior behind a small interface, placed at a real seam and testable
 through that interface. Use these terms exactly in every design proposal, review finding, and

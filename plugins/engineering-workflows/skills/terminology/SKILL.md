@@ -23,7 +23,7 @@ standalone domain-modeling artifact.
 `AGENTS.md ## Terminology` accurately captures stable domain terms, aliases to avoid, and important
 relationships, or the user receives a focused terminology review with concrete proposed changes.
 
-## Evidence Rules
+## Evidence rules
 
 - Read the existing `AGENTS.md ## Terminology` section before changing it.
 - Use repository evidence: conversation context, README files, nearby docs, code names, tests, and
@@ -63,7 +63,7 @@ the work that speaks it happens:
 
 Judge placement by where the work happens, not where the topic's files sit.
 
-## Section Structure
+## Section structure
 
 - Keep one table by default. Use grouped tables only when the domain is large enough that one table
   hurts scanability.
@@ -71,7 +71,7 @@ Judge placement by where the work happens, not where the topic's files sit.
   relationship. Add a permanent "Flagged ambiguities" section only for an ambiguity the project
   intentionally leaves unresolved.
 
-## Term Rules
+## Term rules
 
 - A term earns its row by resolving an ambiguity, canonicalizing an alias, or fixing a non-obvious
   relationship; skip terms no one confuses.

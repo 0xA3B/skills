@@ -1,6 +1,6 @@
-# Good and Bad Tests
+# Good and bad tests
 
-## Good Tests
+## Good tests
 
 **Integration-style**: Test through real interfaces, not mocks of internal parts.
 
@@ -16,7 +16,7 @@ test("user can checkout with valid cart", async () => {
 
 Keep one logical assertion per test.
 
-## Bad Tests
+## Bad tests
 
 **Tautological tests**: Recompute the expected result through the same logic as production, so the
 assertion cannot disagree with the implementation.

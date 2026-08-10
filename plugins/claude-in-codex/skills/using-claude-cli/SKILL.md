@@ -17,7 +17,7 @@ This skill owns the mechanics of running Claude Code non-interactively: command 
 effort, sessions, structured output, and permission recipes. The caller owns the task contract: what
 Claude is asked to do, the scope, and how its output is used.
 
-## CLI Basics
+## CLI basics
 
 - Use `claude` from `PATH`; do not hard-code a machine-specific absolute path.
 - Run `claude` with escalated permissions, outside the Codex sandbox: it needs network access to
@@ -36,7 +36,7 @@ Claude is asked to do, the scope, and how its output is used.
 - If Claude is unavailable, unauthenticated, or fails, report the failure and stop; do not retry the
   same command blindly.
 
-## Sessions and Output
+## Sessions and output
 
 - Use `--output-format json` so results are machine-readable. Do not use `--no-session-persistence`;
   capture and preserve the `session_id` from Claude's JSON output.
@@ -48,7 +48,7 @@ Claude is asked to do, the scope, and how its output is used.
 - On resumed turns, send only the delta instruction instead of restating the whole prompt, unless
   the direction changed materially.
 
-## Review and Research Recipe
+## Review and research recipe
 
 Use this shape for review, diagnosis, or research where Claude may inspect the repository and run
 task-scoped checks but should not intentionally edit project files or Git state:
@@ -78,7 +78,7 @@ or reach MCP tools either. Do not use subagents solely to probe permission behav
 permission boundaries with commands that would be destructive if approved; report an unvalidated
 boundary instead. Preserve important local work first when the working tree is not recoverable.
 
-## Write-Capable Recipe
+## Write-capable recipe
 
 Use this shape when the caller intends Claude to change files, such as a delegated implementation or
 fix task:
@@ -104,7 +104,7 @@ claude -p "$TASK_PROMPT" \
 Start with the outcome, relevant context, boundaries, success criteria, and return contract. Let
 Claude choose the method unless order or completeness is itself part of the requirement.
 
-### Claude-Specific Adjustments
+### Claude-specific adjustments
 
 - Explain why a constraint matters. Claude uses motivation to make better judgment calls, so a
   sentence of intent is often more useful than extra procedure.
@@ -121,7 +121,7 @@ Claude choose the method unless order or completeness is itself part of the requ
 - If the caller needs a summary after tool use, request it explicitly instead of assuming Claude
   will narrate each action.
 
-### Delegated-Agent Contract
+### Delegated-agent contract
 
 - State what done looks like, what is outside scope, and which changes or actions are allowed.
 - Give Claude a runnable verification check when possible. Ask it to run the check, iterate on

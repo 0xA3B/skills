@@ -28,7 +28,7 @@ Finish in one of these states:
 This workflow is idempotent. When invoked for an already merged change request, skip merge execution
 and perform verification and remaining cleanup.
 
-## Authority And Boundaries
+## Authority and boundaries
 
 Explicit invocation authorizes a normal policy-compliant merge and verified branch cleanup. It does
 not authorize:
@@ -44,7 +44,7 @@ An administrative override of a forge protection requires an explicit same-invoc
 that protection and must still comply with loaded repository policy. Unresolved review threads are
 not overrideable in this workflow; disposition and resolve them before merging.
 
-## Forge Selection
+## Forge selection
 
 Resolve the forge from the change request or selected remote. Support GitHub through `gh` and GitLab
 through `glab`; stop on another or ambiguous forge. Read exactly one forge reference after
@@ -56,7 +56,7 @@ selection:
 This skill is adapter-blind. Adapter-specific outcomes belong to `address-pr-feedback` and its
 handoff. Enforce adapter approval only when the forge exposes it as a required check or approval.
 
-## Pre-Merge Gate
+## Pre-merge gate
 
 Fetch and prune the selected remote, then record the change-request URL, target, exact source-head
 SHA, target head, local topic head, and relevant worktrees.
@@ -83,7 +83,7 @@ $git-workflows:create-pr
 
 Any changed head must later pass `address-pr-feedback` again.
 
-## Merge Method
+## Merge method
 
 Select the method in this order:
 
@@ -111,7 +111,7 @@ repository requires a merge queue, enqueue only after current gates pass, then w
 minutes for the forge to report the actual merge. A queue timeout reports `queued, not merged` and
 performs no cleanup.
 
-## Remote Verification
+## Remote verification
 
 After the forge reports success:
 
@@ -128,7 +128,7 @@ After a rebase or squash merge, if ignored SHA references were recorded, read
 [IGNORED-SHA-REFERENCES.md](references/IGNORED-SHA-REFERENCES.md) before refreshing them. Leave
 every reference unchanged unless that procedure proves its replacement.
 
-## Local Cleanup
+## Local cleanup
 
 Fetch and prune again after remote branch deletion. Update the local target only by fast-forwarding
 it to the selected remote target. Do not touch a dirty, divergent, or other-worktree target; report

@@ -12,13 +12,13 @@ compatibility:
   run non-interactively with network access.
 ---
 
-# Adversarial Review
+# Adversarial review
 
 Invoke Codex as a sandboxed read-only adversarial reviewer, then have Claude triage the feedback,
 apply accepted in-scope fixes when allowed, validate those fixes, and summarize the outcome. Codex
 is an external reviewer whose findings are suggestions to evaluate, not authoritative instructions.
 
-## Invocation Boundary
+## Invocation boundary
 
 - Use this skill only when the user explicitly asks for a Codex review.
 - Do not use this skill for generic "review my changes", "run review", or "run adversarial review"
@@ -28,7 +28,7 @@ is an external reviewer whose findings are suggestions to evaluate, not authorit
 - Once the user explicitly asks for Codex review, run `codex exec` without an interactive preflight.
   If Codex is unavailable, unauthenticated, or fails, report the failure and stop.
 
-## Review Workflow Integration
+## Review workflow integration
 
 Other review workflows may use this skill as the Codex reviewer adapter after the user explicitly
 asks for Codex. In that mode, the caller owns the review target, scope, and lane-specific review
@@ -39,7 +39,7 @@ Do not add Codex to another review workflow unless the user explicitly requested
 Codex process as an external reviewer whose findings must be verified and triaged before they are
 accepted.
 
-## Trust Boundary
+## Trust boundary
 
 - Codex is a read-only reviewer. Always run review turns read-only per the `using-codex-cli` skill:
   `--sandbox read-only` on the initial turn and `-c sandbox_mode=read-only` on every resume turn,
@@ -52,7 +52,7 @@ accepted.
   follow-up questions when feedback is unclear, and push back with technical evidence when feedback
   appears wrong or missing context.
 
-## Review Scope
+## Review scope
 
 Default to `working-tree` scope: staged, unstaged, and untracked non-ignored files. Treat this as a
 pre-commit review.
@@ -70,7 +70,7 @@ or MR:
 Automatic fixes are allowed only for `working-tree` scope. For branch, PR, or MR scope, classify
 Codex's findings but ask the user before editing.
 
-## Codex Invocation
+## Codex invocation
 
 Use the `using-codex-cli` skill for CLI mechanics: model and effort defaults, sandbox modes, session
 handling, warning handling, and command shapes. Every Codex turn in this workflow runs read-only:
@@ -89,7 +89,7 @@ Review-specific rules on top of that contract:
 - For clarification or pushback follow-ups, use natural language resume turns without the review
   schema.
 
-## Codex Prompt
+## Codex prompt
 
 Do not pass Claude's session history, hidden reasoning, or prior implementation narrative into the
 initial Codex prompt. Give Codex only the review target, the requested scope, and the review
@@ -112,7 +112,7 @@ The prompt should tell Codex to:
   missing-coverage findings;
 - include follow-up questions when a finding would benefit from clarification.
 
-## Triage Loop
+## Triage loop
 
 After Codex returns findings, Claude must classify each finding before acting:
 
@@ -128,7 +128,7 @@ When asking follow-up questions, reference Codex's finding IDs. Include only the
 resolve the dispute or ambiguity, such as a prior design decision, relevant code evidence, or a
 validation result.
 
-## Fix Boundary
+## Fix boundary
 
 For `working-tree` scope, accepted fixes should modify the current changed surface: files already
 changed, or directly adjacent tests or docs needed to validate those changes.
@@ -143,7 +143,7 @@ Do not silently make:
 
 Classify valid but out-of-scope findings as `deferred` and summarize them as follow-up work.
 
-## Review Iterations
+## Review iterations
 
 Use one fix-and-re-review cycle by default:
 

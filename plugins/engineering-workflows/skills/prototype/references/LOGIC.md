@@ -1,4 +1,4 @@
-# Logic Prototype
+# Logic prototype
 
 ## Process
 
@@ -17,7 +17,7 @@
    a scratch database or local file clearly marked as prototype data.
 7. Add or report one command that runs the prototype.
 
-## Terminal Shape
+## Terminal shape
 
 Render the whole frame on every tick rather than appending scrollback.
 

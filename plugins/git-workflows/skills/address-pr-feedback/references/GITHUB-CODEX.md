@@ -1,15 +1,15 @@
-# GitHub Codex Review Adapter
+# GitHub Codex review adapter
 
 Use this adapter for Codex code review on GitHub. Its external protocol may change; when live
 behavior contradicts this reference, stop and report the observed difference instead of guessing.
 
-## Identity And Selection
+## Identity and selection
 
 Recognize review activity from the ChatGPT Codex Connector GitHub app, commonly surfaced as
 `chatgpt-codex-connector[bot]`. Select this adapter when the user names it, the current pull request
 contains its activity, or prior pull requests provide reliable repository evidence.
 
-## Initial Review
+## Initial review
 
 Opening a ready pull request may automatically start review when automatic reviews are configured.
 The adapter does not initiate the first review merely because this skill was invoked.
@@ -19,7 +19,7 @@ activity, not approval. The reaction may be transient. If neither acknowledgment
 review appears before the core inactivity timeout, return `timed-out` and report that the repository
 or automatic-review configuration may need checking.
 
-## Findings And Approval
+## Findings and approval
 
 Inspect:
 
@@ -45,7 +45,7 @@ Bind the 👍 to a head before trusting it. When the current head is the only he
 has ever had, the 👍 binds to that head. After any push, a pre-existing 👍 is stale; request a new
 round and require a new terminal signal for the new head. Never reuse an approval for an older head.
 
-## Responses And Thread Resolution
+## Responses and thread resolution
 
 Apply the shared feedback discipline before acting. After disposition:
 
@@ -58,7 +58,7 @@ Apply the shared feedback discipline before acting. After disposition:
 Do not use `@codex address that feedback`; the agent driving this workflow owns fixes, validation,
 commits, and push authority.
 
-## Follow-Up Review
+## Follow-up review
 
 A push does not reliably request another Codex review. After a permitted fix round is committed and
 pushed, comment:

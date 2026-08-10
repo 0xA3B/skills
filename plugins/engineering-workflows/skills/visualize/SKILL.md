@@ -23,14 +23,14 @@ Produce a temporary visual artifact that makes the current session easier to ins
 share. Keep the essential conclusion available in chat even when an HTML or image artifact is
 created.
 
-## Allowed Side Effects
+## Allowed side effects
 
 - Create temporary files outside tracked project state.
 - Fetch remote assets and CDN-hosted libraries when they improve the artifact.
 - Do not stage, commit, publish, or persist the artifact as project documentation unless the user
   explicitly asks.
 
-## Choose The Artifact
+## Choose the artifact
 
 Choose the smallest artifact that improves comprehension:
 
@@ -49,7 +49,7 @@ If the user requested a specific format, use that format unless it would fail th
 If the best format is uncertain, state the assumption and proceed with the lowest-cost useful
 artifact.
 
-## Build The Artifact
+## Build the artifact
 
 1. Identify the source material: current chat context, selected plan, review findings, code map, or
    user-provided content.
@@ -64,7 +64,7 @@ artifact.
    it alongside the summary.
 7. Present the HTML artifact using the presentation surface guidance below.
 
-## Presentation Surface
+## Presentation surface
 
 Keep the artifact local by default. Use the strongest local presentation surface the harness
 provides:
@@ -78,7 +78,7 @@ provides:
   JavaScript, embed images as data URIs, and keep the artifact legible when the viewer wraps it in
   its own light or dark chrome.
 
-### Loopback Server Fallback
+### Loopback server fallback
 
 If the harness browser rejects agent-driven `file://` navigation — Codex's in-app Browser does, even
 when the user can open the same file manually — serve the artifact from a temporary local server
@@ -99,7 +99,7 @@ When the server is stopped, the already loaded static page should remain visible
 fail. Embed generated images and critical assets directly when the report should survive after
 server shutdown.
 
-## HTML Guidance
+## HTML guidance
 
 Make the artifact readable before making it decorative.
 
@@ -115,7 +115,7 @@ Make the artifact readable before making it decorative.
 - Include enough source references or evidence labels for the artifact to be auditable.
 - Avoid turning the report into new analysis; if analysis gaps appear, note them as uncertainties.
 
-## Final Response
+## Final response
 
 Include:
 

@@ -1,11 +1,11 @@
-# GitHub Pull Request Merge
+# GitHub pull request merge
 
 Use this reference only after selecting a GitHub pull request.
 
 Commands and fields below are exemplars of the stated invariants. If the installed CLI lacks one,
 use an equivalent CLI or API path that preserves the invariant and report the deviation.
 
-## Inspect Native Gates
+## Inspect native gates
 
 - Follow loaded account-routing guidance before identity-sensitive or mutating `gh` operations.
 - Inspect `gh pr view --json` fields including `state`, `isDraft`, `headRefOid`, `baseRefName`,
@@ -38,7 +38,7 @@ When a protected target requires a merge queue, checks must already pass before 
 command should add the pull request to the queue. Poll `gh pr view` until `state=MERGED` and
 `mergedAt` is present, or until the core queue timeout expires.
 
-## Verify And Delete
+## Verify and delete
 
 Refetch the target and pull-request metadata. GitHub rebase merge rewrites every topic commit;
 squash creates one new commit; merge commit preserves topic commits and adds a merge commit. Verify

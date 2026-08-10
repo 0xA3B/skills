@@ -19,7 +19,7 @@ a phase only when current evidence explicitly satisfies its completion criterion
 
 Keep domain names aligned with `AGENTS.md ## Terminology` when present.
 
-## 1. Build A Tight Red-Capable Loop
+## 1. Build a tight red-capable loop
 
 This is the primary work. Find the smallest credible signal that can catch this exact bug:
 
@@ -49,7 +49,7 @@ If no credible loop can be built, stop. Report what was tried and request the mi
 environment, access, or permission for targeted instrumentation. Do not hypothesize without a
 red-capable loop.
 
-## 2. Reproduce And Minimize
+## 2. Reproduce and minimize
 
 Run the loop and confirm it fails in the way the user described, not at a nearby setup error. Repeat
 enough times to establish the signal.
@@ -58,7 +58,7 @@ Then remove inputs, callers, configuration, data, and steps one at a time, rerun
 change. Stop minimizing when every remaining element is load-bearing: removing any one makes the
 loop green or changes the failure mechanism.
 
-## 3. Rank Falsifiable Hypotheses
+## 3. Rank falsifiable hypotheses
 
 Generate three to five ranked hypotheses before probing any one. Write each as:
 
@@ -72,7 +72,7 @@ the leading safe probe without waiting for a reply.
 Do not include untethered fixes in the list. A change is a probe only when its predicted observation
 would confirm or falsify a cause.
 
-## 4. Instrument One Variable At A Time
+## 4. Instrument one variable at a time
 
 Map every probe to one hypothesis and change one variable at a time.
 
@@ -91,7 +91,7 @@ timing distribution before modifying behavior. Measure first, then bisect or pro
 Update the rankings when evidence contradicts the current theory. Do not force observations to fit
 the first plausible explanation.
 
-## 5. Lock The Bug Down And Fix The Cause
+## 5. Lock the bug down and fix the cause
 
 When a correct test seam exists, convert the minimized reproduction into a failing regression test
 before applying the fix. The seam must exercise the actual bug pattern; a shallow test that cannot
@@ -112,7 +112,7 @@ attempt proved, then ask the user about the blocking decision or recommend an ex
 When no correct regression seam exists, record that as an architecture and testability finding and
 prove the fix with the best available loop.
 
-## 6. Clean Up And Learn
+## 6. Clean up and learn
 
 Before declaring completion:
 
@@ -127,7 +127,7 @@ If prevention requires architectural work, recommend an explicit invocation of
 `engineering-workflows:improve-codebase-architecture` with the missing seam or coupling evidence.
 Make that recommendation after the fix, when the system is best understood.
 
-## Final Report
+## Final report
 
 End with the loop command and its before/after signal, the minimized reproduction, the fix, the
 regression test, and validation results, alongside the phase 6 statements.

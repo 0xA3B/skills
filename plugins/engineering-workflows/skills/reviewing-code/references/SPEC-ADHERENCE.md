@@ -1,4 +1,4 @@
-# Spec Adherence Lane
+# Spec adherence lane
 
 Ask whether the review target matches the supplied source of intended behavior. Cite that source for
 every finding.

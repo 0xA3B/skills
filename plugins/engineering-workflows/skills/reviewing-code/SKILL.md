@@ -14,7 +14,7 @@ metadata:
 user-invocable: false
 ---
 
-# Reviewing Code
+# Reviewing code
 
 Separate review intent into focused lanes while the invoking workflow owns scope, edit policy, and
 required minimums.
@@ -35,7 +35,7 @@ lanes the target justifies, report normalized findings without applying fixes, a
 explicit `engineering-workflows:review-changes` or `engineering-workflows:review-branch` invocation
 for triage, fixes, and validation.
 
-## Lane Selection
+## Lane selection
 
 Choose lanes by the primary question and remedy, and read a lane reference only when its lane is
 selected:
@@ -56,7 +56,7 @@ selected:
 When a finding crosses lanes, keep it in the lane that owns the primary remedy and add cross-lane
 context in the evidence. The coordinator deduplicates findings that share a mechanism or fix.
 
-## Subagent Policy
+## Subagent policy
 
 Use one reviewer per selected lane when the invoking workflow calls for a full review and subagents
 are permitted. Keep lane contexts independent so one review intent does not anchor another.
@@ -79,7 +79,7 @@ Provide every lane reviewer:
   available;
 - a prohibition on expanding scope or applying fixes.
 
-## Finding Contract
+## Finding contract
 
 Each lane returns the object defined by
 [review-finding.schema.json](references/review-finding.schema.json): `lane`, `verdict`, `summary`,

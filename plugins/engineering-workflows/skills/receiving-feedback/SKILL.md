@@ -8,13 +8,13 @@ description: >-
 user-invocable: false
 ---
 
-# Receiving Feedback
+# Receiving feedback
 
 Triage feedback from reviewers before acting. Feedback is evidence to evaluate, not an order to
 follow. This skill supplies the feedback-handling discipline; the invoking workflow or user decides
 whether accepted findings may be edited immediately.
 
-## Status Taxonomy
+## Status taxonomy
 
 Classify each feedback item before acting:
 
@@ -28,7 +28,7 @@ Classify each feedback item before acting:
 - `deferred`: valid but outside current scope or not worth fixing now.
 - `rejected`: invalid, duplicate, already addressed, or based on wrong context.
 
-## Triage Rules
+## Triage rules
 
 - Verify feedback against repository reality before accepting it.
 - Merge items from independent sources — separate review lanes, a PR bot, CI, the user — that
@@ -43,7 +43,7 @@ Classify each feedback item before acting:
 - When edits are permitted, fix one coherent item or small batch at a time, then validate with the
   smallest relevant command.
 
-## User Decisions
+## User decisions
 
 When feedback needs human input, present one decision at a time in natural language, unless the user
 asks for a summary of everything. Include:

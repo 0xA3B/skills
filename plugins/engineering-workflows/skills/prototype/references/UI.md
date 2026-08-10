@@ -1,6 +1,6 @@
-# UI Prototype
+# UI prototype
 
-## Preferred Shape
+## Preferred shape
 
 Prefer variants inside a realistic existing page when possible. A prototype judged next to real
 navigation, density, auth, data, and constraints gives better evidence than an isolated empty route.
@@ -25,7 +25,7 @@ experiment from a worktree.
 7. Hide prototype-only switcher UI in production builds when the code is source-adjacent.
 8. Give the user the URL and variant keys.
 
-## Switcher Rules
+## Switcher rules
 
 - Do not intercept arrow keys while an input, textarea, select, or contenteditable element is
   focused.

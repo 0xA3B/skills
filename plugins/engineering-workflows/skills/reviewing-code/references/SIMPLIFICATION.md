@@ -1,4 +1,4 @@
-# Simplification Lane
+# Simplification lane
 
 Ask whether the changed implementation can become locally smaller or clearer without changing its
 intended behavior, architecture, or public interface.

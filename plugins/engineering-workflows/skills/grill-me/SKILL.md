@@ -13,7 +13,7 @@ disable-model-invocation: true
 argument-hint: "[approach]"
 ---
 
-# Grill Me
+# Grill me
 
 Interview the user relentlessly until there is shared understanding of the work. Map the work as a
 decision tree — every decision branches into the decisions that hang off it — and walk it in rounds
@@ -25,7 +25,7 @@ Expose and resolve decisions that materially affect behavior, implementation, ri
 validation. Finish with an approach the user has explicitly confirmed is specific enough to
 implement, defer, or reject.
 
-## Facts And Decisions
+## Facts and decisions
 
 - Find facts by inspecting the environment: repository files, history, tools, configured services,
   and current external sources when relevant. When the harness provides subagents, delegate lookups
@@ -35,7 +35,7 @@ implement, defer, or reject.
   it resolves, then wait for the user's answer.
 - Keep assumptions distinct from facts and decisions. Make unresolved uncertainty explicit.
 
-## Interview Rounds
+## Interview rounds
 
 The **frontier** is every decision whose prerequisites are already settled — the questions you can
 ask now without guessing at answers you have not heard yet. Work the tree in rounds:
@@ -63,7 +63,7 @@ answer maps cleanly onto a few discrete options and selecting one would fully an
 question in prose when it is open-ended or the useful answer is itself prose. A round may mix both:
 send the option-shaped questions through the tool and the rest as prose.
 
-## Interview Behavior
+## Interview behavior
 
 - Challenge vague, overloaded, or conflicting terms. Propose a canonical term, a tight definition,
   and aliases to avoid.
