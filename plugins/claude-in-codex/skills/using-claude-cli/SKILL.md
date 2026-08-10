@@ -3,7 +3,8 @@ name: using-claude-cli
 description: >-
   Internal contract for invoking the Claude Code CLI non-interactively. Use when another
   claude-in-codex skill or a Claude proxy subagent needs to run claude -p for review, delegation,
-  session follow-ups, or structured output. Do not use for conceptual questions about Claude Code.
+  session follow-ups, or structured output. Do not use for conceptual questions about Claude Code or
+  Claude models, including pricing, capabilities, and model comparisons.
 license: MIT
 user-invocable: false
 compatibility:
