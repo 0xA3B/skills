@@ -169,8 +169,9 @@ Improve the code and tests while keeping behavior unchanged:
 - Keep tests focused on behavior.
 - Delete or merge tests the current work has subsumed, judged by the deletion test: if this test
   were deleted, what defect would now ship? A test that no longer discriminates any behavior is a
-  legitimate deletion, not lost coverage. Note cross-file subsumption for a codebase-scoped test
-  review instead of chasing it mid-slice.
+  legitimate deletion, not lost coverage. Instead of chasing cross-file subsumption mid-slice, note
+  it in the completion report and recommend an explicit
+  `engineering-workflows:improve-codebase-tests` invocation.
 - Report existing code the new code reveals as problematic; change it only when the user asks.
 
 ### 5. Repeat
