@@ -1,11 +1,11 @@
-# GitLab Merge Request Merge
+# GitLab merge request merge
 
 Use this reference only after selecting a GitLab merge request.
 
 Commands and fields below are exemplars of the stated invariants. If the installed CLI lacks one,
 use an equivalent CLI or API path that preserves the invariant and report the deviation.
 
-## Inspect Native Gates
+## Inspect native gates
 
 - Follow loaded authentication and environment guidance before mutating `glab` operations.
 - Inspect `glab mr view <mr> --output json` and use `glab api` for fields the CLI omits, including
@@ -31,7 +31,7 @@ When project policy requires a merge train or equivalent queue, enqueue only aft
 pipeline and approvals pass. Poll merge-request and train state until it is actually merged or the
 core queue timeout expires.
 
-## Verify And Delete
+## Verify and delete
 
 Refetch the target, project, and merge-request metadata. Verify `state=merged`, the recorded source
 SHA, the resulting target commit, and the selected merge method.

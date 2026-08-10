@@ -23,7 +23,7 @@ decision space and the first actionable frontier without resolving every branch.
 Produce a tracker-neutral decision map, in the shape the Output section defines, that makes a large
 effort navigable without turning planning into implementation.
 
-## Allowed Side Effects
+## Allowed side effects
 
 - Inspect repository code, docs, tests, history, issues, and local artifacts.
 - Research current external sources when packages, APIs, ecosystem behavior, pricing, product
@@ -31,9 +31,9 @@ effort navigable without turning planning into implementation.
 - Create no durable artifacts, project docs, issues, specs, branches, or implementation changes.
 - Keep scratch notes temporary and do not present them as project state.
 
-## Chart The Map
+## Chart the map
 
-### 1. Name The Destination
+### 1. Name the destination
 
 State what reaching the end of this effort means in one or two sentences. Separate the destination
 from attractive follow-on work; the destination defines the scope boundary.
@@ -41,7 +41,7 @@ from attractive follow-on work; the destination defines the scope boundary.
 If the destination is still a user decision, ask one focused question and provide a recommendation.
 If the destination is a fact discoverable from the environment, inspect instead of asking.
 
-### 2. Establish The Known Ground
+### 2. Establish the known ground
 
 Gather only enough evidence to map the space:
 
@@ -53,7 +53,7 @@ Gather only enough evidence to map the space:
 Challenge vague domain terms. Use concrete edge cases when a relationship, state transition, or
 ownership boundary is unclear, and verify important claims against code.
 
-### 3. Map Breadth-First
+### 3. Map breadth-first
 
 Fan out across the effort before going deep on one path. Create decision-sized chunks, each small
 enough for one future focused session. Each chunk should name the question or outcome it resolves,
@@ -72,7 +72,7 @@ manual-only, so recommend its explicit invocation instead of invoking it from th
 Record dependencies between chunks. The **frontier** is the set of chunks that are precise,
 unblocked, and useful to start next.
 
-### 4. Preserve The Fog
+### 4. Preserve the fog
 
 Put in-scope questions that cannot yet be stated precisely under **Not yet specified**. Do not
 manufacture detailed chunks for work whose shape depends on unresolved decisions.
@@ -80,7 +80,7 @@ manufacture detailed chunks for work whose shape depends on unresolved decisions
 Keep deliberately excluded work under **Out of scope**. Fog may become actionable later; excluded
 scope does not return unless the destination changes.
 
-### 5. Stop At The Map
+### 5. Stop at the map
 
 Leave mapped chunks unresolved; resolving one belongs to the workflow it is classified under. If the
 entire effort is already clear and small enough for one session, say that a map is unnecessary and

@@ -1,4 +1,4 @@
-# API And Seam Review Lane
+# API and seam review lane
 
 Ask whether callers receive a simple, complete, compatible contract with useful defaults and clear
 failure behavior.

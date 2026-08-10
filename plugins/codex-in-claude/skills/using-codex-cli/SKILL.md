@@ -21,7 +21,7 @@ This skill owns the mechanics of running Codex non-interactively: command shapes
 sessions, structured output, and prompting guidance. The caller owns the task contract: what Codex
 is asked to do, the scope, and how its output is used.
 
-## CLI Basics
+## CLI basics
 
 - Use `codex` from `PATH`; do not hard-code a machine-specific absolute path.
 - Run `codex` outside any calling sandbox, such as Claude Code's Bash sandbox: it needs network
@@ -40,7 +40,7 @@ is asked to do, the scope, and how its output is used.
 - If Codex is unavailable, unauthenticated, or fails, report the failure and stop; do not retry the
   same command blindly.
 
-## Sandbox Modes
+## Sandbox modes
 
 Codex enforces its sandbox at the OS level, so permissions are set by flag or config, not by
 instruction:
@@ -55,7 +55,7 @@ instruction:
   fix is the user adjusting their Codex config or naming a mode, not a broader flag.
 - Never use `--sandbox danger-full-access` or `--dangerously-bypass-approvals-and-sandbox`.
 
-## Sessions and Output
+## Sessions and output
 
 - Add `--json` to stream machine-readable JSONL events. Capture the thread id from the
   `thread.started` event (`{"type":"thread.started","thread_id":"..."}`) and preserve it for
@@ -96,7 +96,7 @@ codex exec resume "$THREAD_ID" "$FOLLOW_UP_PROMPT" \
   < /dev/null
 ```
 
-## Timeouts and Interruption
+## Timeouts and interruption
 
 - Codex turns regularly outlast default tool timeouts. When invoking `codex exec` through a tool
   with a configurable timeout, set the maximum (in Claude Code, `timeout: 600000`, 10 minutes).

@@ -24,7 +24,7 @@ requested scope and can be explained briefly after execution.
 Use this skill when the user wants commits created. If it is explicitly invoked for message text,
 stay in dry-run mode and return a proposal without staging or committing.
 
-## Invocation Behavior
+## Invocation behavior
 
 - This skill may be implicitly invoked when the user asks to create git commits.
 - Default behavior is execution mode: review all current changes and commit them.
@@ -35,7 +35,7 @@ stay in dry-run mode and return a proposal without staging or committing.
 - If the user uses "commit" to mean agree, decide, or commit to a plan, do not invoke this skill.
 - If the repository has documented commit conventions beyond Conventional Commits, follow them.
 
-## Success Criteria
+## Success criteria
 
 - The intended changes are committed, or a precise blocker is reported.
 - Each commit has one logical purpose, one rollback boundary, and a valid Conventional Commit
@@ -43,7 +43,7 @@ stay in dry-run mode and return a proposal without staging or committing.
 - Repository-specific commit rules, hooks, and sandbox requirements are respected.
 - The final response names the created commit(s) and any files intentionally left uncommitted.
 
-## Context Gathering
+## Context gathering
 
 - Start with the smallest useful git state inspection for the requested scope.
 - Read repository commit rules only when they are likely to exist or are referenced by hooks,
@@ -55,7 +55,7 @@ stay in dry-run mode and return a proposal without staging or committing.
 - Do not keep searching for alternative scopes or message phrasings after the commit plan is
   defensible.
 
-## Commit Message Policy
+## Commit message policy
 
 - Write standard Conventional Commit messages: `<type>[optional scope][!]: <description>` with an
   imperative subject. Load `references/conventional-commits.md` for detailed specification rules,
@@ -70,7 +70,7 @@ stay in dry-run mode and return a proposal without staging or committing.
 - Return warnings only for assumptions that could change type, scope, body, footer, breaking-change
   handling, or commit partitioning.
 
-## Commit Partitioning Rules
+## Commit partitioning rules
 
 Split commits when units differ by:
 
@@ -80,7 +80,7 @@ Split commits when units differ by:
 
 Keep together when changes are jointly required for one behavior and should be reverted together.
 
-## Default Workflow
+## Default workflow
 
 1. Inspect all changes:
    - Staged changes
@@ -95,7 +95,7 @@ Keep together when changes are jointly required for one behavior and should be r
    - Repeat until all intended changes are committed
 4. Return a concise summary of created commits.
 
-## Minimal-Interaction Policy
+## Minimal-interaction policy
 
 - Proceed without questions when intent is clear.
 - Treat "run commit" with no extra context as "commit all current changes."
@@ -104,7 +104,7 @@ Keep together when changes are jointly required for one behavior and should be r
   - ambiguous overlapping hunks that cannot be safely split
   - empty working tree
 
-## Optional Overrides
+## Optional overrides
 
 If user provides extra context, apply it without switching to high-interaction mode:
 
@@ -113,7 +113,7 @@ If user provides extra context, apply it without switching to high-interaction m
 - "only <path or concern>" -> restrict commit scope
 - "skip <path or concern>" -> exclude specified scope
 
-## Safety Rules
+## Safety rules
 
 - Do not use `git commit --no-verify` unless explicitly requested.
 - Do not include ignored/local artifact paths unless explicitly requested.

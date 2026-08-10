@@ -1,4 +1,4 @@
-# GitHub Pull Requests
+# GitHub pull requests
 
 Use this reference only after selecting a GitHub remote.
 
@@ -14,7 +14,7 @@ use an equivalent CLI or API path that preserves the invariant and report the de
   `mergeStateStatus`, and `statusCheckRollup`.
 - Treat the exact `headRefOid` as the published source-head identity.
 
-## Create Or Refresh
+## Create or refresh
 
 Push the branch explicitly before running `gh pr create`; do not depend on interactive push or fork
 prompts.
@@ -46,7 +46,7 @@ gh pr checks <pr> --required --json bucket,completedAt,description,link,name,sta
 Poll only as needed to enforce the core workflow's inactivity rule. `bucket=fail` or `bucket=cancel`
 is terminal; `bucket=pending` needs progress evidence before extending the wait.
 
-## GitHub Merge Semantics
+## GitHub merge semantics
 
 GitHub pull requests do not expose a true fast-forward merge. GitHub rebase merging always creates
 new commit SHAs and updates committer information, even when the topic already contains the current

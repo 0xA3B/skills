@@ -1,8 +1,8 @@
-# Deepening Modules
+# Deepening modules
 
 Classify dependencies before deepening a module. The category determines the seam and test strategy.
 
-## Dependency Categories
+## Dependency categories
 
 ### In-process
 
@@ -24,14 +24,14 @@ domain behavior in the deep module, and supply production transport and in-memor
 Third-party systems outside project control. Inject a narrow port and test through a fake or mock
 adapter that models only the external behavior the module depends on.
 
-## Seam Discipline
+## Seam discipline
 
 - Keep internal seams private to the implementation. Do not expand the public interface merely
   because internal tests need control.
 - Put transport and protocol details in adapters; keep the interface expressed in caller and domain
   terms.
 
-## Test Migration
+## Test migration
 
 Replace tests on shallow internals with behavior tests at the deepened interface once equivalent
 coverage exists. Surviving tests assert observable results and stay stable across implementation

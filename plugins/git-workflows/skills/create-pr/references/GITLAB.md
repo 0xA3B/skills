@@ -1,4 +1,4 @@
-# GitLab Merge Requests
+# GitLab merge requests
 
 Use this reference only after selecting a GitLab remote.
 
@@ -13,7 +13,7 @@ use an equivalent CLI or API path that preserves the invariant and report the de
 - Resolve an existing merge request by branch with `glab mr view <branch> --output json`.
 - Treat the merge request's source-branch SHA as the published source-head identity.
 
-## Create Or Refresh
+## Create or refresh
 
 Push the branch explicitly before creation. `--fill` derives the title and description from commits
 and bypasses merge-request templates. When the repository defines a suitable template, the template
@@ -43,7 +43,7 @@ glab ci status --branch <topic> --output json
 Use `glab api` when the CLI summary cannot distinguish pipeline or job progress. A running job whose
 steps or trace continue advancing may exceed the core ten-minute inactivity threshold.
 
-## GitLab Merge Semantics
+## GitLab merge semantics
 
 GitLab projects may support fast-forward merge, merge commit, or semi-linear history. A true
 fast-forward preserves topic commits and their identities. Server-side rebase rewrites commits and

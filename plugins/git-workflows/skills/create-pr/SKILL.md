@@ -22,7 +22,7 @@ Finish with one open, non-duplicate change request whose source head is committe
 pushed, and assessed against its target. Report a precise blocker instead when conflicts,
 authorization, validation, or forge state prevent that outcome.
 
-## Authority And Boundaries
+## Authority and boundaries
 
 - Create a topic branch when the current branch is the target branch.
 - Apply `git-workflows:commit` to intended uncommitted changes before publishing.
@@ -34,7 +34,7 @@ authorization, validation, or forge state prevent that outcome.
 - Never resolve merge or rebase conflicts, rebase a target branch onto a topic branch, bypass hooks,
   perform code review, or merge the change request.
 
-## Forge And Target
+## Forge and target
 
 Use **Change request** for the forge-neutral object. Use **Pull request** in the GitHub lane and
 **Merge request** in the GitLab lane.
@@ -56,7 +56,7 @@ Fetch and prune the selected remote before comparing heads.
 
 ## Workflow
 
-### 1. Establish A Topic Branch
+### 1. Establish a topic branch
 
 Inspect branch, worktree, upstream, remotes, in-progress Git operations, and existing change
 requests. Stop during an unresolved merge, rebase, cherry-pick, or revert.
@@ -73,7 +73,7 @@ target, retarget through the forge lane, refetch its metadata, and reassess its 
 mergeability. Stop for a user decision on any other mismatch; never create a duplicate. A closed or
 merged change request is not reusable without an explicit user decision.
 
-### 2. Select A Merge Path
+### 2. Select a merge path
 
 Select the expected merge method in this order:
 
@@ -101,7 +101,7 @@ merge commit. When the selected path requires conflict resolution, restore the o
 report the conflicting commits and files, and stop. Conflict resolution changes reviewed content and
 belongs outside this operational workflow.
 
-### 3. Validate And Publish
+### 3. Validate and publish
 
 Run the repository's documented full pre-PR or local validation gate. When no full gate is defined,
 use the established project script surface to run the smallest credible format, lint, typecheck, and
@@ -116,7 +116,7 @@ After validation:
 5. create a ready-for-review change request unless the user explicitly asks for a draft;
 6. record the change-request URL, target, and exact source-head SHA.
 
-### 4. Observe Initial CI
+### 4. Observe initial CI
 
 Observe required CI for the published head. Use ten minutes without observable job, step, log, or
 state progress as a soft inactivity timeout. Continue beyond ten wall-clock minutes while CI is
@@ -125,7 +125,7 @@ clearly advancing. Stop immediately on a failed, errored, or demonstrably stalle
 A timeout reports the exact pending checks and preserves the change request. It does not cancel CI
 or claim that validation failed.
 
-## Completion And Hand Off
+## Completion and hand off
 
 Report:
 

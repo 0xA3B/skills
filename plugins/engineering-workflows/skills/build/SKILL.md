@@ -32,7 +32,7 @@ If the primary risk is breaking known behavior — mature projects, bug fixes, s
 well-defined behavior that should be test-first — stop and recommend an explicit invocation of
 `engineering-workflows:tdd`.
 
-## Allowed Side Effects
+## Allowed side effects
 
 - Edit production code, tests, fixtures, scripts, and docs needed for the requested behavior.
 - Add lightweight validation such as smoke scripts, sample inputs, CLI examples, golden fixtures, or
@@ -41,7 +41,7 @@ well-defined behavior that should be test-first — stop and recommend an explic
 - Do not broaden into unrelated cleanup, architecture review, or test-harness investment unless the
   user asks.
 
-## Architecture Rules
+## Architecture rules
 
 - Apply `engineering-workflows:codebase-design` when defining or changing interfaces, module depth,
   seams, adapters, or the test surface.
@@ -54,7 +54,7 @@ If interface or module shape becomes the main risk, pause and recommend an expli
 `engineering-workflows:improve-codebase-architecture` or `engineering-workflows:grill-me` before
 continuing implementation.
 
-## Dependency Rules
+## Dependency rules
 
 - Prefer built-in or standard-library capabilities when they fit the problem.
 - Prefer existing project dependencies before adding new ones.
@@ -66,7 +66,7 @@ continuing implementation.
 
 ## Workflow
 
-### 1. Choose The First Slice
+### 1. Choose the first slice
 
 Inspect the relevant code, docs, commands, and planned direction. Identify:
 
@@ -79,14 +79,14 @@ Inspect the relevant code, docs, commands, and planned direction. Identify:
 When the slice or validation signal is ambiguous, state the assumption and proceed if low risk; ask
 only when the wrong choice would waste work or lock in the wrong interface.
 
-### 2. Make It Work
+### 2. Make it work
 
 Implement the slice until there is a runnable result. Prefer straightforward code over speculative
 abstractions, but keep behavior close to the seam that should eventually own it.
 
 Do not write broad implementation-shaped tests while module boundaries are still moving.
 
-### 3. Prove It Works
+### 3. Prove it works
 
 Run the smallest credible validation:
 
@@ -99,7 +99,7 @@ Run the smallest credible validation:
 
 If validation cannot run, explain the missing setup, artifact, dependency, or user action needed.
 
-### 4. Refactor The Shape
+### 4. Refactor the shape
 
 After the slice works, simplify:
 
@@ -110,7 +110,7 @@ After the slice works, simplify:
 - isolate external boundaries behind adapters when useful;
 - delete throwaway scaffolding unless it became durable tooling.
 
-### 5. Add Tests When They Now Help
+### 5. Add tests when they now help
 
 Add tests only when they protect now-stable behavior or cheap regression coverage. Prefer tests at
 the public interface and avoid tests that would churn during expected interface refactors.

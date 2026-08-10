@@ -10,7 +10,7 @@ license: MIT
 disable-model-invocation: true
 ---
 
-# Dependency Maintenance
+# Dependency maintenance
 
 Review dependency update PRs, merge only updates that are ready as-is, refresh repo-pinned
 dependency tooling, and leave durable follow-up state for anything that needs code, migration, or
@@ -32,7 +32,7 @@ The repository's dependency update queue is triaged with clear evidence:
 - Decisions follow the repository's own dependency policy, and a missing or contradictory policy is
   reported as a distinct gap.
 
-## Repository Policy Precedence
+## Repository policy precedence
 
 Everything in this skill is a default. When the repository states its own dependency policy — in
 agent guidance, a dependency policy document, contributing docs, or updater configuration — that
@@ -90,7 +90,7 @@ configured and still have nothing written down explaining the decisions behind i
 Use the repository's own CLIs and auth wrappers when present. For GitHub, GitLab, or other forges,
 choose the appropriate tool from local context instead of assuming a specific bot or CLI.
 
-### 2. Understand Each PR
+### 2. Understand each PR
 
 For each dependency PR, inspect enough evidence to classify it:
 
@@ -103,7 +103,7 @@ For each dependency PR, inspect enough evidence to classify it:
 - Repository impact: imported APIs, configured plugins/actions, runtime compatibility, test
   coverage, and code paths likely affected by the update.
 
-### 3. Research Release Notes
+### 3. Research release notes
 
 For direct major and minor bumps, read upstream release notes, changelogs, migration guides, or
 package manager advisories. For patch bumps, research when the package is security-sensitive, the
@@ -137,7 +137,7 @@ Classify every PR before acting:
 Merge only `merge as-is` PRs. Treat grouped updates as ready only when every meaningful bump in the
 group is ready.
 
-### 5. Create Durable Follow-Up State
+### 5. Create durable follow-up state
 
 When a PR is not merged, make the relationship easy to recover later:
 
@@ -167,7 +167,7 @@ When a blocker fix merges or a shared investigation issue closes while any depen
 is still open, recheck those PRs: every PR left blocked must link to an open, actionable issue. File
 a new issue for any unresolved remainder and update the PR's linked context.
 
-### 6. Merge Ready PRs
+### 6. Merge ready PRs
 
 Merge only through the repository's normal forge path and merge strategy. Before merging, verify:
 
@@ -191,7 +191,7 @@ does not substitute for the alert closing.
 If merge permissions fail, inspect authentication and repository permissions before considering any
 local workaround. Do not merge locally unless the user explicitly asks for that fallback.
 
-### 7. Sync Local State
+### 7. Sync local state
 
 After successful merges, sync local state only when the worktree is clean or the user explicitly
 approves working around local changes.
@@ -214,7 +214,7 @@ Keep local environment refresh separate from source edits. If install or validat
 the failing command, classify the remaining work, and create durable follow-up state when
 appropriate.
 
-### 8. Refresh Repo-Pinned Tooling
+### 8. Refresh repo-pinned tooling
 
 Treat an explicit invocation of this skill as a full maintenance pass unless the user narrows the
 scope. In a full maintenance pass, inspect and refresh repo-pinned tools that dependency bots may
@@ -246,7 +246,7 @@ If an update would require migration, policy changes, major runtime changes, or 
 edits, create a follow-up issue with the current version, available version, ownership surface,
 reason to update, and suggested validation instead of broadening the maintenance PR.
 
-## Final Report
+## Final report
 
 Always report:
 

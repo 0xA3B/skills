@@ -12,7 +12,7 @@ disable-model-invocation: true
 argument-hint: "[scope]"
 ---
 
-# Improve Codebase Architecture
+# Improve codebase architecture
 
 Find architectural friction and propose deepening opportunities: changes that put more useful
 behavior behind simpler interfaces and improve locality, leverage, testability, and navigation.
@@ -25,7 +25,7 @@ and seam rules throughout this workflow.
 Produce a prioritized, repository-grounded architecture review or a concrete plan for one selected
 refactor. The first pass is analysis-only unless the user explicitly requests implementation.
 
-## Scope Before Scanning
+## Scope before scanning
 
 Deepening pays off where future change is likely. Choose the review area before searching:
 
@@ -51,7 +51,7 @@ Apply the deletion test to suspected pass-through modules. Tie every candidate t
 callers, tests, history, or observed navigation friction. Pattern preference without repository
 evidence is not a finding.
 
-## Present Candidates
+## Present candidates
 
 For each candidate include:
 
@@ -65,7 +65,7 @@ For each candidate include:
 Do not propose a detailed interface during the first pass. Ask which candidate the user wants to
 explore or implement.
 
-## Resolve A Selected Candidate
+## Resolve a selected candidate
 
 For the selected candidate, make explicit:
 

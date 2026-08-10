@@ -7,7 +7,7 @@ disable-model-invocation: true
 argument-hint: "[base|pr|mr]"
 ---
 
-# Review Branch
+# Review branch
 
 Review a full branch or PR/MR before merge. This workflow owns scope, base resolution,
 decision-first triage, edit policy, and completion. Apply `engineering-workflows:reviewing-code` for
@@ -17,7 +17,7 @@ lane selection, reviewer isolation, and finding contracts.
 
 Produce a triaged pre-merge review before the branch merges.
 
-## Scope And Base
+## Scope and base
 
 Review the current branch against a base unless the user provides a PR, MR, branch, path, or
 explicit range.
@@ -32,7 +32,7 @@ Resolve the base in this order:
 Use the merge-base diff for branch review. A feature branch's tracking branch is usually not its
 merge target. Include relevant uncommitted changes only when present and call them out explicitly.
 
-## Required And Conditional Lanes
+## Required and conditional lanes
 
 Always require:
 
@@ -46,12 +46,12 @@ pre-merge integration boundary.
 Do not add lanes merely to increase reviewer count. Each selected lane needs a distinct question
 that the required lanes would otherwise overload.
 
-## Review Execution
+## Review execution
 
 Use the coordinator role from `engineering-workflows:reviewing-code`. For large or high-risk
 branches, independently run all selected lanes when capacity allows.
 
-## Decision First, Edits Second
+## Decision first, edits second
 
 Apply `engineering-workflows:receiving-feedback` to every finding:
 

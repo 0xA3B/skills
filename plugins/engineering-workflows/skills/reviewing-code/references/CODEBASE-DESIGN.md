@@ -1,4 +1,4 @@
-# Codebase Design Lane
+# Codebase design lane
 
 Ask whether the change fits the repository's architecture and improves or degrades module depth,
 seam placement, locality, leverage, and testability.

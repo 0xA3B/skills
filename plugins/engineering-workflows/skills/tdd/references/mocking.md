@@ -1,4 +1,4 @@
-# When to Mock
+# When to mock
 
 Mock at **system boundaries** only:
 
@@ -7,7 +7,7 @@ Mock at **system boundaries** only:
 - Time/randomness
 - File system — use a temporary directory; mock only when the test cannot create one
 
-## Designing for Mockability
+## Designing for mockability
 
 At system boundaries, design interfaces that are easy to mock:
 

@@ -9,7 +9,7 @@ disable-model-invocation: true
 argument-hint: "[path]"
 ---
 
-# Review Changes
+# Review changes
 
 Review the current worktree before commit. This workflow owns scope, depth, fix policy, and
 completion. Apply `engineering-workflows:reviewing-code` for lane selection, reviewer isolation, and
@@ -27,7 +27,7 @@ provides a path or narrow target, review only that target.
 If there are no worktree changes, say so and ask whether the user wants a specific commit range or a
 branch review through `engineering-workflows:review-branch`.
 
-## Review Depth
+## Review depth
 
 For a small, low-risk diff such as wording, comments, metadata text, or narrow configuration, do a
 lightweight main-thread review: inspect the exact diff, check obvious behavior and policy risks, run
@@ -45,11 +45,11 @@ Use the Lane Selection section of `engineering-workflows:reviewing-code` for con
 triggers. Resolve a borderline trigger toward skipping the lane for a pre-commit worktree review,
 and select spec adherence only when the user supplies the intent source.
 
-## Review Execution
+## Review execution
 
 Use the coordinator role from `engineering-workflows:reviewing-code`.
 
-## Triage And Fixes
+## Triage and fixes
 
 Apply `engineering-workflows:receiving-feedback` to the collected findings:
 
@@ -62,7 +62,7 @@ or directly adjacent tests and docs.
 
 Ask about one gated finding at a time. Defer unrelated cleanup rather than expanding the worktree.
 
-## Validation And Output
+## Validation and output
 
 Run the smallest relevant fresh validation for applied fixes. Add or update behavior-focused tests
 when a fix changes behavior and a stable test seam exists.

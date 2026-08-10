@@ -11,7 +11,7 @@ disable-model-invocation: true
 argument-hint: "[task]"
 ---
 
-# Test-Driven Development
+# Test-driven development
 
 Use a red-green-refactor loop with vertical slices. Verify behavior through public interfaces, not
 implementation details.
@@ -22,7 +22,7 @@ Deliver the requested behavior through a sequence of small red-green-refactor cy
 should have behavior-focused tests at the public interface, minimal speculative design, and relevant
 project validation passing.
 
-## Allowed Side Effects
+## Allowed side effects
 
 - Edit production code and tests needed for the current behavior.
 - Reuse existing fixtures, helpers, and project commands.
@@ -46,7 +46,7 @@ Read [tests.md](references/tests.md) before writing a test whose expected value 
 than known, or when a test asserts on calls rather than results. Reference examples may use
 TypeScript; apply the testing principles in the repository's actual language and test framework.
 
-## Tracer Bullets
+## Tracer bullets
 
 Do not treat RED as "write every test" and GREEN as "write all the code." That produces tests for
 imagined behavior before the implementation teaches you anything.
@@ -62,7 +62,7 @@ repeat
 
 Each slice should respond to what the previous cycle revealed.
 
-## Discipline Checks
+## Discipline checks
 
 Tests written after implementation are useful regression coverage, but they are not TDD. Do not
 claim a slice followed red-green-refactor unless the test failed for the expected reason before the
@@ -92,7 +92,7 @@ wrong feedback loop for this task — stop and recommend an explicit invocation 
 
 ## Workflow
 
-### 1. Plan The Test Surface
+### 1. Plan the test surface
 
 Before editing, inspect the relevant code, tests, docs, and project commands. Keep domain names
 aligned with `AGENTS.md ## Terminology` when present.

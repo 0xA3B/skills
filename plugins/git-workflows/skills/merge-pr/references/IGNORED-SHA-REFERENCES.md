@@ -1,4 +1,4 @@
-# Ignored SHA References
+# Ignored SHA references
 
 Use this reference only after a rebase or squash merge when ignored, untracked local artifacts
 contain recorded references to original topic commits.
