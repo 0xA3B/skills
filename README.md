@@ -102,9 +102,10 @@ skill records its original author and source in its Agent Skills frontmatter met
 The typical implementation flow starts with `wayfinder`, which maps a loose idea into decision-sized
 chunks. `grill-me` resolves a selected direction, and `prototype` answers questions that need
 executable evidence. Use `build` for greenfield or high-churn implementation and `tdd` for stable
-behavior. Use `review-changes` before commit and `review-branch` before merge. `codebase-design` and
-`reviewing-code` provide shared background discipline. Use `handoff` when another agent session
-should continue from an ignored local context document.
+behavior. Use `review-changes` for changes the current session authored and `review-branch` for a
+branch the session did not author. `codebase-design` and `reviewing-code` provide shared background
+discipline. Use `handoff` when another agent session should continue from an ignored local context
+document.
 
 - [`engineering-workflows:build`](./plugins/engineering-workflows/skills/build/): Implements working
   slices with pragmatic validation.
@@ -124,9 +125,9 @@ should continue from an ignored local context document.
 - [`engineering-workflows:prototype`](./plugins/engineering-workflows/skills/prototype/): Creates
   disposable exploratory code to answer a design question.
 - [`engineering-workflows:review-branch`](./plugins/engineering-workflows/skills/review-branch/):
-  Reviews a branch, PR, or MR before merge.
+  Reviews a branch, PR, or MR the session did not author before merge.
 - [`engineering-workflows:review-changes`](./plugins/engineering-workflows/skills/review-changes/):
-  Reviews and fixes current worktree changes before commit.
+  Reviews and fixes changes authored in the current session.
 - [`engineering-workflows:reviewing-code`](./plugins/engineering-workflows/skills/reviewing-code/):
   Applies shared review-lane selection, isolation, and finding contracts.
 - [`engineering-workflows:receiving-feedback`](./plugins/engineering-workflows/skills/receiving-feedback/):
