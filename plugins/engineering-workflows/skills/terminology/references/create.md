@@ -1,7 +1,5 @@
 # Create
 
-Use when `AGENTS.md` has no terminology section and the user wants durable domain language.
-
 ## Steps
 
 1. Identify stable domain concepts from the conversation and repository evidence.
@@ -33,7 +31,7 @@ Relationships:
 End with:
 
 - Terms included and terms intentionally deferred as not yet stable.
-- Files updated and validation run.
+- Files updated.
 
 Stop when `AGENTS.md` has a terminology section that captures the stable terms and defers the
 contested ones.

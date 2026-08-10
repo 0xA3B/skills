@@ -28,11 +28,9 @@ implement, defer, or reject.
 ## Facts And Decisions
 
 - Find facts by inspecting the environment: repository files, history, tools, configured services,
-  and current external sources when relevant. When the harness provides sub-agents, delegate lookups
+  and current external sources when relevant. When the harness provides subagents, delegate lookups
   to them so questioning continues while they run.
 - Do not ask the user to supply facts that can be established safely from available evidence.
-- Treat a running lookup as an unsettled prerequisite: hold only the questions downstream of the
-  missing fact and ask the rest of the frontier now.
 - Decisions belong to the user. Present each material choice, your recommendation, and the tradeoff
   it resolves, then wait for the user's answer.
 - Keep assumptions distinct from facts and decisions. Make unresolved uncertainty explicit.
@@ -49,6 +47,8 @@ ask now without guessing at answers you have not heard yet. Work the tree in rou
    disagreement is explicit, and uncertainty is captured as an assumption, decision, or follow-up.
 3. Settled decisions push the frontier outward and unblock the questions that depended on them.
    Recompute the frontier and ask the next round.
+4. Treat a running lookup as an unsettled prerequisite: hold only the questions downstream of the
+   missing fact and ask the rest of the frontier now.
 
 Format each prose question like so:
 
@@ -72,7 +72,8 @@ send the option-shaped questions through the tool and the rest as prose.
   disagree, pause and resolve which should be authoritative.
 - Use `AGENTS.md ## Terminology` when present. Update stable domain terms there as they crystallize;
   skip generic programming terms and incidental implementation names.
-- Do not implement, prototype, create tickets, or enact the approach during the interview.
+- Keep the session to questions and evidence gathering; implement, prototype, create tickets, or
+  enact the approach only after the user confirms completion.
 
 When an unresolved question needs executable evidence, stop that branch and recommend an explicit
 invocation of `engineering-workflows:prototype`. When terminology is the main unresolved work,
@@ -85,10 +86,8 @@ nothing left silently assumed. Before declaring completion:
 
 1. Summarize the decisions, facts, assumptions, rejected paths, and remaining follow-ups.
 2. State why the approach is ready to implement, defer, or reject.
-3. Ask the user to confirm that shared understanding has been reached.
-
-Do not act on the approach until the user confirms completion.
-
-End with terminology changes, prototype questions, and the recommended next explicit workflow. If
-another manual engineering skill is next, provide a handoff note with the context to carry forward
-and its exact `engineering-workflows:<skill>` invocation.
+3. Report terminology changes, unresolved questions that need executable evidence, and the
+   recommended next explicit workflow. If another manual engineering skill is next, include a
+   handoff note with the context to carry forward and its exact `engineering-workflows:<skill>`
+   invocation.
+4. Ask the user to confirm that shared understanding has been reached.

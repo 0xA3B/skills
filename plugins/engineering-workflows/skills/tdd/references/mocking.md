@@ -3,15 +3,9 @@
 Mock at **system boundaries** only:
 
 - External APIs (payment, email, etc.)
-- Databases (sometimes - prefer test DB)
+- Databases — use a real test database; mock only when the project has no test database
 - Time/randomness
-- File system (sometimes)
-
-Don't mock:
-
-- Your own classes/modules
-- Internal collaborators
-- Anything you control
+- File system — use a temporary directory; mock only when the test cannot create one
 
 ## Designing for Mockability
 
@@ -22,12 +16,12 @@ At system boundaries, design interfaces that are easy to mock:
 Pass external dependencies in rather than creating them internally:
 
 ```typescript
-// Easy to mock
+// GOOD: Easy to mock
 function processPayment(order, paymentClient) {
   return paymentClient.charge(order.total);
 }
 
-// Hard to mock
+// BAD: Hard to mock
 function processPayment(order) {
   const client = new StripeClient(process.env.STRIPE_KEY);
   return client.charge(order.total);

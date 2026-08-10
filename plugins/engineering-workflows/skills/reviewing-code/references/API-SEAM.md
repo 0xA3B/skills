@@ -1,7 +1,5 @@
 # API And Seam Review Lane
 
-Use this lane only for a new or materially changed caller-facing interface or significant seam.
-
 Ask whether callers receive a simple, complete, compatible contract with useful defaults and clear
 failure behavior.
 

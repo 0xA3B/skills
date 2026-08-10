@@ -21,10 +21,10 @@ product judgment.
 The repository's dependency update queue is triaged with clear evidence:
 
 - Safe, green dependency PRs are merged through the repo's normal forge workflow.
-- Local state is fast-forwarded and refreshed when the worktree is clean and the user asked for a
-  full maintenance pass.
-- Repo-pinned runtime, package-manager, and updater tool pins that dependency bots do not cover are
-  refreshed through a small maintenance PR when validation and forge checks pass.
+- Local state is fast-forwarded and refreshed after merges when the worktree is clean, or when the
+  user approves working around local changes.
+- Repo-pinned runtime, package-manager, CI setup, and plugin pins that dependency bots do not cover
+  are refreshed through a small maintenance PR when validation and forge checks pass.
 - PRs that are not ready have durable state: labels, comments, or linked issues that explain the
   blocker and next action.
 - Breaking changes, required migrations, failed validation, and concrete feature opportunities are
@@ -40,7 +40,7 @@ policy wins on any point it covers: bound posture, lockfile ownership, lock and 
 update cadence, cooldowns, merge signals, and which pins are repo-owned.
 
 Read that policy during discovery, before classifying anything. Apply these defaults only where the
-repository is silent, and say which of the two you followed when they differ.
+repository is silent.
 
 ## Boundaries
 
@@ -59,8 +59,7 @@ repository is silent, and say which of the two you followed when they differ.
 - Do not create or change dependency policy or updater configuration in this workflow. Updater
   configuration is classification evidence only. When an updater defect blocks dependency PRs,
   record the blocker, file a follow-up issue, and leave the PRs blocked; a user-authorized fix is a
-  separate task, and after it lands, reclassify the affected PRs from their refreshed heads. Report
-  the gap or conflict to the user at the end of the workflow.
+  separate task. Report the gap or conflict to the user at the end of the workflow.
 
 Allowed side effects are limited to dependency PR review, safe dependency PR merges, local
 fast-forward and install/runtime refreshes, PR labels/comments, follow-up issue creation, and
@@ -76,8 +75,7 @@ open dependency PRs, and local validation commands.
 Look for evidence in:
 
 - The repository's dependency policy, wherever it lives: agent guidance, a linked policy document,
-  contributing docs, or updater configuration. Read it before classifying anything; it outranks the
-  defaults in this skill.
+  contributing docs, or updater configuration.
 - Forge metadata: PR title, author, labels, checks, merge state, review state, linked issues, and
   bot comments.
 - Repository metadata: `AGENTS.md`, README, CI workflows, package manager files, lockfiles,
@@ -87,8 +85,7 @@ Look for evidence in:
 
 Note whether a written dependency policy exists, separately from whether the repository has updater
 configuration. Configured rules bind this workflow's decisions, but a repository can be fully
-configured and still have nothing written down explaining the decisions behind it. If no written
-policy exists, continue with these defaults, and mention it in the final report.
+configured and still have nothing written down explaining the decisions behind it.
 
 Use the repository's own CLIs and auth wrappers when present. For GitHub, GitLab, or other forges,
 choose the appropriate tool from local context instead of assuming a specific bot or CLI.

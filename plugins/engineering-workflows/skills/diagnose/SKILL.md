@@ -17,19 +17,7 @@ argument-hint: "[problem]"
 Use a tight evidence loop for hard bugs. Each phase produces the evidence required by the next; skip
 a phase only when current evidence explicitly satisfies its completion criterion.
 
-Use project-specific run, test, lint, and reproduction workflows. Align names with
-`AGENTS.md ## Terminology` when present.
-
-## Success Criteria
-
-- One agent-runnable command captures the user's exact symptom and changes verdict when the bug is
-  fixed.
-- The reproduction is minimized enough to narrow the causal mechanism.
-- The root cause is supported by falsifiable probes, not inferred from a plausible code reading.
-- The fix addresses that cause and preserves nearby behavior.
-- A durable regression check covers the bug when a correct test seam exists.
-- Temporary instrumentation and throwaway harnesses are removed or intentionally retained as durable
-  tooling.
+Keep domain names aligned with `AGENTS.md ## Terminology` when present.
 
 ## 1. Build A Tight Red-Capable Loop
 
@@ -41,7 +29,8 @@ This is the primary work. Find the smallest credible signal that can catch this 
 4. captured request, trace, payload, event, or data replay;
 5. throwaway harness around the suspect subsystem;
 6. property, fuzz, stress, bisection, or differential loop;
-7. `scripts/hitl-loop.template.sh` only when human interaction is unavoidable.
+7. [`scripts/hitl-loop.template.sh`](scripts/hitl-loop.template.sh) only when human interaction is
+   unavoidable.
 
 Tighten the loop by reducing runtime, isolating setup, pinning time, seeding randomness, freezing
 network or filesystem dependencies, and asserting the specific symptom.
@@ -77,8 +66,8 @@ Generate three to five ranked hypotheses before probing any one. Write each as:
 If <cause> is true, then <one probe> will produce <observable result>.
 ```
 
-Discard explanations that make no prediction. Show the ranked list to the user when their domain
-knowledge could change the order, but continue with the leading safe probe if they are unavailable.
+Discard explanations that make no prediction. Show the ranked list to the user, then continue with
+the leading safe probe without waiting for a reply.
 
 Do not include untethered fixes in the list. A change is a probe only when its predicted observation
 would confirm or falsify a cause.
@@ -117,8 +106,8 @@ Make the smallest change that explains both the original failure and the probe r
 If the fix fails, revert or revise that attempt before testing another hypothesis. Do not stack
 speculative patches. After three plausible failed fixes, stop and reassess the reproduction, system
 boundary, ownership model, and test seam before attempting a fourth. Summarize what each failed
-attempt proved, then ask the user about the blocking decision or recommend an explicit
-`engineering-workflows:improve-codebase-architecture` handoff when the code shape is the blocker.
+attempt proved, then ask the user about the blocking decision or recommend an explicit invocation of
+`engineering-workflows:improve-codebase-architecture` when the code shape is the blocker.
 
 When no correct regression seam exists, record that as an architecture and testability finding and
 prove the fix with the best available loop.
@@ -130,15 +119,15 @@ Before declaring completion:
 - rerun the original reproduction and show it is green;
 - run the regression test and nearby relevant validation;
 - search for and remove the unique debug prefix;
-- remove throwaway harnesses and prototypes unless deliberately retained as durable tooling;
+- remove throwaway harnesses and scaffolding unless deliberately retained as durable tooling;
 - state the supported root cause and which evidence ruled out the alternatives;
 - identify what would have prevented the bug.
 
-If prevention requires architectural work, recommend an explicit
-`engineering-workflows:improve-codebase-architecture` handoff with the missing seam or coupling
-evidence. Make that recommendation after the fix, when the system is best understood.
+If prevention requires architectural work, recommend an explicit invocation of
+`engineering-workflows:improve-codebase-architecture` with the missing seam or coupling evidence.
+Make that recommendation after the fix, when the system is best understood.
 
 ## Final Report
 
-End with the root cause, loop command and before/after signal, minimized reproduction, fix,
-regression coverage, validation results, cleanup status, and remaining architecture follow-up.
+End with the loop command and its before/after signal, the minimized reproduction, the fix, the
+regression test, and validation results, alongside the phase 6 statements.

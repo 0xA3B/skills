@@ -15,22 +15,24 @@ State:
 
 ## Generate Alternatives
 
-Generate the designs locally by default. When the user or invoking workflow authorizes parallel
-agent exploration and the design is large enough to benefit, use independent subagents with
-different constraints:
+Vary designs along these axes, one design per axis:
 
 - minimize the interface and maximize leverage per entry point;
 - maximize flexibility for known extension needs;
 - optimize the common caller so the default path is trivial;
 - when relevant, design around ports and adapters for cross-process dependencies.
 
+Generate the designs locally by default. When the user or invoking workflow authorizes parallel
+agent exploration and each design needs independent repository reading, dispatch one subagent per
+axis.
+
 Each design must include:
 
-1. The full interface, including invariants, ordering, errors, configuration, and performance.
-2. A caller usage example.
-3. Behavior hidden in the implementation.
-4. Dependency and adapter strategy.
-5. Tradeoffs in depth, locality, seam placement, compatibility, and migration.
+- the full interface, including invariants, ordering, errors, configuration, and performance;
+- a caller usage example;
+- behavior hidden in the implementation;
+- dependency and adapter strategy;
+- tradeoffs in depth, locality, seam placement, compatibility, and migration.
 
 ## Compare
 

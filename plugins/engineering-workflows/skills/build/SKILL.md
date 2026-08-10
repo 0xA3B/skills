@@ -15,8 +15,6 @@ argument-hint: "[task]"
 # Build
 
 Implement through small working slices when the right interface or architecture is still emerging.
-This skill is not anti-test: it defers tests until they protect stable behavior or cheap regression
-coverage.
 
 ## Outcome
 
@@ -24,22 +22,15 @@ Deliver the requested behavior with credible execution evidence, relevant valida
 shaped toward deep modules and simple public interfaces. Minimize test churn while the design is
 still settling.
 
-## When To Use
+## Routing
 
-Use `engineering-workflows:build` when the code is intended to become real implementation and the
-primary risk is choosing the wrong shape too early:
+If the code is disposable evidence for a design question during `engineering-workflows:wayfinder` or
+`engineering-workflows:grill-me`, stop and recommend an explicit invocation of
+`engineering-workflows:prototype`.
 
-- greenfield apps, scripts, CLIs, tools, or first implementation slices
-- unstable interfaces or unclear module boundaries
-- high expected refactor churn
-- test setup would dominate the useful feedback loop
-- representative input, a smoke run, or a real workflow is the best early signal
-
-Use `engineering-workflows:prototype` instead when the code is disposable evidence for a design
-question during wayfinder or grill-me.
-
-Use `engineering-workflows:tdd` when the primary risk is breaking known behavior: mature projects,
-bug fixes, stable public seams, or well-defined behavior that should be test-first.
+If the primary risk is breaking known behavior — mature projects, bug fixes, stable public seams, or
+well-defined behavior that should be test-first — stop and recommend an explicit invocation of
+`engineering-workflows:tdd`.
 
 ## Allowed Side Effects
 
@@ -52,8 +43,6 @@ bug fixes, stable public seams, or well-defined behavior that should be test-fir
 
 ## Architecture Rules
 
-This workflow is loose about test timing, not about design quality.
-
 - Apply `engineering-workflows:codebase-design` when defining or changing interfaces, module depth,
   seams, adapters, or the test surface.
 - Prefer small vertical slices that produce a runnable result, and define the smallest useful public
@@ -61,7 +50,7 @@ This workflow is loose about test timing, not about design quality.
 - Keep interfaces easy to change until they prove useful.
 - Keep domain names aligned with `AGENTS.md ## Terminology` when present.
 
-If interface or module shape becomes the main risk, pause and recommend an explicit handoff to
+If interface or module shape becomes the main risk, pause and recommend an explicit invocation of
 `engineering-workflows:improve-codebase-architecture` or `engineering-workflows:grill-me` before
 continuing implementation.
 
@@ -74,7 +63,6 @@ continuing implementation.
   framework-level behavior.
 - Avoid adding dependencies for tiny helpers, unstable experiments, or code that the project can
   express clearly with existing tools.
-- Follow existing project dependency, licensing, security, and package-manager conventions.
 
 ## Workflow
 
@@ -144,5 +132,6 @@ When the requested behavior is built:
 - Name tests added or intentionally deferred.
 - Note remaining architecture or interface risks.
 
-Stop when the requested behavior works and the smallest relevant validation passes, or when progress
-is blocked by an unresolved interface decision, missing dependency, or failing project setup.
+Stop when the requested behavior works and the full relevant validation for the touched area passes,
+or when progress is blocked by an unresolved interface decision, missing dependency, or failing
+project setup.
