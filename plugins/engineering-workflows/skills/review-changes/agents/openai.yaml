@@ -1,7 +1,7 @@
 version: 1
 interface:
   display_name: "Review Changes"
-  short_description: "Review and fix current worktree changes"
+  short_description: "Review and fix changes authored this session"
   default_prompt:
     "Use $engineering-workflows:review-changes to review my current changes before I commit."
 policy:

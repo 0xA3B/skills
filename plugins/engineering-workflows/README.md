@@ -7,9 +7,10 @@ workflow.
 The typical implementation flow starts with `wayfinder`, which maps a loose or oversized idea into
 decision-sized chunks. `grill-me` resolves a selected direction through adversarial questioning, and
 `prototype` answers questions that need disposable executable evidence. Use `build` for greenfield
-or high-churn implementation and `tdd` for stable behavior. `review-changes` reviews the worktree
-before commit and `review-branch` reviews a branch before merge. Use `handoff` when another agent
-session should continue the work from an ignored local context document.
+or high-churn implementation and `tdd` for stable behavior. `review-changes` reviews changes the
+current session authored, and `review-branch` reviews a branch the session did not author before
+merge. Use `handoff` when another agent session should continue the work from an ignored local
+context document.
 
 `codebase-design` and `reviewing-code` are shared background disciplines consumed by the user-facing
 workflows. `terminology`, `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`,
@@ -45,8 +46,9 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
 - `engineering-workflows:prototype`: Create disposable exploratory code to answer one design
   question.
 - `engineering-workflows:receiving-feedback`: Triage and respond to existing review feedback.
-- `engineering-workflows:review-branch`: Review a branch, PR, or MR before merge.
-- `engineering-workflows:review-changes`: Review and fix current worktree changes before commit.
+- `engineering-workflows:review-branch`: Review a branch, PR, or MR the session did not author
+  before merge.
+- `engineering-workflows:review-changes`: Review and fix changes authored in the current session.
 - `engineering-workflows:reviewing-code`: Apply shared review-lane selection, isolation, and finding
   contracts.
 - `engineering-workflows:tdd`: Build features or fixes with a red-green-refactor loop.
