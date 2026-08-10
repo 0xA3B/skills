@@ -42,6 +42,10 @@ a harmless refactor but misses real behavior breakage.
 Tautological tests recompute the expected value through the same logic as production, so they pass
 by construction; take expected values from an independent authority instead.
 
+Test your composition of a framework's guarantees, not the guarantees themselves. A test that
+re-proves what the validation library already enforces — unknown keys rejected, empty strings
+rejected — adds volume without adding coverage.
+
 Read [tests.md](references/tests.md) before writing a test whose expected value is computed rather
 than known, or when a test asserts on calls rather than results. Reference examples may use
 TypeScript; apply the testing principles in the repository's actual language and test framework.
@@ -61,6 +65,25 @@ repeat
 ```
 
 Each slice should respond to what the previous cycle revealed.
+
+## Spec-driven rounds
+
+Serial tracer bullets assume the design is emerging from the cycles. A complete spec inverts that:
+when an authoritative spec with enumerable acceptance criteria governs the work, slice by acceptance
+criterion and work in rounds instead of one slice at a time.
+
+The **frontier** is every acceptance criterion whose prerequisite interfaces and behaviors are
+already settled. Each round:
+
+1. RED: write one failing test per frontier criterion, confirming each fails for its predicted
+   reason.
+2. GREEN: implement criterion by criterion until the round's tests pass.
+3. REFACTOR: run one refactor pass over the whole round.
+4. Settled criteria push the frontier outward. Recompute it and start the next round.
+
+Criteria that are silent, ambiguous, or contradictory mark where design work remains: keep them out
+of rounds and resolve them as serial tracer bullets, or surface them as user decisions when the
+answer is not derivable from the spec.
 
 ## Discipline checks
 
@@ -100,7 +123,9 @@ aligned with `AGENTS.md ## Terminology` when present.
 Identify:
 
 - The public interface or user-visible behavior to test.
-- The smallest first behavior that proves the path works.
+- The smallest first behavior that proves the path works. Prefer a first slice that crosses an
+  unfamiliar third-party or environment boundary: that is where the mental model is most likely
+  wrong and where the correction is cheapest.
 - Existing test patterns and fixtures to reuse.
 - Opportunities for deep modules with simple interfaces.
 - The validation command that will run quickly in the loop.
@@ -115,9 +140,16 @@ surface needs design.
 
 Write one failing test for one behavior.
 
-Run the targeted test and read the output. Confirm it fails for the expected reason, not because of
-syntax errors, missing setup, or the wrong assertion. If it passes, the test is not proving the
-missing behavior. Tighten it before writing implementation.
+When an authoritative spec exists, quote the governing spec sentence in the test's name, docstring,
+or a comment, so the authority is visible at the point of assertion. If the test and the spec
+disagree, the spec wins and the test changes; never adjust the spec to match a test you already
+wrote. A criterion with no quotable sentence is a gap to surface, not a license to improvise.
+
+Before running the test, state the failure you expect — ideally the exact assertion or exception
+text. Then run it and compare. A failure that does not match the prediction is information, whether
+or not the test is red: a syntax error, missing setup, or wrong assertion is not the expected
+failure. If the test passes, it is not proving the missing behavior. Tighten it before writing
+implementation.
 
 ### 3. Green
 
@@ -135,6 +167,10 @@ Improve the code and tests while keeping behavior unchanged:
 - Move behavior behind a better interface when the current shape is shallow.
 - Move logic to where its data lives, and replace repeated primitives with a value object.
 - Keep tests focused on behavior.
+- Delete or merge tests the current work has subsumed, judged by the deletion test: if this test
+  were deleted, what defect would now ship? A test that no longer discriminates any behavior is a
+  legitimate deletion, not lost coverage. Note cross-file subsumption for a codebase-scoped test
+  review instead of chasing it mid-slice.
 - Report existing code the new code reveals as problematic; change it only when the user asks.
 
 ### 5. Repeat
@@ -158,6 +194,9 @@ When the requested behavior is implemented:
 - Note any behavior that remains intentionally untested and why.
 - State validation evidence from fresh command output. Avoid success claims based on expectation or
   earlier runs.
+- For spec-driven work, state that the green suite encodes this session's reading of the spec and is
+  not evidence of spec conformance, and recommend an explicit `engineering-workflows:review-changes`
+  or `engineering-workflows:review-branch` invocation with the spec-adherence and test-review lanes.
 
 Stop when the requested behavior is implemented and validation passes, or when the next slice is
 blocked by an ambiguous interface, missing dependency, or failing project setup that cannot be
