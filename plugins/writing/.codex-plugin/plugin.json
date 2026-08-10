@@ -1,6 +1,6 @@
 {
   "name": "writing",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Writing skills for agent instructions and documentation.",
   "author": {
     "name": "Alex Baker"
@@ -16,6 +16,8 @@
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Write"],
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png",
     "defaultPrompt": [
       "Review this AGENTS.md against the writing:agent-instructions style.",
       "Tighten this SKILL.md so every rule earns its context budget.",
