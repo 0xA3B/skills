@@ -52,21 +52,23 @@ cases:
       The user asks a conceptual Claude Code question that this contract does not answer, so no
       claude -p run is needed.
 
+  # The two review cases are candidates for `invoke-instead: claude-in-codex:adversarial-review`
+  # once cross-skill routing assertions ship (issue #53).
   - id: claude-review-working-tree
     prompt: >-
       Ask Claude Code to review my working tree before I commit.
-    expect: invoke
+    expect: skip
     rationale:
-      The adversarial-review skill owns the review workflow but runs Claude through this contract,
-      so a Claude review request is expected to load it.
+      A direct user review request routes to the sibling adversarial-review skill, which applies
+      this contract itself; the agent selects one skill and it should not be this one.
 
   - id: claude-review-pull-request
     prompt: >-
       Run Claude against PR #84 and report any material code-review findings.
-    expect: invoke
+    expect: skip
     rationale:
-      A Claude pull-request review reaches claude -p through this contract via the
-      adversarial-review workflow.
+      A direct Claude pull-request review belongs to the sibling adversarial-review skill, which
+      reaches claude -p through this contract.
 
   - id: generic-task-delegation
     prompt: >-
