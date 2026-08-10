@@ -52,6 +52,14 @@ selected:
 - [SPEC-ADHERENCE.md](references/SPEC-ADHERENCE.md): the remedy reconciles the implementation with
   an available spec, issue, PRD, acceptance criteria, or equivalent intended-behavior source.
 
+Two lanes carry extra selection conditions:
+
+- Select simplification only when the invoking workflow or the user names size, duplication, or
+  expression bloat as a concern for the target; it is not a default lane.
+- Select spec adherence only when the intent source is independent of the implementation's author
+  and effort; a spec written by the same author in the same effort mostly re-checks the author's
+  consistency with themselves.
+
 When a finding crosses lanes, keep it in the lane that owns the primary remedy and add cross-lane
 context in the evidence. The coordinator deduplicates findings that share a mechanism or fix.
 
@@ -78,12 +86,27 @@ Provide every lane reviewer:
   available;
 - a prohibition on expanding scope or applying fixes.
 
+The assigned lane reference is the reviewer's complete lane instruction. Keep the coordinator brief
+to run-specific content — target, diff command, scope, intent sources, repository guidance, and
+prohibitions. When a lane needs sharper review instructions, edit its lane reference so every future
+run inherits the change, instead of adding lane instructions to one run's brief.
+
 ## Finding contract
 
 Each lane returns the object defined by
 [review-finding.schema.json](references/review-finding.schema.json): `lane`, `verdict`, `summary`,
-and `findings`. Prefix each finding ID with its lane — `CR`, `SIM`, `CBD`, `API`, `TEST`, or `SPEC`
-— followed by a number. When structured output is unavailable, report the same fields in prose.
+`findings`, and `verified_sound`. Form each finding ID as the lane prefix — `CR`, `SIM`, `CBD`,
+`API`, `TEST`, or `SPEC` — a hyphen, and a number, as in `TEST-1`. When structured output is
+unavailable, report the same fields in prose.
+
+Ground findings in executed evidence: when a cheap check can demonstrate the failure — a mutation, a
+targeted test run, a command — run it and put the output, with counts and names, in `evidence`.
+Reserve reasoning-only evidence for findings no cheap check can demonstrate. Anchor each finding on
+its enclosing symbol name in `symbol`; line numbers go stale as the target changes and are
+secondary.
+
+List in `verified_sound` the checks the lane ran or considered and declined to report. The
+enumerated checks bound the finding set and make an empty findings list informative.
 
 Keep a finding whose failure state is realistic but unproven — a race, a rare error path, a boundary
 the code does not exclude — at reduced confidence instead of dropping it. Drop a finding only when

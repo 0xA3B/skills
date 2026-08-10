@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["lane", "verdict", "summary", "findings"],
+  "required": ["lane", "verdict", "summary", "findings", "verified_sound"],
   "properties": {
     "lane": { "type": "string", "minLength": 1 },
     "verdict": { "type": "string", "enum": ["approve", "needs-attention"] },
@@ -23,12 +23,13 @@
           "confidence"
         ],
         "properties": {
-          "id": { "type": "string", "pattern": "^[A-Z]+[1-9][0-9]*$" },
+          "id": { "type": "string", "pattern": "^[A-Z]+-[1-9][0-9]*$" },
           "severity": {
             "type": "string",
             "enum": ["critical", "high", "medium", "low"]
           },
           "file": { "type": "string", "minLength": 1 },
+          "symbol": { "type": "string", "minLength": 1 },
           "line_start": { "type": "integer", "minimum": 1 },
           "line_end": { "type": "integer", "minimum": 1 },
           "summary": { "type": "string", "minLength": 1 },
@@ -39,6 +40,10 @@
           "follow_up_question": { "type": "string", "minLength": 1 }
         }
       }
+    },
+    "verified_sound": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
     },
     "notes": { "type": "string" }
   }
