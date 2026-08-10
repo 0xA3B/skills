@@ -15,6 +15,9 @@
   and the field adds extra skill paths instead of replacing the default.
 - When adding or renaming a plugin, keep the marketplace entries, plugin directory, and manifest
   `name` values aligned across every targeted agent.
+- When adding a plugin, also create its `plugin:<plugin-name>` label by hand in the marketplace
+  repository's issue tracker; `meta:submit-skill-feedback` applies feedback labels but never creates
+  them.
 
 ## Default prompt policy
 

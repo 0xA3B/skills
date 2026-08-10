@@ -1,0 +1,25 @@
+{
+  "name": "meta",
+  "version": "1.0.0",
+  "description": "Meta skills for this marketplace: capture skill feedback from real runs as labeled GitHub issues.",
+  "author": {
+    "name": "Alex Baker"
+  },
+  "homepage": "https://github.com/0xA3B/skills/blob/main/plugins/meta/README.md",
+  "repository": "https://github.com/0xA3B/skills",
+  "keywords": ["meta", "feedback", "skills", "marketplace"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Meta",
+    "shortDescription": "Maintain the marketplace's skills from real runs.",
+    "longDescription": "Meta skills for the marketplace itself. submit-skill-feedback captures the running session's feedback on how a marketplace skill performed during an actual run and files each item as a labeled GitHub issue in the marketplace repository.",
+    "developerName": "Alex Baker",
+    "category": "Productivity",
+    "capabilities": ["Write"],
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png",
+    "defaultPrompt": [
+      "Use $meta:submit-skill-feedback to file feedback on the marketplace skills this session ran."
+    ]
+  }
+}

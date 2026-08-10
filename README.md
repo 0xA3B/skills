@@ -39,6 +39,7 @@ Then install the plugins that you want:
 /plugin install git-workflows@0xa3b-marketplace
 /plugin install engineering-workflows@0xa3b-marketplace
 /plugin install writing@0xa3b-marketplace
+/plugin install meta@0xa3b-marketplace
 ```
 
 Update the marketplace later with `/plugin marketplace update 0xa3b-marketplace`.
@@ -138,6 +139,15 @@ should continue from an ignored local context document.
   temporary visual report, diagram, or presentation artifact from the current session.
 - [`engineering-workflows:wayfinder`](./plugins/engineering-workflows/skills/wayfinder/): Maps a
   loose idea into decisions, dependencies, frontier, fog, and excluded scope.
+
+### `meta`
+
+This plugin maintains the marketplace itself; its skills operate on the marketplace's own skills and
+repository rather than on a user's project.
+
+- [`meta:submit-skill-feedback`](./plugins/meta/skills/submit-skill-feedback/): Captures the
+  session's feedback on how a marketplace skill performed during an actual run and files each item
+  as a GitHub issue in this repository, labeled `feedback` plus `plugin:<plugin-name>`.
 
 ### `writing`
 

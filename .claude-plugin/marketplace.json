@@ -20,6 +20,10 @@
     {
       "name": "writing",
       "source": "./plugins/writing"
+    },
+    {
+      "name": "meta",
+      "source": "./plugins/meta"
     }
   ]
 }

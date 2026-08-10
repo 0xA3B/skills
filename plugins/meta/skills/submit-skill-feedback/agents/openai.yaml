@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Submit Skill Feedback"
+  short_description: "File this session's skill feedback as GitHub issues"
+  default_prompt:
+    "Use $meta:submit-skill-feedback to file feedback on the marketplace skills this session ran."
+policy:
+  allow_implicit_invocation: false

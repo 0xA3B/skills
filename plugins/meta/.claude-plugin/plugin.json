@@ -1,0 +1,13 @@
+{
+  "name": "meta",
+  "displayName": "Meta",
+  "version": "1.0.0",
+  "description": "Meta skills for this marketplace: capture skill feedback from real runs as labeled GitHub issues.",
+  "author": {
+    "name": "Alex Baker"
+  },
+  "homepage": "https://github.com/0xA3B/skills/blob/main/plugins/meta/README.md",
+  "repository": "https://github.com/0xA3B/skills",
+  "license": "MIT",
+  "keywords": ["meta", "feedback", "skills", "marketplace"]
+}
