@@ -1,11 +1,11 @@
 ---
 name: address-pr-feedback
 description: >-
-  Drive configured automated-review feedback on an existing GitHub pull request or GitLab merge
-  request to current-head approval or a clearly reported exception. Use only when explicitly invoked
-  to poll active review adapters, triage their findings, apply permitted fixes, respond to threads,
-  and request follow-up reviews. Do not use for local code review, CI repair, human-only feedback
-  handling, change-request creation, or merging.
+  Drive configured automated-review feedback on an existing GitHub pull request to current-head
+  approval or a clearly reported exception. Use only when explicitly invoked to poll active review
+  adapters, triage their findings, apply permitted fixes, respond to threads, and request follow-up
+  reviews. Do not use for local code review, CI repair, human-only feedback handling, change-request
+  creation, or merging.
 license: MIT
 disable-model-invocation: true
 argument-hint: "[change-request|adapters|instructions]"
