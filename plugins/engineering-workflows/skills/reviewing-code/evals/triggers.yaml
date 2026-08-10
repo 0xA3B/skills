@@ -34,6 +34,28 @@ cases:
       Reviewing the session's own worktree is in contract even without the manual workflow; the
       standalone fallback reports findings-only and hands off to review-changes.
 
+  - id: instruction-file-review
+    prompt: >-
+      Review my AGENTS.md and SKILL.md changes in this worktree before I commit.
+    expect: invoke
+    rationale: >-
+      Session-produced instruction-file changes are in contract; the prose-review lane owns their
+      review standard.
+
+  - id: documentation-branch-review
+    prompt: >-
+      I rewrote the README setup guide on this branch. Review the documentation changes against main
+      before I open the PR.
+    expect: invoke
+    rationale: Branch review of meaningful documentation changes selects the prose-review lane.
+
+  - id: write-documentation
+    prompt: >-
+      Rewrite this README section to be clearer for new contributors.
+    expect: skip
+    rationale: >-
+      Writing or editing documentation belongs to the writing plugin, not review coordination.
+
   - id: third-party-code-review
     prompt: >-
       Review this open-source library I vendored from GitHub and tell me whether the code quality is

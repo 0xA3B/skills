@@ -34,12 +34,12 @@ merge target. Include relevant uncommitted changes only when present and call th
 
 ## Required and conditional lanes
 
-Always require the `code review` lane.
+Require the content-owning lanes the diff selects, per the Lane Selection section of
+`engineering-workflows:reviewing-code`.
 
-Use the Lane Selection section of `engineering-workflows:reviewing-code` for conditional-lane
-triggers. Resolve every borderline trigger toward selecting the lane, because a branch is the
-pre-merge integration boundary. The extra selection conditions in that section are not borderline
-triggers; they still gate their lanes.
+Use that section for conditional-lane triggers. Resolve every borderline trigger toward selecting
+the lane, because a branch is the pre-merge integration boundary. The extra selection conditions in
+that section are not borderline triggers; they still gate their lanes.
 
 Do not add lanes merely to increase reviewer count. Each selected lane needs a distinct question
 that the required lanes would otherwise overload.
