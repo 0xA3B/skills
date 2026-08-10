@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Sync Upstream"
+  short_description: "Triage and port upstream skill changes"
+  default_prompt:
+    "Use $sync-upstream to review the latest upstream release and propose what to bring in."
+policy:
+  allow_implicit_invocation: true
