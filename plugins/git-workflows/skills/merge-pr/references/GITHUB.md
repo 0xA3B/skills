@@ -14,6 +14,9 @@ use an equivalent CLI or API path that preserves the invariant and report the de
 - Inspect required checks with `gh pr checks <pr> --required --json`.
 - Query pull-request review threads through `gh api graphql`; require every returned thread's
   `isResolved` value to be true, regardless of author.
+- When a thread still needs a reply or resolution, use the same GraphQL surface: the
+  `addPullRequestReviewThreadReply` and `resolveReviewThread` mutations, fed by the thread `id` from
+  that query. `gh` has no native subcommand for either action.
 
 Do not treat `mergeStateStatus=CLEAN` or green CI as proof that a non-required bot review passed.
 This skill enforces only native required checks and approvals plus universal thread resolution.
