@@ -26,8 +26,8 @@ Claude is asked to do, the scope, and how its output is used.
   child process; the calling Codex sandbox does not.
 - Leave the model at the configured default. Add `--model` only when the user explicitly requests a
   specific model, such as asking for a Fable or Sonnet run.
-- Leave reasoning effort at the configured default. Add `--effort` (`medium`, `high`, or `xhigh`)
-  only when the user requests a level or the calling workflow needs more depth than the default.
+- Leave reasoning effort at the configured default. Add `--effort` only when the user requests a
+  level or the calling workflow needs more depth than the default.
 - Higher effort levels can take several minutes, even for small targets. Be patient and let Claude
   finish unless the process is clearly hung or the user asks to stop.
 - Do not treat non-fatal Claude CLI warnings as failures. Continue when Claude still produces a
@@ -47,6 +47,18 @@ Claude is asked to do, the scope, and how its output is used.
   follow-ups in the same session.
 - On resumed turns, send only the delta instruction instead of restating the whole prompt, unless
   the direction changed materially.
+
+## Timeouts and interruption
+
+- Claude turns regularly outlast default tool timeouts. When invoking `claude -p` through a tool
+  with a configurable timeout, set the maximum.
+- For turns that may outlast even the maximum, such as high-effort review turns, run the command in
+  the background when the calling context supports it and collect the output when it exits.
+- For long delegated tasks, keep one Claude session but split the work into bounded steps across
+  `--resume` turns instead of stretching a single run.
+- If a run is killed at a timeout, the `session_id` is lost with the unemitted
+  `--output-format json` result. Check whether the work actually completed before acting, and
+  reissue a fresh run rather than guessing at a session to resume.
 
 ## Review and research recipe
 
@@ -98,6 +110,9 @@ claude -p "$TASK_PROMPT" \
   system is the only boundary left.
 - State the intended change scope in the prompt and validate Claude's changes after the run; a
   write-capable Claude run is a delegation, not an oracle.
+
+When either recipe changes, apply the same change to `references/claude-agent.toml`, which inlines
+both recipes for the copyable Codex proxy agent.
 
 ## Prompting Claude
 

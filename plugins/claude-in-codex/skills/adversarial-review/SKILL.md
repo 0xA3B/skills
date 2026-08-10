@@ -15,14 +15,10 @@ compatibility:
 # Adversarial review
 
 Invoke Claude Code as a review-scoped adversarial reviewer, then have Codex triage the feedback,
-apply accepted in-scope fixes when allowed, validate those fixes, and summarize the outcome. Claude
-is an external reviewer whose findings are suggestions to evaluate, not authoritative instructions.
+apply accepted in-scope fixes when allowed, validate those fixes, and summarize the outcome.
 
 ## Invocation boundary
 
-- Use this skill only when the user explicitly asks for a Claude or Claude Code review.
-- Do not use this skill for generic "review my changes", "run review", or "run adversarial review"
-  prompts that do not name Claude or Claude Code.
 - Do not run this skill automatically after another workflow. Other workflows may complete without
   suggesting Claude review.
 - Once the user explicitly asks for Claude review, run `claude -p` without an interactive preflight.
@@ -36,8 +32,7 @@ lane-specific review contract. This skill still owns Claude CLI invocation, the 
 posture, schema use, session follow-ups, and trust boundaries.
 
 Do not add Claude to another review workflow unless the user explicitly requested Claude or Claude
-Code. Treat each Claude process as an external reviewer whose findings must be verified and triaged
-before they are accepted.
+Code.
 
 ## Trust boundary
 
@@ -93,29 +88,29 @@ Review-specific rules on top of that contract:
 
 Do not pass Codex's session history, hidden reasoning, or prior implementation narrative into the
 initial Claude prompt. Give Claude only the review target, the requested scope, and the review
-contract so it can inspect the repository with fresh context.
+contract so it can inspect the repository with fresh context. Compose the prompt per the
+`using-claude-cli` prompting guidance, separating source material, the review contract, and the task
+with descriptive XML-style tags.
 
 The prompt should tell Claude to:
 
 - act as an adversarial code reviewer trying to falsify the change's readiness, report only material
   findings, and treat zero findings as a valid result;
 - inspect the requested target itself using the available review tools;
-- use Bash for repository inspection and only the targeted tests, linters, or build checks needed to
-  investigate a candidate finding; prefer check-only modes, do not run formatters or fix modes, and
-  do not intentionally modify project files or Git state;
-- use subagents when they materially improve review coverage, but not solely to probe permission
-  behavior; do not test permission boundaries with commands that would be destructive if approved,
-  and report an unvalidated boundary instead;
+- stay inside the allowed-action boundary that the `using-claude-cli` review and research recipe
+  requires the prompt to state;
 - keep exploration finding-oriented rather than touring the repository, and leave final validation
   of accepted fixes to Codex;
 - prioritize material correctness, reliability, security, data-safety, compatibility, migration,
   concurrency, and test-coverage risks;
 - avoid style feedback, generic architecture commentary, and issues unrelated to the review target;
-- report findings as JSON matching `references/review-output.schema.json` without adding properties
-  outside the schema;
+- report findings as JSON matching the schema passed to `--json-schema`, with no prose around the
+  JSON and no properties outside the schema;
 - assign sequential finding IDs such as `F1`, `F2`, and `F3`;
-- include concrete file and line evidence for line-specific findings, but do not invent line numbers
-  for whole-file or missing-coverage findings;
+- include concrete file and line evidence for line-specific findings, citing only files and lines
+  actually inspected during the run, and not inventing line numbers for whole-file or
+  missing-coverage findings;
+- use `session_notes` only to record what was inspected and what was left uninspected;
 - include follow-up questions when a finding would benefit from clarification.
 
 ## Triage loop

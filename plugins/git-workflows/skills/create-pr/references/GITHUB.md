@@ -3,7 +3,9 @@
 Use this reference only after selecting a GitHub remote.
 
 Commands and fields below are exemplars of the stated invariants. If the installed CLI lacks one,
-use an equivalent CLI or API path that preserves the invariant and report the deviation.
+use an equivalent CLI or API path that preserves the invariant and report the deviation. `<topic>`
+is the topic branch name and `<pr>` is the pull request number; `gh` accepts the branch name
+wherever it accepts a number.
 
 ## Inspect
 
@@ -19,10 +21,15 @@ use an equivalent CLI or API path that preserves the invariant and report the de
 Push the branch explicitly before running `gh pr create`; do not depend on interactive push or fork
 prompts.
 
-`--fill` derives the body from commits and bypasses repository templates. When a pull request
-template exists, the template wins: take the title from the commits or an explicit `--title`, and
-supply the template as the body, for example with `--body-file <template-path>`. Without a template,
-prefer:
+`--fill` derives the title and body from commits and bypasses repository templates. When a pull
+request template exists, the template wins — `--body-file` overrides the autofilled body while
+`--fill` still supplies the title:
+
+```text
+gh pr create --base <target> --head <topic> --fill --body-file <template-path>
+```
+
+Without a template, prefer:
 
 ```text
 gh pr create --base <target> --head <topic> --fill

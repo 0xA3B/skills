@@ -60,13 +60,14 @@ instruction:
 - Add `--json` to stream machine-readable JSONL events. Capture the thread id from the
   `thread.started` event (`{"type":"thread.started","thread_id":"..."}`) and preserve it for
   follow-up turns.
-- Add `--output-last-message <file>` to write Codex's final message to a file; read the file for the
-  result instead of scraping the event stream.
+- Add `--output-last-message "$RESULT_FILE"` to write Codex's final message to a path you choose
+  under the system temporary directory; read that file for the result instead of scraping the event
+  stream.
 - For structured results, write a JSON Schema to a file and pass its path to
   `--output-schema <file>`. Apply a schema only to turns that must produce the structured artifact;
-  use natural language for conversational follow-ups in the same session.
-- Resume a session with `codex exec resume "$THREAD_ID" "$PROMPT"` (same output flags apply). Use
-  `codex exec resume --last` only when resuming the most recent Codex session is unambiguous.
+  use natural language for conversational follow-ups in the same thread.
+- Resume a thread with `codex exec resume "$THREAD_ID" "$PROMPT"` (same output flags apply). Use
+  `codex exec resume --last` only when resuming the most recent Codex thread is unambiguous.
 - Resumed turns do not keep an explicitly passed sandbox mode: `codex exec resume` has no
   `--sandbox` flag and falls back to the configured default (verified on codex-cli 0.142.5). Turns
   that already ran on the configured default resume consistently, but when a turn pinned a mode such
@@ -103,7 +104,7 @@ codex exec resume "$THREAD_ID" "$FOLLOW_UP_PROMPT" \
 - For turns that may outlast even the maximum, such as high-effort review turns, run the command in
   the background when the calling context supports it (Claude Code's `run_in_background`) and
   collect the output when it exits.
-- For long delegated tasks, keep one Codex session but split the work into bounded steps across
+- For long delegated tasks, keep one Codex thread but split the work into bounded steps across
   resume turns instead of stretching a single run.
 - If a run is killed at a timeout, the thread id survives in the partial `--json` stream because
   `thread.started` arrives early. Check whether the work actually completed before acting, and
@@ -134,6 +135,5 @@ surface, then let it choose the path unless the method is part of the requiremen
   numbers for absent behavior.
 - Reserve absolute words like "always" and "never" for true invariants; give decision rules for
   judgment calls.
-- One clear task per run. Split unrelated asks into separate runs, break complex work into focused
-  stages when that makes verification easier, and send only deltas on resumed turns.
-- Tighten the task contract before raising reasoning effort.
+- One clear task per run. Split unrelated asks into separate runs, and break complex work into
+  focused stages when that makes verification easier.

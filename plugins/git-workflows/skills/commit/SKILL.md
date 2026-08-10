@@ -16,44 +16,23 @@ argument-hint: "[instructions]"
 
 # Commit
 
-Workflow skill for committing current repository changes quickly and consistently. This skill owns
-git state inspection, commit partitioning, Conventional Commit message policy, staging, and commit
-execution. Its successful outcome is a clean sequence of repository commits that matches the user's
-requested scope and can be explained briefly after execution.
-
-Use this skill when the user wants commits created. If it is explicitly invoked for message text,
-stay in dry-run mode and return a proposal without staging or committing.
-
-## Invocation behavior
-
-- This skill may be implicitly invoked when the user asks to create git commits.
-- Default behavior is execution mode: review all current changes and commit them.
-- If the user asks for a dry run, message draft, split guidance without execution, syntax check, or
-  conceptual explanation, do not create commits.
-- If the user prompt or loaded repository instructions ask not to use Conventional Commits or
-  require another commit-message standard such as Gitmoji, do not invoke this skill.
-- If the user uses "commit" to mean agree, decide, or commit to a plan, do not invoke this skill.
-- If the repository has documented commit conventions beyond Conventional Commits, follow them.
-
 ## Success criteria
 
 - The intended changes are committed, or a precise blocker is reported.
 - Each commit has one logical purpose, one rollback boundary, and a valid Conventional Commit
   message.
 - Repository-specific commit rules, hooks, and sandbox requirements are respected.
-- The final response names the created commit(s) and any files intentionally left uncommitted.
 
 ## Context gathering
 
 - Start with the smallest useful git state inspection for the requested scope.
-- Read repository commit rules only when they are likely to exist or are referenced by hooks,
-  config, docs, or the user.
-- Stop gathering context once the changed units, applicable commit rules, and safety constraints are
-  clear enough to commit.
+- Read repository commit rules when the user names them, or when the repository contains a
+  commitlint config, a commit-msg hook, or a CONTRIBUTING, AGENTS, or CLAUDE file that mentions
+  commits.
 - When release tooling is present, inspect its config or repository docs enough to know which commit
   types, scopes, and breaking-change markers affect changelogs and version bumps.
-- Do not keep searching for alternative scopes or message phrasings after the commit plan is
-  defensible.
+- Stop gathering context at the first defensible commit plan — one where the changed units,
+  applicable commit rules, and safety constraints are clear enough to commit.
 
 ## Commit message policy
 
@@ -82,6 +61,10 @@ Keep together when changes are jointly required for one behavior and should be r
 
 ## Default workflow
 
+Default to execution mode: review all current changes and commit them. If the user asked for a dry
+run, a message draft, or split guidance without execution, produce the plan and messages and stop
+before staging.
+
 1. Inspect all changes:
    - Staged changes
    - Unstaged tracked changes
@@ -93,7 +76,7 @@ Keep together when changes are jointly required for one behavior and should be r
    - Stage and commit one unit at a time
    - Use elevated sandbox permissions only when the environment or repository policy requires it
    - Repeat until all intended changes are committed
-4. Return a concise summary of created commits.
+4. Report every created commit and every file intentionally left uncommitted.
 
 ## Minimal-interaction policy
 
@@ -116,6 +99,7 @@ If user provides extra context, apply it without switching to high-interaction m
 ## Safety rules
 
 - Do not use `git commit --no-verify` unless explicitly requested.
-- Do not include ignored/local artifact paths unless explicitly requested.
+- Stage only tracked and non-ignored paths; include an ignored or local artifact path only when the
+  user names it.
 - Stop and report if conflicts prevent safe commit execution.
 - Keep staging and commit commands serialized.
