@@ -127,11 +127,7 @@ Report:
 - local validation and initial CI state;
 - blockers or pending work.
 
-After publishing the head, stop and recommend this exact next invocation:
+After publishing the head, stop and recommend invoking `git-workflows:address-pr-feedback` next.
 
-```text
-$git-workflows:address-pr-feedback
-```
-
-If target drift later changes mergeability, recommend an explicit `$git-workflows:create-pr` rerun
+If target drift later changes mergeability, recommend an explicit `git-workflows:create-pr` rerun
 against the existing change request.
