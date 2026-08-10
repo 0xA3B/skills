@@ -8,7 +8,9 @@ description: >-
 license: MIT
 metadata:
   original_author: Matt Pocock
-  original_source: https://github.com/mattpocock/skills/tree/391a2701dd948f94f56a39f7533f8eea9a859c87/skills/engineering/wayfinder
+  original_source: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/engineering/wayfinder
+  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
+  upstream_divergence: tracker-neutral; upstream issue-ticket mechanics adapt into the decision map
 disable-model-invocation: true
 argument-hint: "[idea]"
 ---
@@ -69,6 +71,13 @@ manual-only, so recommend its explicit invocation instead of invoking it from th
   enough to implement;
 - a manual prerequisite when access, setup, or human action blocks a later decision.
 
+Research chunks are the exception to leaving chunks unresolved: when a chunk is purely a missing
+fact — no user decision to make and no artifact beyond the finding — resolve it during mapping with
+read-only research subagents, run in parallel when the agent supports subagents, and fold each
+finding into the known ground instead of leaving the chunk on the map. Keep a research chunk on the
+map only when the fact is unreachable this session, such as missing access, credentials, or a person
+to ask.
+
 Record dependencies between chunks. The **frontier** is the set of chunks that are precise,
 unblocked, and useful to start next.
 
@@ -82,9 +91,10 @@ scope does not return unless the destination changes.
 
 ### 5. Stop at the map
 
-Leave mapped chunks unresolved; resolving one belongs to the workflow it is classified under. If the
-entire effort is already clear and small enough for one session, say that a map is unnecessary and
-recommend the next explicit workflow instead.
+Leave mapped chunks unresolved, apart from research chunks resolved during mapping; resolving any
+other chunk belongs to the workflow it is classified under. If the entire effort is already clear
+and small enough for one session, say that a map is unnecessary and recommend the next explicit
+workflow instead.
 
 ## Output
 

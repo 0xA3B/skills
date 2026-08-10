@@ -8,6 +8,7 @@ license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills/engineering/improve-codebase-architecture
+  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
 disable-model-invocation: true
 argument-hint: "[scope]"
 ---

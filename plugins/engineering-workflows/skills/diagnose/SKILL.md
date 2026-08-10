@@ -7,7 +7,8 @@ description: >-
 license: MIT
 metadata:
   original_author: Matt Pocock
-  original_source: https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills/engineering/diagnosing-bugs
+  original_source: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/engineering/diagnosing-bugs
+  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
 disable-model-invocation: true
 argument-hint: "[problem]"
 ---
@@ -18,6 +19,14 @@ Use a tight evidence loop for hard bugs. Each phase produces the evidence requir
 a phase only when current evidence explicitly satisfies its completion criterion.
 
 Keep domain names aligned with `AGENTS.md ## Terminology` when present.
+
+## Redact what you show
+
+This workflow shows commands, outputs, and captured artifacts. Replace every secret with
+`<REDACTED>` before showing it. Build loops against environment variables so credentials stay in the
+environment rather than in the shown command. Quote from captured artifacts — HAR files, log dumps,
+traces — only the lines that carry the signal; they often embed auth headers. If the redacted output
+is not enough to diagnose the bug, say so and ask the user.
 
 ## 1. Build a tight red-capable loop
 
@@ -45,9 +54,9 @@ Phase 1 is complete only when one command has already been run and is:
 - **fast**: normally seconds rather than minutes;
 - **agent-runnable**: unattended except through the structured HITL script.
 
-If no credible loop can be built, stop. Report what was tried and request the missing artifact,
-environment, access, or permission for targeted instrumentation. Do not hypothesize without a
-red-capable loop.
+If no credible loop can be built, stop. Report what was tried and request the missing redacted
+artifact, environment, access, or permission for targeted instrumentation. Do not hypothesize
+without a red-capable loop.
 
 ## 2. Reproduce and minimize
 

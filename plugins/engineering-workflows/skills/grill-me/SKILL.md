@@ -9,6 +9,7 @@ license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/84fdeffd12f2ee307994d1eb6feb48173b6e0502/skills/productivity/grilling
+  upstream_reviewed: 84fdeffd12f2ee307994d1eb6feb48173b6e0502
 disable-model-invocation: true
 argument-hint: "[approach]"
 ---
