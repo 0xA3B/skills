@@ -1,0 +1,43 @@
+version: 1
+cases:
+  - id: review-upstream-release
+    prompt: >-
+      Review the latest mattpocock skills release and see what is worth bringing into this repo.
+    expect: invoke
+    rationale: The user asks to review an upstream release for changes to bring in.
+
+  - id: sync-adapted-skills
+    prompt: >-
+      Sync our adapted skills with the new upstream release.
+    expect: invoke
+    rationale: Syncing adapted skills with upstream is this skill's workflow.
+
+  - id: triage-upstream-changes
+    prompt: >-
+      Check what changed upstream since our last sync and summarize what we should port.
+    expect: invoke
+    rationale: Triage of upstream deltas against the last sync state is this skill's core loop.
+
+  - id: dependency-updates
+    prompt: >-
+      Review and merge the open Renovate dependency PRs.
+    expect: skip
+    rationale: Dependency maintenance belongs to dependency-maintenance, not skill syncing.
+
+  - id: review-own-changes
+    prompt: >-
+      Review my current changes before I commit.
+    expect: skip
+    rationale: Reviewing this repo's own changes belongs to review-changes.
+
+  - id: skill-feedback
+    prompt: >-
+      Submit feedback on how the tdd skill performed in this session.
+    expect: skip
+    rationale: Skill feedback belongs to submit-skill-feedback, not upstream syncing.
+
+  - id: conceptual-question
+    prompt: >-
+      What does the upstream_reviewed frontmatter key mean?
+    expect: skip
+    rationale: A conceptual question about the sync state model does not start a sync.
