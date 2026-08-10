@@ -3,9 +3,10 @@ name: codebase-design
 description: >-
   Design deeper module interfaces and better seams in concrete repository code. Use when asked to
   design or improve a specific module interface, deepen shallow wrappers, compare interface designs,
-  choose a seam, reduce caller knowledge, improve testability through an interface, or apply the
-  shared codebase-design model. Do not use for direct bug fixes, generic code review,
-  implementation-only requests, or conceptual architecture questions.
+  choose a seam, reduce caller knowledge, improve testability through an interface, or when another
+  workflow or review lane directs applying engineering-workflows:codebase-design. Do not use for
+  direct bug fixes, generic code review, implementation-only requests, or conceptual architecture
+  questions.
 license: MIT
 metadata:
   original_author: Matt Pocock
