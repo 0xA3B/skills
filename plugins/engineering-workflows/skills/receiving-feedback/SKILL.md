@@ -66,6 +66,9 @@ Capture the context while the author still holds it:
   "reviewer suggested X and we declined".
 - Capture nothing for findings the code already refutes or findings rejected as low-severity or
   low-value; annotating every wrong or minor finding is comment bloat.
+- A capture is an edit under the same authority as fixes: write it directly only when the invoking
+  workflow permits the edit, and otherwise propose it for approval alongside the finding's
+  disposition.
 
 ## User decisions
 
