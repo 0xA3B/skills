@@ -73,8 +73,8 @@ send the option-shaped questions through the tool and the rest as prose.
   disagree, pause and resolve which should be authoritative.
 - Use `AGENTS.md ## Terminology` when present. Update stable domain terms there as they crystallize;
   skip generic programming terms and incidental implementation names.
-- Keep the session to questions and evidence gathering; implement, prototype, create tickets, or
-  enact the approach only after the user confirms completion.
+- Keep the session to questions and evidence gathering; implementing, prototyping, ticket creation,
+  and enacting the approach belong to the next explicit workflow after the handoff.
 
 When an unresolved question needs executable evidence, stop that branch and recommend an explicit
 invocation of `engineering-workflows:prototype`. When terminology is the main unresolved work,
