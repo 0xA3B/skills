@@ -10,14 +10,14 @@ not the code's.
 1. Write one paragraph naming the state model and the question being answered, and render it as a
    visible intro at the top of the demo, not only a comment.
 2. Isolate the logic that answers the question in one `<script>` block written as a small pure
-   module that could be lifted into real code later:
+   module — a disposable model of the behavior the real implementation will rebuild:
    - a reducer when actions are discrete events;
    - a state machine when legal actions depend on current state;
    - pure functions over plain data when there is no current state;
    - a small stateful module only when ongoing internal state is essential.
 3. Keep the module pure: no DOM access, no button handlers reaching inside it. The page calls into
-   the module; nothing flows the other direction. The page shell is disposable; the validated module
-   is what lifts into the real code.
+   the module; nothing flows the other direction. The purity keeps the demo's answer about the
+   behavior itself, not the DOM wiring.
 4. Keep everything in the one file: plain HTML, CSS, and JavaScript inline, with no framework,
    bundler, or server, so the demo opens by double-click and survives being shared.
 5. Write every label in domain language, not code: buttons and state read like the business, not

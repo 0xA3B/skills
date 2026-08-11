@@ -58,7 +58,9 @@ known cursor or a retired status, and the previous sync's deferrals are listed.
 
 For each adapted skill not marked retired, diff the upstream path from that skill's own cursor —
 `upstream_reviewed`, or the `original_source` pin when no cursor exists — to the target release.
-Never diff from the release tag globally; cursors differ per skill. Judge each delta as one of:
+Never diff from the release tag globally; cursors differ per skill. When the target release is an
+ancestor of the skill's cursor — the skill was synced from a newer upstream commit — record a
+no-change verdict instead of diffing backward. Judge each delta as one of:
 
 - **already present**: this repo arrived at the same idea independently;
 - **port**: a genuine improvement compatible with this repo's version;
@@ -88,9 +90,10 @@ own judgment.
 ### 6. Implement approved ports
 
 Port or adapt the selected deltas, then update the sync state: advance `upstream_reviewed` to the
-reviewed release commit on every skill triaged this sync, move `original_source` only on skills
-whose content was ported, and add the `upstream_divergence` and `upstream_status` markers step 3
-produced. Done when every triaged skill carries the reviewed release as its cursor.
+reviewed release commit on every skill triaged this sync, keeping any cursor already at or ahead of
+that commit — never move a cursor backward. Move `original_source` only on skills whose content was
+ported, and add the `upstream_divergence` and `upstream_status` markers step 3 produced. Done when
+every triaged skill's cursor is at or ahead of the reviewed release commit.
 
 ### 7. Validate
 
