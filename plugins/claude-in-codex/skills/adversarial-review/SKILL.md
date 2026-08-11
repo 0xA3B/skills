@@ -2,10 +2,11 @@
 name: adversarial-review
 description: >-
   Use when the user explicitly asks Codex to use Claude or Claude Code to review repository code
-  changes, the working tree, a branch, or a PR/MR, or when another loaded skill directs a Claude
-  review pass that the user requested. Do not use for generic review requests, generic adversarial
-  review requests, architecture or design review requests that do not name Claude, or conceptual
-  questions about Claude or code review.
+  changes, the working tree, a branch, or a PR/MR, including requests that name a specific Claude
+  model, or when another loaded skill directs a Claude review pass that the user requested. Do not
+  use for generic review requests, generic adversarial review requests, architecture or design
+  review requests that do not name Claude, requests that delegate implementation or fixes to Claude
+  rather than a review, or conceptual questions about Claude or code review.
 license: MIT
 compatibility:
   Requires Codex with shell command access and Claude Code CLI on PATH, authenticated and able to
