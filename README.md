@@ -123,6 +123,8 @@ document.
   compact local continuation document for another agent session.
 - [`engineering-workflows:improve-codebase-architecture`](./plugins/engineering-workflows/skills/improve-codebase-architecture/):
   Finds focused, evidence-backed module deepening opportunities.
+- [`engineering-workflows:improve-codebase-tests`](./plugins/engineering-workflows/skills/improve-codebase-tests/):
+  Finds evidence-backed test-suite improvement opportunities.
 - [`engineering-workflows:prototype`](./plugins/engineering-workflows/skills/prototype/): Creates
   disposable exploratory code to answer a design question.
 - [`engineering-workflows:review-branch`](./plugins/engineering-workflows/skills/review-branch/):
