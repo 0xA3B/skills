@@ -16,7 +16,9 @@ Look for:
 
 For each meaningful changed behavior, name a specific mutation — a deleted branch, an inverted
 condition, a widened catch — and say whether any existing test would catch it. When the mutation is
-cheap to apply and revert, run it and report the resulting test failures by count and name.
+cheap to run in isolation — a separate worktree or a disposable copy, never the checkout other lanes
+are reading — apply it there and report the resulting test failures by count and name. Without that
+isolation, report the mutation as unexecuted analysis.
 
 Require expected values from an independent authority such as a known-good literal, worked example,
 protocol rule, or specification. Do not demand tests for every line or private branch; prioritize
