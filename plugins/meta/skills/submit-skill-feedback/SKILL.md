@@ -72,7 +72,7 @@ the session instead of filing it.
 
 ## Issue body
 
-Use this shape:
+Write the issue body in Simplified Technical English, using this shape:
 
 ```markdown
 - Plugin: engineering-workflows 1.8.0
