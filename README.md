@@ -70,8 +70,9 @@ This plugin runs Codex from Claude Code for adversarial code review, feedback tr
 fixes. It also ships a `codex` subagent that delegates tasks to Codex.
 
 - [`codex-in-claude:adversarial-review`](./plugins/codex-in-claude/skills/adversarial-review/):
-  Invokes Codex as a sandboxed read-only adversarial reviewer, triages findings as external
-  feedback, and applies accepted in-scope fixes for current working-tree changes.
+  Invokes Codex as an adversarial reviewer at the user's configured sandbox and permission defaults,
+  triages findings as external feedback, and applies accepted in-scope fixes for current
+  working-tree changes.
 - [`codex-in-claude:using-codex-cli`](./plugins/codex-in-claude/skills/using-codex-cli/): Internal
   contract for running the Codex CLI non-interactively, with GPT-5.5 prompting guidance.
 
