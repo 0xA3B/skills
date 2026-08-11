@@ -16,6 +16,7 @@
           "id",
           "severity",
           "file",
+          "symbol",
           "summary",
           "evidence",
           "impact",
