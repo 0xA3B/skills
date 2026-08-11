@@ -70,6 +70,14 @@ cases:
       A direct Claude pull-request review belongs to the sibling adversarial-review skill, which
       reaches claude -p through this contract.
 
+  - id: claude-review-with-model-override
+    prompt: >-
+      Use Claude Code with sonnet to review these changes.
+    expect: skip
+    rationale:
+      A model override is CLI mechanics, but the request is still a direct user review request, so
+      it belongs to the sibling adversarial-review skill.
+
   - id: generic-task-delegation
     prompt: >-
       Delegate the documentation cleanup to a subagent and summarize what it changes.

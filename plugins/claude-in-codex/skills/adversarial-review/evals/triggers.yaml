@@ -61,3 +61,11 @@ cases:
       Ask Claude what an adversarial code review is.
     expect: skip
     rationale: The user names Claude but asks a conceptual question, not for Claude to review code.
+
+  - id: delegate-fix-to-claude
+    prompt: >-
+      Have Claude fix the failing tests in this repo.
+    expect: skip
+    rationale:
+      The user asks Claude to implement a fix, which is a delegation task for the Claude CLI
+      contract, not a review.

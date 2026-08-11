@@ -1,9 +1,13 @@
 ---
 name: using-claude-cli
 description: >-
-  Internal contract for invoking the Claude Code CLI non-interactively. Use when another
-  claude-in-codex skill or a Claude proxy subagent needs to run claude -p for review, delegation,
-  session follow-ups, or structured output. Do not use for conceptual questions about Claude Code or
+  Internal contract for invoking the Claude Code CLI non-interactively. Use only when another
+  claude-in-codex skill or a Claude proxy subagent needs to run claude -p, including to support a
+  review workflow, delegate work, produce structured output, or resume or continue a prior Claude
+  CLI session with a follow-up. Do not use as the direct entry point for a user's request to have
+  Claude or Claude Code review code, current changes or the working tree, a branch, or a pull
+  request, even when the request names a specific Claude model; route that request through the
+  sibling adversarial-review skill first. Do not use for conceptual questions about Claude Code or
   Claude models, including pricing, capabilities, and model comparisons.
 license: MIT
 user-invocable: false
