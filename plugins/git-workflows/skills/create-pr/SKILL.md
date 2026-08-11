@@ -102,7 +102,7 @@ After validation:
 1. push the topic branch;
 2. create or refresh the change request through the selected forge lane, using repository templates
    and forge defaults for title and body, ready for review unless the user explicitly asks for a
-   draft.
+   draft. Write the change-request description in Simplified Technical English.
 
 Record the change-request URL, target, and exact source-head SHA.
 

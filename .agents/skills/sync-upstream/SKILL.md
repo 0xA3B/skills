@@ -101,5 +101,6 @@ fold policy for every touched plugin.
 ### 8. Record and close
 
 Update the sync issue body with the record — release and commit reviewed, ported, skipped with
-reasons, new divergences, deferred adoptions with trigger conditions, retirements — reference the
-issue in the sync commit messages, and close the issue once the ports land.
+reasons, new divergences, deferred adoptions with trigger conditions, retirements — and write the
+issue body in Simplified Technical English. Reference the issue in the sync commit messages, and
+close the issue once the ports land.
