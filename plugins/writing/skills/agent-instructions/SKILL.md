@@ -9,8 +9,8 @@ description: >-
   one-shot sub-agent prompts. Do not use for technical artifacts such as READMEs or documentation
   (technical-writing); for code comments, commit messages, or chat responses; for maintaining a
   terminology section's terms, aliases, or relationships; for conceptual questions about instruction
-  files; or for implementation requests where the deliverable is program code, even when the program
-  is an agent.
+  files; or for implementation requests the session codes directly, even when the program is an
+  agent; delegating implementation to a sub-agent falls under the dispatch trigger.
 license: MIT
 metadata:
   original_author: Alex Baker
