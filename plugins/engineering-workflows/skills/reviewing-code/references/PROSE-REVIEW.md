@@ -9,8 +9,8 @@ Route each changed file to its writing standard and judge it only against that s
   fragments — follow the `writing:agent-instructions` skill body supplied with this lane's brief,
   including its review checklist.
 - Human-facing documentation — README files, guides, runbooks, reference prose, and release notes —
-  follows the `writing:documentation` skill body supplied with this lane's brief. The project's own
-  style guide and neighboring-file conventions win over the supplied standard.
+  follows the `writing:technical-writing` skill body supplied with this lane's brief. The project's
+  own style guide and neighboring-file conventions win over the supplied standard.
 
 Review only meaningfully changed prose. Leave mechanical edits — version numbers, link targets,
 names mirrored from code — unreviewed rather than inventing wording feedback about them.

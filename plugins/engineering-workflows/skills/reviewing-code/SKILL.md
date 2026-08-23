@@ -97,8 +97,8 @@ Provide every lane reviewer:
   simplification and codebase-design lanes;
 - the `engineering-workflows:codebase-design` skill body for the codebase-design and API/seam lanes,
   because some agents do not let an isolated reviewer load another skill;
-- the `writing:agent-instructions` or `writing:documentation` skill body matching each reviewed file
-  type for the prose-review lane, plus the agent-instructions review checklist reference when
+- the `writing:agent-instructions` or `writing:technical-writing` skill body matching each reviewed
+  file type for the prose-review lane, plus the agent-instructions review checklist reference when
   instruction files are in scope, for the same reason;
 - [review-finding.schema.json](references/review-finding.schema.json) when structured output is
   available;
