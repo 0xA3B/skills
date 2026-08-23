@@ -77,17 +77,17 @@
 - Set `user-invocable: false` only for background-discipline skills users should not invoke as a
   command. Never combine it with `disable-model-invocation: true`; the linter rejects the pairing
   (`claude-skill/uninvocable`).
-- Name skills so invocation posture is obvious from the name alone: a user-invocable skill's name
-  reads as an action or workflow the user runs; a `user-invocable: false` skill's name reads as a
-  state or discipline, typically a gerund phrase (`receiving-feedback`), so the model reads it as
-  applicable knowledge rather than an action.
-- Judge these naming rules against the namespaced form `plugin-name:skill-name`. When the plugin
-  name supplies the leading verb or gerund, the skill name may be the noun phrase that completes it
-  (`writing:agent-instructions` reads as a discipline even though the bare directory name carries no
-  verb).
-- Default user-invocable names to an imperative verb phrase (`commit`, `visualize`, `build`).
-  Compact workflow names (`handoff`, `wayfinder`) are acceptable when they cannot be read as a
-  background discipline.
+- Name a skill for the workflow it runs or the artifact class it governs, and make the bare name
+  stand alone without the plugin prefix; harnesses differ in whether they display the namespaced
+  form. The namespaced form `plugin-name:skill-name` may inform judgment, but when the two readings
+  conflict, the stand-alone reading wins.
+- Default workflow skills the user runs as a command to an imperative verb phrase (`commit`,
+  `visualize`, `build`). Compact workflow names (`handoff`, `wayfinder`) are acceptable when they
+  cannot be read as a background discipline.
+- Name discipline skills for the artifact class or practice they govern (`agent-instructions`,
+  `receiving-feedback`), whatever their invocation posture. Invocation posture is declared in
+  frontmatter, not encoded in the name; a discipline skill may be user-invocable when explicit
+  invocation is useful.
 - A skill adapted from an upstream source may keep the upstream name to preserve its identity, even
   when that name departs from the imperative default.
 - Use `agents/openai.yaml` for Codex UI metadata and Codex invocation policy. Do not add other Codex
