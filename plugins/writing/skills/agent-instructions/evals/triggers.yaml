@@ -37,8 +37,9 @@ cases:
     expect: invoke
     rationale: The user is asking to author a one-shot sub-agent prompt, which the skill owns.
 
-  # Known-finicky on Claude Code (2026-08): consistently skips there while passing on Codex. Claude
-  # reads "delegate X" as a task to execute and dispatches without loading a writing skill first.
+  # Known-finicky on Claude Code (2026-08): delegate-task-to-subagent and delegate-implementation
+  # consistently skip there while passing on Codex. Claude reads "delegate X" as a task to execute
+  # and dispatches without loading a writing skill first.
   # Tried: three description wordings for the dispatch trigger and Claude-only `when_to_use`
   # tuning; none changed the outcome (Codex passed under every wording), so the shortest wording
   # and no `when_to_use` key were kept. A repeat failure on Claude is this known behavior, not a
@@ -50,6 +51,14 @@ cases:
     rationale:
       Dispatching a sub-agent requires writing its task prompt, and the skill applies before
       prompting a sub-agent.
+
+  - id: delegate-implementation
+    prompt: >-
+      Have a sub-agent implement the /health endpoint and report back with the diff.
+    expect: invoke
+    rationale:
+      Delegated implementation dispatches a sub-agent, so the skill applies before writing its task
+      prompt.
 
   - id: human-readme
     prompt: >-

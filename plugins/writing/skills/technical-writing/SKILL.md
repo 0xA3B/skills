@@ -158,6 +158,9 @@ Leave these alone. Reproduce them exactly.
 - Names of tools, standards, APIs, and products.
 - Quoted text from a person or a specification.
 
+Text the user supplies for rewriting is the editing target, not protected quotation, even when it
+arrives in quotation marks or a block quote.
+
 ## Example
 
 Before:
