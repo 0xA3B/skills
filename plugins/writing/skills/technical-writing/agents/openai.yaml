@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Technical Writing"
+  short_description:
+    "Diátaxis structure, STE-inspired wording, and Google-style layout for technical prose"
+  default_prompt: "Rewrite this README so a tired engineer can follow it on the first read."
+policy:
+  allow_implicit_invocation: true
