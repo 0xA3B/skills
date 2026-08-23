@@ -1,0 +1,70 @@
+version: 1
+cases:
+  # Known-finicky on Claude Code (2026-08): unslop-newsletter and shorten-chat-reply consistently
+  # skip there while passing on Codex. Claude's invocation gate treats small text edits as directly
+  # doable without a skill. Tried: two description rewrites (front-loaded verbs, named artifacts and
+  # "AI-generated") and Claude-only `when_to_use` tuning; none changed the outcome, and the
+  # `when_to_use` key was reverted. A repeat failure on Claude is this known behavior, not a
+  # regression; in real sessions a user-memory pointer or an explicit request to apply the skill
+  # covers these cases.
+  - id: unslop-newsletter
+    prompt: >-
+      This paragraph for our newsletter sounds AI-generated. Rewrite it so it reads like a person
+      wrote it.
+    expect: invoke
+    rationale: Fixing AI-sounding text is an explicit trigger.
+
+  - id: draft-announcement
+    prompt: >-
+      Draft a short announcement to the team that the v2 API is live.
+    expect: invoke
+    rationale: An announcement is prose the skill owns.
+
+  - id: tighten-blog-intro
+    prompt: >-
+      Tighten the intro of this blog post. It is full of filler.
+    expect: invoke
+    rationale: Cutting filler from a blog post is a listed trigger.
+
+  # Known-finicky on Claude Code; see the note on unslop-newsletter above.
+  - id: shorten-chat-reply
+    prompt: >-
+      Rewrite your last answer so it is shorter and reads less like a bot.
+    expect: invoke
+    rationale: Editing a chat response is prose work governed by the chat-responses reference.
+
+  - id: write-readme
+    prompt: >-
+      Write a README for this project.
+    expect: skip
+    rationale: A README is a technical artifact owned by the technical-writing skill.
+
+  - id: pr-description
+    prompt: >-
+      Draft the pull request description for this branch.
+    expect: skip
+    rationale: Pull request descriptions are owned by the technical-writing skill.
+
+  - id: agents-md-rule
+    prompt: >-
+      Add a rule to AGENTS.md that tests must be co-located in src/.
+    expect: skip
+    rationale: Agent instruction files are owned by the agent-instructions skill.
+
+  - id: commit-message
+    prompt: >-
+      Write the commit message for this change.
+    expect: skip
+    rationale: Commit messages are excluded from the prose base style.
+
+  - id: refactor-code
+    prompt: >-
+      Refactor this function so it is easier to read.
+    expect: skip
+    rationale: Program code is not prose.
+
+  - id: conceptual-slop-question
+    prompt: >-
+      What makes text sound AI-generated?
+    expect: skip
+    rationale: A conceptual question is not a request to compose, edit, or review prose.
