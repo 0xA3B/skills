@@ -1,13 +1,20 @@
 {
   "name": "writing",
   "displayName": "Writing",
-  "version": "1.0.2",
-  "description": "Writing skills for agent instructions and documentation, plus chat output styles.",
+  "version": "1.1.0",
+  "description": "Writing skills for prose, technical writing, and agent instructions.",
   "author": {
     "name": "Alex Baker"
   },
   "homepage": "https://github.com/0xA3B/skills/blob/main/plugins/writing/README.md",
   "repository": "https://github.com/0xA3B/skills",
   "license": "MIT",
-  "keywords": ["writing", "documentation", "agent-instructions", "style", "output-styles"]
+  "keywords": [
+    "writing",
+    "prose",
+    "technical-writing",
+    "documentation",
+    "agent-instructions",
+    "style"
+  ]
 }

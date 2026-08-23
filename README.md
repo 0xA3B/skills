@@ -155,21 +155,26 @@ repository rather than on a user's project.
 
 ### `writing`
 
-These skills govern the documents agents and humans read; the plugin also ships chat output styles
-for Claude Code sessions. The document-mechanics guidance comes from Matt Pocock's MIT-licensed
-[`mattpocock/skills`](https://github.com/mattpocock/skills) repository, with the attribution
-recorded in the skill's Agent Skills frontmatter metadata.
+These skills govern the prose agents produce, from chat responses to documentation to instruction
+files. The document-mechanics guidance comes from Matt Pocock's MIT-licensed
+[`mattpocock/skills`](https://github.com/mattpocock/skills) repository, and the slop-pattern catalog
+and document-mode layers are adapted from Cursor's
+[`cursor/plugins`](https://github.com/cursor/plugins) repository, with attribution recorded in each
+skill's Agent Skills frontmatter metadata.
 
+- [`writing:prose`](./plugins/writing/skills/prose/): Base style for all prose — plain wording, one
+  claim per sentence, and a slop-pattern catalog — with a chat-responses reference for
+  conversational replies.
+- [`writing:technical-writing`](./plugins/writing/skills/technical-writing/): Diátaxis document
+  modes, STE-inspired wording, and Google developer style formatting for technical artifacts —
+  READMEs, guides, runbooks, reference prose, release notes, and pull request and issue
+  descriptions.
 - [`writing:agent-instructions`](./plugins/writing/skills/agent-instructions/): House style and
-  document mechanics for files that instruct agents — `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, agent
-  definitions, and system-prompt fragments.
-- [`writing:documentation`](./plugins/writing/skills/documentation/): Simplified Technical English
-  wording and Google developer style formatting for human-facing documentation — READMEs, guides,
-  runbooks, reference prose, and release notes.
+  document mechanics for files and prompts that instruct agents — `AGENTS.md`, `CLAUDE.md`,
+  `SKILL.md`, agent definitions, system-prompt fragments, and sub-agent task prompts.
 
-Output styles ship in [`plugins/writing/output-styles/`](./plugins/writing/output-styles/) and
-materialize in Claude Code only: `google-developer-style` and `simplified-technical-english` apply
-their respective style guides to chat responses.
+Output styles still ship in [`plugins/writing/output-styles/`](./plugins/writing/output-styles/) but
+are deprecated: the `prose` skill replaces them, and they will be removed in a future release.
 
 ## License
 

@@ -1,18 +1,25 @@
 {
   "name": "writing",
-  "version": "1.0.2",
-  "description": "Writing skills for agent instructions and documentation.",
+  "version": "1.1.0",
+  "description": "Writing skills for prose, technical writing, and agent instructions.",
   "author": {
     "name": "Alex Baker"
   },
   "homepage": "https://github.com/0xA3B/skills/blob/main/plugins/writing/README.md",
   "repository": "https://github.com/0xA3B/skills",
-  "keywords": ["writing", "documentation", "agent-instructions", "style"],
+  "keywords": [
+    "writing",
+    "prose",
+    "technical-writing",
+    "documentation",
+    "agent-instructions",
+    "style"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Writing",
-    "shortDescription": "Write precise agent instructions and documentation.",
-    "longDescription": "Writing disciplines for the documents agents and humans read: a house style and document mechanics for agent-facing instruction files such as AGENTS.md, CLAUDE.md, and SKILL.md, and Simplified Technical English wording with Google developer style formatting for human-facing documentation.",
+    "shortDescription": "Write precise prose, technical artifacts, and agent instructions.",
+    "longDescription": "Layered writing disciplines for the prose agents produce: a base prose style with a slop-pattern catalog and chat-response guidance, Diátaxis document modes with STE-inspired wording and Google developer style formatting for technical artifacts such as READMEs, runbooks, and pull request descriptions, and a house style with document mechanics for agent-facing instruction files such as AGENTS.md, CLAUDE.md, and SKILL.md.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Write"],
@@ -20,8 +27,8 @@
     "logo": "./assets/logo.png",
     "defaultPrompt": [
       "Review this AGENTS.md against the writing:agent-instructions style.",
-      "Tighten this SKILL.md so every rule earns its context budget.",
-      "Rewrite this README in Simplified Technical English."
+      "Rewrite this README so a tired engineer can follow it on the first read.",
+      "Rewrite this announcement so it does not read as AI-generated."
     ]
   }
 }
