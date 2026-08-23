@@ -24,8 +24,8 @@ as "we", and give steps as commands: "First, run x. Now, run y."
 
 Solve a problem the reader has, not an operation the machine can perform. Assume competence and skip
 teaching: action only, with background linked instead of included. Forks and judgment are allowed:
-"If you want x, do y." Name the guide by the task: "How to calibrate the radar array", not "Radar
-array calibration".
+"If you want x, do y." Name the guide by the task with a bare command verb, the same heading form
+[formatting.md](formatting.md) requires: "Calibrate the radar array", not "Radar array calibration".
 
 ## Reference: facts for lookup
 
@@ -44,5 +44,9 @@ history, constraints, and alternatives. Opinion is allowed here and nowhere else
 
 Do not put reference tables inside a tutorial, tutorial hand-holding inside reference, or argument
 inside a how-to. Split the document and link between the parts instead.
+
+A gateway document such as a README combines modes by design. Apply the mode rules to each of its
+sections instead of the whole file, and follow the README content model in [readme.md](readme.md)
+for what the sections are.
 
 Source: diataxis.fr.
