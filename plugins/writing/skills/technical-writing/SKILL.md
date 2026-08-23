@@ -180,8 +180,8 @@ Read the finished text once and check each item:
 - Every condition, threshold, exception, and edge case in the source material survives in the
   rewrite. After a substantial rewrite of behavior-heavy prose, check the stated behavior against
   code, tests, or another authoritative source.
-- Except for pull request and issue descriptions, the document serves one Diátaxis mode, with links
-  where modes meet.
+- The document serves one Diátaxis mode, with links where modes meet. A gateway README serves one
+  mode per section; pull request and issue descriptions skip Diátaxis.
 - Every sentence names its actor in the active voice, except where the actor is unknown or beside
   the point, and each instruction starts with a command verb after its condition.
 - Each concept uses one term, and that term does not change across the document.
