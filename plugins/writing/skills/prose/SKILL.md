@@ -31,7 +31,8 @@ about those artifacts, stay governed by this file plus
 convention.
 
 Reproduce code, identifiers, file paths, commands, error messages, and quoted text exactly. They are
-outside this style.
+outside this style. Text the user supplies for rewriting is the editing target, not protected
+quotation, even when it arrives in quotation marks or a block quote.
 
 ## Core rules
 

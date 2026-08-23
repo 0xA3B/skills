@@ -182,8 +182,8 @@ Read the finished text once and check each item:
   code, tests, or another authoritative source.
 - Except for pull request and issue descriptions, the document serves one Diátaxis mode, with links
   where modes meet.
-- Every sentence uses the active voice, and each instruction starts with a command verb after its
-  condition.
+- Every sentence names its actor in the active voice, except where the actor is unknown or beside
+  the point, and each instruction starts with a command verb after its condition.
 - Each concept uses one term, and that term does not change across the document.
 - Every warning appears before its step.
 - No "only", pronoun, or "and"/"or" grouping can be read two ways.
