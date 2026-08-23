@@ -95,7 +95,8 @@ Form carries meaning for an agent; choose the form that encodes the intent:
   bulleted list reads as rules that all apply.
 - Keep list items parallel in structure; the model continues the pattern it sees.
 - Use sentence case in headings and do not skip heading levels — the same heading convention the
-  sibling documentation skill applies to human-facing docs, so both file families read alike.
+  sibling technical-writing skill applies to human-facing artifacts, so both file families read
+  alike.
 - Use a table only for rows that share the same attributes; keep cells short and put explanation in
   prose.
 - Make every command block run as pasted: mark placeholders in one consistent form and define each

@@ -30,11 +30,32 @@ cases:
     expect: invoke
     rationale: The user is asking to prune and restructure an agent-facing instruction file.
 
+  - id: author-subagent-prompt
+    prompt: >-
+      Write the prompt for a sub-agent that audits our API error handling and returns a structured
+      findings list.
+    expect: invoke
+    rationale: The user is asking to author a one-shot sub-agent prompt, which the skill owns.
+
+  # Known-finicky on Claude Code (2026-08): consistently skips there while passing on Codex. Claude
+  # reads "delegate X" as a task to execute and dispatches without loading a writing skill first.
+  # Tried: three description wordings for the dispatch trigger and Claude-only `when_to_use`
+  # tuning; none changed the outcome (Codex passed under every wording), so the shortest wording
+  # and no `when_to_use` key were kept. A repeat failure on Claude is this known behavior, not a
+  # regression; a user-memory pointer is the reliable mechanism for load-before-dispatch.
+  - id: delegate-task-to-subagent
+    prompt: >-
+      Delegate the flaky-test investigation to a background agent and have it report what it finds.
+    expect: invoke
+    rationale:
+      Dispatching a sub-agent requires writing its task prompt, and the skill applies before
+      prompting a sub-agent.
+
   - id: human-readme
     prompt: >-
       Write a README for this package.
     expect: skip
-    rationale: A README is human-facing documentation, which this skill excludes.
+    rationale: A README is a technical artifact owned by the technical-writing skill.
 
   - id: code-comments
     prompt: >-

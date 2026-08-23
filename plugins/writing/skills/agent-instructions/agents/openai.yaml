@@ -1,7 +1,7 @@
 version: 1
 interface:
   display_name: "Agent Instructions"
-  short_description: "House style for files that instruct agents"
+  short_description: "House style for files and prompts that instruct agents"
   default_prompt: "Review this AGENTS.md against the agent-instructions house style."
 policy:
   allow_implicit_invocation: true

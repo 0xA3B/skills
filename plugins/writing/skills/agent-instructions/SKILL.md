@@ -3,18 +3,19 @@ name: agent-instructions
 description: >-
   Use when creating, editing, tightening, or reviewing files that instruct agents — CLAUDE.md,
   AGENTS.md, SKILL.md, agent definition files, or system-prompt fragments — including reviewing a
-  diff to such a file for instruction quality. Provides a house style for unambiguous, auditable
-  instructions and the document mechanics for structure, disclosure, completion criteria, and
-  pruning. Do not use for human-facing documentation, code comments, commit messages, or chat
-  responses; for maintaining a terminology section's terms, aliases, or relationships; for
-  conceptual questions about instruction files; or for implementation requests where the deliverable
-  is program code, even when the program is an agent.
+  diff to such a file for instruction quality, and before writing the prompt that dispatches a
+  sub-agent or delegated task. Provides a house style for unambiguous, auditable instructions, the
+  document mechanics for structure, disclosure, completion criteria, and pruning, and guidance for
+  one-shot sub-agent prompts. Do not use for technical artifacts such as READMEs or documentation
+  (technical-writing); for code comments, commit messages, or chat responses; for maintaining a
+  terminology section's terms, aliases, or relationships; for conceptual questions about instruction
+  files; or for implementation requests where the deliverable is program code, even when the program
+  is an agent.
 license: MIT
 metadata:
   original_author: Alex Baker
   mechanics_adapted_from: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/productivity/writing-for-agents
   upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
-user-invocable: false
 ---
 
 # Agent instructions
@@ -23,8 +24,9 @@ Instruction files spend a shared attention budget: every sentence competes with 
 agent resolves ambiguity by pattern, not by charity. This style removes ambiguity and keeps the
 budget small.
 
-Apply this style to instruction files only. Human-facing documentation follows the project's
-documentation conventions.
+Apply this style to instruction files and sub-agent prompts only. Within that scope this file
+overrides the `prose` base style. Technical artifacts belong to the `technical-writing` skill; chat
+responses and other prose belong to `prose`.
 
 ## Rules
 
@@ -120,6 +122,13 @@ If the document is a `SKILL.md`, also read [skill-mechanics.md](references/skill
 the invocation choice, trigger contracts, splitting by invocation, and router skills. The
 repository's own conventions own metadata keys, file placement, and validation; follow them over the
 generic mechanics where they conflict.
+
+## Sub-agent prompts
+
+If the document is a prompt for a sub-agent — a one-shot task dispatch rather than a durable file —
+read [subagent-prompts.md](references/subagent-prompts.md) for what changes when the instructions
+live for a single dispatch: the context the prompt must carry, the return contract, and decision
+rules in place of clarification.
 
 ## Review
 
