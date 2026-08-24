@@ -41,6 +41,7 @@ quotation, even when it arrives in quotation marks or a block quote.
   it to its own sentence or delete it. These marks may join a claim to its list, its example, or a
   short aside, not to another claim.
 - Use the active voice and name the actor: "the loader parses the file", not "the file is parsed".
+  Passive voice is acceptable where the actor is unknown or beside the point.
 - Choose the plain word: "use", not "utilize"; "help", not "facilitate". Keep the precise technical
   term when it is correct.
 - Use one term per concept and repeat it exactly. Reaching for a synonym to vary the prose teaches
