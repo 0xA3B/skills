@@ -100,6 +100,8 @@ Provide every lane reviewer:
 - the `writing:agent-instructions` or `writing:technical-writing` skill body matching each reviewed
   file type for the prose-review lane, plus the agent-instructions review checklist reference when
   instruction files are in scope, for the same reason;
+- the `writing:prose` skill body alongside the technical-writing body, because the technical-writing
+  standard applies the prose slop patterns and an isolated reviewer cannot load them;
 - [review-finding.schema.json](references/review-finding.schema.json) when structured output is
   available;
 - a prohibition on expanding scope or applying fixes.
