@@ -9,6 +9,8 @@
     "eval:trigger:plugin": "node --import tsx src/trigger-evals/cli.ts --plugin",
     "format": "oxfmt --write",
     "format:check": "oxfmt --check",
+    "format:local": "oxfmt .local/*.md .local/*/*.md --write --no-error-on-unmatched-pattern",
+    "format:local:check": "oxfmt .local/*.md .local/*/*.md --check --no-error-on-unmatched-pattern",
     "install:frozen": "pnpm install --frozen-lockfile",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives",
     "lint:commits": "commitlint --verbose",
