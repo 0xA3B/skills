@@ -42,12 +42,16 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
       await writeClaudeEvalSettings(workspacePath);
 
       const entries = pluginsToStage(target, runOptions.extraPlugins ?? []);
-      const stagedPlugins = await stagePluginCopies(workspacePath, entries);
+      // Installed plugins are deployment context, not project files. Keep their copies outside the
+      // case cwd so project reconnaissance sees only fixture workspace files, as it would in a real
+      // installed session.
+      const pluginDeploymentPath = path.join(workspaceRoot, "deployment");
+      const stagedPlugins = await stagePluginCopies(pluginDeploymentPath, entries);
       const stagedPluginNames = stagedPlugins.map((stagedPlugin) => stagedPlugin.pluginName);
       // The canaries are inert on this lane (detection uses Skill tool events), but their
       // stop-immediately instruction still cuts invoked runs short.
       const survey = await surveyStagedSkills(target, entries);
-      await appendStagedSkillCanaries(workspacePath, survey.skillCanaries);
+      await appendStagedSkillCanaries(pluginDeploymentPath, survey.skillCanaries);
       const labels = [...survey.stagedSkillLabels];
       if (target.kind === "repo-local") {
         for (const repoLocalSkill of [target, ...(runOptions.extraRepoLocalSkills ?? [])]) {
@@ -69,7 +73,7 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
         const pluginDirs =
           stagedPluginNames.length > 0
             ? stagedPluginNames.map((pluginName) =>
-                path.join(caseWorkspacePath, "plugins", pluginName),
+                path.join(pluginDeploymentPath, "plugins", pluginName),
               )
             : undefined;
 
@@ -100,8 +104,8 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
 }
 
 // Single pass over the stream-json events: Skill tool_use targets, the init event's loaded-skills
-// list, agent activity, and completed decision items (assistant messages; reasoning arrives
-// before the model has committed to acting and is not counted).
+// list, agent activity, and decision-bearing assistant events. Thinking and structured
+// reconnaissance do not show that Claude declined a skill, so they do not consume the skip budget.
 export function observeClaudeOutput(stdout: string): CaseObservations {
   const invokedSkills: string[] = [];
   let hasActivity = false;
@@ -125,7 +129,7 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
     if (event["type"] === "assistant" || event["type"] === "result") {
       hasActivity = true;
     }
-    if (event["type"] === "assistant") {
+    if (isClaudeDecisionItem(event)) {
       decisionItemCount += 1;
     }
 
@@ -139,6 +143,46 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
     decisionItemCount,
     ...(loadedSkills === undefined ? {} : { loadedSkills }),
   };
+}
+
+const CLAUDE_RECONNAISSANCE_TOOLS = new Set(["Read", "Glob", "Grep"]);
+
+// A text-only reply or a non-read tool call shows that Claude moved past skill selection. Narration
+// paired with a read tool remains reconnaissance, and thinking-only assistant events remain
+// reasoning. Skill calls also satisfy this predicate, but the invocation signal stops them first.
+function isClaudeDecisionItem(event: Record<string, unknown>): boolean {
+  if (event["type"] !== "assistant") {
+    return false;
+  }
+
+  const message = event["message"];
+  const content = isRecord(message) ? message["content"] : undefined;
+  if (!Array.isArray(content)) {
+    return false;
+  }
+
+  let hasText = false;
+  let hasToolUse = false;
+  for (const block of content) {
+    if (!isRecord(block)) {
+      continue;
+    }
+    if (block["type"] === "text") {
+      hasText ||= typeof block["text"] === "string" && block["text"].trim().length > 0;
+      continue;
+    }
+    if (block["type"] !== "tool_use") {
+      continue;
+    }
+
+    hasToolUse = true;
+    const toolName = block["name"];
+    if (typeof toolName !== "string" || !CLAUDE_RECONNAISSANCE_TOOLS.has(toolName)) {
+      return true;
+    }
+  }
+
+  return hasText && !hasToolUse;
 }
 
 // The Skill tool names its target under the "command" key in stream-json events; "skill" is

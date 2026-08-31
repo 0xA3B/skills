@@ -1,11 +1,11 @@
 import type { CliRunResult } from "./exec.js";
 import type { CaseObservations, TriggerCaseResult, TriggerExpectation } from "./types.js";
 
-// The trigger decision happens at the front of the turn, so once this many substantive items
-// (agent messages, command executions — not reasoning) complete without an invocation signal, the
-// run is stopped and classified as a clean skip instead of waiting for the full workflow or the
-// case timeout. Observed invocations surface the canary within about three items, so five keeps
-// late invocations safe while cutting long skip runs short.
+// The trigger decision happens near the front of the turn, so once this many decision-bearing items
+// complete without an invocation signal, the run is stopped and classified as a clean skip instead
+// of waiting for the full workflow or the case timeout. Lanes exclude reasoning and any structured
+// reconnaissance they can identify. Observed invocations surface within about three such items, so
+// five keeps late invocations safe while cutting long skip runs short.
 export const SKIP_DECISION_ITEM_BUDGET = 5;
 
 // Any invocation — target or wrong skill — settles the trigger decision, so the run stops.
