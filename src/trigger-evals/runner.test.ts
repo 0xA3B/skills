@@ -102,6 +102,7 @@ describe("runTriggerEval", () => {
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       concurrency: 2,
+      isolated: true,
       lane,
     });
 
@@ -142,6 +143,7 @@ describe("runTriggerEval", () => {
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       caseId: "skip-case",
+      isolated: true,
       lane: codex.lane,
     });
     expect(codex.state.runOptions).toMatchObject({ model: "gpt-5.6-sol", effort: "medium" });
@@ -152,6 +154,7 @@ describe("runTriggerEval", () => {
       skillPath: "plugins/demo/skills/auto-skill",
       agent: "claude",
       caseId: "skip-case",
+      isolated: true,
       lane: claude.lane,
     });
     expect(claude.state.runOptions).toMatchObject({ model: "opus", effort: "medium" });
@@ -172,6 +175,7 @@ describe("runTriggerEval", () => {
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       caseId: "skip-case",
+      isolated: true,
       lane,
     });
 
@@ -193,6 +197,7 @@ describe("runTriggerEval", () => {
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       caseId: "skip-case",
+      isolated: true,
       lane,
     });
 
@@ -229,21 +234,7 @@ describe("runTriggerEval", () => {
     expect(report.skippedReason).toContain("manual-only");
   });
 
-  it("rejects marketplace staging for repo-local targets", async () => {
-    const repoRoot = await writeRepoLocalSkillFixture();
-    const { lane } = createFakeLane();
-
-    await expect(
-      runTriggerEval({
-        repoRoot,
-        skillPath: ".agents/skills/auto-skill",
-        stageMarketplacePlugins: true,
-        lane,
-      }),
-    ).rejects.toThrow("Marketplace staging applies to plugin skills");
-  });
-
-  it("hands the marketplace catalog's plugins to the lane when staging is requested", async () => {
+  it("hands the marketplace catalog's plugins to the lane by default", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     const { lane, state } = createFakeLane();
 
@@ -251,7 +242,6 @@ describe("runTriggerEval", () => {
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       caseId: "skip-case",
-      stageMarketplacePlugins: true,
       lane,
     });
 
@@ -259,6 +249,66 @@ describe("runTriggerEval", () => {
       "demo",
       "other",
     ]);
+    // Repo-local skills never stage for plugin targets: they do not exist where plugins install.
+    expect(state.runOptions?.extraRepoLocalSkills).toBeUndefined();
+  });
+
+  it("stages marketplace plugins and repo-local siblings for repo-local targets by default", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture({
+      marketplace: true,
+      siblingSkills: ["sibling-skill"],
+    });
+    const { lane, state } = createFakeLane();
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: ".agents/skills/auto-skill",
+      caseId: "skip-case",
+      lane,
+    });
+
+    expect(state.runOptions?.extraPlugins?.map((entry) => entry.pluginName)).toStrictEqual([
+      "other",
+    ]);
+    // The target is excluded from the sibling list; lanes stage it themselves.
+    expect(state.runOptions?.extraRepoLocalSkills?.map((skill) => skill.skillName)).toStrictEqual([
+      "sibling-skill",
+    ]);
+  });
+
+  it("fails loudly when default staging finds no marketplace catalog", async () => {
+    const repoRoot = await writeRepoFixture();
+    const { lane } = createFakeLane();
+
+    // Default staging hard-requires the agent's catalog: a missing catalog is a repository
+    // misconfiguration surfaced as an error, never silently degraded to isolated staging.
+    await expect(
+      runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        caseId: "skip-case",
+        lane,
+      }),
+    ).rejects.toThrow("Unable to read the codex marketplace catalog");
+  });
+
+  it("stages only the target's own surface when isolated", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture({
+      marketplace: true,
+      siblingSkills: ["sibling-skill"],
+    });
+    const { lane, state } = createFakeLane();
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: ".agents/skills/auto-skill",
+      caseId: "skip-case",
+      isolated: true,
+      lane,
+    });
+
+    expect(state.runOptions?.extraPlugins).toBeUndefined();
+    expect(state.runOptions?.extraRepoLocalSkills).toBeUndefined();
   });
 
   it("cleans up the case and the run when execution fails", async () => {
@@ -274,6 +324,7 @@ describe("runTriggerEval", () => {
         repoRoot,
         skillPath: "plugins/demo/skills/auto-skill",
         caseId: "skip-case",
+        isolated: true,
         lane,
       }),
     ).rejects.toThrow("exec blew up");
@@ -291,6 +342,7 @@ describe("runTriggerEval", () => {
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       abortSignal: abortController.signal,
+      isolated: true,
       lane,
     });
 

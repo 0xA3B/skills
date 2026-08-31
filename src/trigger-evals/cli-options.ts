@@ -12,7 +12,7 @@ export type TriggerEvalSelection =
 
 export type TriggerEvalCliOptions = Omit<
   RunTriggerEvalOptions,
-  "skillPath" | "agent" | "stageMarketplacePlugins" | "abortSignal" | "lane"
+  "skillPath" | "agent" | "abortSignal" | "lane"
 > & {
   agents: TriggerEvalAgent[];
   selection: TriggerEvalSelection;
@@ -58,6 +58,14 @@ export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOption
   }
   if (parsed.values.force === true) {
     options.force = true;
+  }
+  if (parsed.values.isolated === true) {
+    // A marketplace selection means "everything in the catalog, competing together"; isolating
+    // each skill there would contradict the very thing the selection asks for.
+    if (selection.mode === "marketplace") {
+      throw new Error("--isolated stages only the target's own surface; drop --marketplace.");
+    }
+    options.isolated = true;
   }
 
   // The per-skill narrowing flags need exactly one target skill. Besides single-skill runs, a
@@ -151,13 +159,19 @@ export function usage(): string {
     "  plugins/<plugin>/skills/<skill>",
     "  .agents/skills/<skill>",
     "",
+    "Staging:",
+    "  Every run stages the target's deployment context by default: every plugin in the agent's",
+    "  marketplace catalog, plus every repo-local skill when the target is repo-local. Repo-local",
+    "  skills are never staged for plugin targets.",
+    "",
     "Options:",
     "  --agent <agent>            Agent(s) to evaluate: codex, claude, or both. Defaults to codex.",
     "  --plugin                   Run every trigger eval in the plugin at the given path.",
-    "  --marketplace              Stage every marketplace plugin and run every trigger eval in the",
-    "                             marketplace, so cross-plugin trigger overlap is exercised. Pass",
-    "                             skill paths to run only those skills' fixtures with the full",
-    "                             marketplace still staged.",
+    "  --marketplace              Run every trigger eval in the agent's marketplace catalog. Pass",
+    "                             skill paths to run only those skills' fixtures.",
+    "  --isolated                 Stage only the target's own surface (its plugin, or the repo-local",
+    "                             skill alone). Debugging aid for separating a weak description from",
+    "                             an invocation lost to a competing staged skill.",
     "  --fixture <path>           Use a fixture file other than evals/triggers.yaml. Requires one",
     "                             target skill.",
     "  --case <id>                Run one trigger fixture case. Requires one target skill.",
@@ -180,6 +194,7 @@ function parseTriggerArgs(argv: string[]) {
         agent: { type: "string" },
         plugin: { type: "boolean" },
         marketplace: { type: "boolean" },
+        isolated: { type: "boolean" },
         fixture: { type: "string" },
         case: { type: "string" },
         model: { type: "string" },

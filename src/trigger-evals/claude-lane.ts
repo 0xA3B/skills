@@ -41,25 +41,25 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
       const { workspaceRoot, workspacePath } = await createStagedWorkspace();
       await writeClaudeEvalSettings(workspacePath);
 
-      let stagedPluginNames: string[] = [];
-      let stagedSkillLabels: ReadonlySet<string>;
-      if (target.kind === "plugin") {
-        const entries = pluginsToStage(target, runOptions.extraPlugins ?? []);
-        const stagedPlugins = await stagePluginCopies(workspacePath, entries);
-        stagedPluginNames = stagedPlugins.map((stagedPlugin) => stagedPlugin.pluginName);
-        // The canaries are inert on this lane (detection uses Skill tool events), but their
-        // stop-immediately instruction still cuts invoked runs short.
-        const survey = await surveyStagedSkills(target, entries);
-        await appendStagedSkillCanaries(workspacePath, survey.skillCanaries);
-        stagedSkillLabels = new Set(survey.stagedSkillLabels);
-      } else {
-        await stageRepoLocalSkill(workspacePath, target, ".claude");
-        stagedSkillLabels = new Set([target.skillName]);
+      const entries = pluginsToStage(target, runOptions.extraPlugins ?? []);
+      const stagedPlugins = await stagePluginCopies(workspacePath, entries);
+      const stagedPluginNames = stagedPlugins.map((stagedPlugin) => stagedPlugin.pluginName);
+      // The canaries are inert on this lane (detection uses Skill tool events), but their
+      // stop-immediately instruction still cuts invoked runs short.
+      const survey = await surveyStagedSkills(target, entries);
+      await appendStagedSkillCanaries(workspacePath, survey.skillCanaries);
+      const labels = [...survey.stagedSkillLabels];
+      if (target.kind === "repo-local") {
+        for (const repoLocalSkill of [target, ...(runOptions.extraRepoLocalSkills ?? [])]) {
+          await stageRepoLocalSkill(workspacePath, repoLocalSkill, ".claude");
+          labels.push(repoLocalSkill.skillName);
+        }
       }
+      const stagedSkillLabels: ReadonlySet<string> = new Set(labels);
 
       const prepareCase = async (testCase: TriggerCase): Promise<LaneCase> => {
         const caseWorkspacePath =
-          target.kind === "plugin" && testCase.workspaceFiles === undefined
+          testCase.workspaceFiles === undefined
             ? workspacePath
             : await stageCaseWorkspace({
                 baseWorkspacePath: workspacePath,
@@ -67,7 +67,7 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
                 testCase,
               });
         const pluginDirs =
-          target.kind === "plugin"
+          stagedPluginNames.length > 0
             ? stagedPluginNames.map((pluginName) =>
                 path.join(caseWorkspacePath, "plugins", pluginName),
               )

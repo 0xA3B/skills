@@ -63,50 +63,8 @@ export async function writeRepoFixture(options: RepoFixtureOptions = {}): Promis
   const skillPath = path.join(pluginPath, "skills", "auto-skill");
 
   if (options.marketplace === true) {
-    const otherSkillPath = path.join(repoRoot, "plugins", "other", "skills", "other-skill");
-    await mkdir(path.join(otherSkillPath, "agents"), { recursive: true });
-    await mkdir(path.join(repoRoot, "plugins", "other", ".codex-plugin"), { recursive: true });
-    await writeFile(
-      path.join(repoRoot, "plugins", "other", ".codex-plugin", "plugin.json"),
-      JSON.stringify({ name: "other", version: "2.0.0", skills: "./skills/" }),
-    );
-    await writeFile(
-      path.join(otherSkillPath, "SKILL.md"),
-      [
-        "---",
-        "name: other-skill",
-        "description: Use when the user asks for the other plugin's skill.",
-        "---",
-        "",
-      ].join("\n"),
-    );
-    await writeFile(
-      path.join(otherSkillPath, "agents", "openai.yaml"),
-      "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
-    );
-
-    await mkdir(path.join(repoRoot, ".agents", "plugins"), { recursive: true });
-    await writeFile(
-      path.join(repoRoot, ".agents", "plugins", "marketplace.json"),
-      JSON.stringify({
-        name: "fixture-marketplace",
-        plugins: [
-          { name: "demo", source: { source: "local", path: "./plugins/demo" } },
-          { name: "other", source: { source: "local", path: "./plugins/other" } },
-        ],
-      }),
-    );
-    await mkdir(path.join(repoRoot, ".claude-plugin"), { recursive: true });
-    await writeFile(
-      path.join(repoRoot, ".claude-plugin", "marketplace.json"),
-      JSON.stringify({
-        name: "fixture-marketplace",
-        plugins: [
-          { name: "demo", source: "./plugins/demo" },
-          { name: "other", source: "./plugins/other" },
-        ],
-      }),
-    );
+    await writeOtherPlugin(repoRoot);
+    await writeMarketplaceCatalogs(repoRoot, ["demo", "other"]);
   }
 
   for (const sibling of options.siblingSkills ?? []) {
@@ -167,9 +125,38 @@ export async function writeRepoFixture(options: RepoFixtureOptions = {}): Promis
   return repoRoot;
 }
 
-export async function writeRepoLocalSkillFixture(): Promise<string> {
+export type RepoLocalSkillFixtureOptions = {
+  // Adds the "other" plugin and both marketplace catalogs listing it, so default staging has a
+  // catalog to read.
+  marketplace?: boolean;
+  // Sibling repo-local skills under .agents/skills, each implicitly invokable.
+  siblingSkills?: string[];
+};
+
+export async function writeRepoLocalSkillFixture(
+  options: RepoLocalSkillFixtureOptions = {},
+): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-runner-"));
   const skillPath = path.join(repoRoot, ".agents", "skills", "auto-skill");
+
+  if (options.marketplace === true) {
+    await writeOtherPlugin(repoRoot);
+    await writeMarketplaceCatalogs(repoRoot, ["other"]);
+  }
+  for (const siblingName of options.siblingSkills ?? []) {
+    const siblingPath = path.join(repoRoot, ".agents", "skills", siblingName);
+    await mkdir(siblingPath, { recursive: true });
+    await writeFile(
+      path.join(siblingPath, "SKILL.md"),
+      [
+        "---",
+        `name: ${siblingName}`,
+        "description: Use when the user asks for the sibling repo-local skill.",
+        "---",
+        "",
+      ].join("\n"),
+    );
+  }
 
   await mkdir(path.join(skillPath, "agents"), { recursive: true });
   await mkdir(path.join(skillPath, "evals"), { recursive: true });
@@ -203,6 +190,55 @@ export async function writeRepoLocalSkillFixture(): Promise<string> {
   );
 
   return repoRoot;
+}
+
+async function writeOtherPlugin(repoRoot: string): Promise<void> {
+  const otherSkillPath = path.join(repoRoot, "plugins", "other", "skills", "other-skill");
+  await mkdir(path.join(otherSkillPath, "agents"), { recursive: true });
+  await mkdir(path.join(repoRoot, "plugins", "other", ".codex-plugin"), { recursive: true });
+  await writeFile(
+    path.join(repoRoot, "plugins", "other", ".codex-plugin", "plugin.json"),
+    JSON.stringify({ name: "other", version: "2.0.0", skills: "./skills/" }),
+  );
+  await writeFile(
+    path.join(otherSkillPath, "SKILL.md"),
+    [
+      "---",
+      "name: other-skill",
+      "description: Use when the user asks for the other plugin's skill.",
+      "---",
+      "",
+    ].join("\n"),
+  );
+  await writeFile(
+    path.join(otherSkillPath, "agents", "openai.yaml"),
+    "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
+  );
+}
+
+async function writeMarketplaceCatalogs(repoRoot: string, pluginNames: string[]): Promise<void> {
+  await mkdir(path.join(repoRoot, ".agents", "plugins"), { recursive: true });
+  await writeFile(
+    path.join(repoRoot, ".agents", "plugins", "marketplace.json"),
+    JSON.stringify({
+      name: "fixture-marketplace",
+      plugins: pluginNames.map((pluginName) => ({
+        name: pluginName,
+        source: { source: "local", path: `./plugins/${pluginName}` },
+      })),
+    }),
+  );
+  await mkdir(path.join(repoRoot, ".claude-plugin"), { recursive: true });
+  await writeFile(
+    path.join(repoRoot, ".claude-plugin", "marketplace.json"),
+    JSON.stringify({
+      name: "fixture-marketplace",
+      plugins: pluginNames.map((pluginName) => ({
+        name: pluginName,
+        source: `./plugins/${pluginName}`,
+      })),
+    }),
+  );
 }
 
 function fixtureCaseLines(

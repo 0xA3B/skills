@@ -119,9 +119,10 @@
   by both agents; use `pnpm eval:trigger -- <skill-path> --agent both` to check that a description
   change triggers correctly on Codex and Claude Code. Body-only `SKILL.md` changes affect behavior
   after invocation and do not require trigger evals.
-- When a description change risks overlapping another skill's trigger contract, use the opt-in suite
-  modes: `pnpm eval:trigger:plugin -- plugins/<plugin>` runs every trigger eval in the plugin, and
-  `pnpm eval:trigger:marketplace` stages all marketplace plugins and runs every trigger eval across
-  them, reporting wrong-skill invocations distinctly.
+- Trigger evals stage every marketplace plugin by default, so wrong-skill invocations across plugins
+  are reported distinctly. When a description change risks overlapping other skills' trigger
+  contracts, widen the selection instead of the staging:
+  `pnpm eval:trigger:plugin -- plugins/<plugin>` runs every trigger eval in the plugin, and
+  `pnpm eval:trigger:marketplace` runs every trigger eval in the catalog.
 - When Markdown, JSON, YAML, or TypeScript files changed, run `pnpm format:check`.
 - When TypeScript validation tooling changed, run `pnpm lint` and `pnpm typecheck`.

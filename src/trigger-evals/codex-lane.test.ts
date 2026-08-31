@@ -278,6 +278,88 @@ describe("createCodexLane", () => {
     expect(cachedOtherSkill).toContain(otherCanary);
   });
 
+  it("stages plugins plus repo-local siblings for repo-local targets and merges canaries", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture({
+      marketplace: true,
+      siblingSkills: ["sibling-skill"],
+    });
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const runOptions = await makeRunOptions(repoRoot, ".agents/skills/auto-skill", {
+      extraPlugins: [{ pluginName: "other", pluginPath: path.join(repoRoot, "plugins", "other") }],
+      extraRepoLocalSkills: [
+        {
+          skillName: "sibling-skill",
+          skillPath: path.join(repoRoot, ".agents", "skills", "sibling-skill"),
+        },
+      ],
+    });
+
+    const laneRun = await lane.prepareRun(runOptions);
+    const laneCase = await laneRun.prepareCase({
+      id: "repo-local-case",
+      prompt: "Invoke the skill.",
+      expect: "invoke",
+    });
+
+    expect(laneRun.stagedSkillLabels).toStrictEqual(
+      new Set(["other:other-skill", "auto-skill", "sibling-skill"]),
+    );
+    const catalog = JSON.parse(
+      await readFile(
+        path.join(laneCase.workspacePath, ".agents", "plugins", "marketplace.json"),
+        "utf8",
+      ),
+    ) as { plugins: Array<{ name: string }> };
+    expect(catalog.plugins.map((plugin) => plugin.name)).toStrictEqual(["other"]);
+    const codexHome = path.join(runOptions.runDir, "codex-home", "cases", "repo-local-case");
+    const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
+    expect(config).toContain('[plugins."other@trigger-eval"]');
+
+    // The per-case target canary merges with the per-run plugin canaries, so a plugin skill
+    // stealing the invocation stays attributable alongside the target's own signal.
+    const targetSkillBody = await readFile(
+      path.join(laneCase.workspacePath, ".agents", "skills", "auto-skill", "SKILL.md"),
+      "utf8",
+    );
+    const targetCanary = targetSkillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+    expect(targetCanary).toBeDefined();
+    const otherCanary = await readStagedCanary(laneCase.workspacePath, "other", "other-skill");
+    expect(
+      laneCase.observe({ stdout: agentMessageEvent(targetCanary ?? ""), stderr: "" }).invokedSkills,
+    ).toStrictEqual(["auto-skill"]);
+    expect(
+      laneCase.observe({ stdout: agentMessageEvent(otherCanary), stderr: "" }).invokedSkills,
+    ).toStrictEqual(["other:other-skill"]);
+
+    // The Codex plugin cache is what actually makes the staged plugin loadable; repo-local
+    // targets must stage it too, with the canary present in the cached copy.
+    const cachedOtherSkill = await readFile(
+      path.join(
+        codexHome,
+        "plugins",
+        "cache",
+        "trigger-eval",
+        "other",
+        "2.0.0",
+        "skills",
+        "other-skill",
+        "SKILL.md",
+      ),
+      "utf8",
+    );
+    expect(cachedOtherSkill).toContain(otherCanary);
+
+    // Sibling repo-local skills stage pristine: rewriting their descriptions would perturb the
+    // competition under test, so their invocations are not attributable on this lane.
+    const siblingBody = await readFile(
+      path.join(laneCase.workspacePath, ".agents", "skills", "sibling-skill", "SKILL.md"),
+      "utf8",
+    );
+    expect(siblingBody).not.toContain("Eval only:");
+    expect(siblingBody).not.toContain("Trigger Eval Instructions");
+  });
+
   it("stages repo-local targets under .agents with a per-case description canary", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
     const sourceCodexHome = await makeSourceCodexHome();

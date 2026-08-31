@@ -5,6 +5,7 @@ import path from "node:path";
 import { loadTriggerFixture } from "./fixtures.js";
 import { type AgentLane, createLane, DEFAULT_EVAL_EFFORT, DEFAULT_EVAL_MODELS } from "./lanes.js";
 import { listMarketplacePlugins } from "./marketplace.js";
+import { listRepoLocalSkills } from "./staging.js";
 import { readAllowImplicitInvocation, resolveSkillTarget, skillTargetLabel } from "./target.js";
 import type { TriggerCaseResult, TriggerEvalAgent, TriggerEvalResult } from "./types.js";
 import { buildCaseResult, shouldStopEarly } from "./verdict.js";
@@ -22,10 +23,11 @@ export type RunTriggerEvalOptions = {
   concurrency?: number;
   sourceCodexHome?: string;
   claudeConfigDir?: string;
-  // Stage every plugin from the agent's marketplace catalog instead of only the target's plugin,
-  // so cross-plugin trigger overlap is exercised. Opt-in because full staging is less hermetic: a
-  // description change in an unrelated plugin can flip results.
-  stageMarketplacePlugins?: boolean;
+  // Stage only the target's own surface — a plugin target's plugin, or the repo-local skill alone
+  // — instead of the default deployment-context staging: every plugin from the agent's marketplace
+  // catalog, plus every repo-local skill when the target is repo-local. Opt-in debugging aid for
+  // separating a weak description from an invocation lost to a competing staged skill.
+  isolated?: boolean;
   abortSignal?: AbortSignal;
   // Lane override for the agent seam; defaults to the agent's real lane. Primarily an
   // orchestration test seam.
@@ -71,9 +73,6 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     fixtureOptions,
   );
   const runDir = await createRunDir(repoRoot, target.skillName, agent);
-  if (options.stageMarketplacePlugins === true && target.kind !== "plugin") {
-    throw new Error("Marketplace staging applies to plugin skills, not repo-local skills.");
-  }
   const lane =
     options.lane ??
     createLane(agent, {
@@ -84,14 +83,22 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         ? {}
         : { claudeConfigDir: options.claudeConfigDir }),
     });
+  // Default staging is the target's deployment context: every catalog plugin, plus this
+  // checkout's other repo-local skills when the target is repo-local.
+  const isolated = options.isolated === true;
+  const extraRepoLocalSkills =
+    !isolated && target.kind === "repo-local"
+      ? (await listRepoLocalSkills(repoRoot)).filter(
+          (skill) => skill.skillName !== target.skillName,
+        )
+      : [];
   const laneRun = await lane.prepareRun({
     runDir,
     target,
     model,
     effort,
-    ...(options.stageMarketplacePlugins === true
-      ? { extraPlugins: await listMarketplacePlugins(repoRoot, agent) }
-      : {}),
+    ...(isolated ? {} : { extraPlugins: await listMarketplacePlugins(repoRoot, agent) }),
+    ...(extraRepoLocalSkills.length > 0 ? { extraRepoLocalSkills } : {}),
   });
   const targetLabel = skillTargetLabel(target);
 

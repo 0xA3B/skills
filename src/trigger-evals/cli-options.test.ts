@@ -90,6 +90,25 @@ describe("parseTriggerEvalCliOptions", () => {
     });
   });
 
+  it("passes --isolated through for skill and plugin selections", () => {
+    expect(parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--isolated"])).toStrictEqual({
+      agents: ["codex"],
+      selection: { mode: "skill", skillPath: "plugins/foo/skills/bar" },
+      isolated: true,
+    });
+    expect(parseTriggerEvalCliOptions(["--plugin", "plugins/foo", "--isolated"])).toStrictEqual({
+      agents: ["codex"],
+      selection: { mode: "plugin", pluginPath: "plugins/foo" },
+      isolated: true,
+    });
+  });
+
+  it("rejects --isolated with --marketplace", () => {
+    expect(() => parseTriggerEvalCliOptions(["--marketplace", "--isolated"])).toThrow(
+      "--isolated stages only the target's own surface; drop --marketplace.",
+    );
+  });
+
   it("rejects combining --plugin with --marketplace", () => {
     expect(() => parseTriggerEvalCliOptions(["--plugin", "--marketplace", "plugins/foo"])).toThrow(
       "Use either --plugin or --marketplace, not both.",

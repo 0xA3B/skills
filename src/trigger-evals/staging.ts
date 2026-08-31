@@ -5,7 +5,7 @@ import path from "node:path";
 import { appendEvalSectionToFile, createCanary, withTriggerEvalInstructions } from "./canary.js";
 import type { MarketplacePluginEntry } from "./marketplace.js";
 import { readSkillFileAllowImplicitInvocation } from "./target.js";
-import type { PluginSkillTarget, SkillTarget, TriggerCase } from "./types.js";
+import type { SkillTarget, TriggerCase } from "./types.js";
 
 export const EVAL_MARKETPLACE_NAME = "trigger-eval";
 
@@ -34,11 +34,16 @@ export async function createStagedWorkspace(): Promise<StagedWorkspace> {
   return { workspaceRoot, workspacePath: path.join(workspaceRoot, "workspace") };
 }
 
-// Dedupe entries matching the target's plugin so marketplace staging never stages it twice.
+// Dedupe entries matching a plugin target's own plugin so marketplace staging never stages it
+// twice. A repo-local target owns no plugin, so it stages exactly the given entries.
 export function pluginsToStage(
-  target: PluginSkillTarget,
+  target: SkillTarget,
   extraPlugins: MarketplacePluginEntry[],
 ): MarketplacePluginEntry[] {
+  if (target.kind !== "plugin") {
+    return [...extraPlugins];
+  }
+
   return [
     { pluginName: target.pluginName, pluginPath: target.pluginPath },
     ...extraPlugins.filter((entry) => entry.pluginName !== target.pluginName),
@@ -81,14 +86,15 @@ export async function writeClaudeEvalSettings(workspacePath: string): Promise<vo
   await writeFile(settingsPath, `${JSON.stringify({ disableBundledSkills: true }, null, 2)}\n`);
 }
 
-// One canary per staged implicitly invokable plugin skill (plus the target), so a wrong skill
-// firing is observable and attributable, not an undifferentiated miss. Manual-only siblings
-// cannot fire implicitly, so they stay canary-free; the target is always canaried because --force
-// runs would otherwise lose their invocation signal. Labels cover every staged skill regardless
-// of invocation policy — manual-only skills also surface in loaded-skills observations, so the
-// isolation check must expect them.
+// One canary per staged implicitly invokable plugin skill (plus a plugin target), so a wrong
+// skill firing is observable and attributable, not an undifferentiated miss. Manual-only siblings
+// cannot fire implicitly, so they stay canary-free; a plugin target is always canaried because
+// --force runs would otherwise lose their invocation signal. A repo-local target gets no
+// exception here — its canary is injected separately — so every staged plugin skill follows its
+// own policy. Labels cover every staged skill regardless of invocation policy — manual-only
+// skills also surface in loaded-skills observations, so the isolation check must expect them.
 export async function surveyStagedSkills(
-  target: PluginSkillTarget,
+  target: SkillTarget,
   entries: MarketplacePluginEntry[],
 ): Promise<{ skillCanaries: SkillCanary[]; stagedSkillLabels: string[] }> {
   const skillCanaries: SkillCanary[] = [];
@@ -98,7 +104,10 @@ export async function surveyStagedSkills(
       const skillLabel = `${entry.pluginName}:${skillName}`;
       stagedSkillLabels.push(skillLabel);
 
-      const isTarget = entry.pluginName === target.pluginName && skillName === target.skillName;
+      const isTarget =
+        target.kind === "plugin" &&
+        entry.pluginName === target.pluginName &&
+        skillName === target.skillName;
       const skillFilePath = path.join(entry.pluginPath, "skills", skillName, "SKILL.md");
       if (!isTarget && !(await readSkillFileAllowImplicitInvocation(skillFilePath))) {
         continue;
@@ -135,16 +144,50 @@ export async function appendStagedSkillCanaries(
   }
 }
 
+export type RepoLocalSkillEntry = {
+  skillName: string;
+  skillPath: string;
+};
+
+// Repo-local skills exist only in this checkout, where live sessions load all of them alongside
+// the marketplace plugins; enumerating them lets a repo-local target stage that real deployment
+// context. Plugin targets never stage them — repo-local skills do not exist where plugins install.
+export async function listRepoLocalSkills(repoRoot: string): Promise<RepoLocalSkillEntry[]> {
+  const skillsPath = path.join(repoRoot, ".agents", "skills");
+  let entries;
+  try {
+    entries = await readdir(skillsPath, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const skills: RepoLocalSkillEntry[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const skillPath = path.join(skillsPath, entry.name);
+    try {
+      await stat(path.join(skillPath, "SKILL.md"));
+    } catch {
+      continue;
+    }
+    skills.push({ skillName: entry.name, skillPath });
+  }
+
+  return skills.sort((first, second) => first.skillName.localeCompare(second.skillName));
+}
+
 // Codex discovers repo-local skills under .agents/skills; Claude Code discovers them as project
 // skills under .claude/skills.
 export async function stageRepoLocalSkill(
   workspacePath: string,
-  target: SkillTarget,
+  skill: RepoLocalSkillEntry,
   surface: ".agents" | ".claude",
 ): Promise<void> {
-  const copiedSkillPath = path.join(workspacePath, surface, "skills", target.skillName);
+  const copiedSkillPath = path.join(workspacePath, surface, "skills", skill.skillName);
   await mkdir(path.dirname(copiedSkillPath), { recursive: true });
-  await cp(target.skillPath, copiedSkillPath, { recursive: true });
+  await cp(skill.skillPath, copiedSkillPath, { recursive: true });
 }
 
 // Copies the shared base workspace into a case-isolated one and applies the fixture's workspace

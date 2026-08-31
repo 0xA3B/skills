@@ -2,11 +2,11 @@
 name: optimize-trigger
 description: >-
   Evaluate and improve automatic invocation behavior for one repo plugin or repo-local skill by
-  running committed trigger fixtures through isolated Codex and Claude Code CLI harnesses. Use when
-  the user asks to optimize, tune, or evaluate when a skill is implicitly triggered, or reports a
-  skill triggering too often or failing to trigger. Do not use for pressure testing how a skill
-  behaves after it is invoked (that belongs to pressure-test-skill) or for conceptual questions
-  about trigger evals or the eval harness.
+  running committed trigger fixtures through Codex and Claude Code CLI harnesses. Use when the user
+  asks to optimize, tune, or evaluate when a skill is implicitly triggered, or reports a skill
+  triggering too often or failing to trigger. Do not use for pressure testing how a skill behaves
+  after it is invoked (that belongs to pressure-test-skill) or for conceptual questions about
+  trigger evals or the eval harness.
 license: MIT
 argument-hint: "[skill-path]"
 ---
@@ -105,22 +105,28 @@ cases where loaded repository instructions should affect the trigger boundary, s
    repo-local skills under `.agents/skills/` for Codex and `.claude/skills/` for Claude Code,
    mirroring how the checkout's `.claude/skills` symlink exposes them in live sessions.
 
-   A single-skill run stages only the target's plugin. Two opt-in suite modes widen coverage:
-   `mise exec -- pnpm eval:trigger:plugin -- plugins/<plugin>` runs every implicitly invokable
-   skill's fixtures in the plugin, and `mise exec -- pnpm eval:trigger:marketplace` additionally
-   stages every plugin from the agent's marketplace catalog and runs all fixtures in the
-   marketplace, exercising cross-plugin trigger overlap. Suite runs are less hermetic — a
-   description change in another plugin can flip marketplace results — so the single-skill default
-   remains the day-to-day loop.
+   Every run stages the target's deployment context by default. A plugin skill competes against
+   every plugin in the agent's marketplace catalog, matching an installed session. A repo-local
+   skill additionally competes against every repo-local skill in this checkout, matching this
+   repository's sessions. Repo-local skills never stage when the target is a plugin skill: they do
+   not exist where the plugins are installed.
 
-   To test one cross-plugin boundary without paying for the full suite, pass skill paths to the
-   marketplace mode:
-   `mise exec -- pnpm eval:trigger:marketplace -- plugins/<plugin>/skills/<skill> [more paths] --agent both`.
-   This stages the full marketplace, so every catalog description competes in context, but runs only
-   the named skills' fixtures. A selected skill whose plugin ships in only one agent's catalog is
-   skipped with a notice on the other agent's lane. When the selection names exactly one skill,
-   `--case <id>` and `--fixture <path>` narrow the run further — the cheap retest for one flaky case
-   under full-marketplace staging.
+   Because staging spans the marketplace, a description change in one plugin can flip another
+   skill's results. When a case fails and the cause is unclear, add `--isolated` to stage only the
+   target's own surface (its plugin, or the repo-local skill alone) and compare: a case that passes
+   isolated but fails under default staging is losing to a competing description, not failing on its
+   own wording.
+
+   Two suite selections widen which fixtures run; staging is unchanged:
+   `mise exec -- pnpm eval:trigger:plugin -- plugins/<plugin>` runs every implicitly invokable
+   skill's fixtures in the plugin, and `mise exec -- pnpm eval:trigger:marketplace` runs every
+   fixture in the agent's marketplace catalog, exercising every cross-plugin boundary in one pass.
+
+   To retest a few skills, pass skill paths to the marketplace selection:
+   `mise exec -- pnpm eval:trigger:marketplace -- plugins/<plugin>/skills/<skill> [more paths] --agent both`
+   runs only the named skills' fixtures. A selected skill whose plugin ships in only one agent's
+   catalog is skipped with a notice on the other agent's lane. For one skill, use the plain
+   single-skill run; `--case <id>` and `--fixture <path>` narrow it to one flaky case.
 
    Trigger cases run with bounded parallelism by default. When the target fixture needs a slower or
    faster run than the default concurrency of 3, use `--concurrency <n>`. The default per-case
@@ -140,21 +146,26 @@ cases where loaded repository instructions should affect the trigger boundary, s
    frontmatter key over forking the shared `description`: Claude appends `when_to_use` to the
    description in its skill listing (combined text truncated at 1,536 characters), while Codex
    ignores the key entirely.
-8. Rerun the same eval after edits.
-9. Run repository validation for changed files:
+8. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
+   direction — fix the repo-local description. Marketplace descriptions serve every installation;
+   edit one only when the overlap would also misfire in a session without the repo-local skills.
+9. Rerun the same eval after edits. After a description edit, also rerun the fixtures of every skill
+   named in `wrong-skill` results:
+   `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both`.
+10. Run repository validation for changed files:
 
-   ```bash
-   mise exec -- pnpm lint:plugins
-   mise exec -- pnpm format:check
-   mise exec -- pnpm lint
-   mise exec -- pnpm typecheck
-   ```
+    ```bash
+    mise exec -- pnpm lint:plugins
+    mise exec -- pnpm format:check
+    mise exec -- pnpm lint
+    mise exec -- pnpm typecheck
+    ```
 
 ## Harness notes
 
-- The runner writes reports and Codex homes under `.local/skill-evals/`, and creates isolated
-  workspaces outside the repository so parent repo-local skills cannot contaminate the trigger
-  signal.
+- The runner writes reports and Codex homes under `.local/skill-evals/`, and creates staged
+  workspaces outside the repository so only deliberately staged skills are loadable — the parent
+  checkout's live skills never leak into the trigger signal.
 - Cases with `workspace_files` run in a case-specific copy of the isolated workspace, then write the
   listed safe relative paths before invoking Codex.
 - The committed `description` remains the trigger surface under test.
@@ -170,13 +181,16 @@ cases where loaded repository instructions should affect the trigger boundary, s
   test stays byte-identical to the committed skill; invocation is classified when the assistant
   outputs the token. Older Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary
   signal.
-- Every staged skill keeps its real invocation policy, and each implicitly invokable staged skill
-  gets its own canary, so invoking the wrong skill is a distinct, attributable observation. A
+- Every staged skill keeps its real invocation policy, and each implicitly invokable staged plugin
+  skill gets its own canary, so invoking the wrong skill is a distinct, attributable observation. A
   `wrong-skill <plugin>:<skill>` result fails an invoke case — even when the target also fires,
   because simultaneous invocation is itself trigger-contract overlap — and is surfaced on passing
   skip cases too, because either direction exposes overlap between loaded skills.
-- For repo-local skills on Codex, the runner additionally rewrites the copied description to
+- For a repo-local target on Codex, the runner additionally rewrites the copied description to
   reference the canary because Codex surfaces repo-local skills without any other observable signal.
+  Sibling repo-local skills stage pristine and carry no canary — rewriting their descriptions would
+  perturb the competition under test — so a sibling repo-local invocation is not attributable on the
+  Codex lane; use the Claude lane's Skill tool events to attribute repo-local overlap.
 - On Claude Code, the runner launches `claude -p` with a read-only tool surface and classifies
   invocation from Skill tool events in the stream-json output. Plugin skills load from the staged
   plugin copy via `--plugin-dir`; repo-local skills load as pristine project skills from the staged

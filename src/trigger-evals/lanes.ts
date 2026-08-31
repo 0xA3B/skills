@@ -2,6 +2,7 @@ import { createClaudeLane } from "./claude-lane.js";
 import { createCodexLane } from "./codex-lane.js";
 import type { CliRunResult, StreamingCliOutput } from "./exec.js";
 import type { MarketplacePluginEntry } from "./marketplace.js";
+import type { RepoLocalSkillEntry } from "./staging.js";
 import type { CaseObservations, SkillTarget, TriggerCase, TriggerEvalAgent } from "./types.js";
 
 // Trigger evals default to the models this repository's skills are used with day to day, so
@@ -19,9 +20,13 @@ export type LaneRunOptions = {
   target: SkillTarget;
   model: string;
   effort: string;
-  // Plugins staged alongside the target's plugin (marketplace mode). Entries matching the target
-  // plugin are deduplicated.
+  // Plugins staged alongside the target's own surface (the default deployment-context staging).
+  // Entries matching a plugin target's own plugin are deduplicated.
   extraPlugins?: MarketplacePluginEntry[];
+  // Sibling repo-local skills staged alongside a repo-local target, mirroring how this checkout
+  // loads every repo-local skill together. Never set for plugin targets: repo-local skills do not
+  // exist in a plugin's deployment context.
+  extraRepoLocalSkills?: RepoLocalSkillEntry[];
 };
 
 // Runtime-only execution concerns; everything tied to the case's identity (prompt, staging,

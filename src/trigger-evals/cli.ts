@@ -62,7 +62,6 @@ async function main(): Promise<void> {
             ...runOptions,
             skillPath,
             agent,
-            stageMarketplacePlugins: selection.mode === "marketplace",
             abortSignal: abortController.signal,
           });
           printTriggerEvalResult(result);

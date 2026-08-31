@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -8,6 +8,7 @@ import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
   injectRepoLocalCanary,
+  listRepoLocalSkills,
   pluginsToStage,
   stageCaseWorkspace,
   stagedSkillFilePath,
@@ -48,6 +49,50 @@ describe("surveyStagedSkills", () => {
     expect(survey.skillCanaries.map((skillCanary) => skillCanary.skillLabel).sort()).toStrictEqual([
       "demo:auto-skill",
       "demo:sibling-skill",
+    ]);
+  });
+
+  it("gives repo-local targets no canary exception: staged plugin skills follow their policy", async () => {
+    const pluginRepoRoot = await writeRepoFixture({
+      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
+    });
+    const repoRoot = await writeRepoLocalSkillFixture();
+    const target = resolveSkillTarget(repoRoot, ".agents/skills/auto-skill");
+
+    // A repo-local target owns no plugin, so exactly the extra entries stage.
+    const entries = pluginsToStage(target, [
+      { pluginName: "demo", pluginPath: path.join(pluginRepoRoot, "plugins", "demo") },
+    ]);
+    const survey = await surveyStagedSkills(target, entries);
+
+    expect(entries.map((entry) => entry.pluginName)).toStrictEqual(["demo"]);
+    expect(survey.stagedSkillLabels.sort()).toStrictEqual(["demo:auto-skill", "demo:manual-skill"]);
+    expect(survey.skillCanaries.map((skillCanary) => skillCanary.skillLabel)).toStrictEqual([
+      "demo:auto-skill",
+    ]);
+  });
+});
+
+describe("listRepoLocalSkills", () => {
+  it("returns an empty list when the repo has no repo-local skills directory", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "staging-test-"));
+
+    await expect(listRepoLocalSkills(repoRoot)).resolves.toStrictEqual([]);
+  });
+
+  it("lists only SKILL.md-bearing directories, sorted by name", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture({
+      siblingSkills: ["zeta-skill", "alpha-skill"],
+    });
+    await writeFile(path.join(repoRoot, ".agents", "skills", "stray-file"), "not a skill");
+    await mkdir(path.join(repoRoot, ".agents", "skills", "empty-dir"));
+
+    const skills = await listRepoLocalSkills(repoRoot);
+
+    expect(skills.map((skill) => skill.skillName)).toStrictEqual([
+      "alpha-skill",
+      "auto-skill",
+      "zeta-skill",
     ]);
   });
 });
