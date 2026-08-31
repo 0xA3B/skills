@@ -3,61 +3,124 @@ cases:
   - id: write-readme
     prompt: >-
       Write a README for this project. It is a CLI that syncs dotfiles across machines.
+    workspace_files:
+      package.json: |
+        {
+          "name": "dotsync",
+          "version": "1.0.0",
+          "bin": { "dotsync": "dist/cli.js" }
+        }
+      docs/usage.md: |
+        # Usage
+
+        Install with `npm install --global dotsync`.
+
+        Run `dotsync init <repository>` once to clone a dotfiles repository into `~/.dotfiles` and
+        create symlinks in the home directory. Run `dotsync sync` on another machine to pull the
+        repository and recreate its symlinks. The CLI supports macOS and Linux.
     expect: invoke
     rationale: Authoring a README is a primary technical-writing branch.
 
   - id: clarify-setup-guide
     prompt: >-
-      The setup section in our CONTRIBUTING.md keeps confusing new contributors. Rewrite it so it is
-      easier to follow.
+      The setup section in CONTRIBUTING.md keeps confusing new contributors. Rewrite it so it is
+      easier to follow while preserving every command and prerequisite.
+    workspace_files:
+      CONTRIBUTING.md: |
+        # Contributing
+
+        ## Setup
+
+        Prior to attempting installation, contributors should ensure Node.js 24 and pnpm 10 are
+        available. Dependencies can then be installed via `pnpm install`, after which `pnpm check`
+        should be performed.
     expect: invoke
     rationale: Revising a contributor setup guide for clarity is technical-writing work.
 
   - id: draft-runbook
     prompt: >-
-      Draft a runbook for restoring the staging database from last night's snapshot.
+      Draft a runbook for restoring the staging database from last night's snapshot. Operators run
+      `backup restore --snapshot nightly --target staging`, then verify `/health` returns 200 before
+      reopening staging traffic.
     expect: invoke
     rationale: A runbook is an operational procedure the skill owns.
 
   - id: release-notes
     prompt: >-
-      Write the release notes for v2.0, covering the breaking change to the config file format.
+      Write the release notes for v2.0. The config file now uses a top-level `profiles` map instead
+      of a single `server` key, and existing v1 config files must be migrated before upgrading.
     expect: invoke
     rationale: Release notes are a listed artifact type.
 
   - id: simplify-non-native
     prompt: >-
-      Make this migration guide easier to read for people who are not native English speakers.
+      Make docs/migration.md easier to read for people who are not native English speakers. Preserve
+      its rollback condition.
+    workspace_files:
+      docs/migration.md: |
+        Prior to initiating the migration, verify that a backup exists. In the event that validation
+        fails, restoring the backup is required before attempting the migration again.
     expect: invoke
     rationale: Simplifying existing documentation for non-native readers is an explicit trigger.
 
   - id: pr-description
     prompt: >-
-      Draft the pull request description for this branch.
+      Draft the pull request description from CHANGE_SUMMARY.md.
+    workspace_files:
+      CHANGE_SUMMARY.md: |
+        Add day-based duration parsing without changing existing hour and minute behavior.
+        Validation: parser unit tests and the full test suite pass.
+        Follow-up: add week-based durations in a separate change.
     expect: invoke
     rationale: Pull request descriptions are technical artifacts the skill owns.
 
   - id: issue-description
     prompt: >-
-      Write up a ticket describing the pagination bug so someone else can pick it up next sprint.
+      Write up a ticket from BUG_NOTES.md so someone else can pick up the pagination bug next
+      sprint.
+    workspace_files:
+      BUG_NOTES.md: |
+        The API repeats the final item from page 1 as the first item on page 2 when page_size is 50.
+        Reproduced against v3.4 with 51 records. Expected each record to appear once.
     expect: invoke
     rationale: Issue and ticket descriptions are technical artifacts the skill owns.
+
+  - id: jira-comment
+    prompt: >-
+      Draft a Jira comment explaining that the rollout is complete. `pnpm check` passed, and the
+      ticket owner must verify that dotfiles sync correctly on one clean macOS host before closing
+      the ticket.
+    expect: invoke
+    rationale: A durable technical update in an issue thread is a collaborative-comment artifact.
+
+  - id: review-reply
+    prompt: >-
+      The feedback is already verified and fixed. Rewrite this approved merge request reply so it
+      addresses the reviewer directly without losing the validation evidence: "Accepted and fixed.
+      The parser now supports day-based durations, and the full test suite passes."
+    expect: invoke
+    rationale:
+      Revising a settled technical reply is collaborative-comment writing, not feedback disposition.
 
   - id: agents-md-rule
     prompt: >-
       Add a rule to AGENTS.md that tests must be co-located in src/.
+    workspace_files:
+      AGENTS.md: |
+        # Project instructions
     expect: skip
     rationale: Agent instruction files are owned by the agent-instructions skill.
 
   - id: skill-md-diff-review
     prompt: >-
-      Review this SKILL.md diff for instruction quality before I commit it.
+      Review this SKILL.md change for instruction quality before I commit it: the Rules section
+      replaces "Run tests." with "Run `pnpm test` before completion."
     expect: skip
     rationale: SKILL.md review is agent-instruction work, not a technical prose artifact.
 
   - id: commit-message
     prompt: >-
-      Write the commit message for this change.
+      Write the commit message for a change that adds day-based duration parsing and parser tests.
     expect: skip
     rationale: Commit messages are excluded from the technical-writing style.
 
@@ -75,7 +138,8 @@ cases:
 
   - id: code-comments
     prompt: >-
-      Add comments explaining what this parsing function does.
+      Add comments explaining this parsing function: `function parseDays(value) { return
+      Number(value.slice(0, -1)) * 86400; }`
     expect: skip
     rationale: Code comments follow code conventions, not the technical-writing style.
 

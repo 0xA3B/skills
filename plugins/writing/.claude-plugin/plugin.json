@@ -1,7 +1,7 @@
 {
   "name": "writing",
   "displayName": "Writing",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Writing skills for prose, technical writing, and agent instructions.",
   "author": {
     "name": "Alex Baker"

@@ -10,11 +10,12 @@ the base style, and the other two override it for the artifacts they own.
 
 ## Skills
 
-- `prose`: Base style for all prose — plain wording, one claim per sentence, and a slop-pattern
+- `prose`: Base style for all prose — plain wording, one main claim per sentence, and a slop-pattern
   catalog — with a chat-responses reference for conversational replies.
-- `technical-writing`: Diátaxis document modes, STE-inspired wording, and Google developer style
-  formatting for technical artifacts — READMEs, guides, runbooks, reference prose, release notes,
-  and pull request and issue descriptions.
+- `technical-writing`: Diátaxis document modes, STE-inspired wording, optional controlled-language
+  limits, and Google developer style formatting for technical artifacts — READMEs, guides, runbooks,
+  reference prose, release notes, change descriptions, issue and ticket descriptions, and
+  collaborative comments.
 - `agent-instructions`: House style and document mechanics for files and prompts that instruct
   agents — `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, agent definitions, system-prompt fragments, and
   sub-agent task prompts.

@@ -1,6 +1,6 @@
 {
   "name": "writing",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Writing skills for prose, technical writing, and agent instructions.",
   "author": {
     "name": "Alex Baker"
@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Writing",
     "shortDescription": "Write precise prose, technical artifacts, and agent instructions.",
-    "longDescription": "Layered writing disciplines for the prose agents produce: a base prose style with a slop-pattern catalog and chat-response guidance, Diátaxis document modes with STE-inspired wording and Google developer style formatting for technical artifacts such as READMEs, runbooks, and pull request descriptions, and a house style with document mechanics for agent-facing instruction files such as AGENTS.md, CLAUDE.md, and SKILL.md.",
+    "longDescription": "Layered writing disciplines for the prose agents produce: a base prose style with a slop-pattern catalog and chat-response guidance, Diátaxis document modes with STE-inspired wording, optional controlled-language limits, Google developer style formatting, and collaborative-comment guidance for technical artifacts, and a house style with document mechanics for agent-facing instruction files such as AGENTS.md, CLAUDE.md, and SKILL.md.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Write"],

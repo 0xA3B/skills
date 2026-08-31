@@ -5,7 +5,10 @@ description: >-
   guides, runbooks, operational procedures, migration and upgrade guides, API reference prose,
   architecture and design documents, release notes, long-form docstrings, pull request descriptions,
   or issue and ticket descriptions — including making existing text clearer or easier for non-native
-  English readers. Applies Diátaxis structure, STE-inspired wording, and Google developer style
+  English readers. After their substance and disposition are settled, also use for collaborative
+  technical comments in Jira and other issue trackers, pull request or merge request review
+  comments, and reviewer replies. Do not use to verify, triage, or decide how to handle existing
+  review feedback. Applies Diátaxis structure, STE-inspired wording, and Google developer style
   formatting. Do not use for files that instruct agents such as AGENTS.md, CLAUDE.md, or SKILL.md;
   for chat responses, commit messages, or code comments; or for conceptual questions about writing
   standards.
@@ -26,34 +29,44 @@ and layout ([formatting.md](references/formatting.md)).
 
 ## Scope and precedence
 
-This file governs technical artifacts: documentation, runbooks, reference prose, release notes, pull
-request descriptions, and issue descriptions. For these artifacts its rules override the `prose`
-base style. Chat responses, including responses about these artifacts, stay governed by `prose`;
-files that instruct agents belong to `agent-instructions`; commit messages follow the repository's
-commit convention.
+This file governs technical artifacts: documentation, runbooks, reference prose, release notes,
+change descriptions, issue and ticket descriptions, and collaborative technical comments. For these
+artifacts its rules override the `prose` base style. Chat responses, including responses about these
+artifacts, stay governed by `prose`; files that instruct agents belong to `agent-instructions`;
+commit messages follow the repository's commit convention.
+
+For a collaborative comment, start after its technical substance and disposition are settled.
+Verifying, triaging, or deciding how to handle existing feedback is outside this skill's scope.
 
 Also apply the `prose` skill's slop patterns to every artifact this file governs. This file restates
 the sentence rules it shares with `prose`, so it stands alone when it loads without the base; where
 the two files conflict on a sentence, this file wins.
 
-The project's own style guide, templates, and neighboring-file conventions win over this file; apply
-these rules inside whatever structure the project already uses. The wording rules are STE-inspired
-defaults, not controlled language; the Preferences section states when to enforce its measurable
-limits strictly.
+The project's own style guide, templates, and neighboring-file conventions win over this file. When
+editing an existing artifact, make the smallest change that satisfies the request, preserve its
+established voice, and leave unrelated prose alone. The wording rules are STE-inspired defaults, not
+controlled language.
 
 ## Before you write
 
 1. Check for a project style guide, a documentation template, or an existing convention in
    neighboring files.
 2. When you create a document, restructure one, or are unsure what kind of text you are writing,
-   read [document-modes.md](references/document-modes.md) and pick one mode. Pull request and issue
-   descriptions take every layer except Diátaxis; skip this step for them.
+   read [document-modes.md](references/document-modes.md) and choose its dominant mode. Change
+   descriptions, issue and ticket descriptions, and collaborative comments take every layer except
+   Diátaxis; skip this step for them.
 3. Decide whether the text is a **procedure** (the reader performs steps) or a **description** (the
-   reader learns how something works). The preferred sentence limits differ.
+   reader learns how something works). Their structure and ordering rules differ.
 4. When the target is a README, read [readme.md](references/readme.md) for the content model.
-5. When creating a document or changing its headings, lists, tables, or layout, read
+5. When writing or revising a pull request or merge request description, read
+   [change-descriptions.md](references/change-descriptions.md).
+6. When creating a document or changing its headings, lists, tables, or layout, read
    [formatting.md](references/formatting.md). Sentence-level edits to existing prose need only this
    file.
+7. When writing or revising a Jira or issue comment, pull request or merge request comment, or a
+   reply in a review thread, read [collaborative-comments.md](references/collaborative-comments.md).
+8. When the user or project requires strict controlled language or translation-oriented writing,
+   read [controlled-language.md](references/controlled-language.md).
 
 ## Rules
 
@@ -70,7 +83,8 @@ another way or leave it alone.
   "idempotent", and "quorum" when they are correct. These rules remove vague words, not precise
   ones.
 - Write the full term before you use its abbreviation.
-- Prefer the shortest common word that carries one clear meaning. The table below gives examples.
+- Prefer the shortest common word that preserves the exact meaning: "before" rather than "prior to",
+  and "use" rather than "utilize".
 
 ### Verbs
 
@@ -94,7 +108,8 @@ another way or leave it alone.
 - Do not use a slash to show an alternative, and do not form plurals with "(s)". Write "a, b, or
   both".
 - Do not put necessary information in parentheses.
-- Do not use idioms or metaphors. They do not survive translation.
+- Avoid decorative idioms and metaphors that require cultural interpretation. Keep established
+  technical terms and defined domain language when they are the clearest precise terms.
 
 ### Procedures
 
@@ -111,43 +126,6 @@ another way or leave it alone.
 - Put the topic sentence first in the paragraph.
 - Split genuinely separate ideas into separate sentences. Keep a longer sentence that carries one
   idea with its condition or consequence.
-
-## Preferences
-
-Apply these when they do not cost meaning or natural technical prose; the preserve-meaning rule at
-the top of Rules wins over each of them. Enforce them as hard rules only when the project or the
-user explicitly requires controlled language such as strict ASD-STE100.
-
-- Use a maximum of about 20 words in an instruction sentence and about 25 in a descriptive sentence.
-- Avoid the "-ing" form of a verb. A technical name that ends in "-ing" is fine, for example "a
-  string" or "load balancing".
-- Do not put more than three nouns together.
-- Use the simple present, simple past, and simple future tenses.
-- Use a vertical list when there are more than two conditions, steps, or items.
-- Use a maximum of six sentences in a descriptive paragraph.
-- Avoid contractions.
-
-## Word replacements
-
-| Do not use          | Use       |
-| ------------------- | --------- |
-| accomplish, perform | do        |
-| approximately       | about     |
-| assist              | help      |
-| attempt             | try       |
-| commence, initiate  | start     |
-| in order to         | to        |
-| in the event that   | if        |
-| leverage            | use       |
-| prior to            | before    |
-| subsequent to       | after     |
-| sufficient          | enough    |
-| terminate           | stop      |
-| utilize             | use       |
-| verify              | make sure |
-
-This table is a short set of examples, not a dictionary. When a word is not listed, choose the
-shortest common word that carries one clear meaning.
 
 ## What these rules do not govern
 
@@ -181,10 +159,15 @@ After:
 Read the finished text once and check each item:
 
 - Every condition, threshold, exception, and edge case in the source material survives in the
-  rewrite. After a substantial rewrite of behavior-heavy prose, check the stated behavior against
-  code, tests, or another authoritative source.
-- The document serves one Diátaxis mode, with links where modes meet. A gateway README serves one
-  mode per section; pull request and issue descriptions skip Diátaxis.
+  rewrite.
+- After a substantial rewrite of behavior-heavy prose, run each practical check:
+  - Check commands against help or task definitions.
+  - Check defaults against code or schemas.
+  - Check paths and links against the repository.
+  - Check examples and behavior claims against tests or executable behavior.
+- The document has one dominant Diátaxis mode. Use clearly separated sections for other modes when
+  they serve the same audience and lifecycle; change descriptions, issue and ticket descriptions,
+  and collaborative comments skip Diátaxis.
 - Every sentence names its actor in the active voice, except where the actor is unknown or beside
   the point, and each instruction starts with a command verb after its condition.
 - Each concept uses one term, and that term does not change across the document.
@@ -192,10 +175,3 @@ Read the finished text once and check each item:
 - No "only", pronoun, or "and"/"or" grouping can be read two ways.
 - When the document's structure changed, it passes the checks in
   [formatting.md](references/formatting.md).
-
-## Limits
-
-You do not have the ASD-STE100 dictionary. It is a licensed document, so you cannot confirm that a
-specific word is approved. Follow the rules above and use your best judgement. If the project
-provides an STE checker and requires controlled language, use that checker as the final acceptance
-gate.

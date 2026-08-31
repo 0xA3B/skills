@@ -1,16 +1,9 @@
 version: 1
 cases:
-  # Known-finicky on Claude Code (2026-08): unslop-newsletter and shorten-chat-reply consistently
-  # skip there while passing on Codex. Claude's invocation gate treats small text edits as directly
-  # doable without a skill. Tried: two description rewrites (front-loaded verbs, named artifacts and
-  # "AI-generated") and Claude-only `when_to_use` tuning; none changed the outcome, and the
-  # `when_to_use` key was reverted. A repeat failure on Claude is this known behavior, not a
-  # regression; in real sessions a user-memory pointer or an explicit request to apply the skill
-  # covers these cases.
   - id: unslop-newsletter
     prompt: >-
-      This paragraph for our newsletter sounds AI-generated. Rewrite it so it reads like a person
-      wrote it.
+      Rewrite this newsletter paragraph so it reads like a person wrote it: "In today's rapidly
+      evolving landscape, our robust platform empowers teams to unlock seamless collaboration."
     expect: invoke
     rationale: Fixing AI-sounding text is an explicit trigger.
 
@@ -22,44 +15,75 @@ cases:
 
   - id: tighten-blog-intro
     prompt: >-
-      Tighten the intro of this blog post. It is full of filler.
+      Tighten this blog-post intro and cut the filler: "It is important to note that teams today are
+      navigating an increasingly complex landscape, and this post will delve into several key
+      considerations that may potentially help."
     expect: invoke
     rationale: Cutting filler from a blog post is a listed trigger.
 
-  # Known-finicky on Claude Code; see the note on unslop-newsletter above.
   - id: shorten-chat-reply
     prompt: >-
-      Rewrite your last answer so it is shorter and reads less like a bot.
+      Rewrite this chat reply so it is shorter and reads less like a bot: "Great question! I'd be
+      happy to delve into the various options that are available to you in order to help you make
+      the best possible decision."
     expect: invoke
     rationale: Editing a chat response is prose work governed by the chat-responses reference.
 
   - id: write-readme
     prompt: >-
-      Write a README for this project.
+      Write a README for this project. It is a CLI that syncs dotfiles across machines.
+    workspace_files:
+      package.json: |
+        {
+          "name": "dotsync",
+          "version": "1.0.0",
+          "bin": { "dotsync": "dist/cli.js" }
+        }
+      docs/usage.md: |
+        # Usage
+
+        Install with `npm install --global dotsync`.
+
+        Run `dotsync init <repository>` once to clone a dotfiles repository into `~/.dotfiles` and
+        create symlinks in the home directory. Run `dotsync sync` on another machine to pull the
+        repository and recreate its symlinks. The CLI supports macOS and Linux.
     expect: skip
     rationale: A README is a technical artifact owned by the technical-writing skill.
 
   - id: pr-description
     prompt: >-
-      Draft the pull request description for this branch.
+      Draft the pull request description for a branch that adds day-based duration parsing without
+      changing existing hour and minute behavior. Parser unit tests and the full test suite pass.
     expect: skip
     rationale: Pull request descriptions are owned by the technical-writing skill.
+
+  - id: review-comment
+    prompt: >-
+      The feedback is already verified and fixed. Rewrite this approved merge request reply so it
+      addresses the reviewer directly without losing the validation evidence: "Accepted and fixed.
+      The parser now supports day-based durations, and the full test suite passes."
+    expect: skip
+    rationale: A durable technical reply in a review thread is owned by technical-writing.
 
   - id: agents-md-rule
     prompt: >-
       Add a rule to AGENTS.md that tests must be co-located in src/.
+    workspace_files:
+      AGENTS.md: |
+        # Project instructions
     expect: skip
     rationale: Agent instruction files are owned by the agent-instructions skill.
 
   - id: commit-message
     prompt: >-
-      Write the commit message for this change.
+      Write the commit message for a change that adds day-based duration parsing and parser tests.
     expect: skip
     rationale: Commit messages are excluded from the prose base style.
 
   - id: refactor-code
     prompt: >-
-      Refactor this function so it is easier to read.
+      Refactor this function so it is easier to read: `function enabled(value) { return value ===
+      true ? true : false; }`
     expect: skip
     rationale: Program code is not prose.
 

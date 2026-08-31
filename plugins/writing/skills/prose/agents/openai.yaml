@@ -1,7 +1,7 @@
 version: 1
 interface:
   display_name: "Prose"
-  short_description: "Base prose style: plain wording, one claim per sentence, no slop"
+  short_description: "Base prose style: plain wording, one main claim per sentence, no slop"
   default_prompt: "Rewrite this announcement so it does not read as AI-generated."
 policy:
   allow_implicit_invocation: true

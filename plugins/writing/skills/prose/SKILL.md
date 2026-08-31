@@ -1,13 +1,16 @@
 ---
 name: prose
 description: >-
-  Use when asked to write, rewrite, tighten, shorten, or review prose for a human reader — a chat
-  reply, explanation, summary, announcement, email, newsletter, or blog post — or to make text sound
-  less AI-generated, robotic, or stilted, or to cut filler and slop from text. This is the base
-  style for all prose; skills for specific artifact classes override it for their artifacts. Do not
-  use for technical artifacts such as READMEs, runbooks, or pull request descriptions
-  (technical-writing); for files that instruct agents (agent-instructions); for commit messages; for
-  program code; or for conceptual questions about writing style.
+  Use when asked to write, rewrite, tighten, shorten, or review general prose for a human reader — a
+  chat reply, explanation, summary, announcement, email, newsletter, or blog post — or to make text
+  sound less AI-generated, robotic, or stilted, or to cut filler and slop from text. This is the
+  base style for all prose; skills for specific artifact classes override it for their artifacts. Do
+  not use when the target is a technical artifact or a technical comment or reply in an issue or
+  review thread, even if the user asks to rewrite, tighten, or improve its prose. Technical-writing
+  owns that composition after the substance and disposition are settled; verifying, triaging, or
+  deciding how to handle existing feedback belongs to the feedback-handling workflow. Also do not
+  use for files that instruct agents (agent-instructions); for commit messages; for program code; or
+  for conceptual questions about writing style.
 license: MIT
 metadata:
   original_author: Alex Baker
@@ -37,9 +40,9 @@ quotation, even when it arrives in quotation marks or a block quote.
 ## Core rules
 
 - Start with the point. The first sentence carries the claim the reader came for; support follows.
-- Make each sentence one claim. When a dash, semicolon, or colon introduces a second claim, promote
-  it to its own sentence or delete it. These marks may join a claim to its list, its example, or a
-  short aside, not to another claim.
+- Keep one main claim per sentence. Split a sentence when a dash, semicolon, or colon hides a
+  separate point or makes the reader backtrack. Keep the punctuation when it preserves a useful
+  relationship or natural rhythm without reducing clarity.
 - Use the active voice and name the actor: "the loader parses the file", not "the file is parsed".
   Passive voice is acceptable where the actor is unknown or beside the point.
 - Choose the plain word: "use", not "utilize"; "help", not "facilitate". Keep the precise technical
@@ -104,7 +107,7 @@ length calibration, and evidence conduct.
 
 ## Self-check
 
-Read the finished text once and fix every hit: a sentence carrying a second claim after a dash,
-colon, or semicolon; a word from the slop patterns; a hedge that does not name what is uncertain; a
+Read the finished text once and fix every hit: punctuation that hides a separate point or makes the
+reader backtrack; a word from the slop patterns; a hedge that does not name what is uncertain; a
 sentence that could appear unchanged in someone else's text; structure that decorates instead of
 organizes.
