@@ -20,6 +20,12 @@ the base style, and the other two override it for the artifacts they own.
   agents — `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, agent definitions, system-prompt fragments, and
   sub-agent task prompts.
 
+## Standalone chat instructions
+
+For chat apps without access to installed skills, copy
+[`chat-instructions.md`](chat-instructions.md) into their persistent instructions to apply the
+`prose` skill's base style and chat-response rules.
+
 To apply the base style to every session's chat responses, add a pointer line to your agent's user
 memory (for example `CLAUDE.md` or `AGENTS.md`): "Apply the writing:prose skill to chat responses."
 A similar pointer makes sub-agent dispatch reliable: "Load the writing:agent-instructions skill

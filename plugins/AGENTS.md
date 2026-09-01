@@ -110,6 +110,17 @@
   invocation behavior. Keep their generated artifacts under `.local/` unless the repository
   intentionally adds repeatable regression coverage.
 
+## Writing plugin standalone chat instructions
+
+- Maintain `plugins/writing/chat-instructions.md` as copy-pasteable chat-response guidance for chat
+  interfaces without access to installed skills.
+- Treat `plugins/writing/skills/prose/SKILL.md` and
+  `plugins/writing/skills/prose/references/chat-responses.md` as the behavioral sources for
+  `plugins/writing/chat-instructions.md`. When either source changes, update the standalone file in
+  the same change while preserving its compact form.
+- Keep `plugins/writing/chat-instructions.md` at or below 5,000 characters, measured with
+  `wc -m plugins/writing/chat-instructions.md` from the repository root.
+
 ## Validation
 
 - After adding or changing plugin manifests, marketplace entries, skill frontmatter, or

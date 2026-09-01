@@ -163,15 +163,19 @@ and document-mode layers are adapted from Cursor's
 skill's Agent Skills frontmatter metadata.
 
 - [`writing:prose`](./plugins/writing/skills/prose/): Base style for all prose — plain wording, one
-  claim per sentence, and a slop-pattern catalog — with a chat-responses reference for
+  main claim per sentence, and a slop-pattern catalog — with a chat-responses reference for
   conversational replies.
 - [`writing:technical-writing`](./plugins/writing/skills/technical-writing/): Diátaxis document
-  modes, STE-inspired wording, and Google developer style formatting for technical artifacts —
-  READMEs, guides, runbooks, reference prose, release notes, and pull request and issue
-  descriptions.
+  modes, STE-inspired wording, optional controlled-language limits, and Google developer style
+  formatting for technical artifacts — READMEs, guides, runbooks, reference prose, release notes,
+  change descriptions, issue and ticket descriptions, and collaborative comments.
 - [`writing:agent-instructions`](./plugins/writing/skills/agent-instructions/): House style and
   document mechanics for files and prompts that instruct agents — `AGENTS.md`, `CLAUDE.md`,
   `SKILL.md`, agent definitions, system-prompt fragments, and sub-agent task prompts.
+
+For chat apps without access to installed skills, copy the writing plugin's
+[`chat-instructions.md`](./plugins/writing/chat-instructions.md) into the app's persistent
+instructions. It combines the `prose` skill's base style and chat-response guidance.
 
 Output styles still ship in [`plugins/writing/output-styles/`](./plugins/writing/output-styles/) but
 are deprecated: the `prose` skill replaces them, and they will be removed in a future release.
