@@ -18,8 +18,8 @@ compatibility: >-
 
 Capture feedback about marketplace instructions from the session that ran them. Qualify the feedback
 before recording it: a real run moment does not establish that the active skill caused the failure.
-This workflow verifies whether an item is fit for a public issue or private local record;
-maintainers later decide whether to encode, reroute, leave to discretion, wait, or reject it.
+This workflow verifies whether an item is fit for a public issue or local record; maintainers later
+decide whether to encode, reroute, leave to discretion, wait, or reject it.
 
 ## Repository boundary
 
@@ -153,12 +153,14 @@ Use this body shape; omit optional fields that do not affect the mechanism:
 
 ## Preserve local feedback
 
-For a private-source item or a confirmed public draft that cannot be submitted:
+For a private-source item, a public-source item the user requests locally, or a confirmed public
+draft that cannot be submitted:
 
 1. Use or create `.local/feedback/` only when `git check-ignore` confirms that the path is ignored.
    Otherwise use another user-approved ignored directory; do not add a tracked feedback artifact.
-2. Save one Markdown file per item. Use `Status: Untriaged private feedback` for an intentional
-   private record or `Status: Draft for manual submission` for a blocked public submission. Include
-   the target repository and intended labels only for the blocked public submission.
+2. Save one Markdown file per item. Use `Status: Untriaged private feedback` for a private-source
+   record, `Status: Untriaged local feedback` for a user-selected local record from a public source,
+   or `Status: Draft for manual submission` for a blocked public submission. Include the target
+   repository and intended labels only for the blocked public submission.
 3. Report the saved path and, for a blocked submission, the blocking reason. Never submit a local
    record automatically in a later session.

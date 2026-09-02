@@ -6,8 +6,8 @@ repository rather than on a user's project.
 ## Skills
 
 - `submit-skill-feedback`: Manual-only. Run it after a marketplace skill to qualify feedback from
-  the actual run. The skill files public-source feedback as GitHub issues or recurrence comments and
-  preserves private-source feedback as ignored local records.
+  the actual run. The skill files public-source feedback as GitHub issues, recurrence comments, or
+  user-requested local records and preserves private-source feedback as ignored local records.
 
 ## Feedback labels
 
