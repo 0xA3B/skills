@@ -41,7 +41,8 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 
 2. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
    changing the behavior is a one-place edit. A meaning stated twice costs double maintenance and
-   reads as twice as important. Repeat terms; never repeat definitions.
+   reads as twice as important. Repeat terms; never repeat definitions. When a delivery boundary
+   requires a copy, keep one source authoritative and govern the copy as a derived artifact.
 
 3. **Use one term per concept.** Pick one name for each thing and repeat it exactly. Synonyms read
    as different things. If a file says "the service" in one rule and "the daemon" in another, split
@@ -69,9 +70,10 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    prohibit, state the replacement: "Use the `logger` module for output; `print` is allowed only in
    `scripts/`", not "Do not use print statements".
 
-9. **Make every rule testable.** A rule passes this test when a reviewer can check compliance from
-   the diff alone. "Run `make lint` before committing" is testable; "ensure code quality" is a mood.
-   Use commands, paths, and thresholds.
+9. **Make every rule auditable.** Name the condition, actor, action, and observable evidence or
+   terminal state. A reviewer must be able to determine which branch applies and verify compliance
+   from the diff, command output, or resulting state. Replace an undefined judgment with an
+   observable predicate or a named user decision.
 
 10. **End steps on checkable, demanding completion criteria.** For workflow documents, each step
     ends on the condition that tells the agent the work is done. "Every modified model accounted

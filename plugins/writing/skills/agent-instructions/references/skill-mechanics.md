@@ -26,6 +26,21 @@ a skill only ever fires by hand, make it manual-only and pay no context load.
 Shared reference that two manual-only skills both need can live in neither: push it to a plain file
 outside the skill system that both point at.
 
+## Composing skills
+
+When one skill applies another model-invoked skill during the same workflow, assign ownership by
+axis:
+
+- The orchestrating skill owns the authority envelope: whether and when mutation is allowed, the
+  workflow sequence, stopping conditions, and terminal outcome.
+- The supporting skill owns producing and verifying its artifact, or applying its discipline, within
+  the authority passed by the orchestrating skill.
+
+Pass the supporting skill the task inputs, repository constraints, and required outcome. Point to
+its instructions instead of copying them into the orchestrating skill. If the supporting skill may
+be absent, either stop with a hand off or keep only the fallback behavior required to reach the
+workflow's safe terminal outcome; do not duplicate the supporting skill's complete guidance.
+
 ## Trigger contracts
 
 The description of a model-invoked skill is the trigger contract that decides when it fires. Apply
