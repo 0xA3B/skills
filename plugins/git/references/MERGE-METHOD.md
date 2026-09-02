@@ -17,4 +17,6 @@ known forge-hosted references named by the user, an issue, or a hand-off artifac
 forge. A forge-hosted reference requires stable commit identity only when the SHA must remain in
 target history or the selected forge cannot guarantee a resolvable ref to the original commit. A
 retained change-request head ref is sufficient otherwise. If a durable match requires stable commit
-identity, select a merge commit when policy permits it, or stop for a user decision.
+identity and a higher-precedence repository policy or explicit user choice selects a rewriting
+method, stop for a user decision. Otherwise, select a merge commit when policy permits it or stop
+when it does not.
