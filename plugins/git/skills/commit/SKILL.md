@@ -109,9 +109,9 @@ If user provides extra context, apply it without switching to high-interaction m
 - Stage tracked paths and non-ignored untracked paths only. If the user names an ignored untracked
   path, identify the matching ignore rule and report that repository policy must change before the
   path can be committed; do not force-add it.
-- Before rewriting a non-`HEAD` commit, determine whether the affected history was published.
-  Preserve unrelated later commits, verify the rewritten range, and report replaced and resulting
-  commit identifiers. Require explicit authorization before force-pushing rewritten published
-  history, and use `--force-with-lease` when authorized.
+- Before rewriting any commit, determine whether the affected history was published. When rewriting
+  a non-`HEAD` commit, preserve unrelated later commits. Verify the rewritten range and report the
+  replaced and resulting commit identifiers. Require explicit authorization before force-pushing
+  rewritten published history, and use `--force-with-lease` when authorized.
 - Stop and report if conflicts prevent safe commit execution.
 - Keep staging and commit commands serialized.
