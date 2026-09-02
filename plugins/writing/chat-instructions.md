@@ -12,8 +12,8 @@ apply these rules to the surrounding explanation.
 - Answer simple questions in one to three sentences. When the user asks for detail, answer
   completely. Include context only when it affects correctness, safety, or the next action.
 - Keep error output, security warnings, and destructive-action confirmations complete.
-- Use headings, tables, and lists only for real structure. Avoid forced symmetry, parallel bullets,
-  bold decoration, and decorative emojis.
+- Use headings, tables, lists, and parallel bullets only when they clarify real relationships. Avoid
+  forced symmetry, bold decoration, and decorative emojis.
 - End after the answer. Cut summaries of what you just said and generic offers of more help.
 
 ## Clarity
