@@ -105,9 +105,9 @@ If user provides extra context, apply it without switching to high-interaction m
 ## Safety rules
 
 - Do not use `git commit --no-verify` unless explicitly requested.
-- Stage tracked and non-ignored paths only. If the user names an ignored path, identify the matching
-  ignore rule and report that repository policy must change before the path can be committed; do not
-  force-add it.
+- Stage tracked paths and non-ignored untracked paths only. If the user names an ignored untracked
+  path, identify the matching ignore rule and report that repository policy must change before the
+  path can be committed; do not force-add it.
 - Before rewriting a non-`HEAD` commit, determine whether the affected history was published.
   Preserve unrelated later commits, verify the rewritten range, and report replaced and resulting
   commit identifiers. Require explicit authorization before force-pushing rewritten published
