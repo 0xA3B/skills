@@ -70,6 +70,7 @@ ask which are active instead of waiting for bots the repository may not use.
 Available adapters:
 
 - [GITHUB-CODEX.md](references/GITHUB-CODEX.md)
+- [GITHUB-COPILOT.md](references/GITHUB-COPILOT.md)
 
 Load the reference for every active adapter before polling. Stop precisely when the current forge or
 bot has no available adapter.
