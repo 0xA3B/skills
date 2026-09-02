@@ -3,24 +3,44 @@ cases:
   - id: commit-current-work
     prompt: >-
       Commit the current work using Conventional Commits.
+    workspace_files:
+      src/cache.ts: |
+        export const cacheTtlSeconds = 30;
     expect: invoke
     rationale: The user is asking to create git commits for current changes.
 
   - id: create-commit-for-changes
     prompt: >-
       Please commit these changes.
+    workspace_files:
+      README.md: |
+        # Example project
+
+        This project demonstrates the commit workflow.
     expect: invoke
     rationale: The user is asking for a git commit workflow.
 
   - id: split-and-commit
     prompt: >-
       Split my current changes into logical commits and commit them.
+    workspace_files:
+      src/client.ts: |
+        export const requestTimeoutMs = 5000;
+      docs/client.md: |
+        # Client
+
+        The client times out stalled requests.
     expect: invoke
     rationale: The user is asking for commit partitioning plus commit execution.
 
   - id: commit-selected-scope
     prompt: >-
       Commit only the docs updates.
+    workspace_files:
+      docs/setup.md: |
+        # Setup
+
+        Install dependencies before running the project.
     expect: invoke
     rationale: The user is asking to create a scoped commit.
 
