@@ -51,6 +51,9 @@ decide whether to encode, reroute, leave to discretion, wait, or reject it.
 
 Reflect against the actual run and qualify each item independently:
 
+`No qualified feedback` is a valid successful result. When no item passes the gates below, report
+that outcome and stop without drafting or submitting anything.
+
 - **Observation:** Describe the exact decision or artifact in the run and what the session did
   instead. Mark the evidence `observed` when the behavior occurred or `speculative` when reflection
   exposed a credible risk.
