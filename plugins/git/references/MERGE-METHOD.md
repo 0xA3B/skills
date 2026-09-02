@@ -5,8 +5,8 @@ Shared policy for `create-pr` and `merge-pr`. Select the expected merge method i
 1. repository-enforced policy;
 2. explicit user choice;
 3. true fast-forward when the forge supports it;
-4. merge commit to preserve the reviewed topic commits and their identities;
-5. rebase when linear history is preferred and commit identity is disposable;
+4. rebase when linear history is preferred and commit identity is disposable;
+5. merge commit by default to preserve the reviewed topic commits and their identities;
 6. squash only when explicitly justified by one semantic unit or unusable topic-branch history.
 
 ## Durable SHA search
