@@ -19,6 +19,11 @@ activity, not approval. The reaction may be transient. If neither acknowledgment
 review appears before the inactivity timeout, return `timed-out` and report that the repository or
 automatic-review configuration may need checking.
 
+The connector may maintain an issue comment marked `<!-- codex-pull-request-review-summary -->`.
+Treat a transition in its status, commit, or review trigger as adapter activity. `Running` is
+acknowledgment for the named commit. `Completed` means the review finished; it is not approval
+without the adapter's clean signal.
+
 ## Findings and approval
 
 Inspect:
@@ -28,11 +33,11 @@ gh api repos/{owner}/{repo}/pulls/<pr>/reviews
 gh api repos/{owner}/{repo}/pulls/<pr>/comments
 gh api repos/{owner}/{repo}/issues/<pr>/comments
 gh api repos/{owner}/{repo}/issues/<pr>/reactions
-gh pr view <pr> --json headRefOid,mergeStateStatus,statusCheckRollup
+gh pr view <pr-url> --json headRefOid,mergeStateStatus,statusCheckRollup
 ```
 
-`gh` resolves `{owner}` and `{repo}` from the current repository; substitute the pull request number
-for `<pr>` yourself.
+Use the pull request's resolved base owner and repository for `{owner}` and `{repo}`. Substitute the
+pull request number for `<pr>` and its full URL for `<pr-url>`.
 
 Findings appear as a Codex review plus inline review comments. Track inline comment IDs and review
 thread IDs. GitHub may re-anchor unresolved comments to a newer commit, so `commit_id` is not a

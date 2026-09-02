@@ -17,6 +17,10 @@ GitHub may request an initial review automatically when repository, organization
 enable it. The configured rule may review only the initial ready pull request, every new push, or
 draft pull requests too. Observe the pull request instead of inferring which configuration applies.
 
+Treat a Copilot `review_requested` event in the pull request timeline as acknowledgment and adapter
+activity. The event remains observable after GitHub consumes the request and removes Copilot from
+`requested_reviewers`.
+
 If no current-head review appears before the inactivity timeout, return `timed-out` and report that
 the automatic-review or review-request configuration may need checking.
 
@@ -28,11 +32,12 @@ Inspect:
 gh api repos/{owner}/{repo}/pulls/<pr>/reviews
 gh api repos/{owner}/{repo}/pulls/<pr>/comments
 gh api repos/{owner}/{repo}/pulls/<pr>/requested_reviewers
-gh pr view <pr> --json headRefOid,mergeStateStatus,reviewDecision,statusCheckRollup
+gh api repos/{owner}/{repo}/issues/<pr>/timeline
+gh pr view <pr-url> --json headRefOid,mergeStateStatus,reviewDecision,statusCheckRollup
 ```
 
-`gh` resolves `{owner}` and `{repo}` from the current repository; substitute the pull request number
-for `<pr>` yourself.
+Use the pull request's resolved base owner and repository for `{owner}` and `{repo}`. Substitute the
+pull request number for `<pr>` and its full URL for `<pr-url>`.
 
 Copilot submits a pull-request review tied to a commit. Findings appear in the review body and
 inline review comments. Track inline comment IDs and review thread IDs. GitHub may re-anchor
@@ -73,8 +78,9 @@ steps that have no target.
 ## Follow-up review
 
 A push triggers another Copilot review only when the active automatic-review configuration includes
-new pushes. After a permitted fix round is committed and pushed, inspect the current review-request
-state. If no current-head review is in progress, request Copilot through the GitHub reviewer API:
+new pushes. After a permitted fix round is committed and pushed, inspect review requests and
+timeline events created after the push. If neither shows a new review in progress, request Copilot
+through the GitHub reviewer API:
 
 ```text
 gh api --method POST repos/{owner}/{repo}/pulls/<pr>/requested_reviewers \

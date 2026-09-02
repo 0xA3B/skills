@@ -79,8 +79,9 @@ bot has no available adapter.
 
 ### 1. Establish current state
 
-Resolve the change request, fetch the topic branch, and record its exact source-head SHA. Confirm
-the request is open and not draft. Snapshot:
+Resolve the change request, its forge-side base repository or project, and its exact source-head
+SHA, then fetch the topic branch. Use the resolved forge-side target explicitly in API and CLI
+commands; the current checkout may be a fork. Confirm the request is open and not draft. Snapshot:
 
 - adapter acknowledgments, reviews, comments, reactions, and approval signals;
 - review comment and thread IDs already present;
