@@ -1,7 +1,7 @@
 {
   "name": "meta",
-  "version": "1.0.0",
-  "description": "Meta skills for this marketplace: capture skill feedback from real runs as labeled GitHub issues.",
+  "version": "1.1.0",
+  "description": "Meta skills for this marketplace: route qualified public-source feedback to issues and private-source feedback to local records.",
   "author": {
     "name": "Alex Baker"
   },
@@ -12,14 +12,14 @@
   "interface": {
     "displayName": "Meta",
     "shortDescription": "Maintain the marketplace's skills from real runs.",
-    "longDescription": "Meta skills for the marketplace itself. submit-skill-feedback captures the running session's feedback on how a marketplace skill performed during an actual run and files each item as a labeled GitHub issue in the marketplace repository.",
+    "longDescription": "Meta skills for the marketplace itself. submit-skill-feedback qualifies feedback from an actual run, then files public-source feedback in the marketplace repository or preserves private-source feedback as an ignored local record.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Write"],
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png",
     "defaultPrompt": [
-      "Use $meta:submit-skill-feedback to file feedback on the marketplace skills this session ran."
+      "Use $meta:submit-skill-feedback to capture feedback on the marketplace skills this session ran."
     ]
   }
 }

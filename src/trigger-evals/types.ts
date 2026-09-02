@@ -50,6 +50,8 @@ export type CaseObservations = {
   // than the target; attribution to target vs wrong skill happens in the verdict.
   invokedSkills: string[];
   hasActivity: boolean;
+  // Lane-specific events that show the agent moved beyond reasoning or typed reconnaissance toward
+  // a response or action. This is not a raw stream-event count.
   decisionItemCount: number;
   // Skills the agent reported loading at session start (Claude's init event); undefined when the
   // lane has no such signal.

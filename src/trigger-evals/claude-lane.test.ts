@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -8,7 +8,13 @@ import { createClaudeLane, observeClaudeOutput } from "./claude-lane.js";
 import type { StreamingCliOptions, StreamingCliResult } from "./exec.js";
 import type { LaneRunOptions } from "./lanes.js";
 import { resolveSkillTarget } from "./target.js";
-import { skillToolUseEvent, writeRepoFixture, writeRepoLocalSkillFixture } from "./test-utils.js";
+import {
+  buildCliRunResult,
+  skillToolUseEvent,
+  writeRepoFixture,
+  writeRepoLocalSkillFixture,
+} from "./test-utils.js";
+import { buildCaseResult, shouldStopEarly } from "./verdict.js";
 
 const spawnCalls = vi.hoisted(
   () => [] as Array<{ command: string; args: string[]; options: StreamingCliOptions }>,
@@ -75,7 +81,7 @@ describe("createClaudeLane", () => {
     ).rejects.toThrow(/ENOENT/);
   });
 
-  it("builds claude args with model, effort, and case-workspace plugin dirs", async () => {
+  it("builds claude args with model, effort, and deployment plugin dirs", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     const lane = createClaudeLane({ configDir: "/tmp/claude-config" });
     const target = resolveSkillTarget(repoRoot, "plugins/demo/skills/auto-skill");
@@ -107,10 +113,14 @@ describe("createClaudeLane", () => {
     const pluginDirs = call?.args?.flatMap((arg, index) =>
       call.args[index - 1] === "--plugin-dir" ? [arg] : [],
     );
-    expect(pluginDirs).toStrictEqual([
-      path.join(laneCase.workspacePath, "plugins", "demo"),
-      path.join(laneCase.workspacePath, "plugins", "other"),
+    expect(pluginDirs?.map((pluginDir) => path.basename(pluginDir))).toStrictEqual([
+      "demo",
+      "other",
     ]);
+    for (const pluginDir of pluginDirs ?? []) {
+      expect(pluginDir.startsWith(`${laneCase.workspacePath}${path.sep}`)).toBe(false);
+    }
+    await expect(stat(path.join(laneCase.workspacePath, "plugins"))).rejects.toThrow(/ENOENT/);
     expect(call?.options.cwd).toBe(laneCase.workspacePath);
     expect(call?.options.env["CLAUDE_CONFIG_DIR"]).toBe("/tmp/claude-config");
     expect(runResult.stdoutPath).toBe(path.join(caseDir, "events.jsonl"));
@@ -200,9 +210,14 @@ describe("createClaudeLane", () => {
     const pluginDirs = call?.args?.flatMap((arg, index) =>
       call.args[index - 1] === "--plugin-dir" ? [arg] : [],
     );
-    expect(pluginDirs).toStrictEqual([path.join(laneCase.workspacePath, "plugins", "other")]);
+    expect(pluginDirs?.map((pluginDir) => path.basename(pluginDir))).toStrictEqual(["other"]);
+    const stagedPluginDir = pluginDirs?.[0];
+    if (stagedPluginDir === undefined) {
+      throw new Error("expected a staged plugin directory");
+    }
+    expect(stagedPluginDir.startsWith(`${laneCase.workspacePath}${path.sep}`)).toBe(false);
     const stagedPluginSkill = await readFile(
-      path.join(laneCase.workspacePath, "plugins", "other", "skills", "other-skill", "SKILL.md"),
+      path.join(stagedPluginDir, "skills", "other-skill", "SKILL.md"),
       "utf8",
     );
     expect(stagedPluginSkill).toContain("Trigger Eval Instructions");
@@ -285,7 +300,7 @@ describe("observeClaudeOutput", () => {
     expect(observeClaudeOutput(stdout).invokedSkills).toStrictEqual(["demo:auto-skill"]);
   });
 
-  it("ignores other tool_use blocks and assistant text mentioning a label", () => {
+  it("ignores reconnaissance paired with narration and text mentioning a label", () => {
     const stdout = JSON.stringify({
       type: "assistant",
       message: {
@@ -300,7 +315,7 @@ describe("observeClaudeOutput", () => {
 
     expect(observations.signal).toBe("none");
     expect(observations.invokedSkills).toStrictEqual([]);
-    expect(observations.decisionItemCount).toBe(1);
+    expect(observations.decisionItemCount).toBe(0);
   });
 
   it("reads loaded skills from the first init event only", () => {
@@ -333,5 +348,57 @@ describe("observeClaudeOutput", () => {
     const stdout = [assistantText, assistantText, assistantText].join("\n");
 
     expect(observeClaudeOutput(stdout).decisionItemCount).toBe(3);
+  });
+
+  it("excludes thinking and read-only reconnaissance from the decision count", () => {
+    const assistantEvent = (content: Array<Record<string, unknown>>) =>
+      JSON.stringify({ type: "assistant", message: { content } });
+    const stdout = [
+      assistantEvent([{ type: "thinking", thinking: "inspect first" }]),
+      assistantEvent([{ type: "tool_use", name: "Read", input: {} }]),
+      assistantEvent([{ type: "tool_use", name: "Glob", input: {} }]),
+      assistantEvent([{ type: "tool_use", name: "Grep", input: {} }]),
+    ].join("\n");
+
+    expect(observeClaudeOutput(stdout).decisionItemCount).toBe(0);
+  });
+
+  it("counts non-read tool calls as decision items", () => {
+    const stdout = JSON.stringify({
+      type: "assistant",
+      message: { content: [{ type: "tool_use", name: "Bash", input: { command: "pwd" } }] },
+    });
+
+    expect(observeClaudeOutput(stdout).decisionItemCount).toBe(1);
+  });
+
+  it("preserves a skill invocation at the decision-item budget", () => {
+    const assistantText = JSON.stringify({
+      type: "assistant",
+      message: { content: [{ type: "text", text: "step" }] },
+    });
+    const stdout = [
+      assistantText,
+      assistantText,
+      assistantText,
+      assistantText,
+      skillToolUseEvent("demo:auto-skill").trim(),
+    ].join("\n");
+
+    const observations = observeClaudeOutput(stdout);
+
+    expect(observations.decisionItemCount).toBe(5);
+    expect(observations.invokedSkills).toStrictEqual(["demo:auto-skill"]);
+    expect(shouldStopEarly(observations)).toBe(true);
+    const result = buildCaseResult({
+      testCase: { id: "invoke-case", expect: "invoke" },
+      targetLabel: "demo:auto-skill",
+      stagedSkillLabels: new Set(["demo:auto-skill"]),
+      observations,
+      runResult: buildCliRunResult({ endedBy: "stop-when" }),
+      durationMs: 10,
+    });
+    expect(result).toMatchObject({ invoked: true, passed: true });
+    expect(result.skipSignal).toBeUndefined();
   });
 });

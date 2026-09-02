@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Address PR Feedback"
+  short_description: "Drive automated review feedback to resolution"
+  default_prompt:
+    "Use $git:address-pr-feedback to drive this change request through automated review."
+policy:
+  allow_implicit_invocation: false

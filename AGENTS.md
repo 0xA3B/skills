@@ -39,6 +39,9 @@ evaluated, and improved over time. Preserve these outcomes:
 - Keep `check`-suffixed scripts non-mutating.
 - Treat `AGENTS.md` as canonical agent guidance; sibling `CLAUDE.md` files must import `@AGENTS.md`
   and may add Claude-specific guidance only when it doesn't belong in `AGENTS.md`.
+- When using a plugin skill maintained in this repository, follow its working-tree `SKILL.md` as the
+  current workflow authority. The installed marketplace copy may be stale until the plugin is
+  reinstalled.
 
 ## Dependency policy
 

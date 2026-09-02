@@ -8,7 +8,7 @@ cases:
 
   - id: description-keywords-update
     prompt: >-
-      Update the git-workflows plugin description and keywords to mention message linting.
+      Update the git plugin description and keywords to mention message linting.
     expect: invoke
     rationale: Revising plugin descriptions and keywords is this workflow.
 

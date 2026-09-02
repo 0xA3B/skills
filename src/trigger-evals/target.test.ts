@@ -10,12 +10,12 @@ describe("resolveSkillTarget", () => {
   it("accepts repo plugin skill paths", () => {
     const repoRoot = "/repo";
 
-    expect(resolveSkillTarget(repoRoot, "plugins/git-workflows/skills/commit")).toMatchObject({
+    expect(resolveSkillTarget(repoRoot, "plugins/git/skills/commit")).toMatchObject({
       kind: "plugin",
       repoRoot,
-      pluginName: "git-workflows",
+      pluginName: "git",
       skillName: "commit",
-      pluginPath: path.join(repoRoot, "plugins", "git-workflows"),
+      pluginPath: path.join(repoRoot, "plugins", "git"),
     });
   });
 

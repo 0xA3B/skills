@@ -61,6 +61,20 @@ different failures, same cure in a one-home-per-meaning pass.
 the excess. Cure sprawl with the ladder: disclose reference behind pointers, and split by branch or
 sequence so each path carries only what it needs.
 
+## Derived instruction copies
+
+A target that cannot load the authoritative instructions may require a copy, such as a standalone
+prompt for a chat interface. Treat that copy as a derived artifact rather than a second source of
+truth:
+
+- Name the authoritative source and the target constraint that requires the copy in the derived
+  artifact or its closest governing instruction file.
+- Copy only behavior whose trigger can occur on the target.
+- Define when the copy must be synchronized and any measurable target invariant that applies, such
+  as a character limit.
+- When an existing formatter, generator, or check can enforce the relationship, use it instead of
+  relying only on a reminder.
+
 ## Completion criteria
 
 Every step ends on a **completion criterion** — the condition that tells the agent the work is done.
@@ -130,7 +144,9 @@ positively — and even then, pair it with the positive target.
 
 - Keep each meaning in a **single source of truth**: one authoritative home, so changing the
   behavior is a one-place edit. **Duplication** — the same meaning in more than one place — costs
-  maintenance and tokens, and inflates the meaning's apparent rank.
+  maintenance and tokens, and inflates the meaning's apparent rank. When a delivery boundary
+  requires a copy, apply the derived-instruction rules above instead of treating the copy as a peer
+  authority.
 - The **environment** is a source of truth too — `package.json` scripts, config files, the directory
   layout, `--help` output. A document that restates it is a **cache**: a copy of a lookup, earning
   its load only when the lookup is expensive. Cache what the agent cannot find by looking; leave

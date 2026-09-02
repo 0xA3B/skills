@@ -16,8 +16,8 @@ two conflict on a sentence.
 
 - Lead the document and each section with the point: what it is and why the reader cares, before
   steps or detail.
-- Write timeless text. Do not write "currently", "new", "soon", or promises about future releases.
-  Document behavior as it is, and name the version explicitly when behavior differs by version.
+- Replace vague temporal words with a named version, date, phase, or lifecycle state. Use temporal
+  language when a migration, rollout, or deprecation phase changes the instructions.
 
 ## Lists
 

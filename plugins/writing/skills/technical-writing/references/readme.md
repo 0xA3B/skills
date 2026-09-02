@@ -26,6 +26,8 @@ Use this order, and include a section only when it has real content:
 - The reader must reach a first working result without leaving the README and its links.
 - State prerequisites before the commands that need them.
 - Keep the roadmap, the changelog, and the full API out of the README; link to them instead.
+- When an independent section gains a different audience, lifecycle, or maintenance authority, move
+  it to a dedicated document and link to it.
 - Keep badges few and informative, such as build status, published version, and license.
 - Do not add empty ceremony sections, such as a "Contributing" heading that only says "contributions
   welcome".

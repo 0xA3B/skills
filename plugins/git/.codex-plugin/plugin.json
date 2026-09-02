@@ -1,0 +1,27 @@
+{
+  "name": "git",
+  "version": "3.0.0",
+  "description": "Skills for commits and GitHub or GitLab change-request lifecycles.",
+  "author": {
+    "name": "Alex Baker"
+  },
+  "homepage": "https://github.com/0xA3B/skills/blob/main/plugins/git/README.md",
+  "repository": "https://github.com/0xA3B/skills",
+  "keywords": ["git", "commits", "pull-requests", "merge-requests", "code-review"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Git",
+    "shortDescription": "Commit and land Git changes safely.",
+    "longDescription": "Reusable Git workflows for creating Conventional Commits, preparing GitHub pull requests and GitLab merge requests, driving automated review feedback, selecting merge methods, and verifying post-merge cleanup.",
+    "developerName": "Alex Baker",
+    "category": "Productivity",
+    "capabilities": ["Write"],
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png",
+    "defaultPrompt": [
+      "Prepare this branch and open its change request.",
+      "Use $git:address-pr-feedback to drive automated review feedback to resolution.",
+      "Use $git:merge-pr to merge this ready change request and clean up."
+    ]
+  }
+}

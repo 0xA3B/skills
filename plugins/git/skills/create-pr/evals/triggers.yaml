@@ -1,0 +1,99 @@
+version: 1
+cases:
+  - id: create-github-pr
+    prompt: >-
+      The current feature branch is reviewed, committed, and ready. Create a GitHub pull request
+      against main and observe its initial required checks.
+    workspace_files:
+      package.json: |
+        {"name":"example-app","scripts":{"check":"echo ok"}}
+    expect: invoke
+    rationale: The user explicitly asks to create and publish a GitHub pull request.
+
+  - id: create-gitlab-mr
+    prompt: >-
+      Open a GitLab merge request from the current branch into develop. The branch is committed and
+      local review is complete.
+    workspace_files:
+      README.md: |
+        # Example project
+    expect: invoke
+    rationale: The user explicitly asks to open a GitLab merge request.
+
+  - id: publish-current-branch
+    prompt: >-
+      Publish this ready branch as a pull request. Use the linked issue for the purpose and closing
+      reference, and make the title and description match the effective diff.
+    workspace_files:
+      CONTRIBUTING.md: |
+        Pull request titles use Conventional Commits.
+    expect: invoke
+    rationale: Publishing a ready branch as a pull request is the complete create-pr workflow.
+
+  - id: refresh-existing-pr
+    prompt: >-
+      Refresh the existing pull request for this branch after the latest commits. Update its title
+      and description, push normally if needed, and reassess initial CI without creating a
+      duplicate.
+    workspace_files:
+      CHANGELOG.md: |
+        # Changelog
+    expect: invoke
+    rationale: Updating the current branch's existing pull request is an owned refresh path.
+
+  - id: draft-description-only
+    prompt: >-
+      Draft a pull request description for the text below, but do not push this branch or create or
+      update a pull request. The change prevents stale cache entries after a schema migration.
+    expect: skip
+    rationale: Description-only writing belongs to technical-writing and excludes publication.
+
+  - id: metadata-only-update
+    prompt: >-
+      Change pull request 42's title to "fix(api): handle empty responses". Do not inspect, commit,
+      validate, or push the branch, and do not change anything else on the pull request.
+    expect: skip
+    rationale: A limited forge-metadata edit does not authorize the branch publication workflow.
+
+  - id: review-before-pr
+    prompt: >-
+      Review the current branch for correctness and maintainability before I decide whether to open
+      a pull request. Do not publish anything.
+    expect: skip
+    rationale: Local code review is outside create-pr and publication is explicitly excluded.
+
+  - id: merge-existing-pr
+    prompt: >-
+      Pull request 42 is approved and all checks pass. Merge it and clean up the topic branch.
+    expect: skip
+    rationale: Merging an existing pull request belongs to the manual-only merge-pr workflow.
+
+  - id: address-review-feedback
+    prompt: >-
+      The automated reviewer left two findings on pull request 42. Work through those comments and
+      request another review after accepted fixes.
+    expect: skip
+    rationale: Existing review feedback belongs to the manual-only address-pr-feedback workflow.
+
+  - id: commit-only
+    prompt: >-
+      Commit the current documentation changes as one Conventional Commit. Do not push or open a
+      pull request.
+    expect: skip
+    rationale: A commit-only request belongs to git:commit and excludes publication.
+
+  - id: conceptual-question
+    prompt: >-
+      What information makes a pull request description useful to reviewers?
+    expect: skip
+    rationale: A conceptual writing question does not request operational branch publication.
+
+  - id: prepare-without-publishing
+    prompt: >-
+      Run the local validation needed before a pull request, but leave the branch local because I
+      want to inspect the results before publishing it.
+    workspace_files:
+      package.json: |
+        {"name":"example-app","scripts":{"check":"echo ok"}}
+    expect: skip
+    rationale: Validation without a request to create or refresh a change request is outside scope.

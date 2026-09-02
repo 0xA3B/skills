@@ -5,12 +5,12 @@ repository rather than on a user's project.
 
 ## Skills
 
-- `submit-skill-feedback`: Manual-only. Run it after a marketplace skill to capture the session's
-  feedback on how that skill performed during the actual run, and file each item as a GitHub issue
-  in the marketplace repository, labeled `feedback` plus `plugin:<plugin-name>`.
+- `submit-skill-feedback`: Manual-only. Run it after a marketplace skill to qualify feedback from
+  the actual run. The skill files public-source feedback as GitHub issues, recurrence comments, or
+  user-requested local records and preserves private-source feedback as ignored local records.
 
 ## Feedback labels
 
 The marketplace repository maintains the label taxonomy by hand: one `feedback` label plus one
-`plugin:<plugin-name>` label per plugin. `submit-skill-feedback` applies labels but never creates
-them.
+`plugin:<plugin-name>` label per plugin. For public submissions, `submit-skill-feedback` applies
+labels but never creates them.

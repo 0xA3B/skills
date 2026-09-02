@@ -1,8 +1,9 @@
 # Document modes
 
-Diátaxis gives every technical document one of four modes. One document serves one mode; a document
-that mixes modes serves no reader well. Two questions pick the mode: does the content inform action
-(doing) or understanding (thinking), and does it serve learning or work?
+Diátaxis gives technical documentation four modes. Choose one dominant mode for each document. A
+gateway or operational document may use other modes in clearly separated sections when they serve
+the same audience and lifecycle. Two questions pick the mode: does the content inform action (doing)
+or understanding (thinking), and does it serve learning or work?
 
 - Action and learning: **tutorial**.
 - Action and work: **how-to**.
@@ -29,8 +30,9 @@ teaching: action only, with background linked instead of included. Forks and jud
 
 ## Reference: facts for lookup
 
-Describe, and only describe: no instruction, no persuasion, no opinion. Be dry, complete, and sure.
-State facts, options, limits, and errors without hedging. Mirror the structure of the thing
+Describe, and only describe: no instruction, persuasion, or opinion. State verified facts directly.
+Identify unknown, version-dependent, implementation-defined, and externally controlled behavior
+explicitly instead of hiding uncertainty behind vague qualifiers. Mirror the structure of the thing
 described, so the reader can navigate code and docs together. Generate from code where possible, so
 the document stays true.
 
@@ -40,13 +42,11 @@ Cover one bounded topic that is readable away from the product; each title shoul
 implicit "About ..." in front. Anchor on a real why question. Give context: design decisions,
 history, constraints, and alternatives. Opinion is allowed here and nowhere else.
 
-## Keep modes apart
+## Keep each section coherent
 
-Do not put reference tables inside a tutorial, tutorial hand-holding inside reference, or argument
-inside a how-to. Split the document and link between the parts instead.
-
-A gateway document such as a README combines modes by design. Apply the mode rules to each of its
-sections instead of the whole file, and follow the README content model in [readme.md](readme.md)
-for what the sections are.
+Keep each section internally consistent: do not put tutorial hand-holding inside reference or
+argument inside a how-to section. Split the document when modes serve different audiences,
+lifecycles, or tasks, not merely because more than one mode appears. Follow the README content model
+in [readme.md](readme.md) for gateway documents.
 
 Source: diataxis.fr.

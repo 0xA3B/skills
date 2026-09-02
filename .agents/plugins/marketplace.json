@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "git-workflows",
+      "name": "git",
       "source": {
         "source": "local",
-        "path": "./plugins/git-workflows"
+        "path": "./plugins/git"
       },
       "policy": {
         "installation": "AVAILABLE",

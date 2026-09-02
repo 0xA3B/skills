@@ -79,6 +79,11 @@ user intent rather than asking the model to choose a workflow, because workflow-
 can muddy the trigger signal. Use negative cases for nearby prompts that should not load it,
 especially conceptual questions, adjacent workflows, or requests owned by a different skill.
 
+Make every standalone case actionable. When a prompt refers to a file, branch, prior response, or
+artifact that the prompt does not contain, add the smallest representative `workspace_files` input
+or embed the needed text in the prompt. Missing input can make an agent inspect the empty fixture or
+ask for context before selecting a skill, which measures task viability instead of invocation.
+
 Prefer cheap boundary-question negatives when the nearby workflow would otherwise do substantial
 work, such as asking which workflow owns plugin creation or metadata updates. Use action-style
 negative prompts only when the near miss itself is important to test. Use `workspace_files` for
@@ -165,18 +170,22 @@ cases where loaded repository instructions should affect the trigger boundary, s
 
 - The runner writes reports and Codex homes under `.local/skill-evals/`, and creates staged
   workspaces outside the repository so only deliberately staged skills are loadable — the parent
-  checkout's live skills never leak into the trigger signal.
+  checkout's live skills never leak into the trigger signal. On Claude, staged plugin deployment
+  copies are siblings of the case workspace rather than project files, matching an installed session
+  and keeping them out of project reconnaissance.
 - Cases with `workspace_files` run in a case-specific copy of the isolated workspace, then write the
-  listed safe relative paths before invoking Codex.
+  listed safe relative paths before invoking the agent.
 - The committed `description` remains the trigger surface under test.
 - The runner appends eval-only instructions to the staged skill copies telling the model to output a
   canary token and stop immediately after invocation. This keeps positive cases focused on trigger
   classification instead of workflow completion.
 - The runner also stops the agent CLI as soon as it observes the invocation signal, so positive
   cases do not need to finish the requested workflow.
-- Negative cases stop early too: once five substantive items (agent messages, command executions —
-  not reasoning) complete without an invocation signal, the run is stopped and classified as a clean
-  skip, because the trigger decision happens at the front of the turn.
+- Negative cases stop early too: once five decision-bearing items complete without an invocation
+  signal, the run is stopped and classified as a clean skip. The Claude lane counts text-only
+  assistant turns and non-read tool calls; thinking and `Read`, `Glob`, or `Grep` reconnaissance do
+  not consume the budget. The Codex lane counts non-reasoning completed items because its generic
+  command events do not reliably distinguish read-only reconnaissance.
 - For plugin skills on Codex, the canary section is body-only so the frontmatter description under
   test stays byte-identical to the committed skill; invocation is classified when the assistant
   outputs the token. Older Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary
