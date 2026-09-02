@@ -92,9 +92,10 @@ For a rebase or squash path, inspect ignored text only when repository guidance,
 the `create-pr` hand off identifies a local artifact. Record matching paths and SHAs without
 crawling ignored trees; their presence does not block the rewrite.
 
-When merge commit is selected, preserve a repository-configured merge-message template. Otherwise
-use the Conventional Commit change-request title as the merge commit subject and retain the forge's
-change-request reference in the message.
+When merge commit is selected, preserve a repository-configured merge-message template. When squash
+creates a replacement commit, use the Conventional Commit change-request title as its subject and
+retain the forge's change-request reference in the message. Rebase creates no merge or squash commit
+whose message this workflow can author.
 
 Merge through the forge with a head-SHA match guard. If the repository requires a merge queue,
 enqueue only after current gates pass, then wait up to ten minutes — the queue timeout — for the

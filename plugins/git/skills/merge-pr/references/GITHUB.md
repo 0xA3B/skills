@@ -31,10 +31,12 @@ GitHub pull requests do not support true fast-forward merge. Select `--rebase`, 
 gh pr merge <pr-url> --match-head-commit <head-sha> <method-flag>
 ```
 
-For a merge commit, preserve a repository-defined merge-message convention. Otherwise pass the
+For a merge commit, preserve a repository-defined merge-message convention. For squash, pass the
 Conventional Commit pull-request title as `--subject`, followed by `(#<pr-number>)` when it fits the
 repository's subject limit. When the reference does not fit the subject, pass `(#<pr-number>)`
-through `--body` so the merge message retains it.
+through `--body` so the squash commit retains it. For rebase, do not pass `--subject` or `--body`:
+the operation creates no merge or squash commit, so retain a change-request reference only when it
+already appears in an individual commit message.
 
 Do not pass `--auto`. Pass `--admin` only when the core workflow's same-invocation authorization and
 repository-policy gates are satisfied; otherwise stop on the protection. Do not request branch
