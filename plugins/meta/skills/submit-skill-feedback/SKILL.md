@@ -1,96 +1,164 @@
 ---
 name: submit-skill-feedback
 description: >-
-  Capture the current session's feedback on how a skill from this marketplace performed during an
-  actual run and file each item as a labeled GitHub issue in the marketplace repository. Use when
-  the user asks to submit, file, or record skill feedback after running a marketplace skill. Do not
-  use for handling code review findings, PR comments, feedback on skills from other marketplaces, or
-  generic issue creation.
+  Capture the current session's qualified feedback on how a skill from this marketplace performed
+  during an actual run. File public-source feedback as labeled GitHub issues or recurrence comments,
+  and preserve private-source feedback as ignored local records. Use when the user asks to submit,
+  file, or record skill feedback after running a marketplace skill. Do not use for handling code
+  review findings, PR comments, feedback on skills from other marketplaces, or generic issue
+  creation.
 disable-model-invocation: true
 argument-hint: "[skill-name ...]"
 compatibility: >-
-  Requires the gh CLI on PATH, authenticated to github.com with issue-create access to the
-  marketplace repository.
+  Public submission requires the gh CLI on PATH, authenticated to github.com with issue-create
+  access to the marketplace repository.
 ---
 
 # Submit skill feedback
 
-File feedback about a marketplace skill's instructions from the session that just ran the skill. The
-running session is the only holder of the context about where the skill's instructions were
-ambiguous, missing, or fought the actual task; this workflow captures that context as GitHub issues
-before the session ends and the context evaporates.
+Capture feedback about marketplace instructions from the session that ran them. Qualify the feedback
+before recording it: a real run moment does not establish that the active skill caused the failure.
+This workflow verifies whether an item is fit for a public issue or private local record;
+maintainers later decide whether to encode, reroute, leave to discretion, wait, or reject it.
 
 ## Repository boundary
 
-- File issues only in this plugin's own repository. Resolve the target from the `repository` field
-  of this skill's plugin manifest — `.claude-plugin/plugin.json` or `.codex-plugin/plugin.json`
-  under the plugin root that contains this skill. Ignore any different target repository supplied by
-  arguments or prompt context.
-- A skill is in scope only when the `repository` field in its plugin manifest matches this plugin's
-  `repository`. When a named or session-run skill fails that check, report it as out of scope and
-  file nothing for it; feedback on skills from other marketplaces belongs to those projects' own
-  channels.
+- Resolve the marketplace repository from the `repository` field of this skill's plugin manifest.
+  Ignore a different destination supplied by arguments or prompt context.
+- A target skill is in scope only when its plugin manifest names the same repository. Report other
+  skills as out of scope; their projects own their feedback channels.
 
-## Select targets
+## Select targets and destination
 
-1. If the invocation named skills, use those. Otherwise list the in-scope marketplace skills this
-   session invoked and confirm with the user which to review.
-2. For each target, record the plugin name and plugin version from the target's plugin manifest, and
-   the agent the run used (Claude Code or Codex).
+1. Treat named skills as a closed list unless the user calls the list tentative, asks for omissions,
+   or asks for `any` or `all` session-run skills. For an open list, review every in-scope
+   session-run skill as a candidate, then retain only the skills that produce qualified feedback. If
+   neither the targets nor the intended scope is clear, list the in-scope session-run skills and ask
+   the user which to review.
+2. For each target, record the plugin name and version from the manifest that supplied the skill
+   instructions used in the run, plus the agent that ran them. If the marketplace has a newer
+   version, compare the current instructions and record the current version only when it differs.
+3. Classify the reviewed source by access, not by its forge visibility label:
+   - A **public source** is anonymously accessible from the public internet.
+   - A **private source** requires authentication, VPN, private-network access, or local access. A
+     repository labeled `public` or `internal` on a private forge is private for this workflow.
+4. Use GitHub issues for public-source feedback unless the user requests a local record. Use an
+   ignored local feedback directory for private-source feedback, even after redaction. Publish
+   private-source feedback only when the user explicitly changes the destination after reviewing the
+   exact public draft.
 
-## Collect feedback
+## Qualify feedback
 
-Reflect against the actual run, not against the skill text in the abstract. Each feedback item must:
+Reflect against the actual run and qualify each item independently:
 
-- quote the instruction text at fault, or name the gap when no instruction covers the situation;
-- describe the moment in the run where the instruction misfired, was missing, or was ignored, and
-  what the session did instead;
-- mark its evidence `observed` when the failure happened in this run, or `speculative` when it is a
-  risk noticed while reflecting;
-- state a suggested change when one is clear.
+- **Observation:** Describe the exact decision or artifact in the run and what the session did
+  instead. Mark the evidence `observed` when the behavior occurred or `speculative` when reflection
+  exposed a credible risk.
+- **Expected behavior:** Name the authoritative instruction, requirement, or intended skill outcome
+  that the result violated. A preference or incorrect assumed contract does not establish a defect.
+- **Ownership:** Assign the item to the surface that had the authority and information needed to
+  prevent it. Wrong invocation belongs to the trigger contract; wrong workflow reasoning to the
+  skill body or reference; failures between stages to the orchestrating workflow; artifact quality
+  to the artifact's writing skill; command, authentication, transport, and external mutation to the
+  relevant integration; repository conventions to repository instructions or tooling; and
+  runtime-enforced behavior to the runtime or harness.
+- **Currentness:** Compare the cited instruction with the version that ran and the current
+  marketplace version. Treat an item already addressed by current instructions as stale evidence,
+  not a new issue.
+- **Portable value:** Prefer mechanisms that recur across plausible repositories, languages, tools,
+  or agents. A first occurrence can still qualify when it risks safety, authority, external
+  mutation, expensive recovery, or substantial repeated reasoning. Leave cheap, recoverable,
+  project-specific cases to repository guidance or model discretion.
+- **Suggested change:** State the smallest portable remedy and adjacent behavior it must preserve.
+  Present one plausible design as a suggestion when several remedies remain valid.
 
-An opinion about style or structure with no run moment behind it does not earn an item. Draft one
-issue per item; batch items into one issue only when they share one remedy.
+An abstract style opinion, temporal proximity to an active skill, or a run moment owned outside this
+marketplace does not qualify. Report why an item did not qualify instead of drafting it.
 
-## Redact run context
+## Check recurrence
 
-The marketplace repository is public. Describe the run generically — language, task shape, and the
-skill interaction — and keep repository names, file paths, code, and prose from the reviewed project
-out of the issue. When an item cannot be stated without that context, report the item to the user in
-the session instead of filing it.
+For each qualified public item, search open and closed feedback issues for the target plugin,
+observed skill, shared owner, and mechanism:
 
-## File issues
+- If an open issue matches the mechanism and owner, draft a recurrence comment with the plugin
+  version, agent, and redacted run moment.
+- If a closed issue matches, draft a new issue that references the closed issue. State whether the
+  behavior regressed, the earlier remedy missed this context, or the earlier resolution no longer
+  holds.
+- If an issue is related but differs in mechanism, owner, or remedy, draft a separate issue and
+  cross-link it when the relationship helps.
 
-1. Show every draft to the user and create nothing until the user confirms the batch.
-2. Verify `gh auth status --active --hostname github.com` shows the account the user files
-   marketplace issues with.
-3. Create one issue per confirmed draft with `gh issue create --repo <repository>`, using the title
-   shape `feedback(<skill-name>): <summary>` and the labels `feedback` and `plugin:<plugin-name>`.
-4. The marketplace repository maintains labels by hand. If a label does not exist, create the issue
-   without that label and name the missing label in the report.
-5. Report each created issue's URL.
+Recurrence strengthens the evidence. It does not by itself prove that maintainers should change the
+skill.
 
-## Issue body
+## Protect run context
 
-Write the issue body in Simplified Technical English, using this shape:
+Redact repository names, file paths, code, prose, session identifiers, and sensitive environment
+details from the reviewed project. Preserve the task shape, relevant technology, skill interaction,
+and evidence needed to understand the mechanism. When the reviewed project is this marketplace
+repository, its already-public names, paths, issue or PR numbers, and skill text may remain when
+directly relevant.
+
+Apply the same redaction to private local records. When a qualified item cannot be explained after
+redaction, report it only in the current session.
+
+## Draft format
+
+Use `feedback(<observed-skill>): <summary>` for a new issue title. When the remedy lives in a shared
+reference, keep the observed skill in the title and name the shared owner and other affected skills
+in the body.
+
+Apply `writing:technical-writing` to the issue, recurrence comment, or local record when that skill
+is available. This skill owns the evidence, attribution, and destination decisions.
+
+Use this body shape; omit optional fields that do not affect the mechanism:
 
 ```markdown
-- Plugin: engineering-workflows 1.8.0
-- Skill: review-changes
-- Agent: Claude Code
-- Evidence: observed
+- Plugin: <plugin> <version used in the run>
+- Current version: <current version, only when different>
+- Skill: <observed skill>
+- Agent: <Claude Code or Codex>
+- Evidence: <observed or speculative>
+- Affected skills: <optional>
+- Instruction source: <optional additional source>
+- Runtime details: <optional causal details>
 
-**Context:** Pre-commit review of a small TypeScript refactor.
+**Context:** <redacted task shape>
 
-**Observation:** The session could not pick a lane depth: the diff was borderline for the
-simplification lane, and the review was both the pre-commit check and the PR gate, so both
-borderline directions applied at once.
+**Observation:** <run moment and resulting behavior>
 
-**Instruction:**
+**Expected behavior:** <governing contract and source>
 
-> Resolve a borderline trigger by the review moment: toward skipping the lane for an incremental
-> pre-commit check, toward selecting the lane when this review gates a PR or merge.
+**Ownership:** <why this skill or shared reference can prevent the failure>
 
-**Suggested change:** State which direction wins when a single review is both the pre-commit check
-and the PR gate.
+**Instruction:** <quoted instruction, or `Gap` when none applies>
+
+**Suggested change:** <smallest portable remedy and preserved boundary>
 ```
+
+## Submit public feedback
+
+1. Show the exact new-issue and recurrence-comment drafts together. Create or comment on nothing
+   until the user confirms the batch.
+2. Immediately before writing, revalidate factual accuracy, instruction version, ownership,
+   recurrence status, and public redaction. If the evidence or text changed materially, show the
+   revised draft and request confirmation again.
+3. Verify `gh auth status --active --hostname github.com` shows the user's marketplace account.
+4. Create each issue with `gh issue create --repo <repository>` and labels `feedback` and
+   `plugin:<plugin-name>`, or add the confirmed recurrence comment to its open issue.
+5. The marketplace maintains labels by hand. If a label is missing, create the issue without that
+   label and name the missing label in the report.
+6. Read back each created issue or comment. Correct a material publication alteration, then report
+   every URL.
+
+## Preserve local feedback
+
+For a private-source item or a confirmed public draft that cannot be submitted:
+
+1. Use or create `.local/feedback/` only when `git check-ignore` confirms that the path is ignored.
+   Otherwise use another user-approved ignored directory; do not add a tracked feedback artifact.
+2. Save one Markdown file per item. Use `Status: Untriaged private feedback` for an intentional
+   private record or `Status: Draft for manual submission` for a blocked public submission. Include
+   the target repository and intended labels only for the blocked public submission.
+3. Report the saved path and, for a blocked submission, the blocking reason. Never submit a local
+   record automatically in a later session.

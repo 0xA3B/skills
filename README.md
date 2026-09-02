@@ -150,8 +150,9 @@ This plugin maintains the marketplace itself; its skills operate on the marketpl
 repository rather than on a user's project.
 
 - [`meta:submit-skill-feedback`](./plugins/meta/skills/submit-skill-feedback/): Captures the
-  session's feedback on how a marketplace skill performed during an actual run and files each item
-  as a GitHub issue in this repository, labeled `feedback` plus `plugin:<plugin-name>`.
+  session's qualified feedback from an actual marketplace-skill run. It files public-source feedback
+  as GitHub issues or recurrence comments and preserves private-source feedback as ignored local
+  records.
 
 ### `writing`
 

@@ -104,8 +104,9 @@
 
 - Keep skill bodies agent-agnostic; use the repository's metadata surfaces for target-specific
   behavior.
-- Skill-body instruction quality belongs to the `writing:agent-instructions` skill; this file owns
-  repository placement, metadata, versioning, and validation conventions.
+- For plugin skills, use repository-local workflows and validators. Use `add-skill` to create a
+  plugin skill, `writing:agent-instructions` for skill-body quality, and `pnpm lint:plugins` for
+  repository validation; do not use generic skill scaffolding or validators.
 - Use `pressure-test-skill` for non-trivial behavior shaping and `optimize-trigger` for implicit
   invocation behavior. Keep their generated artifacts under `.local/` unless the repository
   intentionally adds repeatable regression coverage.
