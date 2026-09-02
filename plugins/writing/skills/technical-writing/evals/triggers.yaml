@@ -102,6 +102,16 @@ cases:
     rationale:
       Revising a settled technical reply is collaborative-comment writing, not feedback disposition.
 
+  - id: unresolved-review-feedback
+    prompt: >-
+      Review these unresolved pull request comments, decide which feedback is valid, and tell me
+      what to change: "The retry loop may duplicate writes after a timeout." "The error text should
+      be shorter."
+    expect: skip
+    rationale:
+      Verifying and dispositioning unresolved feedback belongs to the receiving-feedback workflow,
+      not technical-writing.
+
   - id: agents-md-rule
     prompt: >-
       Add a rule to AGENTS.md that tests must be co-located in src/.
