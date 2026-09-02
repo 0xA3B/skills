@@ -29,10 +29,10 @@ without the adapter's clean signal.
 Inspect:
 
 ```text
-gh api repos/{owner}/{repo}/pulls/<pr>/reviews
-gh api repos/{owner}/{repo}/pulls/<pr>/comments
-gh api repos/{owner}/{repo}/issues/<pr>/comments
-gh api repos/{owner}/{repo}/issues/<pr>/reactions
+gh api --paginate repos/{owner}/{repo}/pulls/<pr>/reviews
+gh api --paginate repos/{owner}/{repo}/pulls/<pr>/comments
+gh api --paginate repos/{owner}/{repo}/issues/<pr>/comments
+gh api --paginate repos/{owner}/{repo}/issues/<pr>/reactions
 gh pr view <pr-url> --json headRefOid,mergeStateStatus,statusCheckRollup
 ```
 

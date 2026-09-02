@@ -154,6 +154,8 @@ resolution, required CI state, and one terminal status per adapter.
 
 When every active adapter is `approved`, stop and recommend invoking `git:merge-pr` next.
 
-For `resolved-with-exceptions`, include every exception and the missing green signal in the same
-hand off. The user decides whether to rerun this skill or explicitly invoke `merge-pr`. For
-`round-limit`, `timed-out`, or `blocked`, do not suggest that the review gate passed.
+Treat `resolved-with-exceptions` as an acceptable stopping point when repository policy does not
+require the adapter's approval. Include every exception and the missing green signal in the same
+hand off; do not request another round only to chase an optional approval. The user decides whether
+to rerun this skill or explicitly invoke `merge-pr`. For `round-limit`, `timed-out`, or `blocked`,
+do not suggest that the review gate passed.

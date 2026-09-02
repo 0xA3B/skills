@@ -29,10 +29,10 @@ the automatic-review or review-request configuration may need checking.
 Inspect:
 
 ```text
-gh api repos/{owner}/{repo}/pulls/<pr>/reviews
-gh api repos/{owner}/{repo}/pulls/<pr>/comments
-gh api repos/{owner}/{repo}/pulls/<pr>/requested_reviewers
-gh api repos/{owner}/{repo}/issues/<pr>/timeline
+gh api --paginate repos/{owner}/{repo}/pulls/<pr>/reviews
+gh api --paginate repos/{owner}/{repo}/pulls/<pr>/comments
+gh api --paginate repos/{owner}/{repo}/pulls/<pr>/requested_reviewers
+gh api --paginate repos/{owner}/{repo}/issues/<pr>/timeline
 gh pr view <pr-url> --json headRefOid,mergeStateStatus,reviewDecision,statusCheckRollup
 ```
 
@@ -45,8 +45,12 @@ unresolved comments to a newer commit, so `commit_id` is not a stable indication
 new.
 
 Inspect review-body details such as `Suppressed comments`. Copilot may place previously missed
-findings there while reporting zero new inline comments. Treat each suppressed item as a body-only
-finding and record its disposition in a pull-request comment.
+findings there while reporting zero new inline comments. Give an item labeled `Previously missed`
+extra scrutiny: recheck the base-to-head diff and prior dispositions for the same mechanism, and
+accept it only when the current diff still supports the finding and the reviewer provides new
+evidence for any repeated claim. The label alone neither validates nor invalidates the finding.
+Treat each suppressed item as a body-only finding and record its disposition in a pull-request
+comment.
 
 Treat a current-head `COMMENTED` review as a completed response, not approval. When it has findings,
 triage its review body and inline comments. When it has no findings, classify the adapter as
