@@ -14,8 +14,8 @@ its default repository. Use `<pr-number>` only in the merge commit message.
   `baseRefName`, `mergeable`, `mergeStateStatus`, `reviewDecision`, `reviewRequests`,
   `statusCheckRollup`, `autoMergeRequest`, `mergedAt`, and `mergeCommit`.
 - Inspect required checks with `gh pr checks <pr-url> --required --json`.
-- Query pull-request review threads through `gh api graphql`; require every returned thread's
-  `isResolved` value to be true, regardless of author.
+- Query the complete pull-request review-thread connection through `gh api graphql`; require every
+  thread's `isResolved` value to be true, regardless of author.
 - When a thread still needs a reply or resolution, use the same GraphQL surface: the
   `addPullRequestReviewThreadReply` and `resolveReviewThread` mutations, fed by the thread `id` from
   that query. `gh` has no native subcommand for either action.

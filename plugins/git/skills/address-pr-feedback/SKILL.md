@@ -88,6 +88,9 @@ commands; the current checkout may be a fork. Confirm the request is open and no
 - unresolved feedback from all sources;
 - required CI state.
 
+For paginated review, comment, or thread connections, fetch every page before classifying their
+state. A first page cannot prove that every finding is dispositioned.
+
 Treat feedback from a source with no active adapter as unknown. Surface each unresolved unknown
 thread as a user gate unless the invocation already authorized handling unknown feedback.
 

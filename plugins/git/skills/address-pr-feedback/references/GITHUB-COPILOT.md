@@ -63,7 +63,7 @@ policy; verify the pull request's merge state instead of encoding that policy in
 
 ## Responses and thread resolution
 
-Query review threads through `gh api graphql` and act through its mutations —
+Query the complete review-thread connection through `gh api graphql` and act through its mutations —
 `addPullRequestReviewThreadReply` to reply and `resolveReviewThread` to resolve, both fed by the
 thread `id` from that query. `gh` has no native subcommand for either action.
 
