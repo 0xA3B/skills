@@ -31,7 +31,8 @@ gh pr merge <pr> --match-head-commit <head-sha> <method-flag>
 
 For a merge commit, preserve a repository-defined merge-message convention. Otherwise pass the
 Conventional Commit pull-request title as `--subject`, followed by `(#<pr>)` when it fits the
-repository's subject limit.
+repository's subject limit. When the reference does not fit the subject, pass `(#<pr>)` through
+`--body` so the merge message retains it.
 
 Do not pass `--auto`. Pass `--admin` only when the core workflow's same-invocation authorization and
 repository-policy gates are satisfied; otherwise stop on the protection. Do not request branch
