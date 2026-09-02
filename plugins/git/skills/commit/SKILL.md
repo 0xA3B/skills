@@ -86,8 +86,9 @@ before staging.
 
 - Proceed without questions when intent is clear.
 - Treat "run commit", "commit all", "commit everything", or equivalent wording with no named scope
-  as "commit all coherent current work for this task." Exclude unrelated, pre-existing, local-only,
-  and generated artifacts, and report each path left uncommitted.
+  as "commit all coherent current work for this task." Exclude unrelated, pre-existing, and
+  local-only artifacts. Include generated outputs when the coherent work or repository policy
+  requires them, and report each path left uncommitted.
 - Surface blockers only when safe execution is impossible:
   - merge conflicts or rebase in progress
   - ambiguous overlapping hunks that cannot be safely split
