@@ -9,7 +9,8 @@ For each changed or added line, ask:
 - [ ] Is the net rule count equal or lower than before? If higher, what was considered for removal?
       (spend the budget deliberately)
 - [ ] Does the line restate what the environment already states — scripts, config, layout, `--help`
-      output? (spend the budget deliberately)
+      output — or cache routine command syntax instead of an invariant, safety guard, or non-obvious
+      behavior? (spend the budget deliberately)
 - [ ] Does the line state a meaning that already has a home elsewhere in the file, its references,
       another skill, or an authoritative source? (one source of truth per meaning)
 - [ ] If a target cannot load the authoritative source, does the derived artifact or its closest

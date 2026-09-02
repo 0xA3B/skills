@@ -37,7 +37,9 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    already enforces (linters, hooks, CI). The environment is a source of truth too: a rule that
    restates `package.json` scripts, config files, or the directory layout is a cache of a cheap
    lookup, and it goes stale. Cache only what no file confesses — the unwritten convention, the
-   reason behind a choice, the gotcha.
+   reason behind a choice, the gotcha. For commands, cache exact syntax only when it carries an
+   invariant, safety guard, or non-obvious behavior; leave routine construction to current tool
+   help.
 
 2. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
    changing the behavior is a one-place edit. A meaning stated twice costs double maintenance and
