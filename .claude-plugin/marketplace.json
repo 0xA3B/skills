@@ -10,8 +10,8 @@
       "source": "./plugins/codex-in-claude"
     },
     {
-      "name": "git-workflows",
-      "source": "./plugins/git-workflows"
+      "name": "git",
+      "source": "./plugins/git"
     },
     {
       "name": "engineering-workflows",

@@ -8,7 +8,7 @@ cases:
 
   - id: add-workflow-to-plugin
     prompt: >-
-      Add a new workflow skill to the git-workflows plugin for validating commit messages.
+      Add a new workflow skill to the git plugin for validating commit messages.
     expect: invoke
     rationale: A workflow skill is a reusable capability under an existing Codex plugin.
 

@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Merge PR"
+  short_description: "Merge and clean up a ready change request"
+  default_prompt: "Use $git:merge-pr to merge this ready change request and clean up."
+policy:
+  allow_implicit_invocation: false

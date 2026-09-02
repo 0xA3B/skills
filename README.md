@@ -36,7 +36,7 @@ Then install the plugins that you want:
 
 ```text
 /plugin install codex-in-claude@0xa3b-marketplace
-/plugin install git-workflows@0xa3b-marketplace
+/plugin install git@0xa3b-marketplace
 /plugin install engineering-workflows@0xa3b-marketplace
 /plugin install writing@0xa3b-marketplace
 /plugin install meta@0xa3b-marketplace
@@ -76,7 +76,7 @@ fixes. It also ships a `codex` subagent that delegates tasks to Codex.
 - [`codex-in-claude:using-codex-cli`](./plugins/codex-in-claude/skills/using-codex-cli/): Internal
   contract for running the Codex CLI non-interactively, with GPT-5.5 prompting guidance.
 
-### `git-workflows`
+### `git`
 
 These skills create Conventional Commits and drive GitHub or GitLab change requests from operational
 preparation through automated review and verified merge cleanup.
@@ -84,14 +84,14 @@ preparation through automated review and verified merge cleanup.
 `address-pr-feedback` requires the `engineering-workflows` plugin so it can apply the shared
 `receiving-feedback` discipline.
 
-- [`git-workflows:commit`](./plugins/git-workflows/skills/commit/): Reviews current changes, stages
-  logical units, and creates git commits with Conventional Commit messages.
-- [`git-workflows:create-pr`](./plugins/git-workflows/skills/create-pr/): Prepares a branch, creates
-  or refreshes its pull request or merge request, and observes initial CI.
-- [`git-workflows:address-pr-feedback`](./plugins/git-workflows/skills/address-pr-feedback/): Drives
-  active automated-review adapters to approval or a reported exception.
-- [`git-workflows:merge-pr`](./plugins/git-workflows/skills/merge-pr/): Verifies merge gates, merges
-  synchronously, and cleans up verified local and remote branch state.
+- [`git:commit`](./plugins/git/skills/commit/): Reviews current changes, stages logical units, and
+  creates git commits with Conventional Commit messages.
+- [`git:create-pr`](./plugins/git/skills/create-pr/): Prepares a branch, creates or refreshes its
+  pull request or merge request, and observes initial CI.
+- [`git:address-pr-feedback`](./plugins/git/skills/address-pr-feedback/): Drives active
+  automated-review adapters to approval or a reported exception.
+- [`git:merge-pr`](./plugins/git/skills/merge-pr/): Verifies merge gates, merges synchronously, and
+  cleans up verified local and remote branch state.
 
 ### `engineering-workflows`
 
