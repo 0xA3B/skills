@@ -5,16 +5,18 @@ Use this reference only after selecting a GitHub remote.
 Commands and fields below are exemplars of the stated invariants. If the installed CLI lacks one,
 use an equivalent CLI or API path that preserves the invariant and report the deviation.
 `<base-repo>` is the target repository as `OWNER/REPO`; `<topic>` is the topic branch; `<head>` is
-`<head-owner>:<topic>` for a fork or `<topic>` when both branches share a repository. After
-resolving or creating the pull request, use its canonical `<pr-url>` for every later command.
+`<head-owner>:<topic>` for a fork or `<topic>` when both branches share a repository; and
+`<head-filter>` is always `<head-owner>:<topic>`. After resolving or creating the pull request, use
+its canonical `<pr-url>` for every later command.
 
 ## Inspect
 
 - Follow loaded account-routing guidance before identity-sensitive or mutating `gh` operations.
 - Resolve repository defaults and enabled merge methods with `gh repo view <base-repo>`.
 - Resolve an existing pull request with
-  `gh pr list --repo <base-repo> --head <head> --state open --json url,baseRefName,headRefName,headRefOid`
-  before creating one. Refetch its canonical URL with `gh pr view <pr-url> --json` fields including
+  `gh api --method GET --paginate repos/<base-repo>/pulls -f state=open -f head=<head-filter>`
+  before creating one. Use each result's `html_url` and `base.ref` to apply the core target-mismatch
+  rules, then refetch the selected canonical URL with `gh pr view <pr-url> --json` fields including
   `url`, `state`, `isDraft`, `headRefName`, `headRefOid`, `baseRefName`, `mergeable`,
   `mergeStateStatus`, and `statusCheckRollup`.
 - Treat the exact `headRefOid` as the published source-head identity.
