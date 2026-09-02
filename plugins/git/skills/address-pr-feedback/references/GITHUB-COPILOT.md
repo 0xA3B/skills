@@ -44,6 +44,10 @@ inline review comments. Track inline comment IDs and review thread IDs. GitHub m
 unresolved comments to a newer commit, so `commit_id` is not a stable indication that a finding is
 new.
 
+Inspect review-body details such as `Suppressed comments`. Copilot may place previously missed
+findings there while reporting zero new inline comments. Treat each suppressed item as a body-only
+finding and record its disposition in a pull-request comment.
+
 Treat a current-head `COMMENTED` review as a completed response, not approval. When it has findings,
 triage its review body and inline comments. When it has no findings, classify the adapter as
 `resolved-with-exceptions` because the explicit approval signal is absent.
