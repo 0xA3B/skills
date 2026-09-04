@@ -102,14 +102,12 @@ skill records its original author and source in its Agent Skills frontmatter met
 
 The typical implementation flow starts with `wayfinder`, which maps a loose idea into decision-sized
 chunks. `grill-me` resolves a selected direction, and `prototype` answers questions that need
-executable evidence. Use `build` for greenfield or high-churn implementation and `tdd` for stable
-behavior. Use `review-changes` for changes the current session authored and `review-branch` for a
-branch the session did not author. `codebase-design` and `reviewing-code` provide shared background
-discipline. Use `handoff` when another agent session should continue from an ignored local context
-document.
+executable evidence. `tdd` implements observable behavior through a red-green-refactor loop over a
+frontier of behaviors, and loads on its own for implementation requests. Use `review-changes` for
+changes the current session authored and `review-branch` for a branch the session did not author.
+`codebase-design` and `reviewing-code` provide shared background discipline. Use `handoff` when
+another agent session should continue from an ignored local context document.
 
-- [`engineering-workflows:build`](./plugins/engineering-workflows/skills/build/): Implements working
-  slices with pragmatic validation.
 - [`engineering-workflows:codebase-design`](./plugins/engineering-workflows/skills/codebase-design/):
   Applies shared deep-module and interface-design discipline.
 - [`engineering-workflows:dependency-maintenance`](./plugins/engineering-workflows/skills/dependency-maintenance/):

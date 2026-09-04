@@ -21,8 +21,7 @@ Build throwaway code that answers one question before committing to a real imple
 
 Use this in the middle of `engineering-workflows:wayfinder` or `engineering-workflows:grill-me` when
 discussion needs executable evidence. Keep prototype code disposable: when the code is intended to
-land in the codebase, stop and recommend an explicit invocation of `engineering-workflows:build` or
-`engineering-workflows:tdd`.
+land in the codebase, stop and hand off to `engineering-workflows:tdd`.
 
 ## Outcome
 
@@ -101,8 +100,8 @@ The subagent returns only:
 - blockers or missing evidence
 
 The parent session then connects that result back to the active wayfinder or grill-me decision and
-decides whether to continue questioning, reject the direction, or recommend an explicit invocation
-of `engineering-workflows:build` or `engineering-workflows:tdd`.
+decides whether to continue questioning, reject the direction, or hand off to
+`engineering-workflows:tdd`.
 
 ## Workflow
 
@@ -125,9 +124,7 @@ End with:
   implementation work.
 
 If the next step is a real implementation workflow, include a handoff note with why prototype work
-is stopping, the decision and evidence to carry forward, and the exact `engineering-workflows:build`
-or `engineering-workflows:tdd` skill for the user to invoke explicitly with their agent's
-skill-invocation syntax.
+is stopping and the decision and evidence to carry forward into `engineering-workflows:tdd`.
 
 Stop when the prototype answers the question, when the user chooses a direction, or when realistic
 evidence requires setup or access that is unavailable.

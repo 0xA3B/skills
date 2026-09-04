@@ -6,11 +6,11 @@ workflow.
 
 The typical implementation flow starts with `wayfinder`, which maps a loose or oversized idea into
 decision-sized chunks. `grill-me` resolves a selected direction through adversarial questioning, and
-`prototype` answers questions that need disposable executable evidence. Use `build` for greenfield
-or high-churn implementation and `tdd` for stable behavior. `review-changes` reviews changes the
-current session authored, and `review-branch` reviews a branch the session did not author before
-merge. Use `handoff` when another agent session should continue the work from an ignored local
-context document.
+`prototype` answers questions that need disposable executable evidence. `tdd` implements observable
+behavior through a red-green-refactor loop over a frontier of behaviors, and loads on its own for
+implementation requests. `review-changes` reviews changes the current session authored, and
+`review-branch` reviews a branch the session did not author before merge. Use `handoff` when another
+agent session should continue the work from an ignored local context document.
 
 `codebase-design` and `reviewing-code` are shared background disciplines consumed by the user-facing
 workflows. `terminology`, `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`,
@@ -29,7 +29,6 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
 
 ## Skills
 
-- `engineering-workflows:build`: Implement working slices with pragmatic validation.
 - `engineering-workflows:codebase-design`: Apply shared deep-module and interface-design discipline.
 - `engineering-workflows:dependency-maintenance`: Review dependency update PRs, merge ready ones,
   sync local state, refresh repo-pinned tooling, and file linked follow-up issues.
