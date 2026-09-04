@@ -1,10 +1,12 @@
 ---
 name: receiving-feedback
 description: >-
-  Handle existing review feedback, reviewer comments, sub-agent findings, Claude findings, PR
-  comments, or review-like artifacts by verifying and triaging them before responding or applying
-  fixes. Do not use for first-party bug reports, implementation requests, or requests to generate a
-  new code review.
+  Use when handling existing feedback that evaluates completed work: reviewer comments, PR or MR
+  comments, sub-agent findings, findings from a review agent or bot, or a user's correction of a
+  prior response. Verifies and triages each item before responding or applying fixes. Do not use for
+  a message that extends the active task rather than evaluating completed work, such as accepting a
+  recommendation, adding a requirement, or supplying implementation details; for first-party bug
+  reports; for implementation requests; or for requests to generate a new code review.
 user-invocable: false
 ---
 
@@ -24,19 +26,29 @@ Classify each feedback item before acting:
 - `needs-clarification`: plausible but unclear; ask the reviewer or user before deciding.
 - `gated`: valid or plausible, but the remedy needs a user decision. Gate a fix that changes
   intended behavior, a public interface, a data model, a migration, a dependency, security policy,
-  broad architecture, or prior user direction, or that falls outside the requested scope. Gate also
-  any finding whose remedy adds new behavior — a new concurrent path, subprocess, persisted field,
-  or external call — whatever the reviewer labelled it: it is a change request, not a fix, and after
-  explicit agreement it gets what a change of that size normally gets, its own tests and its own
-  review pass, instead of being absorbed into the current fix budget. The tell is the remedy, not
-  the severity: "this can deadlock" is a fix; "add a reader thread so it cannot deadlock" is a
-  change.
+  broad architecture, or prior user direction, that falls outside the requested scope, or whose
+  remedy adds new behavior (see the evaluation sequence).
 - `deferred`: valid but outside current scope or not worth fixing now.
 - `rejected`: invalid, duplicate, already addressed, or based on wrong context.
 
+## Evaluate each item
+
+Classify an item `accepted` only when all three steps hold:
+
+1. Confirm the reported behavior or mechanism exists in the repository or runtime.
+2. Identify the authoritative contract, requirement, or prior decision that makes the behavior
+   incorrect. A real observation is not a defect when the assumed contract is wrong. When the
+   governing contract is unknown, classify the item `needs-clarification`.
+3. Judge the proposed remedy on its own. Accepting a defect is not accepting the reviewer's fix;
+   choose the smallest change that is correct under that authority. A remedy that adds new behavior
+   — a new concurrent path, subprocess, persisted field, or external call — is a change request
+   whatever the reviewer labelled it: classify the item `gated`, and after explicit agreement it
+   gets what a change of that size normally gets, its own tests and its own review pass, instead of
+   being absorbed into the current fix budget. The tell is the remedy, not the severity: "this can
+   deadlock" is a fix; "add a reader thread so it cannot deadlock" is a change.
+
 ## Triage rules
 
-- Verify feedback against repository reality before accepting it.
 - Merge items from independent sources — separate review lanes, a PR bot, CI, the user — that
   converge on one mechanism or remedy, and record every corroborating source on the merged item so
   the corroboration survives into the report. Independent convergence is strong validity evidence,

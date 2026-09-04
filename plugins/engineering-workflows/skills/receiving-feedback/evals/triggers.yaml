@@ -24,6 +24,28 @@ cases:
     expect: invoke
     rationale: Claude findings are external review feedback.
 
+  - id: user-corrects-prior-interpretation
+    prompt: >-
+      Your earlier interpretation of the environment model was wrong. You wrote "shared roles must
+      stay in parity between alpha and production, and alpha changes promote after review". In fact
+      production is the source of truth and alpha is an independent test environment. Correct the
+      plan.
+    expect: invoke
+    rationale: The user corrects completed work, which needs verification before the plan changes.
+
+  - id: accepts-recommendation-with-details
+    prompt: >-
+      Go with the layout you proposed. The first three roles are reader, writer, and admin; start
+      with those.
+    expect: skip
+    rationale: The user accepts a recommendation and supplies details for the active task.
+
+  - id: adds-requirement-mid-task
+    prompt: >-
+      One more thing for the endpoint you are building: it also needs cursor pagination.
+    expect: skip
+    rationale: The user adds a requirement to work in progress; nothing evaluates completed work.
+
   - id: review-my-code
     prompt: >-
       Review my current changes before I commit.
