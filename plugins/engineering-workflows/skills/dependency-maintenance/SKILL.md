@@ -16,6 +16,10 @@ Review dependency update PRs, merge only updates that are ready as-is, refresh r
 dependency tooling, and leave durable follow-up state for anything that needs code, migration, or
 product judgment.
 
+An explicit invocation is a full maintenance pass: dependency PR triage and merges, local sync, and
+repo-pinned tooling refresh. If the user narrows the scope, do only the named part and report what
+was skipped.
+
 ## Outcome
 
 The repository's dependency update queue is triaged with clear evidence:
@@ -74,8 +78,7 @@ open dependency PRs, and local validation commands.
 
 Look for evidence in:
 
-- The repository's dependency policy, wherever it lives: agent guidance, a linked policy document,
-  contributing docs, or updater configuration.
+- The repository's dependency policy, in the surfaces named under repository policy precedence.
 - Forge metadata: PR title, author, labels, checks, merge state, review state, linked issues, and
   bot comments.
 - Repository metadata: `AGENTS.md`, README, CI workflows, package manager files, lockfiles,
@@ -131,11 +134,29 @@ Classify every PR before acting:
 - `needs migration`: a breaking change or changed default likely requires code or configuration
   work.
 - `needs investigation`: evidence is insufficient or validation failure cause is unclear.
-- `feature follow-up`: a new feature looks specifically useful but is not required for the update.
 - `unsafe`: the PR should not merge in its current form.
 
 Merge only `merge as-is` PRs. Treat grouped updates as ready only when every meaningful bump in the
-group is ready.
+group is ready. When a new feature looks specifically useful to this repository, record a
+`feature follow-up` on top of the classification; it is an annotation, not a blocker.
+
+Cooldowns and provenance apply to the artifacts a lockfile or resolver selects, not only to the
+version tag. Registry packages publish the version and its artifacts together, but a tool resolved
+from release assets can pass a cooldown by tag date while its assets were published later or do not
+exist yet. Before you treat such a release as eligible, or attribute a missing-artifact or lockfile
+regeneration failure to the updater, confirm the selected artifacts exist and use their publish date
+for the cooldown.
+
+A classification is bound to the head and base it was made against. Any changed head or moved base,
+whether from a merge, an updater rebase, an updater repair, or a closure, invalidates the
+classification whether or not the PR is about to merge: classify the new head again from its
+effective diff against the current base, since PR bodies and earlier release-note scope may be
+stale, then refresh the PR's labels, comments, and linked issues to match.
+
+Updater bots act asynchronously. If the base moved and the updater has not produced a new head,
+request the refresh through the updater's own controls rather than updating the branch by hand, then
+wait for the regenerated head and fresh checks. If the updater has not responded after a bounded
+wait, leave the PR with durable blocker state that names the pending refresh and report the wait.
 
 ### 5. Create durable follow-up state
 
@@ -163,10 +184,6 @@ Follow-up issues should include:
 Do not create issues for routine minor notes or generic feature lists without a concrete reason this
 repository should care.
 
-When a blocker fix merges or a shared investigation issue closes while any dependency PR it covered
-is still open, recheck those PRs: every PR left blocked must link to an open, actionable issue. File
-a new issue for any unresolved remainder and update the PR's linked context.
-
 ### 6. Merge ready PRs
 
 Merge only through the repository's normal forge path and merge strategy. Before merging, verify:
@@ -175,12 +192,10 @@ Merge only through the repository's normal forge path and merge strategy. Before
 - Required checks and reviews are passing or explicitly not required by repo policy.
 - No linked blocker, migration issue, or release-note finding makes the PR unsafe as-is.
 
-Merge ready PRs serially. After each successful merge, expect the base branch to move and updater
-bots to produce new heads. A changed head or moved base invalidates the prior classification:
-classify the new head again from its effective diff against the current base — original PR bodies
-and prior release-note scope may be stale — then re-verify mergeability and checks before merging.
-Do not merge multiple PRs in parallel unless the forge has an explicit merge queue or batching
-mechanism that owns that recalculation.
+Merge ready PRs serially. Each merge moves the base and invalidates the remaining classifications;
+reclassify per step 4 and re-verify mergeability and checks before the next merge. Do not merge
+multiple PRs in parallel unless the forge has an explicit merge queue or batching mechanism that
+owns that recalculation.
 
 When an open vulnerability alert is in scope, map it to the affected dependency path and vulnerable
 range, identify which PR head actually contains the patched version, and merge that PR first.
@@ -216,22 +231,25 @@ appropriate.
 
 ### 8. Refresh repo-pinned tooling
 
-Treat an explicit invocation of this skill as a full maintenance pass unless the user narrows the
-scope. In a full maintenance pass, inspect and refresh repo-pinned tools that dependency bots may
-not cover:
+In a full maintenance pass, inspect and refresh repo-pinned tools that dependency bots may not
+cover:
 
 - Runtime pins, package-manager pins, tool lockfiles, CI setup actions, and plugin versions.
 - Existing dependency bot coverage and updater configuration, to avoid duplicating work and to
-  classify blocked PRs — not to repair updater behavior, which stays outside this workflow.
+  classify blocked PRs.
 
-Treat a newer release as actionable only when repository dependency policy permits selecting it. A
-release deferred by policy, such as one inside a cooldown window, needs no maintenance PR,
-exception, or follow-up issue unless it is an urgent security fix.
+Judge each newer release against repository policy and against the artifacts it would select (step
+4), then sort it into one of three states:
 
-If the user narrows scope to dependency PR triage only, skip tooling updates and say what was
-skipped. Otherwise, do this work after dependency PR decisions and merges are complete, keep it in a
-separate local-change phase, and validate it through the repository's canonical install and check
-workflow.
+- Actionable: policy permits selecting the release now. Refresh it in this pass.
+- Deferred by time: a cooldown or schedule window blocks the release. Report it as deferred and
+  create no maintenance PR, exception, or follow-up issue unless it is an urgent security fix.
+- Routed to manual ownership: policy excludes the tool or version class from the updater and assigns
+  it to manual work. An ownership assignment is not a deferral: create the follow-up issue described
+  below unless an open issue already covers the release.
+
+Do this work after dependency PR decisions and merges are complete, keep it in a separate
+local-change phase, and validate it through the repository's canonical install and check workflow.
 
 When a tooling update changes tracked project state, include every generated manifest, version-pin,
 lockfile, and related metadata change needed to make the update reproducible. Check for sibling
@@ -248,6 +266,9 @@ reason to update, and suggested validation instead of broadening the maintenance
 
 ## Final report
 
+Before reporting, re-check every open dependency PR. Reclassify any whose head or base changed since
+classification per step 4, and confirm every PR left blocked links to an open, actionable issue.
+
 Always report:
 
 - Which repository policy applied, and any point where it overrode a default in this skill.
@@ -260,6 +281,6 @@ When the maintenance pass ran, also report:
 - Release-note findings for major/minor bumps, including breaking changes and concrete useful
   features.
 - Local sync and validation results, including commands run and failures.
-- Tooling updates discovered, any local-update PRs created or merged, and any follow-up issues
-  created.
+- Tooling releases found, sorted as actionable, deferred by time, or routed to manual ownership,
+  with any maintenance PRs merged and follow-up issues created.
 - That no unsafe or blocked PRs remain, when that is the case.
