@@ -14,7 +14,9 @@ test("user can checkout with valid cart", async () => {
 });
 ```
 
-Keep one logical assertion per test.
+Give each test one behavioral reason to fail. Use several assertions when they jointly describe one
+observable outcome; split the test when failures would represent different behaviors, authorities,
+or remedies.
 
 ## Bad tests
 
@@ -63,3 +65,11 @@ test("createUser makes user retrievable", async () => {
   expect(retrieved.name).toBe("Alice");
 });
 ```
+
+**Collection-membership tests**: Enumerate the current contents of an extensible collection —
+configuration documents, plugins, migrations, fixtures, schemas, templates — so every addition
+breaks a test even though membership is not the behavior.
+
+Test the collection's discovery and validation rules with focused examples, and validate the live
+collection through a generic command or a dynamically discovered check. Enumerate membership only
+when membership itself is the behavior.
