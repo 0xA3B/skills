@@ -198,8 +198,11 @@ When the requested behavior is implemented:
   earlier runs.
 - For a port, state that every inventory item is settled or recorded as an intentional difference.
 - For spec-driven work, state that the green suite encodes this session's reading of the spec and is
-  not evidence of spec conformance, and recommend an explicit `engineering-workflows:review-changes`
-  or `engineering-workflows:review-branch` invocation with the spec-adherence and test-review lanes.
+  not evidence of spec conformance.
+
+Then apply `engineering-workflows:review-changes` over the session's changes. Pass the spec or
+reference source as the intent source when one exists, so the spec-adherence and test-review lanes
+select.
 
 Stop when the requested behavior is implemented and validation passes, or when the next frontier is
 blocked by an ambiguous interface, missing dependency, or failing project setup that cannot be

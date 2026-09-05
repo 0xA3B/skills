@@ -103,10 +103,11 @@ skill records its original author and source in its Agent Skills frontmatter met
 The typical implementation flow starts with `wayfinder`, which maps a loose idea into decision-sized
 chunks. `grill-me` resolves a selected direction, and `prototype` answers questions that need
 executable evidence. `tdd` implements observable behavior through a red-green-refactor loop over a
-frontier of behaviors, and loads on its own for implementation requests. Use `review-changes` for
-changes the current session authored and `review-branch` for a branch the session did not author.
-`codebase-design` and `reviewing-code` provide shared background discipline. Use `handoff` when
-another agent session should continue from an ignored local context document.
+frontier of behaviors, and loads on its own for implementation requests. `review-changes` reviews
+changes the session authored through independent lanes, fixes accepted findings, and reruns the
+lanes those fixes invalidated; `tdd` applies it at completion. `codebase-design` provides shared
+background discipline. Use `handoff` when another agent session should continue from an ignored
+local context document.
 
 - [`engineering-workflows:codebase-design`](./plugins/engineering-workflows/skills/codebase-design/):
   Applies shared deep-module and interface-design discipline.
@@ -125,12 +126,9 @@ another agent session should continue from an ignored local context document.
   Finds evidence-backed test-suite improvement opportunities.
 - [`engineering-workflows:prototype`](./plugins/engineering-workflows/skills/prototype/): Creates
   disposable exploratory code to answer a design question.
-- [`engineering-workflows:review-branch`](./plugins/engineering-workflows/skills/review-branch/):
-  Reviews a branch, PR, or MR the session did not author before merge.
 - [`engineering-workflows:review-changes`](./plugins/engineering-workflows/skills/review-changes/):
-  Reviews and fixes changes authored in the current session.
-- [`engineering-workflows:reviewing-code`](./plugins/engineering-workflows/skills/reviewing-code/):
-  Applies shared review-lane selection, isolation, and finding contracts.
+  Reviews changes authored in the current session through focused lanes, fixes accepted findings,
+  and reruns invalidated lanes.
 - [`engineering-workflows:receiving-feedback`](./plugins/engineering-workflows/skills/receiving-feedback/):
   Triages and responds to existing review feedback.
 - [`engineering-workflows:tdd`](./plugins/engineering-workflows/skills/tdd/): Builds features or

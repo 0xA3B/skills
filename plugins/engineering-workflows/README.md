@@ -8,17 +8,17 @@ The typical implementation flow starts with `wayfinder`, which maps a loose or o
 decision-sized chunks. `grill-me` resolves a selected direction through adversarial questioning, and
 `prototype` answers questions that need disposable executable evidence. `tdd` implements observable
 behavior through a red-green-refactor loop over a frontier of behaviors, and loads on its own for
-implementation requests. `review-changes` reviews changes the current session authored, and
-`review-branch` reviews a branch the session did not author before merge. Use `handoff` when another
-agent session should continue the work from an ignored local context document.
+implementation requests. `review-changes` reviews changes the session authored through independent
+lanes, fixes accepted findings, and reruns the lanes those fixes invalidated; `tdd` applies it at
+completion. Use `handoff` when another agent session should continue the work from an ignored local
+context document.
 
-`codebase-design` and `reviewing-code` are shared background disciplines consumed by the user-facing
-workflows. `terminology`, `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`,
+`codebase-design` is a shared background discipline consumed by the user-facing workflows.
+`terminology`, `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`,
 `dependency-maintenance`, and `visualize` remain focused workflows for their respective concerns.
 
-On Claude Code, the bundled `code-review` skill competes for generic review prompts. Treat the
-manual `review-changes` and `review-branch` invocations as the primary entry points. To keep the
-bundled skill typable as `/code-review` but stop its implicit invocation, set
+On Claude Code, the bundled `code-review` skill competes with `review-changes` for generic review
+prompts. To keep the bundled skill typable as `/code-review` but stop its implicit invocation, set
 `"skillOverrides": { "code-review": "user-invocable-only" }` in settings. When no bundled skills
 should load at all, set `disableBundledSkills: true` instead.
 
@@ -45,11 +45,8 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
 - `engineering-workflows:prototype`: Create disposable exploratory code to answer one design
   question.
 - `engineering-workflows:receiving-feedback`: Triage and respond to existing review feedback.
-- `engineering-workflows:review-branch`: Review a branch, PR, or MR the session did not author
-  before merge.
-- `engineering-workflows:review-changes`: Review and fix changes authored in the current session.
-- `engineering-workflows:reviewing-code`: Apply shared review-lane selection, isolation, and finding
-  contracts.
+- `engineering-workflows:review-changes`: Review changes authored in the current session through
+  focused lanes, fix accepted findings, and rerun invalidated lanes.
 - `engineering-workflows:tdd`: Build features or fixes with a red-green-refactor loop.
 - `engineering-workflows:terminology`: Create, update, or review durable project terminology.
 - `engineering-workflows:visualize`: Create a temporary visual report, diagram, or presentation
