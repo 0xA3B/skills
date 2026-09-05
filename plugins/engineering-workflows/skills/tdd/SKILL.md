@@ -37,46 +37,37 @@ alongside the production code, and relevant project validation passing.
 - Refactor the production and test code the current work touched, keeping behavior unchanged.
 - Do not broaden the task into unrelated cleanup or architecture work unless the user asks.
 
-## Philosophy
+## Tests
 
-Good tests are integration-style where practical: they exercise real code paths through public
-interfaces and describe what the system does. They survive refactors because they do not care about
-private structure.
-
-Bad tests couple to implementation details: private methods, internal collaborators, incidental data
-shape, or mocks that mirror the current implementation. The warning sign is a test that fails during
-a harmless refactor but misses real behavior breakage.
-
-Tautological tests recompute the expected value through the same logic as production, so they pass
-by construction; take expected values from an independent authority instead.
-
-Test your composition of a framework's guarantees, not the guarantees themselves. A test that
-re-proves what the validation library already enforces — unknown keys rejected, empty strings
-rejected — adds volume without adding coverage.
-
-Read [tests.md](references/tests.md) before the first test of a session, and again before writing a
-test whose expected value is computed rather than known, that asserts on calls rather than results,
-or that enumerates the contents of a collection. Reference examples may use TypeScript; apply the
-testing principles in the repository's actual language and test framework.
+Test observable behavior through public interfaces, with expected values from an independent
+authority. A test that fails during a harmless refactor but misses real behavior breakage is coupled
+to implementation. Read [tests.md](references/tests.md) before the first test of a session, and
+again before writing a test whose expected value is computed rather than known, that asserts on
+calls rather than results, or that enumerates the contents of a collection. Reference examples may
+use TypeScript; apply the principles in the repository's actual language and test framework.
 
 ## The frontier
 
-The unit of the loop is the frontier: every behavior whose prerequisite interfaces and behaviors are
-settled and whose test failure can be attributed independently of the others. Each cycle:
+Model the work as a tree of behaviors. A node is one behavior with one predicted test failure. The
+frontier is every node whose prerequisite interfaces and behaviors are settled and whose failure can
+be attributed independently of the others. Each cycle:
 
 ```text
-RED: write one failing test per frontier behavior, each failing for its predicted reason
-GREEN: implement behavior by behavior with the smallest code that passes
+RED: write one failing test per frontier node, each failing for its predicted reason
+GREEN: implement node by node with the smallest code that passes
 REFACTOR: run one pass over the frontier's production and test code
 recompute the frontier and repeat
 ```
 
+A node is settled only after the refactor pass that follows its GREEN. GREEN may reveal new nodes,
+which join the tree; it never settles them.
+
 The frontier's size follows the source of behavior:
 
-- When the design is emerging from the work, the frontier is one behavior: a tracer bullet. Do not
-  treat RED as "write every test" and GREEN as "write all the code"; that produces tests for
-  imagined behavior before the implementation teaches you anything. Each tracer bullet responds to
-  what the previous cycle revealed.
+- When the design is emerging from the work, the frontier is one node: a tracer bullet. Do not treat
+  RED as "write every test" and GREEN as "write all the code"; that produces tests for imagined
+  behavior before the implementation teaches you anything. Each tracer bullet responds to what the
+  previous cycle revealed.
 - When an authoritative behavior source governs the work — a spec with acceptance criteria, or a
   reference implementation and its tests for a port — the frontier is every settled criterion, and
   the work proceeds in rounds. If the source is not already enumerated, inventory its public
@@ -84,27 +75,12 @@ The frontier's size follows the source of behavior:
   difference as you find it.
 
 Split the frontier when part of it fails the bound. When failures could not be attributed
-independently, or when GREEN for a criterion needs an unresolved design decision, resolve that part
-as a serial tracer bullet, or surface it as a user decision when the answer is not derivable from
-the source. Criteria that are silent, ambiguous, or contradictory mark where design work remains;
-keep them out of rounds. Continue the remaining independent work in the round.
+independently, or when GREEN for a node needs an unresolved design decision, resolve that node as a
+serial tracer bullet, or surface it as a user decision when the answer is not derivable from the
+source. Criteria that are silent, ambiguous, or contradictory mark where design work remains; keep
+them out of rounds. Continue the remaining independent work in the round.
 
 ## Discipline checks
-
-Tests written after implementation are useful regression coverage, but they are not TDD. Do not
-claim a behavior followed red-green-refactor unless its test failed for the expected reason before
-the implementation existed.
-
-When implementation code is written before RED during this workflow, stop and recover without
-destroying user work:
-
-- If the untested code is yours, isolated, and cheap to set aside, set it aside or revert it, then
-  write the failing behavior test first.
-- If the code is user-authored, coupled to a coherent implementation, or unsafe to discard, leave it
-  intact and be explicit that the next work is adding characterization or regression coverage, not
-  continuing a pure TDD cycle.
-- Do not adapt the implementation-shaped test to fit code that already exists. Tighten the public
-  behavior expectation first, then change code only to satisfy that expectation.
 
 Watch for rationalizations:
 
@@ -119,6 +95,11 @@ interface is still unsettled, put the first tests at the outermost stable surfac
 endpoint, a file, or an artifact — and let internals move under them. When the code is disposable
 evidence for a design question rather than behavior that will land, stop and recommend an explicit
 invocation of `engineering-workflows:prototype`.
+
+When implementation lands before its test, do not claim a TDD cycle for it. Set the code aside and
+write the failing test first when that is cheap; otherwise keep the coherent implementation, add
+behavior-focused regression coverage, and report the exception. Do not rewrite the test to fit the
+code that exists.
 
 ## Workflow
 

@@ -2,7 +2,8 @@
 
 ## Good tests
 
-**Integration-style**: Test through real interfaces, not mocks of internal parts.
+**Integration-style**: Exercise real code paths through public interfaces and describe what the
+system does. Such tests survive refactors because they do not care about private structure.
 
 ```typescript
 // GOOD: Tests observable behavior
@@ -34,7 +35,12 @@ expect(add(2, 3)).toBe(5);
 Use a known-good literal, worked example, protocol rule, or specification as the independent source
 of truth.
 
-**Implementation-detail tests**: Coupled to internal structure.
+**Framework-guarantee tests**: Re-prove what a library already enforces — unknown keys rejected,
+empty strings rejected. Test your composition of the framework's guarantees, not the guarantees
+themselves; re-proving them adds volume without adding coverage.
+
+**Implementation-detail tests**: Coupled to internal structure — private methods, internal
+collaborators, incidental data shape, or mocks that mirror the current implementation.
 
 ```typescript
 // BAD: Tests implementation details
