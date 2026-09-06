@@ -107,6 +107,9 @@
   an entry to `retired/README.md` naming the date, last shipped plugin version, reason, absorbing
   surfaces, and the event that would justify revisiting, and remove every hand off, README line,
   manifest description, and keyword that named it.
+- A skill whose body and references move into another skill of the same plugin is merged, not
+  retired: its content still ships and git history is its record, so it gets no `retired/` copy or
+  index entry.
 - Nothing under `retired/` ships: no manifest, no marketplace entry, and no linter or trigger-eval
   run covers it.
 
