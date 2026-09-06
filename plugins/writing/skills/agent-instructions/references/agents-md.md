@@ -45,8 +45,8 @@ governs, which conventions override it, or which of its options this repository 
 ## Terminology sections
 
 When a terminology section needs term, alias, or relationship changes: if the
-`engineering-workflows:terminology` skill is available, use it for those changes; otherwise leave
-the section's entries unchanged and report proposed terminology changes instead of applying them. A
+`engineering:terminology` skill is available, use it for those changes; otherwise leave the
+section's entries unchanged and report proposed terminology changes instead of applying them. A
 terminology section's presence usually means that workflow generated it and owns its format.
 
 ## A default shape

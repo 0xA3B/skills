@@ -29,10 +29,10 @@
       "category": "Productivity"
     },
     {
-      "name": "engineering-workflows",
+      "name": "engineering",
       "source": {
         "source": "local",
-        "path": "./plugins/engineering-workflows"
+        "path": "./plugins/engineering"
       },
       "policy": {
         "installation": "AVAILABLE",

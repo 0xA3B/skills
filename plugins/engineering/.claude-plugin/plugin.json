@@ -1,0 +1,24 @@
+{
+  "name": "engineering",
+  "displayName": "Engineering",
+  "version": "2.0.0",
+  "description": "Engineering workflow skills for decision mapping, adversarial design review, dependency maintenance, durable terminology, prototyping, TDD, diagnosis, architecture, code review, and handoffs.",
+  "author": {
+    "name": "Alex Baker"
+  },
+  "homepage": "https://github.com/0xA3B/skills/blob/main/plugins/engineering/README.md",
+  "repository": "https://github.com/0xA3B/skills",
+  "license": "MIT",
+  "keywords": [
+    "engineering",
+    "dependencies",
+    "debugging",
+    "prototyping",
+    "tdd",
+    "architecture",
+    "review",
+    "planning",
+    "handoff",
+    "terminology"
+  ]
+}

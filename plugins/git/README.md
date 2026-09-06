@@ -5,8 +5,8 @@
 These skills create Conventional Commits and drive GitHub or GitLab change requests from operational
 preparation through automated review and verified merge cleanup.
 
-`address-pr-feedback` requires the `engineering-workflows` plugin so it can apply
-`engineering-workflows:receiving-feedback`.
+`address-pr-feedback` requires the `engineering` plugin so it can apply
+`engineering:receiving-feedback`.
 
 An agent can invoke `commit` and `create-pr` implicitly. The feedback and merge skills are
 manual-only; each stops at an explicit hand off instead of chaining into the next workflow.

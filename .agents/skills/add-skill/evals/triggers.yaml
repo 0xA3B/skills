@@ -2,7 +2,7 @@ version: 1
 cases:
   - id: add-skill-to-existing-plugin
     prompt: >-
-      Add a new skill named smoke-test to the engineering-workflows plugin.
+      Add a new skill named smoke-test to the engineering plugin.
     expect: invoke
     rationale: The user asks to add a new skill under an existing plugin in this repo.
 
@@ -14,13 +14,13 @@ cases:
 
   - id: add-reusable-capability
     prompt: >-
-      Create a reusable code-review-checklist skill in the engineering-workflows plugin.
+      Create a reusable code-review-checklist skill in the engineering plugin.
     expect: invoke
     rationale: The user is asking for a new plugin skill, even without saying "add-skill".
 
   - id: skill-creation-workflow-request
     prompt: >-
-      Use the repo's skill-creation workflow to add a new skill to engineering-workflows.
+      Use the repo's skill-creation workflow to add a new skill to engineering.
     expect: invoke
     rationale: The skill owns the repo's skill-creation workflow for plugin skills.
 
@@ -32,13 +32,13 @@ cases:
 
   - id: update-existing-skill
     prompt: >-
-      Update the tdd skill instructions in engineering-workflows.
+      Update the tdd skill instructions in engineering.
     expect: skip
     rationale: The user is modifying an existing skill, not adding a new one.
 
   - id: update-plugin-metadata
     prompt: >-
-      Which repo workflow should update default prompts for the engineering-workflows plugin?
+      Which repo workflow should update default prompts for the engineering plugin?
     expect: skip
     rationale: Metadata updates belong to update-plugin-metadata.
 

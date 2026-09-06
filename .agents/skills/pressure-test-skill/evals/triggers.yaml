@@ -22,7 +22,7 @@ cases:
 
   - id: trigger-eval-request
     prompt: >-
-      Which repo workflow should evaluate when the visualize skill gets implicitly invoked?
+      Which repo workflow should evaluate when the tdd skill gets implicitly invoked?
     expect: skip
     rationale: Implicit invocation boundaries belong to optimize-trigger, not pressure testing.
 
@@ -34,7 +34,7 @@ cases:
 
   - id: add-skill-request
     prompt: >-
-      Add a new smoke-test skill to the engineering-workflows plugin.
+      Add a new smoke-test skill to the engineering plugin.
     expect: skip
     rationale: Creating a new plugin skill belongs to add-skill.
 

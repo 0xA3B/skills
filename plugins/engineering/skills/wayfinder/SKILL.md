@@ -1,0 +1,115 @@
+---
+name: wayfinder
+description: >-
+  Turn a loose or oversized idea into a breadth-first map of its destination, known facts, open
+  decisions, decision-sized chunks, dependencies, frontier, unresolved fog, and excluded scope. Use
+  when the user wants to brainstorm, scope a large effort, decompose an unclear goal, or find the
+  next decisions before deeper planning or implementation.
+license: MIT
+metadata:
+  original_author: Matt Pocock
+  original_source: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/engineering/wayfinder
+  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
+  upstream_divergence: tracker-neutral; upstream issue-ticket mechanics adapt into the decision map
+disable-model-invocation: true
+argument-hint: "[idea]"
+---
+
+# Wayfinder
+
+Wayfind through a loose idea before committing to an approach. Work breadth-first: chart the
+decision space and the first actionable frontier without resolving every branch.
+
+## Outcome
+
+Produce a tracker-neutral decision map, in the shape the Output section defines, that makes a large
+effort navigable without turning planning into implementation.
+
+## Allowed side effects
+
+- Inspect repository code, docs, tests, history, issues, and local artifacts.
+- Research current external sources when packages, APIs, ecosystem behavior, pricing, product
+  behavior, or examples affect the map.
+- Create no durable artifacts, project docs, issues, specs, branches, or implementation changes.
+- Keep scratch notes temporary and do not present them as project state.
+
+## Chart the map
+
+### 1. Name the destination
+
+State what reaching the end of this effort means in one or two sentences. Separate the destination
+from attractive follow-on work; the destination defines the scope boundary.
+
+If the destination is still a user decision, ask one focused question and provide a recommendation.
+If the destination is a fact discoverable from the environment, inspect instead of asking.
+
+### 2. Establish the known ground
+
+Gather only enough evidence to map the space:
+
+- facts already established by the repository, tools, or current sources;
+- decisions the user has already made;
+- constraints and dependencies that shape later decisions;
+- explicit rejected or out-of-scope paths.
+
+Challenge vague domain terms. Use concrete edge cases when a relationship, state transition, or
+ownership boundary is unclear, and verify important claims against code.
+
+### 3. Map breadth-first
+
+Fan out across the effort before going deep on one path. Create decision-sized chunks, each small
+enough for one future focused session. Each chunk should name the question or outcome it resolves,
+not prescribe a premature implementation.
+
+Classify each visible chunk by the workflow the user should invoke next. Recommend each skill named
+below instead of invoking it from this workflow; mapping stops before implementation:
+
+- research, with no skill, for an external or repository fact;
+- `engineering:grill-me` for a user-owned decision;
+- `engineering:prototype` for executable evidence;
+- `engineering:tdd` only when the shape is already clear enough to implement;
+- a manual prerequisite when access, setup, or human action blocks a later decision.
+
+Research chunks are the exception to leaving chunks unresolved: when a chunk is purely a missing
+fact — no user decision to make and no artifact beyond the finding — resolve it during mapping with
+read-only research subagents, run in parallel when the agent supports subagents, and fold each
+finding into the known ground instead of leaving the chunk on the map. Keep a research chunk on the
+map only when the fact is unreachable this session, such as missing access, credentials, or a person
+to ask.
+
+Record dependencies between chunks. The **frontier** is the set of chunks that are precise,
+unblocked, and useful to start next.
+
+### 4. Preserve the fog
+
+Put in-scope questions that cannot yet be stated precisely under **Not yet specified**. Do not
+manufacture detailed chunks for work whose shape depends on unresolved decisions.
+
+Keep deliberately excluded work under **Out of scope**. Fog may become actionable later; excluded
+scope does not return unless the destination changes.
+
+### 5. Stop at the map
+
+Leave mapped chunks unresolved, apart from research chunks resolved during mapping; resolving any
+other chunk belongs to the workflow it is classified under. If the entire effort is already clear
+and small enough for one session, say that a map is unnecessary and recommend the next explicit
+workflow instead.
+
+## Output
+
+End with:
+
+- **Destination**
+- **Known ground**: established facts, decisions already made, and constraints
+- **Frontier**: actionable chunks, dependencies, and recommended next workflow
+- **Blocked chunks**
+- **Not yet specified**
+- **Out of scope**
+- **Evidence gathered**
+- **Recommended next action**
+
+When the map should survive into another session, recommend an explicit invocation of
+`engineering:handoff` and include the focus it should preserve.
+
+Stop when the breadth of the effort is visible, the frontier is actionable, and remaining fog is
+named without being prematurely sliced.

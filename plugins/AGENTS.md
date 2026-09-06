@@ -82,8 +82,8 @@
   form. The namespaced form `plugin-name:skill-name` may inform judgment, but when the two readings
   conflict, the stand-alone reading wins.
 - Default workflow skills the user runs as a command to an imperative verb phrase (`commit`,
-  `visualize`, `diagnose`). Compact workflow names (`handoff`, `wayfinder`) are acceptable when they
-  cannot be read as a background discipline.
+  `diagnose`). Compact workflow names (`handoff`, `wayfinder`) are acceptable when they cannot be
+  read as a background discipline.
 - Name discipline skills for the artifact class or practice they govern (`agent-instructions`,
   `receiving-feedback`), whatever their invocation posture. Invocation posture is declared in
   frontmatter, not encoded in the name; a discipline skill may be user-invocable when explicit

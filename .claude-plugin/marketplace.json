@@ -14,8 +14,8 @@
       "source": "./plugins/git"
     },
     {
-      "name": "engineering-workflows",
-      "source": "./plugins/engineering-workflows"
+      "name": "engineering",
+      "source": "./plugins/engineering"
     },
     {
       "name": "writing",

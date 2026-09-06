@@ -2,7 +2,7 @@ version: 1
 cases:
   - id: tune-trigger-request
     prompt: >-
-      Optimize when the visualize skill gets implicitly triggered; it fires too often on plain chart
+      Optimize when the tdd skill gets implicitly triggered; it fires too often on plain refactor
       requests.
     expect: invoke
     rationale: The user explicitly asks to tune a skill's implicit trigger behavior.
@@ -34,12 +34,12 @@ cases:
 
   - id: add-skill-request
     prompt: >-
-      Add a new smoke-test skill to the engineering-workflows plugin.
+      Add a new smoke-test skill to the engineering plugin.
     expect: skip
     rationale: Creating a new plugin skill belongs to add-skill.
 
   - id: output-quality-request
     prompt: >-
-      Improve the quality of the diagrams the visualize skill produces.
+      Improve the quality of the tests the tdd skill produces.
     expect: skip
     rationale: Output quality after invocation is out of scope; this workflow tunes triggers only.
