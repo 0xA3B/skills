@@ -2,7 +2,7 @@ version: 1
 cases:
   - id: version-bump-request
     prompt: >-
-      Bump the engineering-workflows plugin version for the skill we just added.
+      Bump the engineering plugin version for the skill we just added.
     expect: invoke
     rationale: Plugin version changes are metadata updates owned by this workflow.
 
@@ -14,14 +14,14 @@ cases:
 
   - id: default-prompt-update
     prompt: >-
-      Revise the default prompts shown for the engineering-workflows plugin so they highlight the
-      review skills.
+      Revise the default prompts shown for the engineering plugin so they highlight the review
+      skills.
     expect: invoke
     rationale: Plugin default prompts are a metadata surface owned by this workflow.
 
   - id: add-skill-request
     prompt: >-
-      Add a new smoke-test skill to the engineering-workflows plugin.
+      Add a new smoke-test skill to the engineering plugin.
     expect: skip
     rationale: Adding a new skill body belongs to add-skill.
 

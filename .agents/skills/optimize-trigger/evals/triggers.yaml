@@ -34,7 +34,7 @@ cases:
 
   - id: add-skill-request
     prompt: >-
-      Add a new smoke-test skill to the engineering-workflows plugin.
+      Add a new smoke-test skill to the engineering plugin.
     expect: skip
     rationale: Creating a new plugin skill belongs to add-skill.
 

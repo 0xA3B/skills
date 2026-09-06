@@ -32,11 +32,11 @@ Do not call an exception, timeout, or stale approval green.
 
 ## Required feedback discipline
 
-Before triage, confirm `engineering-workflows:receiving-feedback` is available. If it is absent,
-stop and report that the `engineering-workflows` plugin must be installed or enabled.
+Before triage, confirm `engineering:receiving-feedback` is available. If it is absent, stop and
+report that the `engineering` plugin must be installed or enabled.
 
-Apply `engineering-workflows:receiving-feedback` to every finding. This invocation permits fixing
-only the low-risk findings that discipline marks `auto-accepted`; gate everything else.
+Apply `engineering:receiving-feedback` to every finding. This invocation permits fixing only the
+low-risk findings that discipline marks `auto-accepted`; gate everything else.
 
 ## Authority and boundaries
 
@@ -118,7 +118,7 @@ alone.
 
 For each new finding:
 
-1. apply `engineering-workflows:receiving-feedback`;
+1. apply `engineering:receiving-feedback`;
 2. classify it using that skill's status taxonomy;
 3. implement only accepted work within granted authority;
 4. validate the smallest coherent fix;

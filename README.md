@@ -37,7 +37,7 @@ Then install the plugins that you want:
 ```text
 /plugin install codex-in-claude@0xa3b-marketplace
 /plugin install git@0xa3b-marketplace
-/plugin install engineering-workflows@0xa3b-marketplace
+/plugin install engineering@0xa3b-marketplace
 /plugin install writing@0xa3b-marketplace
 /plugin install meta@0xa3b-marketplace
 ```
@@ -81,7 +81,7 @@ fixes. It also ships a `codex` subagent that delegates tasks to Codex.
 These skills create Conventional Commits and drive GitHub or GitLab change requests from operational
 preparation through automated review and verified merge cleanup.
 
-`address-pr-feedback` requires the `engineering-workflows` plugin so it can apply the shared
+`address-pr-feedback` requires the `engineering` plugin so it can apply the shared
 `receiving-feedback` discipline.
 
 - [`git:commit`](./plugins/git/skills/commit/): Reviews current changes, stages logical units, and
@@ -93,7 +93,7 @@ preparation through automated review and verified merge cleanup.
 - [`git:merge-pr`](./plugins/git/skills/merge-pr/): Verifies merge gates, merges synchronously, and
   cleans up verified local and remote branch state.
 
-### `engineering-workflows`
+### `engineering`
 
 These skills cover the engineering loop from decision mapping and design review through
 implementation, diagnosis, code review, and session handoff. Some skills come from Matt Pocock's
@@ -109,34 +109,34 @@ those fixes invalidated; `tdd` applies it at completion. `codebase-design` provi
 background discipline. Use `handoff` when another agent session should continue from an ignored
 local context document.
 
-- [`engineering-workflows:codebase-design`](./plugins/engineering-workflows/skills/codebase-design/):
-  Applies shared deep-module and interface-design discipline.
-- [`engineering-workflows:dependency-maintenance`](./plugins/engineering-workflows/skills/dependency-maintenance/):
+- [`engineering:codebase-design`](./plugins/engineering/skills/codebase-design/): Applies shared
+  deep-module and interface-design discipline.
+- [`engineering:dependency-maintenance`](./plugins/engineering/skills/dependency-maintenance/):
   Reviews dependency update PRs, merges ready ones, syncs local state, refreshes repo-pinned
   tooling, and files linked follow-up issues.
-- [`engineering-workflows:diagnose`](./plugins/engineering-workflows/skills/diagnose/): Runs a
-  disciplined diagnosis loop for bugs, flaky behavior, and performance regressions.
-- [`engineering-workflows:grill-me`](./plugins/engineering-workflows/skills/grill-me/): Stress-tests
-  a plan, decision, idea, or design through adversarial questioning.
-- [`engineering-workflows:handoff`](./plugins/engineering-workflows/skills/handoff/): Saves a
-  compact local continuation document for another agent session.
-- [`engineering-workflows:improve-codebase-architecture`](./plugins/engineering-workflows/skills/improve-codebase-architecture/):
+- [`engineering:diagnose`](./plugins/engineering/skills/diagnose/): Runs a disciplined diagnosis
+  loop for bugs, flaky behavior, and performance regressions.
+- [`engineering:grill-me`](./plugins/engineering/skills/grill-me/): Stress-tests a plan, decision,
+  idea, or design through adversarial questioning.
+- [`engineering:handoff`](./plugins/engineering/skills/handoff/): Saves a compact local continuation
+  document for another agent session.
+- [`engineering:improve-codebase-architecture`](./plugins/engineering/skills/improve-codebase-architecture/):
   Finds focused, evidence-backed module deepening opportunities.
-- [`engineering-workflows:improve-codebase-tests`](./plugins/engineering-workflows/skills/improve-codebase-tests/):
+- [`engineering:improve-codebase-tests`](./plugins/engineering/skills/improve-codebase-tests/):
   Finds evidence-backed test-suite improvement opportunities.
-- [`engineering-workflows:prototype`](./plugins/engineering-workflows/skills/prototype/): Creates
-  disposable exploratory code to answer a design question.
-- [`engineering-workflows:review-changes`](./plugins/engineering-workflows/skills/review-changes/):
-  Reviews changes authored in the current session through focused lanes, fixes accepted findings,
-  and reruns invalidated lanes.
-- [`engineering-workflows:receiving-feedback`](./plugins/engineering-workflows/skills/receiving-feedback/):
-  Triages and responds to existing review feedback.
-- [`engineering-workflows:tdd`](./plugins/engineering-workflows/skills/tdd/): Builds features or
-  fixes with a red-green-refactor loop.
-- [`engineering-workflows:terminology`](./plugins/engineering-workflows/skills/terminology/):
-  Creates, updates, or reviews durable project terminology.
-- [`engineering-workflows:wayfinder`](./plugins/engineering-workflows/skills/wayfinder/): Maps a
-  loose idea into decisions, dependencies, frontier, fog, and excluded scope.
+- [`engineering:prototype`](./plugins/engineering/skills/prototype/): Creates disposable exploratory
+  code to answer a design question.
+- [`engineering:review-changes`](./plugins/engineering/skills/review-changes/): Reviews changes
+  authored in the current session through focused lanes, fixes accepted findings, and reruns
+  invalidated lanes.
+- [`engineering:receiving-feedback`](./plugins/engineering/skills/receiving-feedback/): Triages and
+  responds to existing review feedback.
+- [`engineering:tdd`](./plugins/engineering/skills/tdd/): Builds features or fixes with a
+  red-green-refactor loop.
+- [`engineering:terminology`](./plugins/engineering/skills/terminology/): Creates, updates, or
+  reviews durable project terminology.
+- [`engineering:wayfinder`](./plugins/engineering/skills/wayfinder/): Maps a loose idea into
+  decisions, dependencies, frontier, fog, and excluded scope.
 
 ### `meta`
 
