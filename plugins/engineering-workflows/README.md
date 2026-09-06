@@ -14,8 +14,8 @@ completion. Use `handoff` when another agent session should continue the work fr
 context document.
 
 `codebase-design` is a shared background discipline consumed by the user-facing workflows.
-`terminology`, `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`,
-`dependency-maintenance`, and `visualize` remain focused workflows for their respective concerns.
+`terminology`, `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`, and
+`dependency-maintenance` remain focused workflows for their respective concerns.
 
 On Claude Code, the bundled `code-review` skill competes with `review-changes` for generic review
 prompts. To keep the bundled skill typable as `/code-review` but stop its implicit invocation, set
@@ -49,7 +49,5 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
   focused lanes, fix accepted findings, and rerun invalidated lanes.
 - `engineering-workflows:tdd`: Build features or fixes with a red-green-refactor loop.
 - `engineering-workflows:terminology`: Create, update, or review durable project terminology.
-- `engineering-workflows:visualize`: Create a temporary visual report, diagram, or presentation
-  artifact from the current session.
 - `engineering-workflows:wayfinder`: Map a loose idea into decisions, dependencies, frontier, fog,
   and excluded scope.

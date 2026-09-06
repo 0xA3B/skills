@@ -1,7 +1,7 @@
 {
   "name": "engineering-workflows",
-  "version": "1.9.0",
-  "description": "Engineering workflow skills for decision mapping, adversarial design review, dependency maintenance, durable terminology, prototyping, TDD, diagnosis, architecture, code review, handoffs, and visual artifacts.",
+  "version": "1.10.0",
+  "description": "Engineering workflow skills for decision mapping, adversarial design review, dependency maintenance, durable terminology, prototyping, TDD, diagnosis, architecture, code review, and handoffs.",
   "author": {
     "name": "Alex Baker"
   },
@@ -17,14 +17,13 @@
     "review",
     "planning",
     "handoff",
-    "visualization",
     "terminology"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Engineering Workflows",
-    "shortDescription": "Map, stress-test, implement, diagnose, review, hand off, and visualize work.",
-    "longDescription": "Workflow skills for breadth-first decision mapping, adversarial design review, dependency maintenance, durable terminology, shared codebase design, disposable prototyping, test-driven implementation, disciplined debugging, scoped review lanes, feedback triage, local session handoffs, and temporary visual artifacts. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
+    "shortDescription": "Map, stress-test, implement, diagnose, review, and hand off work.",
+    "longDescription": "Workflow skills for breadth-first decision mapping, adversarial design review, dependency maintenance, durable terminology, shared codebase design, disposable prototyping, test-driven implementation, disciplined debugging, scoped review lanes, feedback triage, and local session handoffs. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
     "developerName": "Alex Baker",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
@@ -32,8 +31,7 @@
     "logo": "./assets/logo.png",
     "defaultPrompt": [
       "Use $engineering-workflows:grill-me to stress-test this approach through adversarial questioning.",
-      "Use $engineering-workflows:improve-codebase-architecture to review this codebase architecture.",
-      "Use $engineering-workflows:visualize to turn this session into a visual report."
+      "Use $engineering-workflows:improve-codebase-architecture to review this codebase architecture."
     ]
   }
 }

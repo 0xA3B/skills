@@ -135,8 +135,6 @@ local context document.
   fixes with a red-green-refactor loop.
 - [`engineering-workflows:terminology`](./plugins/engineering-workflows/skills/terminology/):
   Creates, updates, or reviews durable project terminology.
-- [`engineering-workflows:visualize`](./plugins/engineering-workflows/skills/visualize/): Creates a
-  temporary visual report, diagram, or presentation artifact from the current session.
 - [`engineering-workflows:wayfinder`](./plugins/engineering-workflows/skills/wayfinder/): Maps a
   loose idea into decisions, dependencies, frontier, fog, and excluded scope.
 

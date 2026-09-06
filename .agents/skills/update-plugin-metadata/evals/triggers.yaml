@@ -39,6 +39,6 @@ cases:
 
   - id: trigger-tuning-request
     prompt: >-
-      The visualize skill triggers too often; tune its description so it stops over-firing.
+      The tdd skill triggers too often; tune its description so it stops over-firing.
     expect: skip
     rationale: Skill descriptions as trigger contracts belong to optimize-trigger.
