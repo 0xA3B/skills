@@ -83,7 +83,7 @@ implementation.
 | **Plugin skill**             | A shipped skill under `plugins/<plugin>/skills/<skill>/`.                                                                                                                                                     | repo-local skill          |
 | **Plugin version**           | The version kept in lockstep across a plugin's manifests, used for install, cache, and compatibility decisions.                                                                                               | package version           |
 | **Repo-local skill**         | A maintenance workflow under `.agents/skills/` used only while working in this checkout.                                                                                                                      | plugin skill              |
-| **Retired skill**            | A skill removed from every plugin and kept unchanged under `retired/<plugin>/<skill>/` with an index entry, for later review; it ships nowhere and no agent loads it.                                         | deprecated skill, archive |
+| **Retired skill**            | A skill removed from every plugin and kept unchanged under `retired/<plugin>/<skill>/` with an index entry, for later review.                                                                                 | deprecated skill, archive |
 | **Skill body**               | `SKILL.md`, the runtime instructions and frontmatter for a skill.                                                                                                                                             | metadata, prompt metadata |
 | **Codex UI metadata**        | `agents/openai.yaml`, the skill-level display metadata and invocation policy for Codex.                                                                                                                       | skill frontmatter         |
 | **Invocation policy**        | The paired settings deciding whether an agent may load a skill automatically: `allow_implicit_invocation` (Codex, `agents/openai.yaml`) and `disable-model-invocation` (Claude Code, `SKILL.md` frontmatter). | trigger policy            |
@@ -117,8 +117,7 @@ Relationships:
   skills**.
 - A **Plugin skill** owns one **Skill body**, plus one **Codex UI metadata** file when the plugin
   targets Codex.
-- A **Plugin skill** becomes a **Retired skill** when it leaves its **Plugin**; the move is a
-  **Plugin version** minor bump.
+- A **Plugin skill** becomes a **Retired skill** when it leaves its **Plugin**.
 - A **Trigger eval** runs **Trigger fixtures** against one implicitly invokable **Plugin skill** or
   **Repo-local skill** on one agent; **Trigger fixtures** are shared across agents.
 - A **Trigger eval** executes through exactly one **Eval lane**, the adapter for the selected agent.

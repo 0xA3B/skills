@@ -104,8 +104,8 @@ The typical implementation flow starts with `wayfinder`, which maps a loose idea
 chunks. `grill-me` resolves a selected direction, and `prototype` answers questions that need
 executable evidence. `tdd` implements observable behavior through a red-green-refactor loop over a
 frontier of behaviors, and loads on its own for implementation requests. `review-changes` reviews
-changes the session authored through independent lanes, fixes accepted findings, and reruns the
-lanes those fixes invalidated; `tdd` applies it at completion. `codebase-design` provides shared
+changes the session authored through focused lanes, fixes accepted findings, and reruns the lanes
+those fixes invalidated; `tdd` applies it at completion. `codebase-design` provides shared
 background discipline. Use `handoff` when another agent session should continue from an ignored
 local context document.
 

@@ -148,10 +148,11 @@ regeneration failure to the updater, confirm the selected artifacts exist and us
 for the cooldown.
 
 A classification is bound to the head and base it was made against. Any changed head or moved base,
-whether from a merge, an updater rebase, an updater repair, or a closure, invalidates the
-classification whether or not the PR is about to merge: classify the new head again from its
-effective diff against the current base, since PR bodies and earlier release-note scope may be
-stale, then refresh the PR's labels, comments, and linked issues to match.
+whether from a merge, an updater rebase, or an updater repair, invalidates the classification
+whether or not the PR is about to merge: classify the new head again from its effective diff against
+the current base, since PR bodies and earlier release-note scope may be stale, then refresh the PR's
+labels, comments, and linked issues to match. When a blocker fix merges or a linked investigation
+issue closes during the pass, reclassify each PR it covered.
 
 Updater bots act asynchronously. If the base moved and the updater has not produced a new head,
 request the refresh through the updater's own controls rather than updating the branch by hand, then
@@ -239,14 +240,13 @@ cover:
   classify blocked PRs.
 
 Judge each newer release against repository policy and against the artifacts it would select (step
-4), then sort it into one of three states:
+4), then sort it into the first matching state:
 
-- Actionable: policy permits selecting the release now. Refresh it in this pass.
+- Routed to manual ownership: policy assigns the tool or version class to manual work. An ownership
+  assignment is not a deferral; the follow-up issue rule below applies.
 - Deferred by time: a cooldown or schedule window blocks the release. Report it as deferred and
   create no maintenance PR, exception, or follow-up issue unless it is an urgent security fix.
-- Routed to manual ownership: policy excludes the tool or version class from the updater and assigns
-  it to manual work. An ownership assignment is not a deferral: create the follow-up issue described
-  below unless an open issue already covers the release.
+- Actionable: policy permits selecting the release now. Refresh it in this pass.
 
 Do this work after dependency PR decisions and merges are complete, keep it in a separate
 local-change phase, and validate it through the repository's canonical install and check workflow.
@@ -261,8 +261,9 @@ local validation, PR creation, checks, or merge permissions fail, leave the PR o
 durable blocker context instead of forcing the change through another path.
 
 If an update would require migration, policy changes, major runtime changes, or unrelated source
-edits, create a follow-up issue with the current version, available version, ownership surface,
-reason to update, and suggested validation instead of broadening the maintenance PR.
+edits, or policy routes it to manual ownership, and no open issue already covers the release, create
+a follow-up issue with the current version, available version, ownership surface, reason to update,
+and suggested validation instead of broadening the maintenance PR.
 
 ## Final report
 

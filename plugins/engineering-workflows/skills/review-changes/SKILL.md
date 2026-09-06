@@ -36,8 +36,7 @@ user names a path, a lane, or a narrower target, review only that target.
 
 If the session authored nothing, say so and ask for a specific commit range. If the target is work
 this session did not author, such as another person's branch, PR, or MR, stop and say so: the
-autonomous triage below relies on the authoring context, and reviewing unauthored work is a separate
-workflow.
+autonomous triage below relies on the authoring context.
 
 ## Review depth
 
@@ -147,13 +146,12 @@ the code does not exclude — at reduced confidence instead of dropping it. Drop
 the code refutes it: cite the line, invariant, or guard that makes the failure impossible.
 
 Report no findings when the lane passes. Do not invent low-value style comments to justify a lane.
-Normalize the returned lanes and merge duplicates that share a mechanism or fix without erasing
-their distinct evidence sources.
 
 ## Triage and fixes
 
-Apply `engineering-workflows:receiving-feedback` to the merged findings: verify before accepting,
-and classify each with its status taxonomy.
+Apply `engineering-workflows:receiving-feedback` to the returned findings: merge findings that
+converge across lanes by its triage rules, verify before accepting, and classify each with its
+status taxonomy.
 
 The session's authoring context is triage context: judge findings against the decisions and
 constraints from the development session, and triage autonomously instead of replaying findings to

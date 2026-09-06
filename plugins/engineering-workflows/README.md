@@ -8,7 +8,7 @@ The typical implementation flow starts with `wayfinder`, which maps a loose or o
 decision-sized chunks. `grill-me` resolves a selected direction through adversarial questioning, and
 `prototype` answers questions that need disposable executable evidence. `tdd` implements observable
 behavior through a red-green-refactor loop over a frontier of behaviors, and loads on its own for
-implementation requests. `review-changes` reviews changes the session authored through independent
+implementation requests. `review-changes` reviews changes the session authored through focused
 lanes, fixes accepted findings, and reruns the lanes those fixes invalidated; `tdd` applies it at
 completion. Use `handoff` when another agent session should continue the work from an ignored local
 context document.

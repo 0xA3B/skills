@@ -71,5 +71,5 @@ Stop when the recommendation states, in writing: interface knowledge, seam place
 behavior, dependency strategy, test surface, and the event that would trigger reconsidering it, such
 as another caller, another production adapter, a new dependency category, or repeated conditional
 routing. When the design holds durable state, also state which module owns each piece of state, its
-lifecycle transitions, and its invariants, or the coordination contract when ownership is shared. A
-small decision states the relevant subset.
+lifecycle transitions, and its invariants, or the coordination contract when ownership is shared.
+Omit an item only when it does not apply to the decision, and say which.

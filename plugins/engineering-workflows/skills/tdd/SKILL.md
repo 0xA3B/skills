@@ -69,16 +69,16 @@ The frontier's size follows the source of behavior:
   behavior before the implementation teaches you anything. Each tracer bullet responds to what the
   previous cycle revealed.
 - When an authoritative behavior source governs the work — a spec with acceptance criteria, or a
-  reference implementation and its tests for a port — the frontier is every settled criterion, and
-  the work proceeds in rounds. If the source is not already enumerated, inventory its public
-  behaviors, diagnostics, and tests first so the frontier is computable, and record each intentional
-  difference as you find it.
+  reference implementation and its tests for a port — the frontier is every criterion whose
+  prerequisites are settled, and the work proceeds in rounds. If the source is not already
+  enumerated, inventory its public behaviors, diagnostics, and tests first so the frontier is
+  computable, and record each intentional difference as you find it.
 
-Split the frontier when part of it fails the bound. When failures could not be attributed
-independently, or when GREEN for a node needs an unresolved design decision, resolve that node as a
-serial tracer bullet, or surface it as a user decision when the answer is not derivable from the
-source. Criteria that are silent, ambiguous, or contradictory mark where design work remains; keep
-them out of rounds. Continue the remaining independent work in the round.
+When a node's failure cannot be attributed independently, or its GREEN needs an unresolved design
+decision, take the node out of the round and resolve it as a serial tracer bullet, or surface it as
+a user decision when the answer is not derivable from the source. Criteria that are silent,
+ambiguous, or contradictory mark where design work remains; keep them out of rounds. Continue the
+remaining independent work in the round.
 
 ## Discipline checks
 
@@ -96,10 +96,9 @@ endpoint, a file, or an artifact — and let internals move under them. When the
 evidence for a design question rather than behavior that will land, stop and recommend an explicit
 invocation of `engineering-workflows:prototype`.
 
-When implementation lands before its test, do not claim a TDD cycle for it. Set the code aside and
-write the failing test first when that is cheap; otherwise keep the coherent implementation, add
-behavior-focused regression coverage, and report the exception. Do not rewrite the test to fit the
-code that exists.
+When implementation lands before its test, do not claim a TDD cycle for it. If the code is yours and
+uncommitted, set it aside and write the failing test first. Otherwise keep it, add behavior-focused
+regression coverage, and report the exception. Do not rewrite the test to fit the code that exists.
 
 ## Workflow
 
@@ -172,8 +171,8 @@ the completion report and recommend an explicit `engineering-workflows:improve-c
 invocation.
 
 The refactor pass is complete when the frontier's production code and test code have each been
-considered and either changed or recorded as needing no change, and the suite is green. Do not start
-the next RED before then.
+reviewed and either changed or left unchanged with the reason noted for the completion report, and
+the suite is green. Do not start the next RED before then.
 
 ### 5. Repeat
 
@@ -201,9 +200,8 @@ When the requested behavior is implemented:
   not evidence of spec conformance.
 
 Then apply `engineering-workflows:review-changes` over the session's changes. Pass the spec or
-reference source as the intent source when one exists, so the spec-adherence and test-review lanes
-select.
+reference source as the intent source when one exists, so the spec-adherence lane selects.
 
-Stop when the requested behavior is implemented and validation passes, or when the next frontier is
-blocked by an ambiguous interface, missing dependency, or failing project setup that cannot be
-resolved from local evidence.
+Stop when review-changes has run over the session's changes and validation passes, or when the next
+frontier is blocked by an ambiguous interface, missing dependency, or failing project setup that
+cannot be resolved from local evidence.

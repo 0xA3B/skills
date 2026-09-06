@@ -40,5 +40,6 @@ Each design must include:
 ## Compare
 
 Present the designs distinctly, then recommend one, a specific hybrid, or the current design when
-the change-cost principle in `SKILL.md` favors it. Prefer the interface that gives callers the most
-leverage with the least knowledge while keeping change local and the seam realistic to test.
+the principles in `SKILL.md` do not justify a structural change. Prefer the interface that gives
+callers the most leverage with the least knowledge while keeping change local and the seam realistic
+to test.

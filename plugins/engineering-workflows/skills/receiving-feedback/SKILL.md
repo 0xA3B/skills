@@ -27,13 +27,14 @@ Classify each feedback item before acting:
 - `gated`: valid or plausible, but the remedy needs a user decision. Gate a fix that changes
   intended behavior, a public interface, a data model, a migration, a dependency, security policy,
   broad architecture, or prior user direction, that falls outside the requested scope, or whose
-  remedy adds new behavior (see the evaluation sequence).
+  remedy adds new behavior (see Evaluate each item).
 - `deferred`: valid but outside current scope or not worth fixing now.
 - `rejected`: invalid, duplicate, already addressed, or based on wrong context.
 
 ## Evaluate each item
 
-Classify an item `accepted` only when all three steps hold:
+Run the three steps in order on every item, stopping at the first step that assigns a status, and
+classify an item `accepted` or `auto-accepted` only when all three hold:
 
 1. Confirm the reported behavior or mechanism exists in the repository or runtime.
 2. Identify the authoritative contract, requirement, or prior decision that makes the behavior

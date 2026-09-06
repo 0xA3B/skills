@@ -26,7 +26,9 @@ the contract — or intended to grow, such as plugins, migrations, handlers, fix
 configuration documents. For a collection intended to grow, ask whether adding one valid member
 would fail the test without changing existing behavior; report the test when it would and membership
 itself is not the behavior under test. Recommend testing the discovery and validation rules through
-representative examples instead.
+representative examples instead. This paragraph restates the collection-membership rule in the tdd
+skill's `references/tests.md` because an isolated lane reviewer cannot load that skill; change both
+together.
 
 Require expected values from an independent authority such as a known-good literal, worked example,
 protocol rule, or specification. Do not demand tests for every line or private branch; prioritize
