@@ -4,13 +4,14 @@ description: >-
   Use when creating, editing, tightening, or reviewing files that instruct agents — CLAUDE.md,
   AGENTS.md, SKILL.md, agent definition files, or system-prompt fragments — including reviewing a
   diff to such a file for instruction quality, and before writing the prompt that dispatches a
-  sub-agent or delegated task. Provides a house style for unambiguous, auditable instructions, the
-  document mechanics for structure, disclosure, completion criteria, and pruning, and guidance for
-  one-shot sub-agent prompts. Do not use for technical artifacts such as READMEs or documentation
-  (technical-writing); for code comments, commit messages, or chat responses; for maintaining a
-  terminology section's terms, aliases, or relationships; for conceptual questions about instruction
-  files; or for implementation requests the session codes directly, even when the program is an
-  agent; delegating implementation to a sub-agent falls under the dispatch trigger.
+  sub-agent or delegated task. Provides the house style for unambiguous, auditable instructions, the
+  document mechanics, and guidance for one-shot sub-agent prompts. Do not use as the entry point for
+  reviewing a session's own changes before a commit or PR, which a review workflow owns and applies
+  this skill inside; for technical artifacts such as READMEs or documentation (technical-writing);
+  for code comments, commit messages, or chat responses; for maintaining a terminology section's
+  terms, aliases, or relationships; for conceptual questions about instruction files; or for
+  implementation requests the session codes directly, even when the program is an agent; delegating
+  implementation to a sub-agent falls under the dispatch trigger.
 license: MIT
 metadata:
   original_author: Alex Baker
