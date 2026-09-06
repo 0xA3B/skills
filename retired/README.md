@@ -1,9 +1,10 @@
 # Retired skills
 
 Skills removed from distribution but kept readable for later review. Nothing here ships: the
-directories carry no plugin manifest, no marketplace entry, and no eval coverage, so no agent loads
-them. To use one temporarily, symlink its directory into your agent's user-level skills directory
-for the session, after checking the entry for dependencies that no longer ship.
+directories carry no plugin manifest and no marketplace entry, so no agent loads them, and no linter
+or trigger-eval run covers them even where historical fixtures remain. To use one temporarily,
+symlink its directory into your agent's user-level skills directory for the session, after checking
+the entry for dependencies that no longer ship.
 
 A retired skill keeps its files as they were at retirement. Each entry below is the record; the git
 history holds the rest.
