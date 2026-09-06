@@ -4,76 +4,94 @@ cases:
     prompt: >-
       Review my current changes before I commit.
     expect: invoke
-    rationale: The user asks for a pre-commit review of current changes.
+    rationale: The user asks to review changes made in this session.
 
   - id: review-worktree
     prompt: >-
-      Review the worktree and fix anything valid.
+      Review my worktree.
     expect: invoke
-    rationale: Worktree review is the default scope for this skill.
+    rationale: The worktree holds the session's changes.
 
   - id: review-staged-changes
     prompt: >-
-      Review the staged changes before I commit them.
+      Review the staged changes.
     expect: invoke
-    rationale: Staged changes are a narrow pre-commit review target.
+    rationale: Staged changes are session-authored changes awaiting commit.
 
   - id: review-what-we-changed
     prompt: >-
-      We just finished coding. Review what we changed and clean up accepted issues.
+      Review what we changed today before I open the PR.
     expect: invoke
-    rationale: The user asks for post-session review of current changes.
+    rationale: The user asks for a review of this session's changes before publishing them.
 
-  - id: review-current-wip
+  - id: review-session-branch
     prompt: >-
-      Review my current WIP.
+      Review the branch we built this session against main before I open the PR.
     expect: invoke
-    rationale: Current WIP maps to current worktree or pre-commit changes.
+    rationale: A branch authored in this session is in scope whatever its git shape.
 
-  - id: review-wip-changes
+  - id: assigned-test-lane
     prompt: >-
-      Can you review these work-in-progress changes before I commit?
+      Run the test-quality lane over this diff.
     expect: invoke
-    rationale: Work-in-progress changes before commit are review-changes scope.
+    rationale: The user narrows the review to one lane over the session's changes.
 
-  - id: casual-review-current-edits
+  - id: instruction-file-review
     prompt: >-
-      I made a couple refinements. Let me know what you think.
+      Review the SKILL.md changes in my worktree before I commit.
     expect: invoke
-    rationale: The user asks for review of current worktree edits in a conversational way.
+    rationale: Changed agent-instruction files are reviewed through the prose lane.
 
-  - id: branch-review
+  - id: documentation-review
     prompt: >-
-      Review this branch against main before merge.
-    expect: skip
-    rationale: Branch review belongs to review-branch.
+      Review the README changes I just made.
+    expect: invoke
+    rationale: Changed documentation is reviewed through the prose lane.
 
-  - id: review-wip-branch
+  - id: teammate-pr-review
     prompt: >-
-      Review this WIP branch before merge.
+      Review this PR from my teammate before it merges.
     expect: skip
-    rationale: Branch-scoped WIP review belongs to review-branch.
+    rationale: Work the session did not author is outside this workflow.
 
-  - id: pr-review
+  - id: third-party-code-review
     prompt: >-
-      Review PR #42 before it merges.
+      Review the code quality of this open source library we depend on.
     expect: skip
-    rationale: PR and branch review belong to review-branch.
+    rationale: Third-party code is not session-authored work.
 
-  - id: receiving-feedback
+  - id: existing-feedback
     prompt: >-
-      Triage these reviewer comments and fix the valid ones.
+      Address these review comments and fix the valid ones.
     expect: skip
-    rationale: Handling existing feedback belongs to receiving-feedback.
+    rationale: Existing reviewer feedback belongs to receiving-feedback.
+
+  - id: bug-report
+    prompt: >-
+      The login flow crashes when I click save. Please fix it.
+    expect: skip
+    rationale: A first-party bug report is not a review request.
+
+  - id: implementation-request
+    prompt: >-
+      Add pagination to this endpoint.
+    expect: skip
+    rationale: An implementation request is not a review request.
+
+  - id: write-documentation
+    prompt: >-
+      Write a README for this module.
+    expect: skip
+    rationale: Writing documentation belongs to the writing skills.
+
+  - id: architecture-audit
+    prompt: >-
+      Review the architecture of this codebase and find deepening opportunities.
+    expect: skip
+    rationale: A codebase-wide architecture audit belongs to improve-codebase-architecture.
 
   - id: conceptual-question
     prompt: >-
-      What should a pre-commit review check for?
+      What makes a code review useful?
     expect: skip
-    rationale: The user asks a conceptual question, not for a review workflow.
-
-  - id: review-changes-skill-design
-    prompt: >-
-      What do you think about the review-changes skill trigger behavior?
-    expect: skip
-    rationale: The user asks about skill design, not for a worktree review.
+    rationale: A conceptual question does not ask for a review of changes.

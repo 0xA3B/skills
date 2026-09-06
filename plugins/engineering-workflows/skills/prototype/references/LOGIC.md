@@ -52,5 +52,5 @@ The interesting moments are when the reader says "wait, that shouldn't be possib
 in the idea, which is the point. Add actions or scenarios they ask for. When the demo has answered
 its question, capture the question, evidence, and decision through the handoff the skill body
 defines — the validated behavior, the states and transitions the module demonstrated, not its code.
-The whole demo, module included, stays disposable; the recommended build or tdd workflow implements
-the behavior fresh.
+The whole demo, module included, stays disposable; `engineering-workflows:tdd` implements the
+behavior fresh.

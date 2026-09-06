@@ -18,6 +18,14 @@ cases:
     expect: invoke
     rationale: The user is asking to review changes to a skill body, an agent-facing file.
 
+  - id: session-change-review
+    prompt: >-
+      Review the SKILL.md changes in my worktree before I commit.
+    expect: skip
+    rationale: >-
+      Reviewing a session's own changes before a commit is a review workflow's entry point; that
+      workflow applies this skill inside its prose lane.
+
   - id: system-prompt-fragment
     prompt: >-
       Write the system prompt for our triage subagent.

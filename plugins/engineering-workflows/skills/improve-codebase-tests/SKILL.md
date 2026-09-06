@@ -124,5 +124,5 @@ convention exists, record them in the final response instead.
 ## Boundaries
 
 - Diff-scoped test findings belong to the test-review lane inside
-  `engineering-workflows:reviewing-code`; this skill is codebase-scoped.
+  `engineering-workflows:review-changes`; this skill is codebase-scoped.
 - Do not manufacture repository-wide candidates when the pain is one suite.

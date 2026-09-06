@@ -1,7 +1,10 @@
 # Design it twice
 
-Use this branch when interface shape is the unresolved decision. Compare at least three materially
-different designs; cosmetic signature variations do not count.
+Use this branch when interface shape is the unresolved decision. Compare at least two materially
+different designs. Add a third when the first comparison leaves a material tradeoff unresolved, when
+several independent design axes matter, or when migration risk justifies broader exploration.
+Designs must differ in behavior, knowledge, ownership, or seam placement; cosmetic signature
+variations do not count.
 
 ## Frame the problem
 
@@ -15,7 +18,7 @@ State:
 
 ## Generate alternatives
 
-Vary designs along these axes, one design per axis:
+Choose the axes the decision turns on and produce one design per chosen axis:
 
 - minimize the interface and maximize leverage per entry point;
 - maximize flexibility for known extension needs;
@@ -36,6 +39,7 @@ Each design must include:
 
 ## Compare
 
-Present the designs distinctly, then recommend one or a specific hybrid. Prefer the interface that
-gives callers the most leverage with the least knowledge while keeping change local and the seam
-realistic to test.
+Present the designs distinctly, then recommend one, a specific hybrid, or the current design when
+the principles in `SKILL.md` do not justify a structural change. Prefer the interface that gives
+callers the most leverage with the least knowledge while keeping change local and the seam realistic
+to test.

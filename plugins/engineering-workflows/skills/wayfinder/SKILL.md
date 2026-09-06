@@ -61,14 +61,13 @@ Fan out across the effort before going deep on one path. Create decision-sized c
 enough for one future focused session. Each chunk should name the question or outcome it resolves,
 not prescribe a premature implementation.
 
-Classify each visible chunk by the workflow the user should invoke next. Every skill named below is
-manual-only, so recommend its explicit invocation instead of invoking it from this workflow:
+Classify each visible chunk by the workflow the user should invoke next. Recommend each skill named
+below instead of invoking it from this workflow; mapping stops before implementation:
 
 - research, with no skill, for an external or repository fact;
 - `engineering-workflows:grill-me` for a user-owned decision;
 - `engineering-workflows:prototype` for executable evidence;
-- `engineering-workflows:build` or `engineering-workflows:tdd` only when the shape is already clear
-  enough to implement;
+- `engineering-workflows:tdd` only when the shape is already clear enough to implement;
 - a manual prerequisite when access, setup, or human action blocks a later decision.
 
 Research chunks are the exception to leaving chunks unresolved: when a chunk is purely a missing

@@ -1,0 +1,82 @@
+version: 1
+cases:
+  - id: implement-feature
+    prompt: >-
+      Add rate limiting to the API client so callers get a typed error when they exceed the quota.
+    expect: invoke
+    rationale: A new feature is observable behavior that the loop should drive through tests.
+
+  - id: fix-bug-with-known-cause
+    prompt: >-
+      The date parser drops the timezone offset when the string ends in Z. The cause is the regex in
+      parseIso. Fix it.
+    expect: invoke
+    rationale: A bug fix with a known cause starts from a failing regression test.
+
+  - id: one-line-behavior-change
+    prompt: >-
+      Change the default page size of the list endpoint from 20 to 50.
+    expect: invoke
+    rationale: A small change with observable behavior still gets one tracer bullet.
+
+  - id: change-public-interface
+    prompt: >-
+      Split the storage interface so read-only callers no longer see the write methods.
+    expect: invoke
+    rationale: Changing a public interface or seam is the core trigger.
+
+  - id: port-reference-implementation
+    prompt: >-
+      Port the rule engine from the TypeScript reference implementation to Python, matching its
+      behavior.
+    expect: invoke
+    rationale: A port from a reference implementation runs as frontier rounds over an inventory.
+
+  - id: explicit-tdd-request
+    prompt: >-
+      Implement the retry policy using TDD.
+    expect: invoke
+    rationale: The user names the workflow explicitly.
+
+  - id: config-only-change
+    prompt: >-
+      Bump the Node version in the CI workflow file to 26.
+    expect: skip
+    rationale: A configuration edit has no behavior for a test to prove.
+
+  - id: documentation-only-change
+    prompt: >-
+      Update the README to document the new --dry-run flag.
+    expect: skip
+    rationale: Documentation edits have no behavior to prove.
+
+  - id: mechanical-rename
+    prompt: >-
+      Rename the internal helper parseRow to parseRecord everywhere. No behavior change.
+    expect: skip
+    rationale: A mechanical rename with no behavior change does not need the loop.
+
+  - id: disposable-spike
+    prompt: >-
+      Spike a throwaway script to see whether the vendor API paginates results, so we can decide the
+      design.
+    expect: skip
+    rationale: Disposable evidence for a design question belongs to prototype.
+
+  - id: bug-with-unknown-cause
+    prompt: >-
+      Uploads fail intermittently in production and nobody knows why. Figure out what is going on.
+    expect: skip
+    rationale: A bug with an unknown cause needs diagnosis before a failing test can be written.
+
+  - id: review-request
+    prompt: >-
+      Review the changes on this branch for test quality.
+    expect: skip
+    rationale: Reviewing existing changes belongs to the review workflows.
+
+  - id: conceptual-question
+    prompt: >-
+      What is the difference between TDD and BDD?
+    expect: skip
+    rationale: A conceptual question does not ask for implementation.

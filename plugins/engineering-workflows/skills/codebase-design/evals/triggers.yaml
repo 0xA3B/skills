@@ -28,7 +28,7 @@ cases:
     prompt: >-
       Review my current worktree before I commit.
     expect: skip
-    rationale: Generic worktree review belongs to reviewing-code and review-changes.
+    rationale: Generic worktree review belongs to review-changes.
 
   - id: conceptual-architecture
     prompt: >-

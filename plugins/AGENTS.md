@@ -82,7 +82,7 @@
   form. The namespaced form `plugin-name:skill-name` may inform judgment, but when the two readings
   conflict, the stand-alone reading wins.
 - Default workflow skills the user runs as a command to an imperative verb phrase (`commit`,
-  `visualize`, `build`). Compact workflow names (`handoff`, `wayfinder`) are acceptable when they
+  `visualize`, `diagnose`). Compact workflow names (`handoff`, `wayfinder`) are acceptable when they
   cannot be read as a background discipline.
 - Name discipline skills for the artifact class or practice they govern (`agent-instructions`,
   `receiving-feedback`), whatever their invocation posture. Invocation posture is declared in
@@ -99,6 +99,19 @@
   implicitly invokable; `disable-model-invocation` blocks model invocation on Claude Code even when
   the user asks in prose. Reference manual-only skills only as hand offs that recommend an explicit
   user invocation.
+
+## Retiring a skill
+
+- Retire a skill when feedback triage or a maintainer decision finds its job absorbed by other
+  skills or user-level conventions. Move its directory unchanged to `retired/<plugin>/<skill>/`, add
+  an entry to `retired/README.md` naming the date, last shipped plugin version, reason, absorbing
+  surfaces, and the event that would justify revisiting, and remove every hand off, README line,
+  manifest description, and keyword that named it.
+- A skill whose body and references move into another skill of the same plugin is merged, not
+  retired: its content still ships and git history is its record, so it gets no `retired/` copy or
+  index entry.
+- Nothing under `retired/` ships: no manifest, no marketplace entry, and no linter or trigger-eval
+  run covers it.
 
 ## Skill authoring baseline
 

@@ -20,6 +20,16 @@ cheap to run in isolation — a separate worktree or a disposable copy, never th
 are reading — apply it there and report the resulting test failures by count and name. Without that
 isolation, report the mutation as unexecuted analysis.
 
+When a test asserts the exact membership or size of a collection, determine whether the collection
+is closed by contract — a protocol enum, a security allowlist, a migration sequence whose order is
+the contract — or intended to grow, such as plugins, migrations, handlers, fixtures, schemas, or
+configuration documents. For a collection intended to grow, ask whether adding one valid member
+would fail the test without changing existing behavior; report the test when it would and membership
+itself is not the behavior under test. Recommend testing the discovery and validation rules through
+representative examples instead. This paragraph restates the collection-membership rule in the tdd
+skill's `references/tests.md` because an isolated lane reviewer cannot load that skill; change both
+together.
+
 Require expected values from an independent authority such as a known-good literal, worked example,
 protocol rule, or specification. Do not demand tests for every line or private branch; prioritize
 public behavior and risk.
