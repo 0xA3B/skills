@@ -160,7 +160,7 @@ describe("createClaudeLane", () => {
   it("stages plugins plus repo-local siblings for repo-local targets", async () => {
     const repoRoot = await writeRepoLocalSkillFixture({
       marketplace: true,
-      siblingSkills: ["sibling-skill"],
+      siblingSkills: [{ name: "sibling-skill" }],
     });
     const lane = createClaudeLane();
 

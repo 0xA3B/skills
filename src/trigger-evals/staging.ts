@@ -2,7 +2,7 @@ import { cp, mkdir, mkdtemp, readdir, readFile, stat, writeFile } from "node:fs/
 import os from "node:os";
 import path from "node:path";
 
-import { appendEvalSectionToFile, createCanary, withTriggerEvalInstructions } from "./canary.js";
+import { appendEvalSectionToFile, createCanary } from "./canary.js";
 import type { MarketplacePluginEntry } from "./marketplace.js";
 import { readSkillFileAllowImplicitInvocation } from "./target.js";
 import type { SkillTarget, TriggerCase } from "./types.js";
@@ -179,15 +179,16 @@ export async function listRepoLocalSkills(repoRoot: string): Promise<RepoLocalSk
 }
 
 // Codex discovers repo-local skills under .agents/skills; Claude Code discovers them as project
-// skills under .claude/skills.
+// skills under .claude/skills. Returns the staged SKILL.md path.
 export async function stageRepoLocalSkill(
   workspacePath: string,
   skill: RepoLocalSkillEntry,
   surface: ".agents" | ".claude",
-): Promise<void> {
+): Promise<string> {
   const copiedSkillPath = path.join(workspacePath, surface, "skills", skill.skillName);
   await mkdir(path.dirname(copiedSkillPath), { recursive: true });
   await cp(skill.skillPath, copiedSkillPath, { recursive: true });
+  return path.join(copiedSkillPath, "SKILL.md");
 }
 
 // Copies the shared base workspace into a case-isolated one and applies the fixture's workspace
@@ -222,18 +223,6 @@ export function stagedSkillFilePath(workspacePath: string, target: SkillTarget):
   }
 
   return path.join(workspacePath, ".agents", "skills", target.skillName, "SKILL.md");
-}
-
-// Rewrites the staged copy's description so the canary is reachable from skill metadata alone;
-// used where no injection telemetry exists (repo-local skills on Codex).
-export async function injectRepoLocalCanary(
-  workspacePath: string,
-  target: SkillTarget,
-  canary: string,
-): Promise<void> {
-  const skillFilePath = stagedSkillFilePath(workspacePath, target);
-  const content = await readFile(skillFilePath, "utf8");
-  await writeFile(skillFilePath, withTriggerEvalInstructions(content, canary));
 }
 
 // Codex reads skill bodies from the plugin cache, so staged plugins are copied there per case and

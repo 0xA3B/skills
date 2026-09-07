@@ -256,7 +256,7 @@ describe("runTriggerEval", () => {
   it("stages marketplace plugins and repo-local siblings for repo-local targets by default", async () => {
     const repoRoot = await writeRepoLocalSkillFixture({
       marketplace: true,
-      siblingSkills: ["sibling-skill"],
+      siblingSkills: [{ name: "sibling-skill" }],
     });
     const { lane, state } = createFakeLane();
 
@@ -295,7 +295,7 @@ describe("runTriggerEval", () => {
   it("stages only the target's own surface when isolated", async () => {
     const repoRoot = await writeRepoLocalSkillFixture({
       marketplace: true,
-      siblingSkills: ["sibling-skill"],
+      siblingSkills: [{ name: "sibling-skill" }],
     });
     const { lane, state } = createFakeLane();
 

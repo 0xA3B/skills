@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { createCanary } from "./canary.js";
+import { appendEvalSectionToFile, createCanary } from "./canary.js";
 import { prepareCodexHome, removeCopiedAuth } from "./codex-home.js";
 import {
   type CliRunResult,
@@ -16,7 +16,6 @@ import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
   EVAL_MARKETPLACE_NAME,
-  injectRepoLocalCanary,
   pluginsToStage,
   type SkillCanary,
   stageCaseWorkspace,
@@ -24,10 +23,11 @@ import {
   stagePluginCopies,
   stageRepoLocalSkill,
   type StagedPlugin,
+  stagedSkillFilePath,
   surveyStagedSkills,
   writeCodexMarketplaceCatalog,
 } from "./staging.js";
-import { skillTargetLabel } from "./target.js";
+import { readSkillFileAllowImplicitInvocation, skillTargetLabel } from "./target.js";
 import type { CaseObservations, SkillTarget, TriggerCase } from "./types.js";
 
 type CodexLaneOptions = {
@@ -35,14 +35,11 @@ type CodexLaneOptions = {
 };
 
 // Codex emits no skill-invocation telemetry in current CLIs, so this lane detects invocation with
-// eval-only canaries appended to the staged skill copies: per-run canaries for every implicitly
-// invokable staged plugin skill (so a wrong skill firing is attributable), and a per-case
-// description-rewrite canary for a repo-local target, which Codex surfaces from metadata alone.
-// Sibling repo-local skills are staged pristine and carry no canary — rewriting their
-// descriptions would perturb the competition under test — so their invocations are not
-// attributable on this lane; use the Claude lane's Skill tool events to attribute repo-local
-// overlap. Older Codex CLIs emitted codex.skill.injected stderr telemetry, kept as a secondary
-// signal.
+// eval-only canaries appended to the bodies of the staged skill copies: per-run canaries for every
+// implicitly invokable staged plugin skill and sibling repo-local skill (so a wrong skill firing is
+// attributable), and a per-case canary for a repo-local target. Frontmatter descriptions stay
+// byte-identical to the committed skills, so the trigger surface under test is never perturbed.
+// Older Codex CLIs emitted codex.skill.injected stderr telemetry, kept as a secondary signal.
 export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
   return {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
@@ -66,9 +63,24 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
       );
       const labels = [...survey.stagedSkillLabels];
       if (target.kind === "repo-local") {
+        // The target's own canary is per case (see prepareCodexCase); implicitly invokable siblings
+        // get a per-run body canary so a sibling stealing the invocation is attributable.
         for (const repoLocalSkill of [target, ...(runOptions.extraRepoLocalSkills ?? [])]) {
-          await stageRepoLocalSkill(workspacePath, repoLocalSkill, ".agents");
+          const stagedSkillFile = await stageRepoLocalSkill(
+            workspacePath,
+            repoLocalSkill,
+            ".agents",
+          );
           labels.push(repoLocalSkill.skillName);
+          if (
+            repoLocalSkill.skillName === target.skillName ||
+            !(await readSkillFileAllowImplicitInvocation(stagedSkillFile))
+          ) {
+            continue;
+          }
+          const siblingCanary = createCanary();
+          await appendEvalSectionToFile(stagedSkillFile, siblingCanary);
+          runCanaryLabels.set(siblingCanary, repoLocalSkill.skillName);
         }
       }
       const stagedSkillLabels: ReadonlySet<string> = new Set(labels);
@@ -126,7 +138,7 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
   }
   if (target.kind === "repo-local") {
     const canary = createCanary();
-    await injectRepoLocalCanary(caseWorkspacePath, target, canary);
+    await appendEvalSectionToFile(stagedSkillFilePath(caseWorkspacePath, target), canary);
     // Merge rather than replace: staged plugin skills keep their per-run canaries so a plugin
     // skill stealing the invocation from a repo-local target stays attributable.
     canaryLabels = new Map([...context.canaryLabels, [canary, context.targetLabel]]);

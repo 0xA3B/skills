@@ -186,20 +186,15 @@ cases where loaded repository instructions should affect the trigger boundary, s
   assistant turns and non-read tool calls; thinking and `Read`, `Glob`, or `Grep` reconnaissance do
   not consume the budget. The Codex lane counts non-reasoning completed items because its generic
   command events do not reliably distinguish read-only reconnaissance.
-- For plugin skills on Codex, the canary section is body-only so the frontmatter description under
-  test stays byte-identical to the committed skill; invocation is classified when the assistant
-  outputs the token. Older Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary
-  signal.
-- Every staged skill keeps its real invocation policy, and each implicitly invokable staged plugin
-  skill gets its own canary, so invoking the wrong skill is a distinct, attributable observation. A
-  `wrong-skill <plugin>:<skill>` result fails an invoke case — even when the target also fires,
-  because simultaneous invocation is itself trigger-contract overlap — and is surfaced on passing
-  skip cases too, because either direction exposes overlap between loaded skills.
-- For a repo-local target on Codex, the runner additionally rewrites the copied description to
-  reference the canary because Codex surfaces repo-local skills without any other observable signal.
-  Sibling repo-local skills stage pristine and carry no canary — rewriting their descriptions would
-  perturb the competition under test — so a sibling repo-local invocation is not attributable on the
-  Codex lane; use the Claude lane's Skill tool events to attribute repo-local overlap.
+- On Codex, the canary section is body-only so the frontmatter description under test stays
+  byte-identical to the committed skill; invocation is classified when the assistant outputs the
+  token. Older Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary signal.
+- Every staged skill keeps its real invocation policy, and each implicitly invokable staged skill
+  gets its own canary, so invoking the wrong skill is a distinct, attributable observation. A
+  `wrong-skill` result names a plugin skill as `<plugin>:<skill>` and a repo-local sibling by its
+  bare skill name. It fails an invoke case — even when the target also fires, because simultaneous
+  invocation is itself trigger-contract overlap — and is surfaced on passing skip cases too, because
+  either direction exposes overlap between loaded skills.
 - On Claude Code, the runner launches `claude -p` with a read-only tool surface and classifies
   invocation from Skill tool events in the stream-json output. Plugin skills load from the staged
   plugin copy via `--plugin-dir`; repo-local skills load as pristine project skills from the staged

@@ -8,12 +8,7 @@ import { createCodexLane, observeCodexOutput } from "./codex-lane.js";
 import type { StreamingCliOptions, StreamingCliResult } from "./exec.js";
 import type { LaneRunOptions } from "./lanes.js";
 import { resolveSkillTarget, skillTargetLabel } from "./target.js";
-import {
-  agentMessageEvent,
-  frontmatterDescription,
-  writeRepoFixture,
-  writeRepoLocalSkillFixture,
-} from "./test-utils.js";
+import { agentMessageEvent, writeRepoFixture, writeRepoLocalSkillFixture } from "./test-utils.js";
 import type { SkillTarget } from "./types.js";
 
 const spawnCalls = vi.hoisted(
@@ -281,7 +276,7 @@ describe("createCodexLane", () => {
   it("stages plugins plus repo-local siblings for repo-local targets and merges canaries", async () => {
     const repoRoot = await writeRepoLocalSkillFixture({
       marketplace: true,
-      siblingSkills: ["sibling-skill"],
+      siblingSkills: [{ name: "sibling-skill" }, { name: "manual-skill", manualOnly: true }],
     });
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
@@ -291,6 +286,10 @@ describe("createCodexLane", () => {
         {
           skillName: "sibling-skill",
           skillPath: path.join(repoRoot, ".agents", "skills", "sibling-skill"),
+        },
+        {
+          skillName: "manual-skill",
+          skillPath: path.join(repoRoot, ".agents", "skills", "manual-skill"),
         },
       ],
     });
@@ -303,7 +302,7 @@ describe("createCodexLane", () => {
     });
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(
-      new Set(["other:other-skill", "auto-skill", "sibling-skill"]),
+      new Set(["other:other-skill", "auto-skill", "sibling-skill", "manual-skill"]),
     );
     const catalog = JSON.parse(
       await readFile(
@@ -350,17 +349,38 @@ describe("createCodexLane", () => {
     );
     expect(cachedOtherSkill).toContain(otherCanary);
 
-    // Sibling repo-local skills stage pristine: rewriting their descriptions would perturb the
-    // competition under test, so their invocations are not attributable on this lane.
+    // Implicitly invokable sibling repo-local skills carry their own body-only canary, so a
+    // sibling stealing the invocation is attributable; the committed skill stays a byte-identical
+    // prefix of the staged copy.
+    const committedSibling = await readFile(
+      path.join(repoRoot, ".agents", "skills", "sibling-skill", "SKILL.md"),
+      "utf8",
+    );
     const siblingBody = await readFile(
       path.join(laneCase.workspacePath, ".agents", "skills", "sibling-skill", "SKILL.md"),
       "utf8",
     );
-    expect(siblingBody).not.toContain("Eval only:");
-    expect(siblingBody).not.toContain("Trigger Eval Instructions");
+    expect(siblingBody.startsWith(committedSibling)).toBe(true);
+    expect(siblingBody).toContain("Trigger Eval Instructions");
+    const siblingCanary = siblingBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+    expect(siblingCanary).toBeDefined();
+    expect(
+      laneCase.observe({ stdout: agentMessageEvent(siblingCanary ?? ""), stderr: "" })
+        .invokedSkills,
+    ).toStrictEqual(["sibling-skill"]);
+
+    // A manual-only sibling keeps its real invocation policy: staged and labeled, but it can only
+    // fire on explicit request, so it carries no canary.
+    const manualBody = await readFile(
+      path.join(laneCase.workspacePath, ".agents", "skills", "manual-skill", "SKILL.md"),
+      "utf8",
+    );
+    expect(manualBody).toBe(
+      await readFile(path.join(repoRoot, ".agents", "skills", "manual-skill", "SKILL.md"), "utf8"),
+    );
   });
 
-  it("stages repo-local targets under .agents with a per-case description canary", async () => {
+  it("stages repo-local targets under .agents with a per-case body canary", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
@@ -379,13 +399,16 @@ describe("createCodexLane", () => {
       path.join(laneCase.workspacePath, ".agents", "skills", "auto-skill", "SKILL.md"),
       "utf8",
     );
-    const canary = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-    expect(canary).toBeDefined();
-    const description = frontmatterDescription(skillBody);
-    expect(description).toContain(`Eval only: if used, first output ${canary}.`);
-    expect(description).toContain("Use when the user asks to invoke this repo-local skill.");
-    // Codex drops descriptions past its length limit, which would silently lose the canary.
-    expect(description.length).toBeLessThanOrEqual(1024);
+    const canaries = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/g) ?? [];
+    // Exactly one canary: the per-case target canary, never a second per-run sibling canary.
+    expect(canaries).toHaveLength(1);
+    const canary = canaries[0];
+    // The committed skill, description included, stays a byte-identical prefix of the staged copy.
+    const committedSkill = await readFile(
+      path.join(repoRoot, ".agents", "skills", "auto-skill", "SKILL.md"),
+      "utf8",
+    );
+    expect(skillBody.startsWith(committedSkill)).toBe(true);
     await expect(
       readFile(
         path.join(laneCase.workspacePath, ".claude", "skills", "auto-skill", "SKILL.md"),
