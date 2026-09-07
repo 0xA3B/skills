@@ -194,8 +194,12 @@ export async function stageRepoLocalSkill(
 
 // A case needs its own workspace copy when the fixture mutates it: a seeded git repository, or
 // unstaged workspace files. Other cases share the base workspace.
+// An empty workspace_files map declares no files, so it needs no per-case copy.
 export function needsCaseWorkspace(testCase: TriggerCase): boolean {
-  return testCase.workspace !== undefined || testCase.workspaceFiles !== undefined;
+  return (
+    testCase.workspace !== undefined ||
+    (testCase.workspaceFiles !== undefined && Object.keys(testCase.workspaceFiles).length > 0)
+  );
 }
 
 // Copies the shared base workspace into a case-isolated one, then layers the fixture's workspace:

@@ -10,6 +10,7 @@ import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
   listRepoLocalSkills,
+  needsCaseWorkspace,
   pluginsToStage,
   stageCaseWorkspace,
   stagedSkillFilePath,
@@ -130,6 +131,21 @@ describe("stagePluginCopies", () => {
     expect(stagedPlugins).toStrictEqual([
       { pluginName: "demo", sourcePath: target.pluginPath, version: "1.0.0" },
     ]);
+  });
+});
+
+describe("needsCaseWorkspace", () => {
+  it("copies the base workspace only for a workspace block or declared files", () => {
+    const base = { id: "case", prompt: "Do it.", expect: "invoke" as const };
+    expect(needsCaseWorkspace(base)).toBe(false);
+    expect(needsCaseWorkspace({ ...base, workspaceFiles: {} })).toBe(false);
+    expect(needsCaseWorkspace({ ...base, workspaceFiles: { "notes.md": "x" } })).toBe(true);
+    expect(
+      needsCaseWorkspace({
+        ...base,
+        workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
+      }),
+    ).toBe(true);
   });
 });
 

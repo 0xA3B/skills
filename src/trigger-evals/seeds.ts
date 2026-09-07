@@ -71,14 +71,32 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
   }
 
   await mkdir(workspacePath, { recursive: true });
-  await cp(seedPath, workspacePath, { recursive: true });
+  // The lane wrote its skills and settings under .agents and .claude in the base workspace; a
+  // seed's own entries there are left out of the copy so they cannot overwrite those surfaces.
+  await cp(seedPath, workspacePath, {
+    recursive: true,
+    filter: (source) =>
+      !SEED_EXCLUDED_ENTRIES.has(path.relative(seedPath, source).split(path.sep)[0] ?? ""),
+  });
   await writeWorkspaceFiles(workspacePath, workspace.committed);
   await git(workspacePath, "init", "--quiet", "--initial-branch", workspace.branch);
   await git(workspacePath, "add", "--all");
+  // A seed's own .gitignore shapes what the seed commits, but never the fixture's declared layers:
+  // an unforced add would silently drop a committed or staged file the seed ignores.
+  await addForced(workspacePath, workspace.committed);
   await git(workspacePath, "-c", "commit.gpgsign=false", "commit", "--quiet", "--message", "Seed");
   await writeWorkspaceFiles(workspacePath, workspace.staged);
-  await git(workspacePath, "add", "--all");
+  await addForced(workspacePath, workspace.staged);
   await writeWorkspaceFiles(workspacePath, options.workspaceFiles ?? {});
+}
+
+const SEED_EXCLUDED_ENTRIES = new Set([".agents", ".claude"]);
+
+async function addForced(workspacePath: string, files: Record<string, string>): Promise<void> {
+  const paths = Object.keys(files);
+  if (paths.length > 0) {
+    await git(workspacePath, "add", "--force", "--", ...paths);
+  }
 }
 
 export async function writeWorkspaceFiles(

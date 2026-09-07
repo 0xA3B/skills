@@ -96,6 +96,59 @@ describe("stageSeededWorkspace", () => {
     ).rejects.toThrow('workspace seed "node-service" must not contain a .git entry');
   });
 
+  it("leaves a seed's .agents and .claude entries out of the copy", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    const seedPath = resolveSeedPath(repoRoot, "node-service");
+    await mkdir(path.join(seedPath, ".claude"));
+    await writeFile(path.join(seedPath, ".claude", "settings.json"), '{ "seed": true }\n');
+    await mkdir(path.join(seedPath, ".agents", "skills"), { recursive: true });
+    await writeFile(path.join(seedPath, ".agents", "skills", "SKILL.md"), "seed skill\n");
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+    // The lane's surface is already in the workspace and must survive the seed copy.
+    await mkdir(path.join(workspacePath, ".claude"), { recursive: true });
+    await writeFile(path.join(workspacePath, ".claude", "settings.json"), '{ "harness": true }\n');
+
+    await stageSeededWorkspace({
+      repoRoot,
+      workspacePath,
+      workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
+    });
+
+    await expect(
+      readFile(path.join(workspacePath, ".claude", "settings.json"), "utf8"),
+    ).resolves.toBe('{ "harness": true }\n');
+    await expect(
+      readFile(path.join(workspacePath, ".agents", "skills", "SKILL.md"), "utf8"),
+    ).rejects.toThrow(/ENOENT/);
+  });
+
+  it("adds committed and staged fixture files that the seed's .gitignore matches", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeFile(
+      path.join(resolveSeedPath(repoRoot, "node-service"), ".gitignore"),
+      "*.local\nbuild/\n",
+    );
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+
+    await stageSeededWorkspace({
+      repoRoot,
+      workspacePath,
+      workspace: {
+        seed: "node-service",
+        branch: "main",
+        committed: { "config.local": "committed\n" },
+        staged: { "build/output.js": "staged\n" },
+      },
+    });
+
+    expect(await git(workspacePath, "ls-tree", "--name-only", "HEAD", "config.local")).toBe(
+      "config.local",
+    );
+    expect(await git(workspacePath, "status", "--porcelain")).toBe("A  build/output.js");
+  });
+
   it("commits seed files that the machine's global ignore file would exclude", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
     await writeSeedFixture(repoRoot, "node-service");
