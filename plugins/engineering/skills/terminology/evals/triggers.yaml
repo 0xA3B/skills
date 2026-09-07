@@ -1,4 +1,32 @@
 version: 1
+workspace:
+  seed: node-service
+  committed:
+    AGENTS.md: |
+      # Project instructions
+
+      ## Build and test
+
+      Run `node --test` before every commit. The service has no build step and no dependencies;
+      keep it that way unless a change needs a library the standard library cannot replace.
+
+      ## Commits
+
+      Use Conventional Commits. Keep the subject under 72 characters. Describe the behavior that
+      changed, not the files that changed. Reference the issue in a footer when one exists.
+
+      ## Code conventions
+
+      Prefer named exports. Keep modules under 200 lines. Put tests under `test/` next to the
+      module they cover. Inject collaborators such as `fetch` through factory options so tests
+      never touch the network.
+
+      ## Terminology
+
+      | Term | Definition | Aliases to avoid |
+      | --- | --- | --- |
+      | **Item** | One stored record, addressed by id. | entry, row |
+      | **Page** | One slice of the item list, sized by the list endpoint's page size. | batch |
 cases:
   - id: add-stable-term
     prompt: >-
@@ -30,6 +58,14 @@ cases:
   - id: adapt-glossary-guidance
     prompt: >-
       Adapt this domain glossary document into our repository's agent guidance.
+    workspace_files:
+      docs/glossary.md: |
+        # Inventory glossary
+
+        - **SKU**: the vendor's stock-keeping unit; one SKU maps to one item.
+        - **Restock window**: the interval between an item reaching its reorder level and the
+          vendor confirming the order.
+        - **Reorder level**: the quantity at which an item is flagged for restocking.
     expect: invoke
     rationale: The user wants glossary material converted into a terminology section.
 
