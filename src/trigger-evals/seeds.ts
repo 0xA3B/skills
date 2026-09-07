@@ -11,8 +11,36 @@ const execFileAsync = promisify(execFile);
 // case workspace and turned into a git repository before the agent runs.
 export const SEEDS_DIR = path.join("evals", "seeds");
 
+// A seed name is one kebab-case directory name, so it can never leave SEEDS_DIR.
+export const SEED_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
 export function resolveSeedPath(repoRoot: string, seedName: string): string {
+  if (!SEED_NAME_PATTERN.test(seedName)) {
+    throw new Error(`workspace seed name "${seedName}" is not a kebab-case seed name.`);
+  }
   return path.join(repoRoot, SEEDS_DIR, seedName);
+}
+
+const HARNESS_OWNED_ENTRIES = new Set([".agents", ".claude"]);
+
+// Safe means a POSIX-style relative file path inside the workspace and outside the harness-owned
+// entries: a path reaching any .git entry could plant a hook or config that git would run or honor
+// while the seed is committed, or turn a subdirectory into an embedded repository, and a path under
+// .agents or .claude would overwrite the lane's staged skills and settings after the base workspace
+// was copied. The .git match follows git's own rule: case-insensitive, at any depth, after dropping
+// empty and "." segments. Backslashes are rejected rather than treated as separators because the
+// write joins the path as written, and a trailing separator names a directory, not a file.
+export function isSafeWorkspaceFilePath(filePath: string): boolean {
+  const segments = filePath.split("/").filter((segment) => segment !== "" && segment !== ".");
+  return (
+    segments.length > 0 &&
+    !filePath.includes("\\") &&
+    !filePath.endsWith("/") &&
+    !path.isAbsolute(filePath) &&
+    !segments.includes("..") &&
+    !segments.some((segment) => segment.toLowerCase() === ".git") &&
+    !HARNESS_OWNED_ENTRIES.has(segments[0]?.toLowerCase() ?? "")
+  );
 }
 
 export const SEED_GIT_IDENTITY = { name: "Trigger Eval", email: "trigger-eval@example.invalid" };
@@ -87,7 +115,17 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
   // A seed's own .gitignore shapes what the seed commits, but never the fixture's declared layers:
   // an unforced add would silently drop a committed or staged file the seed ignores.
   await addForced(workspacePath, workspace.committed);
-  await git(workspacePath, "-c", "commit.gpgsign=false", "commit", "--quiet", "--message", "Seed");
+  // --allow-empty keeps the one-commit contract when a seed's .gitignore leaves nothing to commit.
+  await git(
+    workspacePath,
+    "-c",
+    "commit.gpgsign=false",
+    "commit",
+    "--quiet",
+    "--allow-empty",
+    "--message",
+    "Seed",
+  );
   await writeWorkspaceFiles(workspacePath, workspace.staged);
   await addForced(workspacePath, workspace.staged);
   await writeWorkspaceFiles(workspacePath, options.workspaceFiles ?? {});
@@ -124,11 +162,18 @@ async function addForced(workspacePath: string, files: Record<string, string>): 
   }
 }
 
+// The fixture loader reports unsafe paths with fixture diagnostics; the check is repeated here so
+// a programmatic caller cannot write outside the workspace or into a harness-owned entry.
 export async function writeWorkspaceFiles(
   workspacePath: string,
   files: Record<string, string>,
 ): Promise<void> {
   for (const [relativeFilePath, content] of Object.entries(files)) {
+    if (!isSafeWorkspaceFilePath(relativeFilePath)) {
+      throw new Error(
+        `workspace file path "${relativeFilePath}" is not a safe relative path outside .git, .agents, and .claude.`,
+      );
+    }
     const absoluteFilePath = path.join(workspacePath, relativeFilePath);
     await mkdir(path.dirname(absoluteFilePath), { recursive: true });
     await writeFile(absoluteFilePath, content);

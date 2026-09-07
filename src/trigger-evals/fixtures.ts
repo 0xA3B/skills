@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
-import path from "node:path";
 
 import { parse as parseYaml } from "yaml";
 
 import { isRecord } from "./json.js";
+import { isSafeWorkspaceFilePath, SEED_NAME_PATTERN } from "./seeds.js";
 import type { TriggerCase, TriggerExpectation, TriggerFixture, WorkspaceSpec } from "./types.js";
 
 type FixtureOptions = {
@@ -132,7 +132,6 @@ function validateCase(
   };
 }
 
-const SEED_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 const BRANCH_NAME_CHARACTERS = /^[A-Za-z0-9._/-]+$/;
 
 // The structural rules of git check-ref-format --branch, applied at load time so a bad fixture
@@ -231,28 +230,11 @@ function readWorkspaceFiles(
   return files;
 }
 
-// Safe means a POSIX-style relative file path inside the workspace and outside the harness-owned
-// entries: a path reaching any .git entry could plant a hook or config that git would run or honor
-// while the seed is committed, or turn a subdirectory into an embedded repository, and a path under
-// .agents or .claude would overwrite the lane's staged skills and settings after the base workspace
-// was copied. The .git match follows git's own rule: case-insensitive, at any depth, after dropping
-// empty and "." segments. Backslashes are rejected rather than treated as separators because the
-// write joins the path as written, and a trailing separator names a directory, not a file.
+// The path rule lives beside the writer in seeds.ts; the loader adds the fixture diagnostics.
 function validateWorkspaceFilePath(filePath: string, fixturePath: string, location: string): void {
-  const segments = filePath.split("/").filter((segment) => segment !== "" && segment !== ".");
-  if (
-    segments.length === 0 ||
-    filePath.includes("\\") ||
-    filePath.endsWith("/") ||
-    path.isAbsolute(filePath) ||
-    segments.includes("..") ||
-    segments.some((segment) => segment.toLowerCase() === ".git") ||
-    HARNESS_OWNED_ENTRIES.has(segments[0]?.toLowerCase() ?? "")
-  ) {
+  if (!isSafeWorkspaceFilePath(filePath)) {
     throw new Error(
       `${fixturePath}: expected ${location} path "${filePath}" to be a safe relative path outside .git, .agents, and .claude.`,
     );
   }
 }
-
-const HARNESS_OWNED_ENTRIES = new Set([".agents", ".claude"]);

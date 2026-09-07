@@ -11,6 +11,7 @@ import {
   SEED_GIT_IDENTITY,
   seedGitEnvironment,
   stageSeededWorkspace,
+  writeWorkspaceFiles,
 } from "./seeds.js";
 import { writeSeedFixture } from "./test-utils.js";
 
@@ -26,6 +27,23 @@ describe("resolveSeedPath", () => {
     expect(resolveSeedPath("/repo", "node-service")).toBe(
       path.join("/repo", "evals", "seeds", "node-service"),
     );
+  });
+
+  it.each(["../..", "a/b", "", "Node-Service"])("rejects the seed name %s", (seedName) => {
+    expect(() => resolveSeedPath("/repo", seedName)).toThrow("is not a kebab-case seed name");
+  });
+});
+
+describe("writeWorkspaceFiles", () => {
+  it("rejects unsafe paths from programmatic callers", async () => {
+    const workspacePath = await mkdtemp(path.join(os.tmpdir(), "seed-ws-"));
+
+    await expect(writeWorkspaceFiles(workspacePath, { "../escape.md": "x" })).rejects.toThrow(
+      'workspace file path "../escape.md" is not a safe relative path',
+    );
+    await expect(
+      writeWorkspaceFiles(workspacePath, { ".claude/settings.json": "x" }),
+    ).rejects.toThrow("is not a safe relative path");
   });
 });
 
@@ -157,6 +175,22 @@ describe("stageSeededWorkspace", () => {
         workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
       }),
     ).rejects.toThrow('workspace seed "node-service" must not be a symlink');
+  });
+
+  it("still makes the one seed commit when the seed's .gitignore leaves nothing to add", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeFile(path.join(resolveSeedPath(repoRoot, "node-service"), ".gitignore"), "*\n");
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+
+    await stageSeededWorkspace({
+      repoRoot,
+      workspacePath,
+      workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
+    });
+
+    expect(await git(workspacePath, "rev-list", "--count", "HEAD")).toBe("1");
+    expect(await git(workspacePath, "ls-tree", "--name-only", "HEAD")).toBe("");
   });
 
   it("adds declared filenames literally, not as pathspec patterns", async () => {
