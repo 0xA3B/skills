@@ -133,7 +133,22 @@ function validateCase(
 }
 
 const SEED_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
-const BRANCH_NAME_PATTERN = /^[A-Za-z0-9._/-]+$/;
+const BRANCH_NAME_CHARACTERS = /^[A-Za-z0-9._/-]+$/;
+
+// The structural rules of git check-ref-format --branch, applied at load time so a bad fixture
+// fails with the fixture path instead of aborting workspace staging.
+function isGitBranchName(name: string): boolean {
+  return (
+    BRANCH_NAME_CHARACTERS.test(name) &&
+    !name.startsWith("-") &&
+    !name.startsWith("/") &&
+    !name.endsWith("/") &&
+    !name.endsWith(".") &&
+    !name.includes("..") &&
+    !name.includes("//") &&
+    name.split("/").every((component) => !component.startsWith(".") && !component.endsWith(".lock"))
+  );
+}
 
 function readWorkspaceSpec(
   value: unknown,
@@ -155,7 +170,7 @@ function readWorkspaceSpec(
     throw new Error(`${fixturePath}: expected ${location}.seed to be a kebab-case seed name.`);
   }
   const branch = value["branch"] ?? "main";
-  if (typeof branch !== "string" || !BRANCH_NAME_PATTERN.test(branch)) {
+  if (typeof branch !== "string" || !isGitBranchName(branch)) {
     throw new Error(`${fixturePath}: expected ${location}.branch to be a git branch name.`);
   }
 

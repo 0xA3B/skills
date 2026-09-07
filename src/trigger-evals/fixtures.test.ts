@@ -108,7 +108,20 @@ cases:
     );
   });
 
-  it("rejects a workspace branch that is not a git branch name", async () => {
+  // The names git check-ref-format --branch rejects must fail at load time, not during staging.
+  it.each([
+    "feature branch",
+    "release..candidate",
+    ".",
+    "feature/",
+    "/feature",
+    "a//b",
+    ".hidden",
+    "topic/.hidden",
+    "index.lock",
+    "-flag",
+    "trailing.",
+  ])("rejects the workspace branch %s that git would refuse", async (branch) => {
     const fixturePath = await writeFixture(`
 version: 1
 cases:
@@ -117,7 +130,7 @@ cases:
     expect: invoke
     workspace:
       seed: node-service
-      branch: feature branch
+      branch: ${JSON.stringify(branch)}
   - id: general-question
     prompt: What is a commit?
     expect: skip
@@ -127,6 +140,28 @@ cases:
       "expected cases[0].workspace.branch to be a git branch name",
     );
   });
+
+  it.each(["main", "feature/retry", "session/retry-policy", "v1.2", "fix-date_parse"])(
+    "accepts the workspace branch %s",
+    async (branch) => {
+      const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: good-branch
+    prompt: Review the staged changes.
+    expect: invoke
+    workspace:
+      seed: node-service
+      branch: ${JSON.stringify(branch)}
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+`);
+
+      const fixture = await loadTriggerFixture(fixturePath);
+      expect(fixture.cases[0]?.workspace?.branch).toBe(branch);
+    },
+  );
 
   // Git matches .git case-insensitively at any depth, so the guard must too; a leading "./"
   // normalizes away when the file is written. The lane owns .agents and .claude in the workspace;

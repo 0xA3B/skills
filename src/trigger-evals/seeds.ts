@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { cp, lstat, mkdir, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -63,23 +63,18 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
   if (!(await isDirectory(seedPath))) {
     throw new Error(`workspace seed "${workspace.seed}" not found at ${seedPath}.`);
   }
-  // A seed shipping its own .git, as a directory or a gitfile pointing elsewhere, would be reused
-  // by git init, carrying hooks and config into the case or redirecting the seed commands to
-  // another repository; seeds are plain project content and the harness owns the repository.
-  if (await exists(path.join(seedPath, ".git"))) {
-    throw new Error(`workspace seed "${workspace.seed}" must not contain a .git entry.`);
-  }
+  await rejectUnsupportedSeedEntries(seedPath, workspace.seed);
 
   await mkdir(workspacePath, { recursive: true });
   // The lane wrote its skills and settings under .agents and .claude in the base workspace; a
   // seed's own entries there are left out of the copy so they cannot overwrite those surfaces.
-  // Symlinks are copied verbatim: the default resolves a relative link into an absolute path back
-  // into the source seed, and a later layer written through it would edit the shared seed.
+  // The match is case-insensitive because the workspace may sit on a case-insensitive filesystem.
   await cp(seedPath, workspacePath, {
     recursive: true,
-    verbatimSymlinks: true,
     filter: (source) =>
-      !SEED_EXCLUDED_ENTRIES.has(path.relative(seedPath, source).split(path.sep)[0] ?? ""),
+      !SEED_EXCLUDED_ENTRIES.has(
+        (path.relative(seedPath, source).split(path.sep)[0] ?? "").toLowerCase(),
+      ),
   });
   await writeWorkspaceFiles(workspacePath, workspace.committed);
   await git(workspacePath, "init", "--quiet", "--initial-branch", workspace.branch);
@@ -94,6 +89,26 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
 }
 
 const SEED_EXCLUDED_ENTRIES = new Set([".agents", ".claude"]);
+
+// Seeds are plain project content and the harness owns the repository. A .git entry at any depth
+// breaks that: at the root, a directory or a gitfile pointing elsewhere would be reused by git
+// init, carrying hooks and config into the case or redirecting the seed commands to another
+// repository; nested, it makes git add fail or stage a gitlink instead of the files. A symlink is
+// rejected because a fixture layer written through it could reach the shared seed, a harness
+// surface, or a path outside the case workspace.
+async function rejectUnsupportedSeedEntries(seedPath: string, seedName: string): Promise<void> {
+  for (const entry of await readdir(seedPath, { withFileTypes: true, recursive: true })) {
+    const relativePath = path.relative(seedPath, path.join(entry.parentPath, entry.name));
+    if (entry.name.toLowerCase() === ".git") {
+      throw new Error(
+        `workspace seed "${seedName}" must not contain a .git entry (${relativePath}).`,
+      );
+    }
+    if (entry.isSymbolicLink()) {
+      throw new Error(`workspace seed "${seedName}" must not contain a symlink (${relativePath}).`);
+    }
+  }
+}
 
 async function addForced(workspacePath: string, files: Record<string, string>): Promise<void> {
   const paths = Object.keys(files);
@@ -120,15 +135,6 @@ async function git(cwd: string, ...args: string[]): Promise<void> {
 async function isDirectory(filePath: string): Promise<boolean> {
   try {
     return (await stat(filePath)).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-async function exists(filePath: string): Promise<boolean> {
-  try {
-    await lstat(filePath);
-    return true;
   } catch {
     return false;
   }

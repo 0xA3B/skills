@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readlink, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -77,14 +77,34 @@ describe("stageSeededWorkspace", () => {
     );
   });
 
-  // A .git gitfile redirects git init to the repository it names, so it is rejected like a directory.
+  // A .git gitfile redirects git init to the repository it names, so it is rejected like a
+  // directory; a nested repository would be staged as a gitlink; a symlink could carry a fixture
+  // write outside the workspace.
   it.each([
-    ["directory", async (seedPath: string) => mkdir(path.join(seedPath, ".git"))],
-    ["gitfile", async (seedPath: string) => writeFile(path.join(seedPath, ".git"), "gitdir: /x\n")],
-  ])("rejects a seed that ships its own .git %s", async (_kind, writeGitEntry) => {
+    [
+      "a .git directory",
+      async (seedPath: string) => mkdir(path.join(seedPath, ".git")),
+      ".git entry (.git)",
+    ],
+    [
+      "a .git gitfile",
+      async (seedPath: string) => writeFile(path.join(seedPath, ".git"), "gitdir: /x\n"),
+      ".git entry (.git)",
+    ],
+    [
+      "a nested .git directory",
+      async (seedPath: string) => mkdir(path.join(seedPath, "vendor", ".git"), { recursive: true }),
+      ".git entry (vendor/.git)",
+    ],
+    [
+      "a symlink",
+      async (seedPath: string) => symlink("src/index.js", path.join(seedPath, "entry.js")),
+      "symlink (entry.js)",
+    ],
+  ])("rejects a seed that ships %s", async (_kind, writeEntry, detail) => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
     await writeSeedFixture(repoRoot, "node-service");
-    await writeGitEntry(resolveSeedPath(repoRoot, "node-service"));
+    await writeEntry(resolveSeedPath(repoRoot, "node-service"));
     const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
 
     await expect(
@@ -93,30 +113,16 @@ describe("stageSeededWorkspace", () => {
         workspacePath,
         workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
       }),
-    ).rejects.toThrow('workspace seed "node-service" must not contain a .git entry');
-  });
-
-  it("copies seed symlinks verbatim instead of resolving them into the source seed", async () => {
-    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
-    await writeSeedFixture(repoRoot, "node-service");
-    await symlink("src/index.js", path.join(resolveSeedPath(repoRoot, "node-service"), "entry.js"));
-    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
-
-    await stageSeededWorkspace({
-      repoRoot,
-      workspacePath,
-      workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
-    });
-
-    expect(await readlink(path.join(workspacePath, "entry.js"))).toBe("src/index.js");
+    ).rejects.toThrow(`workspace seed "node-service" must not contain a ${detail}`);
   });
 
   it("leaves a seed's .agents and .claude entries out of the copy", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
     await writeSeedFixture(repoRoot, "node-service");
     const seedPath = resolveSeedPath(repoRoot, "node-service");
-    await mkdir(path.join(seedPath, ".claude"));
-    await writeFile(path.join(seedPath, ".claude", "settings.json"), '{ "seed": true }\n');
+    // Mixed case: the workspace may sit on a case-insensitive filesystem.
+    await mkdir(path.join(seedPath, ".Claude"));
+    await writeFile(path.join(seedPath, ".Claude", "settings.json"), '{ "seed": true }\n');
     await mkdir(path.join(seedPath, ".agents", "skills"), { recursive: true });
     await writeFile(path.join(seedPath, ".agents", "skills", "SKILL.md"), "seed skill\n");
     const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
