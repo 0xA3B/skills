@@ -50,9 +50,12 @@ export async function validateSkills(
   skillsPath: string,
   targets: PluginTargets,
 ): Promise<void> {
+  // Skill names are lowercase kebab-case, so a dot-prefixed directory is never a skill; harness
+  // scratch directories land under skills/ when a shell runs there, and gitignore is not consulted
+  // because lint results must not depend on git configuration.
   const entries = await readdir(skillsPath, { withFileTypes: true });
   const skillDirs = entries
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
     .map((entry) => entry.name)
     .sort();
 
