@@ -2,17 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { parse as parseYaml } from "yaml";
-
 import type { CliRunResult } from "./exec.js";
-
-// The canary rewrite re-stringifies the frontmatter, wrapping long lines, so description
-// assertions must go through the parsed YAML instead of raw substrings.
-export function frontmatterDescription(content: string): string {
-  const match = content.match(/^---\r?\n(?<frontmatter>[\s\S]*?)\r?\n---/);
-  const metadata = parseYaml(match?.groups?.["frontmatter"] ?? "") as { description?: unknown };
-  return typeof metadata.description === "string" ? metadata.description : "";
-}
 
 export function agentMessageEvent(text: string): string {
   return `${JSON.stringify({ type: "item.completed", item: { type: "agent_message", text } })}\n`;
@@ -129,8 +119,9 @@ export type RepoLocalSkillFixtureOptions = {
   // Adds the "other" plugin and both marketplace catalogs listing it, so default staging has a
   // catalog to read.
   marketplace?: boolean;
-  // Sibling repo-local skills under .agents/skills, each implicitly invokable.
-  siblingSkills?: string[];
+  // Sibling repo-local skills under .agents/skills; manual-only siblings declare
+  // disable-model-invocation in their frontmatter, the policy surface the harness reads.
+  siblingSkills?: Array<{ name: string; manualOnly?: boolean }>;
 };
 
 export async function writeRepoLocalSkillFixture(
@@ -143,18 +134,23 @@ export async function writeRepoLocalSkillFixture(
     await writeOtherPlugin(repoRoot);
     await writeMarketplaceCatalogs(repoRoot, ["other"]);
   }
-  for (const siblingName of options.siblingSkills ?? []) {
-    const siblingPath = path.join(repoRoot, ".agents", "skills", siblingName);
-    await mkdir(siblingPath, { recursive: true });
+  for (const sibling of options.siblingSkills ?? []) {
+    const siblingPath = path.join(repoRoot, ".agents", "skills", sibling.name);
+    await mkdir(path.join(siblingPath, "agents"), { recursive: true });
     await writeFile(
       path.join(siblingPath, "SKILL.md"),
       [
         "---",
-        `name: ${siblingName}`,
+        `name: ${sibling.name}`,
         "description: Use when the user asks for the sibling repo-local skill.",
+        ...(sibling.manualOnly === true ? ["disable-model-invocation: true"] : []),
         "---",
         "",
       ].join("\n"),
+    );
+    await writeFile(
+      path.join(siblingPath, "agents", "openai.yaml"),
+      `version: 1\npolicy:\n  allow_implicit_invocation: ${sibling.manualOnly === true ? "false" : "true"}\n`,
     );
   }
 

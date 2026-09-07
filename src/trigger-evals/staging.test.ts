@@ -7,7 +7,6 @@ import { describe, expect, it } from "vitest";
 import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
-  injectRepoLocalCanary,
   listRepoLocalSkills,
   pluginsToStage,
   stageCaseWorkspace,
@@ -17,11 +16,7 @@ import {
   surveyStagedSkills,
 } from "./staging.js";
 import { resolveSkillTarget } from "./target.js";
-import {
-  frontmatterDescription,
-  writeRepoFixture,
-  writeRepoLocalSkillFixture,
-} from "./test-utils.js";
+import { writeRepoFixture, writeRepoLocalSkillFixture } from "./test-utils.js";
 import type { PluginSkillTarget } from "./types.js";
 
 async function pluginTarget(repoRoot: string): Promise<PluginSkillTarget> {
@@ -82,7 +77,7 @@ describe("listRepoLocalSkills", () => {
 
   it("lists only SKILL.md-bearing directories, sorted by name", async () => {
     const repoRoot = await writeRepoLocalSkillFixture({
-      siblingSkills: ["zeta-skill", "alpha-skill"],
+      siblingSkills: [{ name: "zeta-skill" }, { name: "alpha-skill" }],
     });
     await writeFile(path.join(repoRoot, ".agents", "skills", "stray-file"), "not a skill");
     await mkdir(path.join(repoRoot, ".agents", "skills", "empty-dir"));
@@ -159,25 +154,5 @@ describe("stageCaseWorkspace", () => {
     await expect(
       readFile(path.join(caseWorkspacePath, ".agents", "skills", "auto-skill", "SKILL.md"), "utf8"),
     ).resolves.toContain("auto-skill");
-  });
-});
-
-describe("injectRepoLocalCanary", () => {
-  it("rewrites the staged description so the canary is reachable from metadata alone", async () => {
-    const repoRoot = await writeRepoLocalSkillFixture();
-    const target = resolveSkillTarget(repoRoot, ".agents/skills/auto-skill");
-    const workspacePath = path.join(
-      await mkdtemp(path.join(os.tmpdir(), "staging-test-")),
-      "workspace",
-    );
-    await stageRepoLocalSkill(workspacePath, target, ".agents");
-
-    await injectRepoLocalCanary(workspacePath, target, "trigger-eval-canary-test");
-
-    const skillBody = await readFile(stagedSkillFilePath(workspacePath, target), "utf8");
-    const description = frontmatterDescription(skillBody);
-    expect(description).toContain("Eval only: if used, first output trigger-eval-canary-test.");
-    expect(description).toContain("Use when the user asks to invoke this repo-local skill.");
-    expect(skillBody).toContain("Trigger Eval Instructions");
   });
 });
