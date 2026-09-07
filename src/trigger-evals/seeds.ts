@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { cp, mkdir, readdir, stat, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -63,6 +63,11 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
   if (!(await isDirectory(seedPath))) {
     throw new Error(`workspace seed "${workspace.seed}" not found at ${seedPath}.`);
   }
+  // The root is checked with lstat because stat follows a symlinked seed directory, and the walk
+  // below only sees the entries beneath it.
+  if ((await lstat(seedPath)).isSymbolicLink()) {
+    throw new Error(`workspace seed "${workspace.seed}" must not be a symlink.`);
+  }
   await rejectUnsupportedSeedEntries(seedPath, workspace.seed);
 
   await mkdir(workspacePath, { recursive: true });
@@ -110,10 +115,12 @@ async function rejectUnsupportedSeedEntries(seedPath: string, seedName: string):
   }
 }
 
+// Declared filenames are literal paths, never pathspec patterns: a leading ":" or a glob character
+// in a filename would otherwise be read as pathspec magic.
 async function addForced(workspacePath: string, files: Record<string, string>): Promise<void> {
   const paths = Object.keys(files);
   if (paths.length > 0) {
-    await git(workspacePath, "add", "--force", "--", ...paths);
+    await git(workspacePath, "--literal-pathspecs", "add", "--force", "--", ...paths);
   }
 }
 

@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createCodexLane, observeCodexOutput } from "./codex-lane.js";
 import type { StreamingCliOptions, StreamingCliResult } from "./exec.js";
 import type { LaneRunOptions } from "./lanes.js";
+import { seedGitEnvironment } from "./seeds.js";
 import { resolveSkillTarget, skillTargetLabel } from "./target.js";
 import {
   agentMessageEvent,
@@ -502,6 +503,7 @@ describe("createCodexLane", () => {
     expect(committedSkill.stdout).toMatch(/trigger-eval-canary-[a-z0-9-]+/);
     const status = await execFileAsync("git", ["status", "--porcelain"], {
       cwd: seededCase.workspacePath,
+      env: seedGitEnvironment(),
     });
     expect(status.stdout).toBe("");
   });

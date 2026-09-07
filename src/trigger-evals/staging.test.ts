@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 
 import { describe, expect, it } from "vitest";
 
+import { seedGitEnvironment } from "./seeds.js";
 import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
@@ -182,6 +183,7 @@ describe("stageCaseWorkspace", () => {
     // dirty path the agent can see is the case's unstaged workspace file.
     const { stdout } = await execFileAsync("git", ["status", "--porcelain"], {
       cwd: caseWorkspacePath,
+      env: seedGitEnvironment(),
     });
     expect(stdout.trimEnd().split("\n")).toStrictEqual(["?? notes.md"]);
   });

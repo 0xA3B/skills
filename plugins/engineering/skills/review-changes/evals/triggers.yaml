@@ -67,7 +67,7 @@ cases:
 
   - id: review-session-branch
     prompt: >-
-      Review the branch we built this session against main before I open the PR.
+      Review the branch we built this session before I open the PR.
     workspace:
       seed: node-service
       branch: session/retry-policy

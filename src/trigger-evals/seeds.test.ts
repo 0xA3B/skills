@@ -144,6 +144,43 @@ describe("stageSeededWorkspace", () => {
     ).rejects.toThrow(/ENOENT/);
   });
 
+  it("rejects a seed whose directory is itself a symlink", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "real-seed");
+    await symlink("real-seed", resolveSeedPath(repoRoot, "node-service"));
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+
+    await expect(
+      stageSeededWorkspace({
+        repoRoot,
+        workspacePath,
+        workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
+      }),
+    ).rejects.toThrow('workspace seed "node-service" must not be a symlink');
+  });
+
+  it("adds declared filenames literally, not as pathspec patterns", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+
+    await stageSeededWorkspace({
+      repoRoot,
+      workspacePath,
+      workspace: {
+        seed: "node-service",
+        branch: "main",
+        committed: { "[draft].md": "committed\n" },
+        staged: { ":notes.md": "staged\n" },
+      },
+    });
+
+    expect(await git(workspacePath, "ls-tree", "--name-only", "HEAD", "[draft].md")).toBe(
+      "[draft].md",
+    );
+    expect(await git(workspacePath, "status", "--porcelain")).toBe("A  :notes.md");
+  });
+
   it("adds committed and staged fixture files that the seed's .gitignore matches", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
     await writeSeedFixture(repoRoot, "node-service");
