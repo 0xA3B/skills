@@ -108,9 +108,10 @@ Every seeded workspace is a git repository with no remote and one commit holding
 `committed` files, and the evaluated agent's config surfaces; `staged` files are then added to the
 index and `workspace_files` stay unstaged. A seed's own `.gitignore` shapes the seed commit only;
 `committed` and `staged` files are always added. A seed holds plain project content: the harness
-owns `.git`, `.agents`, and `.claude`, rejects a seed that ships `.git`, and leaves a seed's
-`.agents` and `.claude` entries out of the copy. Without a `workspace` block, `workspace_files`
-alone writes plain files with no git repository.
+owns `.git`, `.agents`, and `.claude`, rejects a seed that ships `.git` and any fixture file path
+under those entries, and leaves a seed's `.agents` and `.claude` entries out of the copy. Fixture
+file paths are POSIX-style relative file paths. Without a `workspace` block, `workspace_files` alone
+writes plain files with no git repository.
 
 Seed ownership is one-way: tailor a case to a seed through the `committed`, `staged`, and
 `workspace_files` layers, and never edit a seed for one case.

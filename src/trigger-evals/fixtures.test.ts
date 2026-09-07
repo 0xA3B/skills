@@ -129,11 +129,19 @@ cases:
   });
 
   // Git matches .git case-insensitively at any depth, so the guard must too; a leading "./"
-  // normalizes away when the file is written.
-  it.each([".git/hooks/pre-commit", "./.git/config", ".GIT/hooks/pre-commit", "lib/.git/config"])(
-    "rejects the workspace file path %s reaching git metadata",
-    async (filePath) => {
-      const fixturePath = await writeFixture(`
+  // normalizes away when the file is written. The lane owns .agents and .claude in the workspace;
+  // a backslash would become a literal filename on POSIX; a trailing "/" names a directory.
+  it.each([
+    ".git/hooks/pre-commit",
+    "./.git/config",
+    ".GIT/hooks/pre-commit",
+    "lib/.git/config",
+    ".claude/settings.json",
+    ".agents/skills/other/SKILL.md",
+    "src\\\\retry.js",
+    "docs/",
+  ])("rejects the workspace file path %s as unsafe or harness-owned", async (filePath) => {
+    const fixturePath = await writeFixture(`
 version: 1
 cases:
   - id: hook
@@ -148,11 +156,10 @@ cases:
     expect: skip
 `);
 
-      await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
-        `workspace.committed path "${filePath}" to be a safe relative path`,
-      );
-    },
-  );
+    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
+      `workspace.committed path "${filePath}" to be a safe relative path`,
+    );
+  });
 
   // Spec: "workspace_files: fixture-level unstaged files, merged per path (case wins)".
   it("merges fixture-level workspace_files under case workspace_files per path", async () => {

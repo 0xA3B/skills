@@ -216,20 +216,28 @@ function readWorkspaceFiles(
   return files;
 }
 
-// Safe means inside the workspace and outside git metadata: a path reaching any .git entry could
-// plant a hook or config that git would run or honor while the seed is committed, or turn a
-// subdirectory into an embedded repository. The match follows git's own rule: case-insensitive,
-// at any depth, after dropping empty and "." segments.
+// Safe means a POSIX-style relative file path inside the workspace and outside the harness-owned
+// entries: a path reaching any .git entry could plant a hook or config that git would run or honor
+// while the seed is committed, or turn a subdirectory into an embedded repository, and a path under
+// .agents or .claude would overwrite the lane's staged skills and settings after the base workspace
+// was copied. The .git match follows git's own rule: case-insensitive, at any depth, after dropping
+// empty and "." segments. Backslashes are rejected rather than treated as separators because the
+// write joins the path as written, and a trailing separator names a directory, not a file.
 function validateWorkspaceFilePath(filePath: string, fixturePath: string, location: string): void {
-  const segments = filePath.split(/[\\/]+/).filter((segment) => segment !== "" && segment !== ".");
+  const segments = filePath.split("/").filter((segment) => segment !== "" && segment !== ".");
   if (
     segments.length === 0 ||
+    filePath.includes("\\") ||
+    filePath.endsWith("/") ||
     path.isAbsolute(filePath) ||
     segments.includes("..") ||
-    segments.some((segment) => segment.toLowerCase() === ".git")
+    segments.some((segment) => segment.toLowerCase() === ".git") ||
+    HARNESS_OWNED_ENTRIES.has(segments[0]?.toLowerCase() ?? "")
   ) {
     throw new Error(
-      `${fixturePath}: expected ${location} path "${filePath}" to be a safe relative path.`,
+      `${fixturePath}: expected ${location} path "${filePath}" to be a safe relative path outside .git, .agents, and .claude.`,
     );
   }
 }
+
+const HARNESS_OWNED_ENTRIES = new Set([".agents", ".claude"]);

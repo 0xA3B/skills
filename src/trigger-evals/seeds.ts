@@ -73,8 +73,11 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
   await mkdir(workspacePath, { recursive: true });
   // The lane wrote its skills and settings under .agents and .claude in the base workspace; a
   // seed's own entries there are left out of the copy so they cannot overwrite those surfaces.
+  // Symlinks are copied verbatim: the default resolves a relative link into an absolute path back
+  // into the source seed, and a later layer written through it would edit the shared seed.
   await cp(seedPath, workspacePath, {
     recursive: true,
+    verbatimSymlinks: true,
     filter: (source) =>
       !SEED_EXCLUDED_ENTRIES.has(path.relative(seedPath, source).split(path.sep)[0] ?? ""),
   });

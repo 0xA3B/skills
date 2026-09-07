@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readlink, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -94,6 +94,21 @@ describe("stageSeededWorkspace", () => {
         workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
       }),
     ).rejects.toThrow('workspace seed "node-service" must not contain a .git entry');
+  });
+
+  it("copies seed symlinks verbatim instead of resolving them into the source seed", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    await symlink("src/index.js", path.join(resolveSeedPath(repoRoot, "node-service"), "entry.js"));
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+
+    await stageSeededWorkspace({
+      repoRoot,
+      workspacePath,
+      workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
+    });
+
+    expect(await readlink(path.join(workspacePath, "entry.js"))).toBe("src/index.js");
   });
 
   it("leaves a seed's .agents and .claude entries out of the copy", async () => {
