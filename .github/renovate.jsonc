@@ -7,6 +7,8 @@
   // Preserve unbounded manifest entries by updating only the lockfile.
   "rangeStrategy": "update-lockfile",
   "labels": ["dependencies"],
+  // Workspace seeds under evals/seeds are staged fixture projects, not dependencies of this repo.
+  "ignorePaths": ["**/node_modules/**", "**/bower_components/**", "evals/seeds/**"],
   // Run after regular updates so unbounded majors stay in reviewable PRs.
   "lockFileMaintenance": {
     "enabled": true,
