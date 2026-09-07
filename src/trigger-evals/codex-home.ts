@@ -9,6 +9,9 @@ type CodexHomeOptions = {
   model: string;
   effort: string;
   marketplaceName?: string;
+  // Local marketplace source directory. Kept outside the case workspace so the case cwd holds only
+  // fixture files; defaults to the workspace for callers that stage the catalog there.
+  marketplaceSourcePath?: string;
   pluginNames?: string[];
 };
 
@@ -101,7 +104,7 @@ async function buildEvalConfig(
     configLines.push(
       `[marketplaces.${tomlString(options.marketplaceName)}]`,
       'source_type = "local"',
-      `source = ${tomlString(options.workspacePath)}`,
+      `source = ${tomlString(options.marketplaceSourcePath ?? options.workspacePath)}`,
       "",
     );
     for (const pluginName of options.pluginNames) {

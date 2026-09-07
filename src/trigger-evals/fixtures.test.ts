@@ -35,6 +35,191 @@ cases:
     });
   });
 
+  // Spec: "workspace: fixture-level default ... branch: optional, default main ... cases[].workspace
+  // replaces the fixture default wholesale ... workspace: none opts out of the fixture default".
+  it("applies the fixture-level workspace default and lets cases replace or opt out", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+workspace:
+  seed: node-service
+  committed:
+    AGENTS.md: |
+      Use Conventional Commits.
+workspace_files:
+  notes.md: Shared note.
+cases:
+  - id: inherits-default
+    prompt: Review the staged changes.
+    expect: invoke
+  - id: replaces-default
+    prompt: Fix the parser.
+    expect: invoke
+    workspace:
+      seed: other-seed
+      branch: feature/parser
+      staged:
+        src/parser.js: "export {};\\n"
+  - id: opts-out
+    prompt: What is a commit?
+    expect: skip
+    workspace: none
+`);
+
+    const fixture = await loadTriggerFixture(fixturePath);
+
+    expect(fixture.cases.map((testCase) => testCase.workspace)).toStrictEqual([
+      {
+        seed: "node-service",
+        branch: "main",
+        committed: { "AGENTS.md": "Use Conventional Commits.\n" },
+        staged: {},
+      },
+      {
+        seed: "other-seed",
+        branch: "feature/parser",
+        committed: {},
+        staged: { "src/parser.js": "export {};\n" },
+      },
+      undefined,
+    ]);
+    // Opting out of the workspace default leaves the fixture-level workspace_files in place.
+    expect(fixture.cases.map((testCase) => testCase.workspaceFiles)).toStrictEqual([
+      { "notes.md": "Shared note." },
+      { "notes.md": "Shared note." },
+      { "notes.md": "Shared note." },
+    ]);
+  });
+
+  it("rejects workspace: none at the fixture level", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+workspace: none
+cases:
+  - id: commit-message
+    prompt: Draft a Conventional Commit message.
+    expect: invoke
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+`);
+
+    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
+      "expected workspace to be an object",
+    );
+  });
+
+  it("rejects a workspace branch that is not a git branch name", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: bad-branch
+    prompt: Review the staged changes.
+    expect: invoke
+    workspace:
+      seed: node-service
+      branch: feature branch
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+`);
+
+    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
+      "expected cases[0].workspace.branch to be a git branch name",
+    );
+  });
+
+  // Git matches .git case-insensitively at any depth, so the guard must too; a leading "./"
+  // normalizes away when the file is written.
+  it.each([".git/hooks/pre-commit", "./.git/config", ".GIT/hooks/pre-commit", "lib/.git/config"])(
+    "rejects the workspace file path %s reaching git metadata",
+    async (filePath) => {
+      const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: hook
+    prompt: Review the staged changes.
+    expect: invoke
+    workspace:
+      seed: node-service
+      committed:
+        ${JSON.stringify(filePath)}: "exit 0"
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+`);
+
+      await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
+        `workspace.committed path "${filePath}" to be a safe relative path`,
+      );
+    },
+  );
+
+  // Spec: "workspace_files: fixture-level unstaged files, merged per path (case wins)".
+  it("merges fixture-level workspace_files under case workspace_files per path", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+workspace_files:
+  AGENTS.md: Fixture default.
+  README.md: Shared readme.
+cases:
+  - id: overrides-one-path
+    prompt: Commit this.
+    expect: invoke
+    workspace_files:
+      AGENTS.md: Case override.
+  - id: inherits-all
+    prompt: What is a commit?
+    expect: skip
+`);
+
+    const fixture = await loadTriggerFixture(fixturePath);
+
+    expect(fixture.cases.map((testCase) => testCase.workspaceFiles)).toStrictEqual([
+      { "AGENTS.md": "Case override.", "README.md": "Shared readme." },
+      { "AGENTS.md": "Fixture default.", "README.md": "Shared readme." },
+    ]);
+  });
+
+  it("rejects a workspace block whose seed is not a kebab-case name", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: bad-seed
+    prompt: Review the staged changes.
+    expect: invoke
+    workspace:
+      seed: ../escape
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+`);
+
+    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
+      "expected cases[0].workspace.seed to be a kebab-case seed name",
+    );
+  });
+
+  it("rejects unsafe paths in committed and staged workspace files", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+workspace:
+  seed: node-service
+  staged:
+    /etc/passwd: Invalid.
+cases:
+  - id: commit-message
+    prompt: Draft a Conventional Commit message.
+    expect: invoke
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+`);
+
+    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
+      'workspace.staged path "/etc/passwd" to be a safe relative path',
+    );
+  });
+
   it("requires at least one skip case", async () => {
     const fixturePath = await writeFixture(`
 version: 1

@@ -84,6 +84,34 @@ artifact that the prompt does not contain, add the smallest representative `work
 or embed the needed text in the prompt. Missing input can make an agent inspect the empty fixture or
 ask for context before selecting a skill, which measures task viability instead of invocation.
 
+A case runs in an empty directory unless it resolves to a `workspace` block or `workspace_files`,
+from the case or the fixture default. When a prompt assumes a plausible project — "review the staged
+changes", "fix the regex in parseIso", "where should the seam go" — declare a workspace seed:
+
+```yaml
+version: 1
+workspace: # fixture-level default; applies to skip cases too
+  seed: node-service # evals/seeds/node-service/
+  branch: main # optional
+  committed: {}
+  staged: {}
+workspace_files: {} # fixture-level default, merged per path with the case's own (case wins)
+cases:
+  - id: example
+    workspace: { seed: node-service, staged: { src/retry.js: "..." } } # replaces the default
+    workspace_files: {}
+  - id: other
+    workspace: none # opts out of the fixture default
+```
+
+Every seeded workspace is a git repository with no remote and one commit holding the seed, the
+`committed` files, and the evaluated agent's config surfaces; `staged` files are then added to the
+index and `workspace_files` stay unstaged. Without a `workspace` block, `workspace_files` alone
+writes plain files with no git repository.
+
+Seed ownership is one-way: tailor a case to a seed through the `committed`, `staged`, and
+`workspace_files` layers, and never edit a seed for one case.
+
 Prefer cheap boundary-question negatives when the nearby workflow would otherwise do substantial
 work, such as asking which workflow owns plugin creation or metadata updates. Use action-style
 negative prompts only when the near miss itself is important to test. Use `workspace_files` for
@@ -156,7 +184,9 @@ cases where loaded repository instructions should affect the trigger boundary, s
    edit one only when the overlap would also misfire in a session without the repo-local skills.
 9. Rerun the same eval after edits. After a description edit, also rerun the fixtures of every skill
    named in `wrong-skill` results:
-   `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both`.
+   `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both`. After a
+   seed edit, use the same command to rerun every fixture that names the seed; the edit alters the
+   workspace each of those cases runs in.
 10. Run repository validation for changed files:
 
     ```bash
@@ -170,11 +200,12 @@ cases where loaded repository instructions should affect the trigger boundary, s
 
 - The runner writes reports and Codex homes under `.local/skill-evals/`, and creates staged
   workspaces outside the repository so only deliberately staged skills are loadable — the parent
-  checkout's live skills never leak into the trigger signal. On Claude, staged plugin deployment
-  copies are siblings of the case workspace rather than project files, matching an installed session
-  and keeping them out of project reconnaissance.
-- Cases with `workspace_files` run in a case-specific copy of the isolated workspace, then write the
-  listed safe relative paths before invoking the agent.
+  checkout's live skills never leak into the trigger signal. On both lanes, staged plugin deployment
+  copies and the Codex marketplace catalog are siblings of the case workspace rather than project
+  files, matching an installed session and keeping them out of project reconnaissance.
+- Cases with a `workspace` block or `workspace_files` run in a case-specific copy of the isolated
+  workspace. The runner builds the seeded repository identically on both lanes, with a harness-owned
+  git identity and signing disabled, so the machine's git configuration cannot affect a run.
 - The committed `description` remains the trigger surface under test.
 - The runner appends eval-only instructions to the staged skill copies telling the model to output a
   canary token and stop immediately after invocation. This keeps positive cases focused on trigger

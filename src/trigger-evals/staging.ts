@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { appendEvalSectionToFile, createCanary } from "./canary.js";
 import type { MarketplacePluginEntry } from "./marketplace.js";
+import { stageSeededWorkspace, writeWorkspaceFiles } from "./seeds.js";
 import { readSkillFileAllowImplicitInvocation } from "./target.js";
 import type { SkillTarget, TriggerCase } from "./types.js";
 
@@ -191,20 +192,35 @@ export async function stageRepoLocalSkill(
   return path.join(copiedSkillPath, "SKILL.md");
 }
 
-// Copies the shared base workspace into a case-isolated one and applies the fixture's workspace
-// files. Callers that need no per-case mutation should keep using the base workspace instead.
+// A case needs its own workspace copy when the fixture mutates it: a seeded git repository, or
+// unstaged workspace files. Other cases share the base workspace.
+export function needsCaseWorkspace(testCase: TriggerCase): boolean {
+  return testCase.workspace !== undefined || testCase.workspaceFiles !== undefined;
+}
+
+// Copies the shared base workspace into a case-isolated one, then layers the fixture's workspace:
+// a seeded git repository when the case declares one (its harness surfaces join the seed commit),
+// and the unstaged workspace files last. Callers that need no per-case mutation should keep using
+// the base workspace instead.
 export async function stageCaseWorkspace(options: {
   baseWorkspacePath: string;
   workspaceRoot: string;
+  repoRoot: string;
   testCase: TriggerCase;
 }): Promise<string> {
-  const workspacePath = path.join(options.workspaceRoot, "cases", options.testCase.id, "workspace");
+  const { testCase } = options;
+  const workspacePath = path.join(options.workspaceRoot, "cases", testCase.id, "workspace");
   await cp(options.baseWorkspacePath, workspacePath, { recursive: true });
 
-  for (const [relativeFilePath, content] of Object.entries(options.testCase.workspaceFiles ?? {})) {
-    const absoluteFilePath = path.join(workspacePath, relativeFilePath);
-    await mkdir(path.dirname(absoluteFilePath), { recursive: true });
-    await writeFile(absoluteFilePath, content);
+  if (testCase.workspace === undefined) {
+    await writeWorkspaceFiles(workspacePath, testCase.workspaceFiles ?? {});
+  } else {
+    await stageSeededWorkspace({
+      repoRoot: options.repoRoot,
+      workspacePath,
+      workspace: testCase.workspace,
+      ...(testCase.workspaceFiles === undefined ? {} : { workspaceFiles: testCase.workspaceFiles }),
+    });
   }
 
   return workspacePath;

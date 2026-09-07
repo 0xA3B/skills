@@ -115,6 +115,14 @@ export async function writeRepoFixture(options: RepoFixtureOptions = {}): Promis
   return repoRoot;
 }
 
+// A minimal workspace seed under evals/seeds/<name> in a fixture repository.
+export async function writeSeedFixture(repoRoot: string, seedName: string): Promise<void> {
+  const seedPath = path.join(repoRoot, "evals", "seeds", seedName);
+  await mkdir(path.join(seedPath, "src"), { recursive: true });
+  await writeFile(path.join(seedPath, "package.json"), '{ "name": "seed" }\n');
+  await writeFile(path.join(seedPath, "src", "index.js"), "export const seed = true;\n");
+}
+
 export type RepoLocalSkillFixtureOptions = {
   // Adds the "other" plugin and both marketplace catalogs listing it, so default staging has a
   // catalog to read.

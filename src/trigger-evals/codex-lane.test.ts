@@ -1,6 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,8 +10,15 @@ import { createCodexLane, observeCodexOutput } from "./codex-lane.js";
 import type { StreamingCliOptions, StreamingCliResult } from "./exec.js";
 import type { LaneRunOptions } from "./lanes.js";
 import { resolveSkillTarget, skillTargetLabel } from "./target.js";
-import { agentMessageEvent, writeRepoFixture, writeRepoLocalSkillFixture } from "./test-utils.js";
+import {
+  agentMessageEvent,
+  writeRepoFixture,
+  writeRepoLocalSkillFixture,
+  writeSeedFixture,
+} from "./test-utils.js";
 import type { SkillTarget } from "./types.js";
+
+const execFileAsync = promisify(execFile);
 
 const spawnCalls = vi.hoisted(
   () => [] as Array<{ command: string; args: string[]; options: StreamingCliOptions }>,
@@ -54,13 +63,25 @@ async function makeRunOptions(
   };
 }
 
+// Plugin copies and the eval marketplace catalog live in the deployment directory outside the
+// case cwd, which the generated config names as the local marketplace source.
+async function readDeploymentPath(runDir: string, caseId: string): Promise<string> {
+  const config = await readFile(
+    path.join(runDir, "codex-home", "cases", caseId, "config.toml"),
+    "utf8",
+  );
+  const source = config.match(/^source = (?<source>".*")$/m)?.groups?.["source"];
+  expect(source).toBeDefined();
+  return JSON.parse(source ?? '""') as string;
+}
+
 async function readStagedCanary(
-  workspacePath: string,
+  deploymentPath: string,
   pluginName: string,
   skillName: string,
 ): Promise<string> {
   const skillBody = await readFile(
-    path.join(workspacePath, "plugins", pluginName, "skills", skillName, "SKILL.md"),
+    path.join(deploymentPath, "plugins", pluginName, "skills", skillName, "SKILL.md"),
     "utf8",
   );
   const canary = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
@@ -93,19 +114,22 @@ describe("createCodexLane", () => {
     });
     await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
-    // Codex-only surfaces: the eval marketplace catalog, no Claude settings.
+    // Codex-only surfaces: the eval marketplace catalog, no Claude settings. Both live in the
+    // deployment directory, so the case cwd holds only fixture workspace files.
+    const deploymentPath = await readDeploymentPath(runOptions.runDir, "invoke-case");
+    expect(deploymentPath.startsWith(`${laneCase.workspacePath}${path.sep}`)).toBe(false);
     const catalog = JSON.parse(
-      await readFile(
-        path.join(laneCase.workspacePath, ".agents", "plugins", "marketplace.json"),
-        "utf8",
-      ),
+      await readFile(path.join(deploymentPath, ".agents", "plugins", "marketplace.json"), "utf8"),
     ) as { plugins: Array<{ name: string }> };
     expect(catalog.plugins.map((plugin) => plugin.name)).toStrictEqual(["demo"]);
     await expect(
       readFile(path.join(laneCase.workspacePath, ".claude", "settings.json"), "utf8"),
     ).rejects.toThrow(/ENOENT/);
+    await expect(
+      readFile(path.join(laneCase.workspacePath, ".agents", "plugins", "marketplace.json"), "utf8"),
+    ).rejects.toThrow(/ENOENT/);
 
-    const canary = await readStagedCanary(laneCase.workspacePath, "demo", "auto-skill");
+    const canary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
     const codexHome = path.join(runOptions.runDir, "codex-home", "cases", "invoke-case");
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
     expect(config).toContain('model = "gpt-5.6-sol"');
@@ -206,8 +230,9 @@ describe("createCodexLane", () => {
       prompt: "Invoke the skill.",
       expect: "invoke",
     });
-    const targetCanary = await readStagedCanary(laneCase.workspacePath, "demo", "auto-skill");
-    const siblingCanary = await readStagedCanary(laneCase.workspacePath, "demo", "sibling-skill");
+    const deploymentPath = await readDeploymentPath(runOptions.runDir, "invoke-case");
+    const targetCanary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
+    const siblingCanary = await readStagedCanary(deploymentPath, "demo", "sibling-skill");
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(
       new Set(["demo:auto-skill", "demo:sibling-skill"]),
@@ -242,16 +267,14 @@ describe("createCodexLane", () => {
       expect: "skip",
     });
 
+    const deploymentPath = await readDeploymentPath(runOptions.runDir, "skip-case");
     const catalog = JSON.parse(
-      await readFile(
-        path.join(laneCase.workspacePath, ".agents", "plugins", "marketplace.json"),
-        "utf8",
-      ),
+      await readFile(path.join(deploymentPath, ".agents", "plugins", "marketplace.json"), "utf8"),
     ) as { plugins: Array<{ name: string }> };
     expect(catalog.plugins.map((plugin) => plugin.name)).toStrictEqual(["demo", "other"]);
 
     // Cross-plugin wrong-skill detection: the other plugin's canary is a recognized invocation.
-    const otherCanary = await readStagedCanary(laneCase.workspacePath, "other", "other-skill");
+    const otherCanary = await readStagedCanary(deploymentPath, "other", "other-skill");
     const observed = laneCase.observe({ stdout: agentMessageEvent(otherCanary), stderr: "" });
     expect(observed.invokedSkills).toStrictEqual(["other:other-skill"]);
 
@@ -271,6 +294,35 @@ describe("createCodexLane", () => {
       "utf8",
     );
     expect(cachedOtherSkill).toContain(otherCanary);
+  });
+
+  it("stages a seeded git workspace for plugin cases with a workspace block", async () => {
+    const repoRoot = await writeRepoFixture();
+    await writeSeedFixture(repoRoot, "demo-seed");
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+
+    const laneRun = await lane.prepareRun(runOptions);
+    const seededCase = await laneRun.prepareCase({
+      id: "seeded-case",
+      prompt: "Review the staged changes.",
+      expect: "invoke",
+      workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
+    });
+
+    expect(seededCase.workspacePath).toContain(path.join("cases", "seeded-case", "workspace"));
+    await expect(stat(path.join(seededCase.workspacePath, ".git"))).resolves.toBeDefined();
+    await expect(
+      readFile(path.join(seededCase.workspacePath, "src", "index.js"), "utf8"),
+    ).resolves.toContain("seed");
+    // The seeded cwd is trusted in the case config, and plugins stay outside it.
+    const config = await readFile(
+      path.join(runOptions.runDir, "codex-home", "cases", "seeded-case", "config.toml"),
+      "utf8",
+    );
+    expect(config).toContain(`[projects.${JSON.stringify(seededCase.workspacePath)}]`);
+    await expect(stat(path.join(seededCase.workspacePath, "plugins"))).rejects.toThrow(/ENOENT/);
   });
 
   it("stages plugins plus repo-local siblings for repo-local targets and merges canaries", async () => {
@@ -304,11 +356,9 @@ describe("createCodexLane", () => {
     expect(laneRun.stagedSkillLabels).toStrictEqual(
       new Set(["other:other-skill", "auto-skill", "sibling-skill", "manual-skill"]),
     );
+    const deploymentPath = await readDeploymentPath(runOptions.runDir, "repo-local-case");
     const catalog = JSON.parse(
-      await readFile(
-        path.join(laneCase.workspacePath, ".agents", "plugins", "marketplace.json"),
-        "utf8",
-      ),
+      await readFile(path.join(deploymentPath, ".agents", "plugins", "marketplace.json"), "utf8"),
     ) as { plugins: Array<{ name: string }> };
     expect(catalog.plugins.map((plugin) => plugin.name)).toStrictEqual(["other"]);
     const codexHome = path.join(runOptions.runDir, "codex-home", "cases", "repo-local-case");
@@ -323,7 +373,7 @@ describe("createCodexLane", () => {
     );
     const targetCanary = targetSkillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
     expect(targetCanary).toBeDefined();
-    const otherCanary = await readStagedCanary(laneCase.workspacePath, "other", "other-skill");
+    const otherCanary = await readStagedCanary(deploymentPath, "other", "other-skill");
     expect(
       laneCase.observe({ stdout: agentMessageEvent(targetCanary ?? ""), stderr: "" }).invokedSkills,
     ).toStrictEqual(["auto-skill"]);
@@ -380,7 +430,7 @@ describe("createCodexLane", () => {
     );
   });
 
-  it("stages repo-local targets under .agents with a per-case body canary", async () => {
+  it("stages repo-local targets under .agents with a per-run body canary", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
@@ -400,7 +450,7 @@ describe("createCodexLane", () => {
       "utf8",
     );
     const canaries = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/g) ?? [];
-    // Exactly one canary: the per-case target canary, never a second per-run sibling canary.
+    // Exactly one canary: the target is canaried once per run, never again as a sibling.
     expect(canaries).toHaveLength(1);
     const canary = canaries[0];
     // The committed skill, description included, stays a byte-identical prefix of the staged copy.
@@ -425,6 +475,35 @@ describe("createCodexLane", () => {
     });
     expect(observed.signal).toBe("stdout-skill-canary");
     expect(observed.invokedSkills).toStrictEqual(["auto-skill"]);
+  });
+
+  it("commits the repo-local canary into a seeded workspace", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture();
+    await writeSeedFixture(repoRoot, "demo-seed");
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const runOptions = await makeRunOptions(repoRoot, ".agents/skills/auto-skill");
+
+    const laneRun = await lane.prepareRun(runOptions);
+    const seededCase = await laneRun.prepareCase({
+      id: "seeded-repo-local-case",
+      prompt: "Invoke the skill.",
+      expect: "invoke",
+      workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
+    });
+
+    // The canary is appended per run, before the seed commit, so the staged skill is part of the
+    // committed tree and the agent sees a clean worktree.
+    const committedSkill = await execFileAsync(
+      "git",
+      ["show", "HEAD:.agents/skills/auto-skill/SKILL.md"],
+      { cwd: seededCase.workspacePath },
+    );
+    expect(committedSkill.stdout).toMatch(/trigger-eval-canary-[a-z0-9-]+/);
+    const status = await execFileAsync("git", ["status", "--porcelain"], {
+      cwd: seededCase.workspacePath,
+    });
+    expect(status.stdout).toBe("");
   });
 });
 
