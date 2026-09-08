@@ -119,3 +119,18 @@ export async function readSkillFileAllowImplicitInvocation(
 export function skillTargetLabel(target: SkillTarget): string {
   return target.kind === "plugin" ? `${target.pluginName}:${target.skillName}` : target.skillName;
 }
+
+export type SkillLabel = {
+  pluginName?: string;
+  skillName: string;
+};
+
+// The inverse of skillTargetLabel for labels the fixture loader has already validated: one colon
+// separates a plugin skill's plugin and skill names; a bare name is a repo-local skill.
+export function parseSkillLabel(label: string): SkillLabel {
+  const separator = label.indexOf(":");
+  if (separator === -1) {
+    return { skillName: label };
+  }
+  return { pluginName: label.slice(0, separator), skillName: label.slice(separator + 1) };
+}

@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { loadTriggerFixture } from "./fixtures.js";
+import { loadTriggerFixture, parseTriggerFixture } from "./fixtures.js";
 
 describe("loadTriggerFixture", () => {
   it("loads trigger fixtures with positive and negative cases", async () => {
@@ -318,6 +318,119 @@ cases:
       'workspace_files path "../AGENTS.md" to be a safe relative path',
     );
   });
+
+  // Spec: "invoke-instead: <label> is valid only on expect: skip cases."
+  it("reads invoke-instead on skip cases", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: commit-message
+    prompt: Draft a Conventional Commit message.
+    expect: invoke
+  - id: existing-feedback
+    prompt: Address these review comments.
+    expect: skip
+    invoke-instead: engineering:receiving-feedback
+`);
+
+    const fixture = await loadTriggerFixture(fixturePath);
+    expect(fixture.cases[1]).toStrictEqual({
+      id: "existing-feedback",
+      prompt: "Address these review comments.",
+      expect: "skip",
+      invokeInstead: "engineering:receiving-feedback",
+    });
+    expect(fixture.cases[0]).not.toHaveProperty("invokeInstead");
+  });
+
+  it("rejects invoke-instead on invoke cases and empty labels", async () => {
+    const onInvoke = await writeFixture(`
+version: 1
+cases:
+  - id: commit-message
+    prompt: Draft a Conventional Commit message.
+    expect: invoke
+    invoke-instead: engineering:tdd
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+`);
+    await expect(loadTriggerFixture(onInvoke)).rejects.toThrow(
+      "expected cases[0].invoke-instead only on expect: skip cases.",
+    );
+
+    const empty = await writeFixture(`
+version: 1
+cases:
+  - id: commit-message
+    prompt: Draft a Conventional Commit message.
+    expect: invoke
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+    invoke-instead: ""
+`);
+    await expect(loadTriggerFixture(empty)).rejects.toThrow(
+      "expected cases[1].invoke-instead to be a skill label: <plugin>:<skill> or a bare repo-local skill name.",
+    );
+  });
+
+  // Spec: "fixtures.ts owns the schema and collects every finding ... instead of throwing at the
+  // first; invalid YAML yields one finding. The runner's load aggregates findings into one thrown
+  // error."
+  it("collects every finding before failing the load", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: Bad Id
+    prompt: Draft a Conventional Commit message.
+    expect: invoke
+    workspace:
+      seed: Not Kebab
+  - id: general-question
+    prompt: What is a commit?
+    expect: maybe
+`);
+
+    const error = await loadTriggerFixture(fixturePath).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(Error);
+    const lines = (error as Error).message.split("\n");
+    expect(lines).toStrictEqual([
+      `${fixturePath}: expected cases[0].id to be 1-80 lowercase letters, numbers, or hyphens.`,
+      `${fixturePath}: expected cases[0].workspace.seed to be a kebab-case seed name.`,
+      `${fixturePath}: expected cases[1].expect to be invoke or skip.`,
+    ]);
+  });
+
+  it("reports invalid YAML as one finding", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: [unterminated
+`);
+
+    expect(parseTriggerFixture("version: 1\ncases:\n  - id: [unterminated\n")).toMatchObject({
+      fixture: undefined,
+      findings: [{ pointer: "", message: expect.stringMatching(/^invalid YAML: /) }],
+    });
+    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(`${fixturePath}: invalid YAML: `);
+  });
+
+  it("exposes findings with pointers for the linter", () => {
+    const { fixture, findings } = parseTriggerFixture(
+      "version: 1\ncases:\n  - id: a\n    prompt: p\n    expect: skip\n    invoke-instead: 3\n",
+    );
+
+    expect(fixture).toBeUndefined();
+    expect(findings).toStrictEqual([
+      {
+        pointer: "cases[0].invoke-instead",
+        message:
+          "expected cases[0].invoke-instead to be a skill label: <plugin>:<skill> or a bare repo-local skill name.",
+      },
+      { pointer: "cases", message: "expected at least one case with expect: invoke." },
+    ]);
+  });
 });
 
 async function writeFixture(content: string): Promise<string> {
@@ -326,3 +439,151 @@ async function writeFixture(content: string): Promise<string> {
   await writeFile(fixturePath, content.trimStart());
   return fixturePath;
 }
+
+describe("loadTriggerFixture case selection", () => {
+  it("keeps only the requested cases in fixture order", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: first
+    prompt: First prompt.
+    expect: invoke
+  - id: second
+    prompt: Second prompt.
+    expect: skip
+  - id: third
+    prompt: Third prompt.
+    expect: skip
+`);
+
+    const fixture = await loadTriggerFixture(fixturePath, { caseIds: ["third", "first"] });
+
+    expect(fixture.cases.map((testCase) => testCase.id)).toStrictEqual(["first", "third"]);
+  });
+
+  it("rejects an unknown requested case id", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: first
+    prompt: First prompt.
+    expect: invoke
+  - id: second
+    prompt: Second prompt.
+    expect: skip
+`);
+
+    await expect(
+      loadTriggerFixture(fixturePath, { caseIds: ["first", "missing"] }),
+    ).rejects.toThrow('No trigger fixture case found with id "missing".');
+  });
+});
+
+describe("parseTriggerFixture details", () => {
+  it("rejects invoke-instead labels that are not skill labels", () => {
+    const parsed = parseTriggerFixture(`
+version: 1
+cases:
+  - id: invoke-case
+    prompt: Do the thing.
+    expect: invoke
+  - id: traversal
+    prompt: Route somewhere odd.
+    expect: skip
+    invoke-instead: "git:../../../.agents/skills/x"
+  - id: spaced
+    prompt: Route somewhere odd.
+    expect: skip
+    invoke-instead: "Git:Commit extra"
+`);
+
+    expect(parsed.fixture).toBeUndefined();
+    expect(parsed.findings.map((finding) => finding.pointer)).toStrictEqual([
+      "cases[1].invoke-instead",
+      "cases[2].invoke-instead",
+    ]);
+  });
+
+  it("reports duplicate case ids at the repeated case and keeps parsing", () => {
+    const parsed = parseTriggerFixture(`
+version: 1
+cases:
+  - id: same
+    prompt: First prompt.
+    expect: invoke
+  - id: same
+    prompt: Second prompt.
+    expect: skip
+  - id: broken
+    prompt: Third prompt.
+    expect: maybe
+`);
+
+    expect(parsed.findings).toStrictEqual([
+      { pointer: "cases[1].id", message: 'duplicate case id "same".' },
+      { pointer: "cases[2].expect", message: "expected cases[2].expect to be invoke or skip." },
+    ]);
+  });
+
+  it("quotes file-map keys in pointers so a key with quotes stays one token", () => {
+    const parsed = parseTriggerFixture(`
+version: 1
+cases:
+  - id: invoke-case
+    prompt: Do the thing.
+    expect: invoke
+    workspace_files:
+      'src/a"b.ts': 3
+  - id: skip-case
+    prompt: Do something else.
+    expect: skip
+`);
+
+    expect(parsed.findings.map((finding) => finding.pointer)).toStrictEqual([
+      'cases[0].workspace_files["src/a\\"b.ts"]',
+    ]);
+  });
+
+  it("keeps the fixture-level workspace default and shares it with inheriting cases", () => {
+    const { fixture } = parseTriggerFixture(`
+version: 1
+workspace:
+  seed: node-service
+cases:
+  - id: inherits
+    prompt: Do the thing.
+    expect: invoke
+  - id: own
+    prompt: Do something else.
+    expect: skip
+    workspace:
+      seed: other-seed
+`);
+
+    expect(fixture?.workspace).toStrictEqual({
+      seed: "node-service",
+      branch: "main",
+      committed: {},
+      staged: {},
+    });
+    expect(fixture?.cases[0]?.workspace).toBe(fixture?.workspace);
+    expect(fixture?.cases[1]?.workspace).not.toBe(fixture?.workspace);
+  });
+
+  it("rejects an empty caseIds selection", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: first
+    prompt: First prompt.
+    expect: invoke
+  - id: second
+    prompt: Second prompt.
+    expect: skip
+`);
+
+    await expect(loadTriggerFixture(fixturePath, { caseIds: [] })).rejects.toThrow(
+      "caseIds must name at least one case; omit it to run every case.",
+    );
+  });
+});

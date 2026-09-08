@@ -137,6 +137,78 @@ describe("buildCaseResult", () => {
     });
   });
 
+  // Spec: "Pass iff the target does not fire AND the named alternate is the only skill that
+  // fires. Anything else (nothing fires, a different skill fires, both fire) fails."
+  describe("routing assertion", () => {
+    const ALTERNATE = "demo:sibling-skill";
+    const routingCase = {
+      id: "existing-feedback",
+      expect: "skip" as const,
+      invokeInstead: ALTERNATE,
+    };
+
+    it("passes when the alternate is the only skill that fires", () => {
+      const result = buildCaseResult(
+        verdictOptions({ testCase: routingCase, observations: invokedObservations(ALTERNATE) }),
+      );
+
+      expect(result).toMatchObject({
+        expect: "skip",
+        invokeInstead: ALTERNATE,
+        invoked: false,
+        wrongSkill: ALTERNATE,
+        passed: true,
+      });
+    });
+
+    it.each([
+      ["nothing fires", observations()],
+      ["a different skill fires", invokedObservations("demo:other-skill")],
+      ["the target fires", invokedObservations(TARGET)],
+      ["the target and the alternate both fire", invokedObservations(TARGET, ALTERNATE)],
+      [
+        "the alternate and another skill both fire",
+        invokedObservations(ALTERNATE, "demo:other-skill"),
+      ],
+    ])("fails when %s", (_label, caseObservations) => {
+      const result = buildCaseResult(
+        verdictOptions({ testCase: routingCase, observations: caseObservations }),
+      );
+
+      expect(result.passed).toBe(false);
+      expect(result.invokeInstead).toBe(ALTERNATE);
+    });
+
+    it("passes when the alternate is detected more than once and nothing else fires", () => {
+      const result = buildCaseResult(
+        verdictOptions({
+          testCase: routingCase,
+          observations: invokedObservations(ALTERNATE, ALTERNATE),
+        }),
+      );
+
+      expect(result.passed).toBe(true);
+      expect(result.invokedSkills).toStrictEqual([ALTERNATE]);
+    });
+
+    it("fails when the assertion names the target and the target fires", () => {
+      const result = buildCaseResult(
+        verdictOptions({
+          testCase: { ...routingCase, invokeInstead: TARGET },
+          observations: invokedObservations(TARGET),
+        }),
+      );
+
+      expect(result).toMatchObject({ invoked: true, passed: false });
+    });
+
+    it("leaves invokeInstead off results of plain cases", () => {
+      const result = buildCaseResult(verdictOptions());
+
+      expect(result).not.toHaveProperty("invokeInstead");
+    });
+  });
+
   it("classifies skip signals from how the run ended", () => {
     const skipCase = { id: "skip-case", expect: "skip" as const };
     const byEnd = (endedBy: "completed" | "stop-when" | "timeout" | "abort") =>

@@ -16,6 +16,8 @@ export type TriggerCase = {
   prompt: string;
   expect: TriggerExpectation;
   rationale?: string;
+  // Routing assertion, skip cases only: the label of the skill that must be the only one to fire.
+  invokeInstead?: string;
   // Resolved from the fixture-level default unless the case replaces it or opts out.
   workspace?: WorkspaceSpec;
   // Unstaged files written last, fixture-level defaults merged under the case's own per path.
@@ -25,6 +27,8 @@ export type TriggerCase = {
 export type TriggerFixture = {
   version: 1;
   cases: TriggerCase[];
+  // The fixture-level default; a case that inherited it holds this same object.
+  workspace?: WorkspaceSpec;
 };
 
 type SkillTargetBase = {
@@ -73,10 +77,14 @@ export type CaseObservations = {
 export type TriggerCaseResult = {
   caseId: string;
   expect: TriggerExpectation;
+  // The case's routing assertion, copied from the fixture so reports can show the expectation.
+  invokeInstead?: string;
   invocationSignal: InvocationSignal;
   // True when the target skill was invoked, regardless of whether another staged skill also
   // fired; simultaneous firings are recorded separately in wrongSkill.
   invoked: boolean;
+  // Every distinct staged skill whose invocation was detected, in detection order.
+  invokedSkills: string[];
   // Label of a non-target staged skill whose invocation was detected. Fails an invoke case even
   // when the target also fired (simultaneous invocation is trigger-contract overlap); surfaced
   // informationally on skip cases.
