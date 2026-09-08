@@ -72,12 +72,26 @@ cases:
         Commit messages must use Gitmoji, not Conventional Commits.
     expect: skip
     rationale: Repository instructions require a different workflow than this skill owns.
+
+  - id: adjacent-workflow
+    prompt: >-
+      Open a pull request for this branch.
+    expect: skip
+    invoke-instead: git:create-pr
+    rationale: Opening the PR belongs to create-pr.
 ```
 
 Use positive cases for natural prompts that should load the skill. Keep them representative of real
 user intent rather than asking the model to choose a workflow, because workflow-selection wording
 can muddy the trigger signal. Use negative cases for nearby prompts that should not load it,
 especially conceptual questions, adjacent workflows, or requests owned by a different skill.
+
+When the request in a skip case belongs to another implicitly invokable skill of the same kind, add
+a routing assertion: `invoke-instead: <label>` names that alternate, and the case passes only when
+the alternate is the only skill that fires. A plugin fixture names a plugin skill as
+`<plugin>:<skill>`; a repo-local fixture names a repo-local skill by its bare name. Otherwise leave
+the case a plain skip; `pnpm lint:plugins` rejects an alternate that is missing, manual-only, of the
+other kind, or absent from a plugin target the fixture's plugin ships on.
 
 Make every standalone case actionable. When a prompt refers to a file, branch, prior response, or
 artifact that the prompt does not contain, add the smallest representative `workspace_files` input
@@ -150,10 +164,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
    not exist where the plugins are installed.
 
    Because staging spans the marketplace, a description change in one plugin can flip another
-   skill's results. When a case fails and the cause is unclear, add `--isolated` to stage only the
-   target's own surface (its plugin, or the repo-local skill alone) and compare: a case that passes
-   isolated but fails under default staging is losing to a competing description, not failing on its
-   own wording.
+   skill's results. When a result line names a competing skill as `wrong-skill <label>`, fix the
+   boundary between the two descriptions, not the target's wording alone. On a routing assertion,
+   `alternate <label>` marks the named alternate firing alone, the passing outcome; any other skill
+   still prints as `wrong-skill`.
 
    Two suite selections widen which fixtures run; staging is unchanged:
    `mise exec -- pnpm eval:trigger:plugin -- plugins/<plugin>` runs every implicitly invokable
@@ -187,9 +201,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
 8. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
    direction — fix the repo-local description. Marketplace descriptions serve every installation;
    edit one only when the overlap would also misfire in a session without the repo-local skills.
-9. Rerun the same eval after edits. After a description edit, also rerun the fixtures of every skill
-   named in `wrong-skill` results:
-   `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both`. After a
+9. Rerun the same eval after edits. After a description edit, rerun with `--with-dependents` the
+   fixtures of every skill whose description changed and every skill named in `wrong-skill` results:
+   `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both --with-dependents`.
+   The flag runs each selected skill's dependent cases under their own fixtures and lanes. After a
    seed edit, use the same command to rerun every fixture that names the seed; the edit alters the
    workspace each of those cases runs in.
 10. Run repository validation for changed files:
@@ -208,7 +223,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
   checkout's live skills never leak into the trigger signal. On both lanes, staged plugin deployment
   copies and the Codex marketplace catalog are siblings of the case workspace rather than project
   files, matching an installed session and keeping them out of project reconnaissance.
-- Cases with a `workspace` block or `workspace_files` run in a case-specific copy of the isolated
+- Cases with a `workspace` block or `workspace_files` run in a case-specific copy of the staged
   workspace. The runner builds the seeded repository identically on both lanes, with a harness-owned
   git identity and signing disabled, so the machine's git configuration cannot affect a run.
 - The committed `description` remains the trigger surface under test.
