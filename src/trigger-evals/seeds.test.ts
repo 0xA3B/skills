@@ -366,6 +366,36 @@ describe("stageSeededWorkspace committed .gitignore", () => {
   });
 });
 
+describe("stageSeededWorkspace ignore narrowing", () => {
+  it("removes seed files the seed ignored when a committed .gitignore stops ignoring them", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    const seedPath = path.join(repoRoot, "evals", "seeds", "node-service");
+    await writeFile(path.join(seedPath, ".gitignore"), "secret.txt\n");
+    await writeFile(path.join(seedPath, "secret.txt"), "hidden\n");
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+
+    await stageSeededWorkspace({
+      repoRoot,
+      workspacePath,
+      workspace: {
+        seed: "node-service",
+        branch: "main",
+        committed: { ".gitignore": "" },
+        staged: {},
+      },
+    });
+
+    expect(await git(workspacePath, "status", "--porcelain")).toBe("");
+    expect(
+      (await git(workspacePath, "ls-tree", "-r", "--name-only", "HEAD")).split("\n").sort(),
+    ).toStrictEqual([".gitignore", "package.json", "src/index.js"]);
+    await expect(readFile(path.join(workspacePath, "secret.txt"), "utf8")).rejects.toThrow(
+      "ENOENT",
+    );
+  });
+});
+
 describe("seedGitEnvironment", () => {
   it("drops inherited GIT_* variables and pins identity and config sources", () => {
     const env = seedGitEnvironment({
