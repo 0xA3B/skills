@@ -193,13 +193,28 @@ describe("stageSeededWorkspace", () => {
     expect(await git(workspacePath, "ls-tree", "--name-only", "HEAD")).toBe("");
   });
 
-  it("rejects unstaged workspace files that the seed's .gitignore would hide", async () => {
+  // The ignore rules that count are the ones in the finished workspace, including a .gitignore
+  // that workspace_files itself adds.
+  it.each([
+    [
+      "the seed's .gitignore",
+      "*.local\n",
+      { "notes.local": "unstaged\n", "notes.md": "visible\n" },
+    ],
+    [
+      "a .gitignore in workspace_files",
+      "",
+      { ".gitignore": "*.local\n", "notes.local": "unstaged\n" },
+    ],
+  ])("rejects unstaged workspace files that %s would hide", async (_source, seedIgnore, files) => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
     await writeSeedFixture(repoRoot, "node-service");
-    await writeFile(
-      path.join(resolveSeedPath(repoRoot, "node-service"), ".gitignore"),
-      "*.local\n",
-    );
+    if (seedIgnore.length > 0) {
+      await writeFile(
+        path.join(resolveSeedPath(repoRoot, "node-service"), ".gitignore"),
+        seedIgnore,
+      );
+    }
     const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
 
     await expect(
@@ -207,9 +222,43 @@ describe("stageSeededWorkspace", () => {
         repoRoot,
         workspacePath,
         workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
-        workspaceFiles: { "notes.local": "unstaged\n", "notes.md": "visible\n" },
+        workspaceFiles: files,
       }),
     ).rejects.toThrow('workspace_files "notes.local" would be ignored');
+  });
+
+  it("commits the lane's harness surfaces even when the seed's .gitignore matches them", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeFile(
+      path.join(resolveSeedPath(repoRoot, "node-service"), ".gitignore"),
+      ".claude/\n.agents/\n",
+    );
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+    await mkdir(path.join(workspacePath, ".claude"), { recursive: true });
+    await writeFile(path.join(workspacePath, ".claude", "settings.json"), "{}\n");
+    await mkdir(path.join(workspacePath, ".agents", "skills", "auto-skill"), { recursive: true });
+    await writeFile(
+      path.join(workspacePath, ".agents", "skills", "auto-skill", "SKILL.md"),
+      "skill\n",
+    );
+
+    await stageSeededWorkspace({
+      repoRoot,
+      workspacePath,
+      workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
+    });
+
+    expect(
+      (await git(workspacePath, "ls-tree", "-r", "--name-only", "HEAD")).split("\n").sort(),
+    ).toStrictEqual([
+      ".agents/skills/auto-skill/SKILL.md",
+      ".claude/settings.json",
+      ".gitignore",
+      "package.json",
+      "src/index.js",
+    ]);
+    expect(await git(workspacePath, "status", "--porcelain")).toBe("");
   });
 
   it("adds declared filenames literally, not as pathspec patterns", async () => {

@@ -21,6 +21,9 @@ export function resolveSeedPath(repoRoot: string, seedName: string): string {
   return path.join(repoRoot, SEEDS_DIR, seedName);
 }
 
+// Top-level workspace entries the lane writes before any case runs: staged skills and settings.
+// A seed's copies are left out, fixture paths under them are rejected, and the lane's own copies
+// are force-added to the seed commit.
 const HARNESS_OWNED_ENTRIES = new Set([".agents", ".claude"]);
 
 // Safe means a POSIX-style relative file path inside the workspace and outside the harness-owned
@@ -106,16 +109,17 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
   await cp(seedPath, workspacePath, {
     recursive: true,
     filter: (source) =>
-      !SEED_EXCLUDED_ENTRIES.has(
+      !HARNESS_OWNED_ENTRIES.has(
         (path.relative(seedPath, source).split(path.sep)[0] ?? "").toLowerCase(),
       ),
   });
   await writeWorkspaceFiles(workspacePath, workspace.committed);
   await git(workspacePath, "init", "--quiet", "--initial-branch", workspace.branch);
   await git(workspacePath, "add", "--all");
-  // A seed's own .gitignore shapes what the seed commits, but never the fixture's declared layers:
-  // an unforced add would silently drop a committed or staged file the seed ignores.
-  await addForced(workspacePath, workspace.committed);
+  // A seed's own .gitignore shapes what the seed commits, but never the fixture's declared layers
+  // or the lane's surfaces: an unforced add would silently drop a file the seed ignores.
+  await addForced(workspacePath, Object.keys(workspace.committed));
+  await addForced(workspacePath, await presentHarnessEntries(workspacePath));
   // --allow-empty keeps the one-commit contract when a seed's .gitignore leaves nothing to commit.
   await git(
     workspacePath,
@@ -128,16 +132,27 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
     "Seed",
   );
   await writeWorkspaceFiles(workspacePath, workspace.staged);
-  await addForced(workspacePath, workspace.staged);
+  await addForced(workspacePath, Object.keys(workspace.staged));
+  await writeWorkspaceFiles(workspacePath, options.workspaceFiles ?? {});
   // Unstaged files stay untracked, so an ignored path would be invisible to git status and diff
-  // and the case would run against a clean-looking tree; the fixture must use another path.
+  // and the case would run against a clean-looking tree; the fixture must use another path. The
+  // check runs after the write so a .gitignore in this layer counts too.
   const ignored = await ignoredPaths(workspacePath, Object.keys(options.workspaceFiles ?? {}));
   if (ignored.length > 0) {
     throw new Error(
-      `workspace_files ${ignored.map((entry) => JSON.stringify(entry)).join(", ")} would be ignored by the seed's .gitignore; place unstaged files where git status shows them.`,
+      `workspace_files ${ignored.map((entry) => JSON.stringify(entry)).join(", ")} would be ignored in the seeded workspace; place unstaged files where git status shows them.`,
     );
   }
-  await writeWorkspaceFiles(workspacePath, options.workspaceFiles ?? {});
+}
+
+async function presentHarnessEntries(workspacePath: string): Promise<string[]> {
+  const present: string[] = [];
+  for (const entry of HARNESS_OWNED_ENTRIES) {
+    if (await isDirectory(path.join(workspacePath, entry))) {
+      present.push(entry);
+    }
+  }
+  return present;
 }
 
 // check-ignore takes literal pathnames, so no pathspec handling is needed here.
@@ -168,8 +183,6 @@ function isExecError(error: unknown): error is { code: number } {
   );
 }
 
-const SEED_EXCLUDED_ENTRIES = new Set([".agents", ".claude"]);
-
 // Seeds are plain project content and the harness owns the repository. A .git entry at any depth
 // breaks that: at the root, a directory or a gitfile pointing elsewhere would be reused by git
 // init, carrying hooks and config into the case or redirecting the seed commands to another
@@ -192,8 +205,7 @@ async function rejectUnsupportedSeedEntries(seedPath: string, seedName: string):
 
 // Declared filenames are literal paths, never pathspec patterns: a leading ":" or a glob character
 // in a filename would otherwise be read as pathspec magic.
-async function addForced(workspacePath: string, files: Record<string, string>): Promise<void> {
-  const paths = Object.keys(files);
+async function addForced(workspacePath: string, paths: string[]): Promise<void> {
   if (paths.length > 0) {
     await git(workspacePath, "--literal-pathspecs", "add", "--force", "--", ...paths);
   }
