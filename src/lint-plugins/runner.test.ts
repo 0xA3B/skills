@@ -199,6 +199,92 @@ describe("lint runner", () => {
     });
   });
 
+  // Spec: "Add a walk over .agents/skills/* to pnpm lint:plugins that runs the whole skill-level
+  // check set ... plus the fixture rules."
+  it("lints repo-local skills under .agents/skills with the full skill check set", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot);
+      await writeText(
+        repoRoot,
+        ".agents/skills/local-skill/SKILL.md",
+        validSkillMarkdown({
+          frontmatter: {
+            description: "Use when the user asks for local-skill.",
+            name: "local-skill",
+          },
+        }),
+      );
+      await writeJson(
+        repoRoot,
+        ".agents/skills/local-skill/agents/openai.yaml",
+        validOpenAiMetadata({ policy: { allow_implicit_invocation: false } }),
+      );
+      await writeText(
+        repoRoot,
+        ".agents/skills/local-skill/evals/triggers.yaml",
+        `version: 1
+cases:
+  - id: invoke-case
+    prompt: Do the thing.
+    expect: invoke
+  - id: skip-case
+    prompt: Do something else.
+    expect: skip
+    invoke-instead: missing-skill
+`,
+      );
+      await writeText(repoRoot, ".agents/skills/.scratch/notes.txt", "ignored\n");
+      // A repo-local skill without Codex UI metadata: only the codex target reports it.
+      await writeText(
+        repoRoot,
+        ".agents/skills/bare-skill/SKILL.md",
+        validSkillMarkdown({
+          frontmatter: {
+            description: "Use when the user asks for bare-skill.",
+            name: "bare-skill",
+          },
+        }),
+      );
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.repoLocalSkillCount).toBe(2);
+      expect(ruleIds(result.context).sort()).toStrictEqual([
+        "repo/invocation-policy-parity",
+        "repo/openai-metadata-required",
+        "trigger-fixture/alternate-missing",
+      ]);
+    });
+  });
+
+  it("counts repo-local skills in the clean summary", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot);
+      await writeText(
+        repoRoot,
+        ".agents/skills/local-skill/SKILL.md",
+        validSkillMarkdown({
+          frontmatter: {
+            description: "Use when the user asks for local-skill.",
+            "disable-model-invocation": true,
+            name: "local-skill",
+          },
+        }),
+      );
+      await writeJson(
+        repoRoot,
+        ".agents/skills/local-skill/agents/openai.yaml",
+        validOpenAiMetadata(),
+      );
+      const log = vi.spyOn(console, "log").mockReturnValue(undefined);
+
+      await runLintPlugins({ repoRoot });
+
+      expect(log).toHaveBeenCalledWith("Linted 1 local plugin(s) and 1 repo-local skill(s).");
+      log.mockRestore();
+    });
+  });
+
   it("writes warning-only CLI output to stdout", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot, {
