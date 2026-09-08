@@ -113,11 +113,13 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
         (path.relative(seedPath, source).split(path.sep)[0] ?? "").toLowerCase(),
       ),
   });
-  await writeWorkspaceFiles(workspacePath, workspace.committed);
   await git(workspacePath, "init", "--quiet", "--initial-branch", workspace.branch);
+  // The seed is added before the committed layer is written, so a committed .gitignore cannot
+  // hide the seed from its own commit. A seed's own .gitignore shapes what the seed commits, but
+  // never the fixture's declared layers or the lane's surfaces: an unforced add would silently
+  // drop a file the seed ignores.
   await git(workspacePath, "add", "--all");
-  // A seed's own .gitignore shapes what the seed commits, but never the fixture's declared layers
-  // or the lane's surfaces: an unforced add would silently drop a file the seed ignores.
+  await writeWorkspaceFiles(workspacePath, workspace.committed);
   await addForced(workspacePath, Object.keys(workspace.committed));
   await addForced(workspacePath, await presentHarnessEntries(workspacePath));
   // --allow-empty keeps the one-commit contract when a seed's .gitignore leaves nothing to commit.

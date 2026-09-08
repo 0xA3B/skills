@@ -343,6 +343,29 @@ describe("stageSeededWorkspace", () => {
   });
 });
 
+describe("stageSeededWorkspace committed .gitignore", () => {
+  it("commits the seed even when a committed .gitignore ignores everything", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+
+    await stageSeededWorkspace({
+      repoRoot,
+      workspacePath,
+      workspace: {
+        seed: "node-service",
+        branch: "main",
+        committed: { ".gitignore": "*\n!.gitignore\n" },
+        staged: {},
+      },
+    });
+
+    expect(
+      (await git(workspacePath, "ls-tree", "-r", "--name-only", "HEAD")).split("\n").sort(),
+    ).toStrictEqual([".gitignore", "package.json", "src/index.js"]);
+  });
+});
+
 describe("seedGitEnvironment", () => {
   it("drops inherited GIT_* variables and pins identity and config sources", () => {
     const env = seedGitEnvironment({
