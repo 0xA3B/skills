@@ -1,4 +1,28 @@
 version: 1
+workspace:
+  seed: node-service
+workspace_files:
+  src/date.js: |
+    const ISO_PATTERN =
+      /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})T(?<hour>\d{2}):(?<minute>\d{2})(?::(?<second>\d{2}))?(?<offset>Z|[+-]\d{2}:\d{2})?/;
+
+    // Parses an ISO 8601 timestamp into its components. Returns null when the input does not match.
+    export function parseIso(value) {
+      const match = ISO_PATTERN.exec(value);
+      if (match === null) {
+        return null;
+      }
+      const { year, month, day, hour, minute, second, offset } = match.groups;
+      return {
+        year: Number(year),
+        month: Number(month),
+        day: Number(day),
+        hour: Number(hour),
+        minute: Number(minute),
+        second: second === undefined ? 0 : Number(second),
+        offset: offset ?? null,
+      };
+    }
 cases:
   - id: review-current-changes
     prompt: >-
@@ -15,6 +39,23 @@ cases:
   - id: review-staged-changes
     prompt: >-
       Review the staged changes.
+    workspace:
+      seed: node-service
+      staged:
+        src/retry.js: |
+          // Retries an async operation with exponential backoff.
+          export async function retry(operation, { attempts = 3, baseDelayMs = 100 } = {}) {
+            let lastError;
+            for (let attempt = 0; attempt < attempts; attempt += 1) {
+              try {
+                return await operation();
+              } catch (error) {
+                lastError = error;
+                await new Promise((resolve) => setTimeout(resolve, baseDelayMs * 2 ** attempt));
+              }
+            }
+            throw lastError;
+          }
     expect: invoke
     rationale: Staged changes are session-authored changes awaiting commit.
 
@@ -26,7 +67,25 @@ cases:
 
   - id: review-session-branch
     prompt: >-
-      Review the branch we built this session against main before I open the PR.
+      Review the branch we built this session before I open the PR.
+    workspace:
+      seed: node-service
+      branch: session/retry-policy
+      staged:
+        src/retry.js: |
+          // Retries an async operation with exponential backoff.
+          export async function retry(operation, { attempts = 3, baseDelayMs = 100 } = {}) {
+            let lastError;
+            for (let attempt = 0; attempt < attempts; attempt += 1) {
+              try {
+                return await operation();
+              } catch (error) {
+                lastError = error;
+                await new Promise((resolve) => setTimeout(resolve, baseDelayMs * 2 ** attempt));
+              }
+            }
+            throw lastError;
+          }
     expect: invoke
     rationale: A branch authored in this session is in scope whatever its git shape.
 
@@ -39,12 +98,37 @@ cases:
   - id: instruction-file-review
     prompt: >-
       Review the SKILL.md changes in my worktree before I commit.
+    workspace_files:
+      skills/deploy/SKILL.md: |
+        ---
+        name: deploy
+        description: Use when the user asks to deploy the service to staging or production.
+        ---
+
+        # Deploy
+
+        Run `npm run deploy -- --env <env>` and paste the output into the release ticket.
     expect: invoke
     rationale: Changed agent-instruction files are reviewed through the prose lane.
 
   - id: documentation-review
     prompt: >-
       Review the README changes I just made.
+    workspace_files:
+      README.md: |
+        # node-service
+
+        A small HTTP service with no dependencies. It stores items in memory and exposes a
+        paginated list endpoint.
+
+        ## Usage
+
+        ```sh
+        node --test
+        node src/server.js --port 8080
+        ```
+
+        Pass `--dry-run` to print the routes without listening.
     expect: invoke
     rationale: Changed documentation is reviewed through the prose lane.
 

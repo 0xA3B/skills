@@ -1,4 +1,6 @@
 version: 1
+workspace:
+  seed: node-service
 cases:
   - id: handle-review-comments
     prompt: >-
@@ -19,8 +21,12 @@ cases:
     rationale: PR comments are review feedback that needs triage before action.
 
   - id: handle-claude-findings
-    prompt: >-
+    prompt: |-
       Claude returned these findings. Verify them and fix anything valid.
+
+      1. src/date.js: parseIso drops a trailing Z because the offset group only matches numeric
+         offsets.
+      2. src/list-endpoint.js: page 0 produces a negative slice start instead of an error.
     expect: invoke
     rationale: Claude findings are external review feedback.
 

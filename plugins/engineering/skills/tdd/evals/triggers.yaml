@@ -1,4 +1,6 @@
 version: 1
+workspace:
+  seed: node-service
 cases:
   - id: implement-feature
     prompt: >-
@@ -13,6 +15,11 @@ cases:
     expect: invoke
     rationale: A bug fix with a known cause starts from a failing regression test.
 
+  # Known miss on Claude Code with the node-service seed (2026-09): for this case and
+  # change-public-interface, Claude reads the seeded source and answers with the patch directly
+  # instead of loading the skill; Codex loads it. The description needs tuning for small,
+  # fully-specified changes in a visible codebase; a repeat failure here is that gap, not a
+  # harness regression.
   - id: one-line-behavior-change
     prompt: >-
       Change the default page size of the list endpoint from 20 to 50.
@@ -29,6 +36,15 @@ cases:
     prompt: >-
       Port the rule engine from the TypeScript reference implementation to Python, matching its
       behavior.
+    workspace:
+      seed: node-service
+      committed:
+        reference/rule-engine.ts: |
+          export type Rule = { field: string; equals: string };
+
+          export function matches(rules: Rule[], record: Record<string, string>): boolean {
+            return rules.every((rule) => record[rule.field] === rule.equals);
+          }
     expect: invoke
     rationale: A port from a reference implementation runs as frontier rounds over an inventory.
 

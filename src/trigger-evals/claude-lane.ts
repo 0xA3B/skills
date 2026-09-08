@@ -13,6 +13,7 @@ import type { AgentLane, CaseExecuteOptions, LaneCase, LaneRun, LaneRunOptions }
 import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
+  needsCaseWorkspace,
   pluginsToStage,
   stageCaseWorkspace,
   stagePluginCopies,
@@ -62,14 +63,14 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
       const stagedSkillLabels: ReadonlySet<string> = new Set(labels);
 
       const prepareCase = async (testCase: TriggerCase): Promise<LaneCase> => {
-        const caseWorkspacePath =
-          testCase.workspaceFiles === undefined
-            ? workspacePath
-            : await stageCaseWorkspace({
-                baseWorkspacePath: workspacePath,
-                workspaceRoot,
-                testCase,
-              });
+        const caseWorkspacePath = needsCaseWorkspace(testCase)
+          ? await stageCaseWorkspace({
+              baseWorkspacePath: workspacePath,
+              workspaceRoot,
+              repoRoot: target.repoRoot,
+              testCase,
+            })
+          : workspacePath;
         const pluginDirs =
           stagedPluginNames.length > 0
             ? stagedPluginNames.map((pluginName) =>

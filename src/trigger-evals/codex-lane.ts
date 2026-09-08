@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { appendEvalSectionToFile, createCanary } from "./canary.js";
@@ -16,6 +16,7 @@ import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
   EVAL_MARKETPLACE_NAME,
+  needsCaseWorkspace,
   pluginsToStage,
   type SkillCanary,
   stageCaseWorkspace,
@@ -23,7 +24,6 @@ import {
   stagePluginCopies,
   stageRepoLocalSkill,
   type StagedPlugin,
-  stagedSkillFilePath,
   surveyStagedSkills,
   writeCodexMarketplaceCatalog,
 } from "./staging.js";
@@ -35,9 +35,9 @@ type CodexLaneOptions = {
 };
 
 // Codex emits no skill-invocation telemetry in current CLIs, so this lane detects invocation with
-// eval-only canaries appended to the bodies of the staged skill copies: per-run canaries for every
-// implicitly invokable staged plugin skill and sibling repo-local skill (so a wrong skill firing is
-// attributable), and a per-case canary for a repo-local target. Frontmatter descriptions stay
+// eval-only canaries appended to the bodies of the staged skill copies: one per run for the target
+// and for every implicitly invokable staged plugin skill and sibling repo-local skill, so a wrong
+// skill firing is attributable. Frontmatter descriptions stay
 // byte-identical to the committed skills, so the trigger surface under test is never perturbed.
 // Older Codex CLIs emitted codex.skill.injected stderr telemetry, kept as a secondary signal.
 export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
@@ -45,26 +45,31 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
       const { runDir, target, model, effort } = runOptions;
       const { workspaceRoot, workspacePath } = await createStagedWorkspace();
+      await mkdir(workspacePath, { recursive: true });
       const runCodexHome = path.join(runDir, "codex-home");
       const targetLabel = skillTargetLabel(target);
 
-      // Every implicitly invokable staged plugin skill shares the per-run canary map; a repo-local
-      // target's own canary is injected per case and merged into that map at observation time.
+      // Every canaried skill, plugin or repo-local, shares the per-run canary map.
       const entries = pluginsToStage(target, runOptions.extraPlugins ?? []);
-      const stagedPlugins: StagedPlugin[] = await stagePluginCopies(workspacePath, entries);
+      // Installed plugins are deployment context, not project files. Keep their copies and the
+      // marketplace catalog outside the case cwd so project reconnaissance sees only fixture
+      // workspace files, as it would in a real installed session.
+      const pluginDeploymentPath = path.join(workspaceRoot, "deployment");
+      const stagedPlugins: StagedPlugin[] = await stagePluginCopies(pluginDeploymentPath, entries);
       if (stagedPlugins.length > 0) {
-        await writeCodexMarketplaceCatalog(workspacePath, stagedPlugins);
+        await writeCodexMarketplaceCatalog(pluginDeploymentPath, stagedPlugins);
       }
       const survey = await surveyStagedSkills(target, entries);
-      await appendStagedSkillCanaries(workspacePath, survey.skillCanaries);
+      await appendStagedSkillCanaries(pluginDeploymentPath, survey.skillCanaries);
       const skillCanaries: SkillCanary[] = survey.skillCanaries;
       const runCanaryLabels = new Map(
         skillCanaries.map((skillCanary) => [skillCanary.canary, skillCanary.skillLabel]),
       );
       const labels = [...survey.stagedSkillLabels];
       if (target.kind === "repo-local") {
-        // The target's own canary is per case (see prepareCodexCase); implicitly invokable siblings
-        // get a per-run body canary so a sibling stealing the invocation is attributable.
+        // The target always gets a body canary; implicitly invokable siblings get one too, so a
+        // sibling stealing the invocation is attributable. Canaries land in the base workspace
+        // before any case copies it, so a seeded case commits them with the rest of the skill.
         for (const repoLocalSkill of [target, ...(runOptions.extraRepoLocalSkills ?? [])]) {
           const stagedSkillFile = await stageRepoLocalSkill(
             workspacePath,
@@ -73,14 +78,14 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
           );
           labels.push(repoLocalSkill.skillName);
           if (
-            repoLocalSkill.skillName === target.skillName ||
+            repoLocalSkill.skillName !== target.skillName &&
             !(await readSkillFileAllowImplicitInvocation(stagedSkillFile))
           ) {
             continue;
           }
-          const siblingCanary = createCanary();
-          await appendEvalSectionToFile(stagedSkillFile, siblingCanary);
-          runCanaryLabels.set(siblingCanary, repoLocalSkill.skillName);
+          const canary = createCanary();
+          await appendEvalSectionToFile(stagedSkillFile, canary);
+          runCanaryLabels.set(canary, repoLocalSkill.skillName);
         }
       }
       const stagedSkillLabels: ReadonlySet<string> = new Set(labels);
@@ -95,6 +100,7 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
             runDir,
             workspaceRoot,
             workspacePath,
+            pluginDeploymentPath,
             model,
             effort,
             canaryLabels: runCanaryLabels,
@@ -117,6 +123,7 @@ type CodexCaseContext = {
   runDir: string;
   workspaceRoot: string;
   workspacePath: string;
+  pluginDeploymentPath: string;
   model: string;
   effort: string;
   canaryLabels: Map<string, string>;
@@ -128,20 +135,13 @@ type CodexCaseContext = {
 async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
   const { target, testCase } = context;
   let caseWorkspacePath = context.workspacePath;
-  let canaryLabels = context.canaryLabels;
-  if (target.kind !== "plugin" || testCase.workspaceFiles !== undefined) {
+  if (target.kind !== "plugin" || needsCaseWorkspace(testCase)) {
     caseWorkspacePath = await stageCaseWorkspace({
       baseWorkspacePath: context.workspacePath,
       workspaceRoot: context.workspaceRoot,
+      repoRoot: target.repoRoot,
       testCase,
     });
-  }
-  if (target.kind === "repo-local") {
-    const canary = createCanary();
-    await appendEvalSectionToFile(stagedSkillFilePath(caseWorkspacePath, target), canary);
-    // Merge rather than replace: staged plugin skills keep their per-run canaries so a plugin
-    // skill stealing the invocation from a repo-local target stays attributable.
-    canaryLabels = new Map([...context.canaryLabels, [canary, context.targetLabel]]);
   }
 
   const codexHome = path.join(context.runDir, "codex-home", "cases", testCase.id);
@@ -156,6 +156,7 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
       ...(context.stagedPlugins.length > 0
         ? {
             marketplaceName: EVAL_MARKETPLACE_NAME,
+            marketplaceSourcePath: context.pluginDeploymentPath,
             pluginNames: context.stagedPlugins.map((stagedPlugin) => stagedPlugin.pluginName),
           }
         : {}),
@@ -183,7 +184,7 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
         sandboxMode,
       }),
     observe: (output: StreamingCliOutput) =>
-      observeCodexOutput(output, target, context.targetLabel, canaryLabels),
+      observeCodexOutput(output, target, context.targetLabel, context.canaryLabels),
     cleanup: () => removeCopiedAuth(codexHome),
   };
 }

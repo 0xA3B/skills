@@ -19,5 +19,5 @@
     "vitest/prefer-mock-return-shorthand": "error",
     "vitest/prefer-strict-equal": "error"
   },
-  "ignorePatterns": ["dist", "node_modules", ".local", ".cache"]
+  "ignorePatterns": ["dist", "node_modules", ".local", ".cache", "evals/seeds"]
 }

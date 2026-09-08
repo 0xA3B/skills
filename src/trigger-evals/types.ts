@@ -2,11 +2,23 @@ export type TriggerExpectation = "invoke" | "skip";
 
 export type TriggerEvalAgent = "claude" | "codex";
 
+// A seeded git workspace for one case: the named seed plus committed files form the single
+// commit, staged files are added to the index, and the case's workspaceFiles stay unstaged.
+export type WorkspaceSpec = {
+  seed: string;
+  branch: string;
+  committed: Record<string, string>;
+  staged: Record<string, string>;
+};
+
 export type TriggerCase = {
   id: string;
   prompt: string;
   expect: TriggerExpectation;
   rationale?: string;
+  // Resolved from the fixture-level default unless the case replaces it or opts out.
+  workspace?: WorkspaceSpec;
+  // Unstaged files written last, fixture-level defaults merged under the case's own per path.
   workspaceFiles?: Record<string, string>;
 };
 

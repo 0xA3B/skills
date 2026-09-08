@@ -13,6 +13,7 @@ import {
   skillToolUseEvent,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
+  writeSeedFixture,
 } from "./test-utils.js";
 import { buildCaseResult, shouldStopEarly } from "./verdict.js";
 
@@ -260,6 +261,36 @@ describe("createClaudeLane", () => {
     await expect(readFile(path.join(plainCase.workspacePath, "AGENTS.md"), "utf8")).rejects.toThrow(
       /ENOENT/,
     );
+  });
+
+  it("stages a seeded git workspace for cases with a workspace block", async () => {
+    const repoRoot = await writeRepoFixture();
+    await writeSeedFixture(repoRoot, "demo-seed");
+    const lane = createClaudeLane();
+    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+
+    const laneRun = await lane.prepareRun(runOptions);
+    const seededCase = await laneRun.prepareCase({
+      id: "seeded-case",
+      prompt: "Review the staged changes.",
+      expect: "invoke",
+      workspace: {
+        seed: "demo-seed",
+        branch: "main",
+        committed: {},
+        staged: { "src/retry.js": "export {};\n" },
+      },
+    });
+
+    expect(seededCase.workspacePath).toContain(path.join("cases", "seeded-case", "workspace"));
+    await expect(stat(path.join(seededCase.workspacePath, ".git"))).resolves.toBeDefined();
+    await expect(
+      readFile(path.join(seededCase.workspacePath, "src", "retry.js"), "utf8"),
+    ).resolves.toBe("export {};\n");
+    // Harness surfaces still accompany the seeded project.
+    await expect(
+      readFile(path.join(seededCase.workspacePath, ".claude", "settings.json"), "utf8"),
+    ).resolves.toContain("disableBundledSkills");
   });
 
   it("evaluates Claude-only plugins without Codex metadata", async () => {
