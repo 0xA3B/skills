@@ -34,6 +34,7 @@ export function isSafeWorkspaceFilePath(filePath: string): boolean {
   const segments = filePath.split("/").filter((segment) => segment !== "" && segment !== ".");
   return (
     segments.length > 0 &&
+    !filePath.includes("\0") &&
     !filePath.includes("\\") &&
     !filePath.endsWith("/") &&
     !path.isAbsolute(filePath) &&
@@ -128,7 +129,43 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
   );
   await writeWorkspaceFiles(workspacePath, workspace.staged);
   await addForced(workspacePath, workspace.staged);
+  // Unstaged files stay untracked, so an ignored path would be invisible to git status and diff
+  // and the case would run against a clean-looking tree; the fixture must use another path.
+  const ignored = await ignoredPaths(workspacePath, Object.keys(options.workspaceFiles ?? {}));
+  if (ignored.length > 0) {
+    throw new Error(
+      `workspace_files ${ignored.map((entry) => JSON.stringify(entry)).join(", ")} would be ignored by the seed's .gitignore; place unstaged files where git status shows them.`,
+    );
+  }
   await writeWorkspaceFiles(workspacePath, options.workspaceFiles ?? {});
+}
+
+// check-ignore takes literal pathnames, so no pathspec handling is needed here.
+async function ignoredPaths(workspacePath: string, paths: string[]): Promise<string[]> {
+  if (paths.length === 0) {
+    return [];
+  }
+  try {
+    const { stdout } = await execFileAsync("git", ["check-ignore", "--", ...paths], {
+      cwd: workspacePath,
+      env: seedGitEnvironment(),
+    });
+    return stdout.split("\n").filter((line) => line.length > 0);
+  } catch (error) {
+    // Exit status 1 means no path is ignored.
+    if (isExecError(error) && error.code === 1) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+function isExecError(error: unknown): error is { code: number } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    typeof (error as { code?: unknown }).code === "number"
+  );
 }
 
 const SEED_EXCLUDED_ENTRIES = new Set([".agents", ".claude"]);

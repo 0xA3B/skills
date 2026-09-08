@@ -139,6 +139,7 @@ const BRANCH_NAME_CHARACTERS = /^[A-Za-z0-9._/-]+$/;
 function isGitBranchName(name: string): boolean {
   return (
     BRANCH_NAME_CHARACTERS.test(name) &&
+    name !== "HEAD" &&
     !name.startsWith("-") &&
     !name.startsWith("/") &&
     !name.endsWith("/") &&
@@ -224,7 +225,13 @@ function readWorkspaceFiles(
     if (typeof content !== "string") {
       throw new Error(`${fixturePath}: expected ${location}["${filePath}"] to be a string.`);
     }
-    files[filePath] = content;
+    // An own data property even for "__proto__", which plain assignment would route to the setter.
+    Object.defineProperty(files, filePath, {
+      value: content,
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
   }
 
   return files;

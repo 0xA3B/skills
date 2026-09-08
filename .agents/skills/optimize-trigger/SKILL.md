@@ -84,9 +84,10 @@ artifact that the prompt does not contain, add the smallest representative `work
 or embed the needed text in the prompt. Missing input can make an agent inspect the empty fixture or
 ask for context before selecting a skill, which measures task viability instead of invocation.
 
-A case runs in an empty directory unless it resolves to a `workspace` block or `workspace_files`,
-from the case or the fixture default. When a prompt assumes a plausible project — "review the staged
-changes", "fix the regex in parseIso", "where should the seam go" — declare a workspace seed:
+A case runs in an empty directory unless it resolves to a `workspace` block or a non-empty
+`workspace_files` map, from the case or the fixture default. When a prompt assumes a plausible
+project — "review the staged changes", "fix the regex in parseIso", "where should the seam go" —
+declare a workspace seed:
 
 ```yaml
 version: 1

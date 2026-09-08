@@ -193,6 +193,25 @@ describe("stageSeededWorkspace", () => {
     expect(await git(workspacePath, "ls-tree", "--name-only", "HEAD")).toBe("");
   });
 
+  it("rejects unstaged workspace files that the seed's .gitignore would hide", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeFile(
+      path.join(resolveSeedPath(repoRoot, "node-service"), ".gitignore"),
+      "*.local\n",
+    );
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+
+    await expect(
+      stageSeededWorkspace({
+        repoRoot,
+        workspacePath,
+        workspace: { seed: "node-service", branch: "main", committed: {}, staged: {} },
+        workspaceFiles: { "notes.local": "unstaged\n", "notes.md": "visible\n" },
+      }),
+    ).rejects.toThrow('workspace_files "notes.local" would be ignored');
+  });
+
   it("adds declared filenames literally, not as pathspec patterns", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
     await writeSeedFixture(repoRoot, "node-service");

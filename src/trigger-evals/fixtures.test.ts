@@ -121,6 +121,7 @@ cases:
     "index.lock",
     "-flag",
     "trailing.",
+    "HEAD",
   ])("rejects the workspace branch %s that git would refuse", async (branch) => {
     const fixturePath = await writeFixture(`
 version: 1
@@ -175,6 +176,7 @@ cases:
     ".agents/skills/other/SKILL.md",
     "src\\\\retry.js",
     "docs/",
+    "bad\u0000name",
   ])("rejects the workspace file path %s as unsafe or harness-owned", async (filePath) => {
     const fixturePath = await writeFixture(`
 version: 1
@@ -194,6 +196,28 @@ cases:
     await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
       `workspace.committed path "${filePath}" to be a safe relative path`,
     );
+  });
+
+  it("keeps a __proto__ filename as an own entry of the file map", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+cases:
+  - id: proto
+    prompt: Review the staged changes.
+    expect: invoke
+    workspace:
+      seed: node-service
+      committed:
+        __proto__: "not a prototype"
+  - id: general-question
+    prompt: What is a commit?
+    expect: skip
+`);
+
+    const fixture = await loadTriggerFixture(fixturePath);
+    const committed = fixture.cases[0]?.workspace?.committed ?? {};
+    expect(Object.hasOwn(committed, "__proto__")).toBe(true);
+    expect(Object.entries(committed)).toStrictEqual([["__proto__", "not a prototype"]]);
   });
 
   // Spec: "workspace_files: fixture-level unstaged files, merged per path (case wins)".
