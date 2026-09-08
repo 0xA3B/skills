@@ -39,6 +39,10 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   // A routing assertion tightens a skip case: the target must not fire and the named alternate
   // must be the only skill that fires. Nothing firing, a different skill, or the target alongside
   // the alternate all fail. The explicit !invoked keeps a label equal to the target from passing.
+  // "Only" is bounded by the observation window: the run stops at the first invocation signal,
+  // mirroring the staged canary's instruction to stop right after invoking, so a later firing
+  // would require the agent to ignore that instruction. Skills fired in one event are all seen.
+  // Invoke cases carry the same bound for wrong-skill detection.
   const matchedExpectation =
     testCase.expect === "invoke"
       ? invoked && wrongSkill === undefined
