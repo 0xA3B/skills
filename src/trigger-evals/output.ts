@@ -16,15 +16,7 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   );
 
   for (const caseResult of result.results) {
-    const status = caseResult.passed
-      ? "PASS"
-      : caseResult.environmentalFailure === undefined
-        ? "FAIL"
-        : "ERROR";
-    const observed = formatObserved(caseResult);
-    console.log(
-      `- ${status} ${caseResult.caseId}: expected ${caseResult.expect}, observed ${observed} (${formatDuration(caseResult.durationMs)})`,
-    );
+    console.log(formatCaseLine(caseResult));
     if (caseResult.environmentalFailure !== undefined) {
       console.log(`  environment: ${caseResult.environmentalFailure}`);
     }
@@ -39,6 +31,20 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   }
 }
 
+// One result line: status, case id, the fixture's expectation, and what was observed.
+export function formatCaseLine(caseResult: TriggerCaseResult): string {
+  const status = caseResult.passed
+    ? "PASS"
+    : caseResult.environmentalFailure === undefined
+      ? "FAIL"
+      : "ERROR";
+  const expected =
+    caseResult.invokeInstead === undefined
+      ? caseResult.expect
+      : `${caseResult.expect} with invoke-instead ${caseResult.invokeInstead}`;
+  return `- ${status} ${caseResult.caseId}: expected ${expected}, observed ${formatObserved(caseResult)} (${formatDuration(caseResult.durationMs)})`;
+}
+
 function formatObserved(caseResult: TriggerCaseResult): string {
   if (caseResult.invoked) {
     // A wrong skill firing alongside the target is trigger-contract overlap, so it is named even
@@ -48,9 +54,17 @@ function formatObserved(caseResult: TriggerCaseResult): string {
       : `invoke plus wrong-skill ${caseResult.wrongSkill} via ${caseResult.invocationSignal}`;
   }
   // A different staged skill fired: a distinct failure on invoke cases, and worth surfacing even
-  // on passing skip cases because it exposes trigger-contract overlap.
+  // on passing skip cases because it exposes trigger-contract overlap. On a routing assertion the
+  // expected alternate is named as such, and any other skill that fired with it is listed so a
+  // failed assertion is explainable from the line.
   if (caseResult.wrongSkill !== undefined) {
-    return `wrong-skill ${caseResult.wrongSkill} via ${caseResult.invocationSignal}`;
+    const alternate = caseResult.invokeInstead;
+    if (alternate === undefined || !caseResult.invokedSkills.includes(alternate)) {
+      return `wrong-skill ${caseResult.wrongSkill} via ${caseResult.invocationSignal}`;
+    }
+    const others = caseResult.invokedSkills.filter((label) => label !== alternate);
+    const suffix = others.length === 0 ? "" : ` plus wrong-skill ${others.join(", ")}`;
+    return `alternate ${alternate}${suffix} via ${caseResult.invocationSignal}`;
   }
 
   return formatSkip(caseResult.skipSignal);

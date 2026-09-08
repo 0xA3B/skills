@@ -6,8 +6,15 @@ import {
   type TriggerEvalSelection,
   usage,
 } from "./cli-options.js";
+import {
+  type DependentFixture,
+  dependentRunOptions,
+  findDependentFixtures,
+  listSelectedSkillPaths,
+  selectDependentsForAgent,
+} from "./dependents.js";
 import { printTriggerEvalResult } from "./output.js";
-import { runTriggerEval } from "./runner.js";
+import { type RunTriggerEvalOptions, runTriggerEval } from "./runner.js";
 import { selectMarketplaceSuite, selectPluginSuite, type TriggerEvalSuite } from "./suite.js";
 import type { TriggerEvalAgent } from "./types.js";
 
@@ -34,8 +41,24 @@ async function main(): Promise<void> {
   }
 
   if (options !== undefined) {
-    const { agents, selection, ...runOptions } = options;
+    const { agents, selection, withDependents, ...runOptions } = options;
     try {
+      const repoRoot = process.cwd();
+      const { dependents, unreadableFixtures } =
+        withDependents === true
+          ? await findDependentFixtures(repoRoot, await listSelectedSkillPaths(repoRoot, selection))
+          : { dependents: [], unreadableFixtures: [] };
+      // A fixture the scan could not read may hold routing cases for the selection, so the run
+      // still executes every discovered case but cannot end green.
+      for (const unreadable of unreadableFixtures) {
+        console.error(
+          `ERROR: could not scan the fixture of ${unreadable.skillPath} for dependent cases, so the dependent set is incomplete: ${unreadable.message}`,
+        );
+        process.exitCode = 1;
+      }
+      if (withDependents === true && dependents.length === 0) {
+        console.log("No dependent cases route to the selected skills.");
+      }
       for (const agent of agents) {
         if (abortController.signal.aborted) {
           break;
@@ -90,11 +113,54 @@ async function main(): Promise<void> {
             process.exitCode = 1;
           }
         }
+
+        if (dependents.length > 0 && !abortController.signal.aborted) {
+          await runDependents(repoRoot, dependents, agent, runOptions);
+        }
       }
     } catch (caught: unknown) {
       console.error(caught instanceof Error ? caught.message : String(caught));
       process.exitCode = 1;
     }
+  }
+}
+
+// Dependent cases run under their owning fixture, on that fixture's own lanes.
+async function runDependents(
+  repoRoot: string,
+  dependents: DependentFixture[],
+  agent: TriggerEvalAgent,
+  runOptions: Omit<RunTriggerEvalOptions, "skillPath" | "agent" | "abortSignal" | "lane">,
+): Promise<void> {
+  const { runnable, skipped } = await selectDependentsForAgent(repoRoot, dependents, agent);
+  for (const entry of skipped) {
+    console.log(`Skipping dependent cases in ${entry.label} on ${agent}: ${entry.reason}.`);
+  }
+  let passedFixtures = 0;
+  let ranFixtures = 0;
+  for (const dependent of runnable) {
+    if (abortController.signal.aborted) {
+      break;
+    }
+    console.log(
+      `Dependent cases in ${dependent.label} routing to ${dependent.routesTo.join(", ")}: ${dependent.caseIds.join(", ")}.`,
+    );
+    const result = await runTriggerEval({
+      ...dependentRunOptions(runOptions, dependent),
+      agent,
+      abortSignal: abortController.signal,
+    });
+    printTriggerEvalResult(result);
+    ranFixtures += 1;
+    if (
+      result.skippedReason === undefined &&
+      result.results.every((caseResult) => caseResult.passed)
+    ) {
+      passedFixtures += 1;
+    }
+  }
+  if (ranFixtures > 0) {
+    console.log(`Dependent fixtures on ${agent}: ${passedFixtures}/${ranFixtures} passed.`);
   }
 }
 

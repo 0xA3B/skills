@@ -16,7 +16,7 @@ export function shouldStopEarly(observations: CaseObservations): boolean {
 }
 
 export type CaseVerdictOptions = {
-  testCase: { id: string; expect: TriggerExpectation };
+  testCase: { id: string; expect: TriggerExpectation; invokeInstead?: string };
   targetLabel: string;
   // Every staged skill's label regardless of invocation policy, for the isolation check.
   stagedSkillLabels: ReadonlySet<string>;
@@ -28,14 +28,27 @@ export type CaseVerdictOptions = {
 export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult {
   const { observations, runResult, testCase } = options;
   const anyInvocation = observations.signal !== "none";
-  const invoked = observations.invokedSkills.includes(options.targetLabel);
-  const wrongSkill = observations.invokedSkills.find((label) => label !== options.targetLabel);
+  // Lanes may report one label per detection event, so the same skill can appear twice.
+  const invokedSkills = [...new Set(observations.invokedSkills)];
+  const invoked = invokedSkills.includes(options.targetLabel);
+  const wrongSkill = invokedSkills.find((label) => label !== options.targetLabel);
   // A wrong-skill invocation fails an invoke case even when the target also fired — simultaneous
   // firing is trigger-contract overlap, the very thing the eval exists to expose. It does not fail
   // a skip case: the fixture only encodes expectations about the target, and a sibling firing on a
   // target-negative prompt may be exactly right. It is still recorded in wrongSkill.
+  // A routing assertion tightens a skip case: the target must not fire and the named alternate
+  // must be the only skill that fires. Nothing firing, a different skill, or the target alongside
+  // the alternate all fail. The explicit !invoked keeps a label equal to the target from passing.
+  // "Only" is bounded by the observation window: the run stops at the first invocation signal,
+  // mirroring the staged canary's instruction to stop right after invoking, so a later firing
+  // would require the agent to ignore that instruction. Skills fired in one event are all seen.
+  // Invoke cases carry the same bound for wrong-skill detection.
   const matchedExpectation =
-    testCase.expect === "invoke" ? invoked && wrongSkill === undefined : !invoked;
+    testCase.expect === "invoke"
+      ? invoked && wrongSkill === undefined
+      : testCase.invokeInstead === undefined
+        ? !invoked
+        : !invoked && invokedSkills.length === 1 && invokedSkills[0] === testCase.invokeInstead;
   const endedBy = runResult.endedBy ?? "completed";
   // Isolation leaks poison the case in both directions — an unstaged skill can steal an invoke or
   // provoke one — so the check applies even when the target fired. Other environmental checks only
@@ -49,8 +62,10 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   return {
     caseId: testCase.id,
     expect: testCase.expect,
+    ...(testCase.invokeInstead === undefined ? {} : { invokeInstead: testCase.invokeInstead }),
     invocationSignal: observations.signal,
     invoked,
+    invokedSkills,
     ...(wrongSkill === undefined ? {} : { wrongSkill }),
     passed,
     ...(skipSignal === undefined ? {} : { skipSignal }),

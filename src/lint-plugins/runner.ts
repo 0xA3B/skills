@@ -1,3 +1,4 @@
+import { readdir } from "node:fs/promises";
 import path from "node:path";
 
 import { validateClaudeMarketplace } from "./claude-marketplace.js";
@@ -13,10 +14,11 @@ import {
   type ValidationOptions,
 } from "./diagnostics.js";
 import { validateExternalReferences } from "./external.js";
+import { isDirectory } from "./files.js";
 import { validateMarketplace } from "./marketplace.js";
 import { printDiagnostics } from "./output.js";
 import { validatePlugin } from "./plugin-manifest.js";
-import { validateSkillsForPlugin } from "./skills/index.js";
+import { validateSkill, validateSkillsForPlugin } from "./skills/index.js";
 import type {
   Catalog,
   ClaudeCatalog,
@@ -32,6 +34,7 @@ export type LintResult = {
   context: ValidationContext;
   errorCount: number;
   pluginCount: number;
+  repoLocalSkillCount: number;
   warningCount: number;
 };
 
@@ -109,6 +112,7 @@ export async function lintPlugins(options: ValidationOptions = {}): Promise<Lint
     });
   }
 
+  const repoLocalSkillCount = await validateRepoLocalSkills(context);
   await validateExternalReferences(context, catalog, claudeCatalog, manifestsByPath);
 
   const errorCount = context.diagnostics.filter(
@@ -116,11 +120,42 @@ export async function lintPlugins(options: ValidationOptions = {}): Promise<Lint
   ).length;
   const warningCount = context.diagnostics.length - errorCount;
 
-  return { catalog, claudeCatalog, context, errorCount, pluginCount: units.size, warningCount };
+  return {
+    catalog,
+    claudeCatalog,
+    context,
+    errorCount,
+    pluginCount: units.size,
+    repoLocalSkillCount,
+    warningCount,
+  };
+}
+
+// Repo-local skills ship to no plugin target, but every session in this checkout can load them on
+// both agents, so they get the whole skill-level check set for both targets. Manifest, alignment,
+// coverage, and catalog checks stay plugin-only.
+async function validateRepoLocalSkills(context: ValidationContext): Promise<number> {
+  const skillsPath = path.join(context.repoRoot, ".agents", "skills");
+  if (!(await isDirectory(skillsPath))) {
+    return 0;
+  }
+  const entries = await readdir(skillsPath, { withFileTypes: true });
+  const skillDirs = entries
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+    .map((entry) => entry.name)
+    .sort();
+  for (const skillName of skillDirs) {
+    await validateSkill(context, skillName, path.join(skillsPath, skillName), {
+      claude: true,
+      codex: true,
+    });
+  }
+  return skillDirs.length;
 }
 
 export async function runLintPlugins(options: ValidationOptions = {}): Promise<void> {
-  const { context, errorCount, pluginCount, warningCount } = await lintPlugins(options);
+  const { context, errorCount, pluginCount, repoLocalSkillCount, warningCount } =
+    await lintPlugins(options);
   if (context.diagnostics.length > 0) {
     const status = errorCount > 0 ? "failed" : "completed";
     const summary = `Plugin lint ${status} with ${errorCount} error(s) and ${warningCount} warning(s):`;
@@ -136,7 +171,9 @@ export async function runLintPlugins(options: ValidationOptions = {}): Promise<v
   }
 
   const externalLabel = context.externalValidationEnabled ? " with external checks" : "";
-  console.log(`Linted ${pluginCount} local plugin(s)${externalLabel}.`);
+  console.log(
+    `Linted ${pluginCount} local plugin(s) and ${repoLocalSkillCount} repo-local skill(s)${externalLabel}.`,
+  );
 }
 
 export function runCli(options: ValidationOptions = {}): void {

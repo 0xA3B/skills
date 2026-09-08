@@ -93,6 +93,8 @@ implementation.
 | **Hand off**                 | A workflow boundary where the current skill stops, summarizes transfer context, and recommends the next explicit skill.                                                                                       | auto-invoke, delegate                 |
 | **Trigger fixture**          | A committed YAML file of positive and negative cases used to evaluate implicit invocation behavior.                                                                                                           | skill test                            |
 | **Workspace seed**           | Committed project content under `evals/seeds/<name>/`, copied into a case workspace and initialized as a git repository before the agent runs.                                                                | scaffold, checkout, fixture workspace |
+| **Routing assertion**        | The `invoke-instead` check on a skip case: the named alternate must be the only skill that fires.                                                                                                             | route-to, redirect                    |
+| **Dependent case**           | A skip case in another skill's fixture whose routing assertion names the target skill.                                                                                                                        | dependency                            |
 | **Trigger eval**             | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code).                                          | validation gate                       |
 | **Eval lane**                | The per-agent adapter a trigger eval runs through, owning that agent's staging, case execution, and invocation observations. Distinct from a **Review lane**, which is a focused review pass.                 | review lane, harness                  |
 | **Invocation signal**        | The observed evidence that the agent invoked the target skill: an eval canary in Codex output, Claude Code Skill tool events, or legacy Codex skill-injection telemetry as a secondary signal.                | telemetry                             |
@@ -124,6 +126,8 @@ Relationships:
 - A **Trigger eval** executes through exactly one **Eval lane**, the adapter for the selected agent.
 - Each **Trigger fixture** case runs in zero or one **Workspace seed**; a **Workspace seed** is
   shared by every fixture that names it.
+- A **Trigger fixture** skip case carries zero or one **Routing assertion**; the cases whose
+  **Routing assertion** names a skill are that skill's **Dependent cases**.
 - **Plugin linter** checks are local and deterministic by default; **External validation** is
   opt-in.
 - A **Review lane** separates review intent from review scope; scope belongs to the invoking review

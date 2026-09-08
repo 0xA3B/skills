@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { cp, lstat, mkdir, readdir, stat, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -113,13 +113,19 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
         (path.relative(seedPath, source).split(path.sep)[0] ?? "").toLowerCase(),
       ),
   });
-  await writeWorkspaceFiles(workspacePath, workspace.committed);
   await git(workspacePath, "init", "--quiet", "--initial-branch", workspace.branch);
+  // The seed is added before the committed layer is written, so a committed .gitignore cannot
+  // hide the seed from its own commit. A seed's own .gitignore shapes what the seed commits, but
+  // never the fixture's declared layers or the lane's surfaces: an unforced add would silently
+  // drop a file the seed ignores.
   await git(workspacePath, "add", "--all");
-  // A seed's own .gitignore shapes what the seed commits, but never the fixture's declared layers
-  // or the lane's surfaces: an unforced add would silently drop a file the seed ignores.
+  await writeWorkspaceFiles(workspacePath, workspace.committed);
   await addForced(workspacePath, Object.keys(workspace.committed));
   await addForced(workspacePath, await presentHarnessEntries(workspacePath));
+  // A committed .gitignore that narrows the seed's own rules would leave seed files the seed
+  // ignored sitting untracked, an undeclared change the case would see. The seed's ignored state
+  // wins: whatever is neither tracked nor ignored at this point is removed before the commit.
+  await removeUntrackedFiles(workspacePath);
   // --allow-empty keeps the one-commit contract when a seed's .gitignore leaves nothing to commit.
   await git(
     workspacePath,
@@ -142,6 +148,17 @@ export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions)
     throw new Error(
       `workspace_files ${ignored.map((entry) => JSON.stringify(entry)).join(", ")} would be ignored in the seeded workspace; place unstaged files where git status shows them.`,
     );
+  }
+}
+
+async function removeUntrackedFiles(workspacePath: string): Promise<void> {
+  const { stdout } = await execFileAsync(
+    "git",
+    ["ls-files", "--others", "--exclude-standard", "-z"],
+    { cwd: workspacePath, env: seedGitEnvironment() },
+  );
+  for (const relativePath of stdout.split("\0").filter((entry) => entry.length > 0)) {
+    await rm(path.join(workspacePath, relativePath));
   }
 }
 

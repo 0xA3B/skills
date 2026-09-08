@@ -148,6 +148,7 @@ cases:
     prompt: >-
       Address these review comments and fix the valid ones.
     expect: skip
+    invoke-instead: engineering:receiving-feedback
     rationale: Existing reviewer feedback belongs to receiving-feedback.
 
   - id: bug-report
@@ -172,7 +173,8 @@ cases:
     prompt: >-
       Review the architecture of this codebase and find deepening opportunities.
     expect: skip
-    rationale: A codebase-wide architecture audit belongs to improve-codebase-architecture.
+    invoke-instead: engineering:codebase-design
+    rationale: A codebase-wide architecture audit belongs to codebase-design.
 
   - id: conceptual-question
     prompt: >-

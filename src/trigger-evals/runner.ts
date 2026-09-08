@@ -15,7 +15,7 @@ export type RunTriggerEvalOptions = {
   skillPath: string;
   agent?: TriggerEvalAgent;
   fixturePath?: string;
-  caseId?: string;
+  caseIds?: string[];
   model?: string;
   effort?: string;
   force?: boolean;
@@ -23,11 +23,6 @@ export type RunTriggerEvalOptions = {
   concurrency?: number;
   sourceCodexHome?: string;
   claudeConfigDir?: string;
-  // Stage only the target's own surface — a plugin target's plugin, or the repo-local skill alone
-  // — instead of the default deployment-context staging: every plugin from the agent's marketplace
-  // catalog, plus every repo-local skill when the target is repo-local. Opt-in debugging aid for
-  // separating a weak description from an invocation lost to a competing staged skill.
-  isolated?: boolean;
   abortSignal?: AbortSignal;
   // Lane override for the agent seam; defaults to the agent's real lane. Primarily an
   // orchestration test seam.
@@ -67,7 +62,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     return result;
   }
 
-  const fixtureOptions = options.caseId === undefined ? {} : { caseId: options.caseId };
+  const fixtureOptions = options.caseIds === undefined ? {} : { caseIds: options.caseIds };
   const fixture = await loadTriggerFixture(
     options.fixturePath ?? target.fixturePath,
     fixtureOptions,
@@ -83,11 +78,10 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         ? {}
         : { claudeConfigDir: options.claudeConfigDir }),
     });
-  // Default staging is the target's deployment context: every catalog plugin, plus this
-  // checkout's other repo-local skills when the target is repo-local.
-  const isolated = options.isolated === true;
+  // Staging is the target's deployment context: every catalog plugin, plus this checkout's other
+  // repo-local skills when the target is repo-local.
   const extraRepoLocalSkills =
-    !isolated && target.kind === "repo-local"
+    target.kind === "repo-local"
       ? (await listRepoLocalSkills(repoRoot)).filter(
           (skill) => skill.skillName !== target.skillName,
         )
@@ -97,7 +91,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     target,
     model,
     effort,
-    ...(isolated ? {} : { extraPlugins: await listMarketplacePlugins(repoRoot, agent) }),
+    extraPlugins: await listMarketplacePlugins(repoRoot, agent),
     ...(extraRepoLocalSkills.length > 0 ? { extraRepoLocalSkills } : {}),
   });
   const targetLabel = skillTargetLabel(target);

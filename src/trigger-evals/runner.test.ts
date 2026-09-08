@@ -89,6 +89,7 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
 describe("runTriggerEval", () => {
   it("runs cases concurrently, preserves fixture order, and writes the report", async () => {
     const repoRoot = await writeRepoFixture({
+      marketplace: true,
       cases: [
         { id: "case-a", expect: "invoke" },
         { id: "case-b", expect: "skip" },
@@ -102,7 +103,6 @@ describe("runTriggerEval", () => {
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       concurrency: 2,
-      isolated: true,
       lane,
     });
 
@@ -136,14 +136,38 @@ describe("runTriggerEval", () => {
     expect(report.results).toHaveLength(4);
   });
 
+  it("runs only the requested case ids", async () => {
+    const repoRoot = await writeRepoFixture({
+      marketplace: true,
+      cases: [
+        { id: "case-a", expect: "invoke" },
+        { id: "case-b", expect: "skip" },
+        { id: "case-c", expect: "skip" },
+      ],
+    });
+    const { lane, state } = createFakeLane();
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseIds: ["case-c", "case-a"],
+      lane,
+    });
+
+    expect(result.results.map((caseResult) => caseResult.caseId)).toStrictEqual([
+      "case-a",
+      "case-c",
+    ]);
+    expect(state.preparedCaseIds).toStrictEqual(["case-a", "case-c"]);
+  });
+
   it("resolves per-agent default models before handing the run to the lane", async () => {
-    const repoRoot = await writeRepoFixture();
+    const repoRoot = await writeRepoFixture({ marketplace: true });
     const codex = createFakeLane();
     await runTriggerEval({
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-      isolated: true,
+      caseIds: ["skip-case"],
       lane: codex.lane,
     });
     expect(codex.state.runOptions).toMatchObject({ model: "gpt-5.6-sol", effort: "medium" });
@@ -153,15 +177,14 @@ describe("runTriggerEval", () => {
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       agent: "claude",
-      caseId: "skip-case",
-      isolated: true,
+      caseIds: ["skip-case"],
       lane: claude.lane,
     });
     expect(claude.state.runOptions).toMatchObject({ model: "opus", effort: "medium" });
   });
 
   it("wires lane observations into the early-stop condition", async () => {
-    const repoRoot = await writeRepoFixture();
+    const repoRoot = await writeRepoFixture({ marketplace: true });
     const { lane, state } = createFakeLane({
       observationsFor: (_testCase, output) => ({
         signal: output.stdout.includes("CANARY") ? "stdout-skill-canary" : "none",
@@ -174,8 +197,7 @@ describe("runTriggerEval", () => {
     await runTriggerEval({
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-      isolated: true,
+      caseIds: ["skip-case"],
       lane,
     });
 
@@ -187,7 +209,7 @@ describe("runTriggerEval", () => {
   });
 
   it("classifies case results from lane observations and run results", async () => {
-    const repoRoot = await writeRepoFixture();
+    const repoRoot = await writeRepoFixture({ marketplace: true });
     const { lane } = createFakeLane({
       executeResult: async () =>
         buildCliRunResult({ exitCode: 1, error: "codex exec exited with code 1." }),
@@ -196,8 +218,7 @@ describe("runTriggerEval", () => {
     const result = await runTriggerEval({
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
-      isolated: true,
+      caseIds: ["skip-case"],
       lane,
     });
 
@@ -241,7 +262,7 @@ describe("runTriggerEval", () => {
     await runTriggerEval({
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
-      caseId: "skip-case",
+      caseIds: ["skip-case"],
       lane,
     });
 
@@ -263,7 +284,7 @@ describe("runTriggerEval", () => {
     await runTriggerEval({
       repoRoot,
       skillPath: ".agents/skills/auto-skill",
-      caseId: "skip-case",
+      caseIds: ["skip-case"],
       lane,
     });
 
@@ -286,33 +307,14 @@ describe("runTriggerEval", () => {
       runTriggerEval({
         repoRoot,
         skillPath: "plugins/demo/skills/auto-skill",
-        caseId: "skip-case",
+        caseIds: ["skip-case"],
         lane,
       }),
     ).rejects.toThrow("Unable to read the codex marketplace catalog");
   });
 
-  it("stages only the target's own surface when isolated", async () => {
-    const repoRoot = await writeRepoLocalSkillFixture({
-      marketplace: true,
-      siblingSkills: [{ name: "sibling-skill" }],
-    });
-    const { lane, state } = createFakeLane();
-
-    await runTriggerEval({
-      repoRoot,
-      skillPath: ".agents/skills/auto-skill",
-      caseId: "skip-case",
-      isolated: true,
-      lane,
-    });
-
-    expect(state.runOptions?.extraPlugins).toBeUndefined();
-    expect(state.runOptions?.extraRepoLocalSkills).toBeUndefined();
-  });
-
   it("cleans up the case and the run when execution fails", async () => {
-    const repoRoot = await writeRepoFixture();
+    const repoRoot = await writeRepoFixture({ marketplace: true });
     const { lane, state } = createFakeLane({
       executeResult: async () => {
         throw new Error("exec blew up");
@@ -323,8 +325,7 @@ describe("runTriggerEval", () => {
       runTriggerEval({
         repoRoot,
         skillPath: "plugins/demo/skills/auto-skill",
-        caseId: "skip-case",
-        isolated: true,
+        caseIds: ["skip-case"],
         lane,
       }),
     ).rejects.toThrow("exec blew up");
@@ -333,7 +334,7 @@ describe("runTriggerEval", () => {
   });
 
   it("skips case preparation and execution when the run is already aborted", async () => {
-    const repoRoot = await writeRepoFixture();
+    const repoRoot = await writeRepoFixture({ marketplace: true });
     const { lane, state } = createFakeLane();
     const abortController = new AbortController();
     abortController.abort();
@@ -342,7 +343,6 @@ describe("runTriggerEval", () => {
       repoRoot,
       skillPath: "plugins/demo/skills/auto-skill",
       abortSignal: abortController.signal,
-      isolated: true,
       lane,
     });
 

@@ -30,6 +30,7 @@ cases:
     prompt: >-
       Review my current worktree before I commit.
     expect: skip
+    invoke-instead: engineering:review-changes
     rationale: Generic worktree review belongs to review-changes.
 
   - id: conceptual-architecture

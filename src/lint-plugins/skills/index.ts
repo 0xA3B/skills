@@ -7,6 +7,7 @@ import { resolveRelativePath } from "../paths.js";
 import type { JsonObject, PluginTargets } from "../types.js";
 import { validateSkillFrontmatter } from "./agentskills.js";
 import { validateOpenAiMetadata } from "./openai-metadata.js";
+import { validateTriggerFixture } from "./trigger-fixture.js";
 
 export async function validateSkillsForPlugin(
   context: ValidationContext,
@@ -82,6 +83,7 @@ export async function validateSkill(
   }
 
   const frontmatter = await validateSkillFrontmatter(context, skillName, skillFilePath);
+  await validateTriggerFixture(context, skillPath, targets);
   const metadataPath = path.join(skillPath, "agents", "openai.yaml");
   if (!(await pathExists(metadataPath))) {
     if (targets.codex) {

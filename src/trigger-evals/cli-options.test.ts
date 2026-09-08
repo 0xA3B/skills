@@ -1,8 +1,27 @@
 import { describe, expect, it } from "vitest";
 
-import { HelpRequested, parseTriggerEvalCliOptions } from "./cli-options.js";
+import { HelpRequested, parseTriggerEvalCliOptions, usage } from "./cli-options.js";
 
 describe("parseTriggerEvalCliOptions", () => {
+  it("accepts --with-dependents on every selection mode", () => {
+    expect(
+      parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--with-dependents"]).withDependents,
+    ).toBe(true);
+    expect(
+      parseTriggerEvalCliOptions(["--plugin", "plugins/foo", "--with-dependents"]).withDependents,
+    ).toBe(true);
+    expect(parseTriggerEvalCliOptions(["--marketplace", "--with-dependents"]).withDependents).toBe(
+      true,
+    );
+    expect(parseTriggerEvalCliOptions(["plugins/foo/skills/bar"])).not.toHaveProperty(
+      "withDependents",
+    );
+  });
+
+  it("documents --with-dependents in the usage text", () => {
+    expect(usage()).toContain("--with-dependents");
+  });
+
   it("accepts just a skill path", () => {
     expect(parseTriggerEvalCliOptions(["plugins/foo/skills/bar"])).toStrictEqual({
       agents: ["codex"],
@@ -38,7 +57,7 @@ describe("parseTriggerEvalCliOptions", () => {
       agents: ["claude"],
       selection: { mode: "skill", skillPath: "plugins/foo/skills/bar" },
       fixturePath: "custom.yaml",
-      caseId: "case-a",
+      caseIds: ["case-a"],
       model: "gpt-5",
       effort: "high",
       timeoutMs: 5000,
@@ -88,25 +107,6 @@ describe("parseTriggerEvalCliOptions", () => {
         skillPaths: ["plugins/foo/skills/bar", "plugins/baz/skills/qux"],
       },
     });
-  });
-
-  it("passes --isolated through for skill and plugin selections", () => {
-    expect(parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--isolated"])).toStrictEqual({
-      agents: ["codex"],
-      selection: { mode: "skill", skillPath: "plugins/foo/skills/bar" },
-      isolated: true,
-    });
-    expect(parseTriggerEvalCliOptions(["--plugin", "plugins/foo", "--isolated"])).toStrictEqual({
-      agents: ["codex"],
-      selection: { mode: "plugin", pluginPath: "plugins/foo" },
-      isolated: true,
-    });
-  });
-
-  it("rejects --isolated with --marketplace", () => {
-    expect(() => parseTriggerEvalCliOptions(["--marketplace", "--isolated"])).toThrow(
-      "--isolated stages only the target's own surface; drop --marketplace.",
-    );
   });
 
   it("rejects combining --plugin with --marketplace", () => {
@@ -162,7 +162,7 @@ describe("parseTriggerEvalCliOptions", () => {
     ).toStrictEqual({
       agents: ["codex"],
       selection: { mode: "marketplace", skillPaths: ["plugins/foo/skills/bar"] },
-      caseId: "case-a",
+      caseIds: ["case-a"],
       fixturePath: "custom.yaml",
     });
   });
