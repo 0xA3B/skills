@@ -48,10 +48,13 @@ async function main(): Promise<void> {
         withDependents === true
           ? await findDependentFixtures(repoRoot, await listSelectedSkillPaths(repoRoot, selection))
           : { dependents: [], unreadableFixtures: [] };
+      // A fixture the scan could not read may hold routing cases for the selection, so the run
+      // still executes every discovered case but cannot end green.
       for (const unreadable of unreadableFixtures) {
-        console.warn(
-          `WARNING: skipped the fixture of ${unreadable.skillPath} while scanning for dependent cases: ${unreadable.message}`,
+        console.error(
+          `ERROR: could not scan the fixture of ${unreadable.skillPath} for dependent cases, so the dependent set is incomplete: ${unreadable.message}`,
         );
+        process.exitCode = 1;
       }
       if (withDependents === true && dependents.length === 0) {
         console.log("No dependent cases route to the selected skills.");
