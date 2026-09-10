@@ -29,40 +29,92 @@ implement, defer, or reject.
 ## Facts and decisions
 
 - Find facts by inspecting the environment: repository files, history, tools, configured services,
-  and current external sources when relevant. When the harness provides subagents, delegate lookups
+  and current external sources when relevant. When the harness provides subagents, dispatch lookups
   to them so questioning continues while they run.
+- When a question needs executable evidence and the harness provides subagents, apply
+  `engineering:prototype` to dispatch a disposable prototype to a subagent and treat it as a running
+  lookup. When no subagent capability exists, or the user wants to drive the prototype, hold the
+  question, recommend the explicit invocation, and carry the question to the completion summary as
+  unresolved.
 - Do not ask the user to supply facts that can be established safely from available evidence.
-- Decisions belong to the user. Present each material choice, your recommendation, and the tradeoff
-  it resolves, then wait for the user's answer.
+- Decisions belong to the user. Present each material choice in the shape `## Question shapes`
+  assigns, then wait for the user's answer.
 - Keep assumptions distinct from facts and decisions. Make unresolved uncertainty explicit.
 
 ## Interview rounds
 
 The **frontier** is every decision whose prerequisites are already settled — the questions you can
-ask now without guessing at answers you have not heard yet. Work the tree in rounds:
+ask now without guessing at answers you have not heard yet. A **branch** is a top-level decision of
+the tree together with every decision under it. Work the tree in rounds:
 
-1. Ask the whole frontier as one numbered round, ordered by how much each question reduces
-   implementation risk or decision ambiguity. If a question depends on another question still open
-   in this round, hold it for a later round.
-2. Wait for the user's answers. Do not compute the next round until each answer is understood,
-   disagreement is explicit, and uncertainty is captured as an assumption, decision, or follow-up.
-3. Settled decisions push the frontier outward and unblock the questions that depended on them.
+1. Open the round with the answers to the user's questions from the previous round and what those
+   answers settled. Round 1 opens with the facts established so far.
+2. Compose the round from the frontier, one section per branch. A branch whose root decision is open
+   contributes exactly one question; a branch whose root is settled contributes every frontier
+   question under it. A decision the user stated in the invocation or an earlier answer counts as
+   settled when the facts gathered do not contradict it; when they do, the contradiction is that
+   branch's one question. Order branches and questions by how much each reduces implementation risk
+   or decision ambiguity. Hold a question whose prerequisite is still open in this round or waiting
+   on a running lookup, and name the held questions in one line.
+3. Wait for the user's answers. Partial answers are expected: a question the user did not answer
+   stays on the frontier under its branch. Do not compute the next round until each given answer is
+   understood, disagreement is explicit, and uncertainty is captured as an assumption, decision, or
+   follow-up.
+4. Settled decisions push the frontier outward and unblock the questions that depended on them.
    Recompute the frontier and ask the next round.
-4. Treat a running lookup as an unsettled prerequisite: hold only the questions downstream of the
-   missing fact and ask the rest of the frontier now.
 
-Format each prose question like so:
+Send every question in the chat message, inside the round's numbering; the useful answer usually
+carries a reason or a new option. Number sections `<round>.<branch>` and questions continuously
+across the round, so a reply can name a question:
 
 ```
-❓ **Q1 — <question title>**: <question body, with options or scenarios when they help>
+## Round 2
 
-➡️ <your recommended answer and the tradeoff it resolves>
+### 2.1 Workspace seeding
+
+❓ **Q1 — Seed home**: ...
+
+### 2.2 Routing assertions
+
+📋 **Q2 — Lint rule set**: ...
+
+Assumptions carried unless you object:
+
+- ...
 ```
 
-When the harness provides a structured question tool, route a question through it only when the
-answer maps cleanly onto a few discrete options and selecting one would fully answer it. Keep a
-question in prose when it is open-ended or the useful answer is itself prose. A round may mix both:
-send the option-shaped questions through the tool and the rest as prose.
+## Question shapes
+
+Choose the shape by what is at stake. Present an alternative only when it is practical; never invent
+one for ceremony.
+
+- A **decision** has at least two practical options. Ask the question, list the options with the
+  tradeoff each carries, and recommend one by saying why it beats the others.
+- A **proposal** has one practical shape. State the design, the consequence the user must confirm,
+  and what changes if the user rejects it. A proposal has no recommendation line.
+- An **assumption** has one practical shape, and a later rejection costs one local change. List
+  assumptions at the end of the round for silent consent; they carry into the completion summary
+  unless the user objects. A single-shape item whose rejection would reopen another decision or
+  change scope is a proposal.
+
+Decision:
+
+```
+❓ **Q1 — <question title>**: <the question>
+
+- **<option A>**: <what it costs and what it buys>
+- **<option B>**: <what it costs and what it buys>
+
+➡️ <recommended option, and why it beats the others>
+```
+
+Proposal:
+
+```
+📋 **Q2 — <proposal title>**: <the design in one or two sentences>
+
+Confirm: <the consequence to confirm>. If rejected: <what changes>.
+```
 
 ## Interview behavior
 
@@ -73,12 +125,11 @@ send the option-shaped questions through the tool and the rest as prose.
   disagree, pause and resolve which should be authoritative.
 - Use `AGENTS.md ## Terminology` when present. Update stable domain terms there as they crystallize;
   skip generic programming terms and incidental implementation names.
-- Keep the session to questions and evidence gathering; implementing, prototyping, ticket creation,
-  and enacting the approach belong to the next explicit workflow after the handoff.
+- Keep the session to questions and evidence gathering, including dispatched disposable prototypes;
+  implementing, ticket creation, and enacting the approach belong to the next explicit workflow
+  after the handoff.
 
-When an unresolved question needs executable evidence, stop that branch and recommend an explicit
-invocation of `engineering:prototype`. When terminology is the main unresolved work, recommend
-`engineering:terminology`.
+When terminology is the main unresolved work, recommend `engineering:terminology`.
 
 ## Completion
 
