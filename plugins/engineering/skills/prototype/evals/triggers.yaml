@@ -1,0 +1,76 @@
+version: 1
+workspace:
+  seed: node-service
+cases:
+  - id: spike-vendor-pagination
+    prompt: >-
+      Spike a throwaway script to see whether the vendor API paginates results, so we can decide the
+      design.
+    expect: invoke
+    rationale: A throwaway spike for a design decision is the core trigger.
+
+  - id: sanity-check-state-model
+    prompt: >-
+      Before we build the checkout flow, sanity-check the cart state model: can an item be removed
+      while a payment is pending? Give me something I can click through.
+    expect: invoke
+    rationale: A state model the user wants to feel before implementing is a logic prototype.
+
+  - id: compare-layout-variants
+    prompt: >-
+      Mock up two or three variants of the settings page layout so we can pick one before
+      implementing.
+    expect: invoke
+    rationale: Switchable design variants for a choice are a UI prototype.
+
+  - id: prove-system-accepts-change
+    prompt: >-
+      Check whether the test runner still works if we move the fixtures directory outside the
+      package. Don't implement it for real yet, just prove it.
+    expect: invoke
+    rationale: Proving an existing system accepts a change before committing is an experiment.
+
+  - id: explicit-prototype-request
+    prompt: >-
+      Prototype the retry policy so we can feel how backoff behaves before committing to a design.
+    expect: invoke
+    rationale: The user names the workflow explicitly.
+
+  - id: implement-feature
+    prompt: >-
+      Add rate limiting to the API client so callers get a typed error when they exceed the quota.
+    expect: skip
+    invoke-instead: engineering:tdd
+    rationale: A feature that will land is implementation, not disposable evidence.
+
+  - id: ship-the-first-version
+    prompt: >-
+      Build the first version of the export feature. It needs to ship this sprint.
+    expect: skip
+    invoke-instead: engineering:tdd
+    rationale: Code intended to ship belongs to tdd even when it is called a first version.
+
+  - id: bug-with-unknown-cause
+    prompt: >-
+      Uploads fail intermittently in production and nobody knows why. Figure out what is going on.
+    expect: skip
+    rationale: A bug with an unknown cause needs diagnosis, not a prototype.
+
+  - id: review-branch
+    prompt: >-
+      Review the changes on this branch before I open the PR.
+    expect: skip
+    invoke-instead: engineering:review-changes
+    rationale: Reviewing existing changes belongs to review-changes.
+
+  - id: conceptual-question
+    prompt: >-
+      What is the difference between a prototype and a spike, and when is either worth the time?
+    expect: skip
+    rationale: A conceptual question about prototyping needs no disposable code.
+
+  - id: stress-test-plan
+    prompt: >-
+      Stress-test my plan for the storage migration before I start on it.
+    expect: skip
+    rationale: Adversarial questioning of a plan belongs to the manual grill-me skill.

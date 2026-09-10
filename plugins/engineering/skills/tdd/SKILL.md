@@ -93,8 +93,8 @@ Watch for rationalizations:
 These are signals to reduce the frontier to one tracer bullet or find a cheaper seam. When the
 interface is still unsettled, put the first tests at the outermost stable surface — a command, an
 endpoint, a file, or an artifact — and let internals move under them. When the code is disposable
-evidence for a design question rather than behavior that will land, stop and recommend an explicit
-invocation of `engineering:prototype`.
+evidence for a design question rather than behavior that will land, stop the loop, apply
+`engineering:prototype`, and resume the loop from its evidence.
 
 When implementation lands before its test, do not claim a TDD cycle for it. If the code is yours and
 uncommitted, set it aside and write the failing test first. Otherwise keep it, add behavior-focused
