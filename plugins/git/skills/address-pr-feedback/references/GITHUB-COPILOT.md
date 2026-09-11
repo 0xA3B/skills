@@ -44,6 +44,10 @@ inline review comments. Track inline comment IDs and review thread IDs. GitHub m
 unresolved comments to a newer commit, so `commit_id` is not a stable indication that a finding is
 new.
 
+Copilot findings carry no severity badge. For the convergence rule in `4. Stop rounds`, treat a
+Copilot finding as top-tier only when its text names a security risk or data loss; that rule's
+silent-failure test covers the rest.
+
 Inspect review-body details such as `Suppressed comments`. Copilot may place previously missed
 findings there while reporting zero new inline comments. Give an item labeled `Previously missed`
 extra scrutiny: recheck the base-to-head diff and prior dispositions for the same mechanism, and
@@ -76,8 +80,8 @@ Apply the shared feedback discipline before acting. After disposition:
 - verify the thread no longer appears in the pull request's unresolved review threads.
 
 Replies preserve the disposition for human readers; Copilot code review does not consume or answer
-thread replies. A repeated finding in a later review is new adapter activity, but the shared
-non-convergence rule still applies when it contains no new evidence.
+thread replies. A repeated finding in a later review is new adapter activity, but a rejected finding
+that returns without new evidence still stops the loop under `4. Stop rounds`.
 
 When a finding exists only in a review body and has no inline comment or thread, record its
 disposition in a pull-request comment that names the finding. Skip reaction and thread-resolution

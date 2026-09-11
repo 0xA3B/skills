@@ -43,6 +43,10 @@ Findings appear as a Codex review plus inline review comments. Track inline comm
 thread IDs. GitHub may re-anchor unresolved comments to a newer commit, so `commit_id` is not a
 stable indication that a finding is new.
 
+Each inline finding carries a severity badge from P1 to P3. P1 is the top severity tier for the
+convergence rule in `4. Stop rounds`. A finding that appears only in a review body carries no badge;
+treat it as top-tier only when its text names a security risk or data loss.
+
 If the connector returns an explicit transient error and requests another `@codex review`, treat the
 error as adapter activity and retry once for that head. Return `blocked` when the retry returns the
 same error; do not count a known error response as inactivity.
