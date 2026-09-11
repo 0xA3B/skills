@@ -2,7 +2,6 @@ version: 1
 interface:
   display_name: "Prototype"
   short_description: "Create disposable exploratory code"
-  default_prompt:
-    "Use $engineering:prototype to create a disposable prototype for this design question."
+  default_prompt: "Prototype this design question with disposable code before implementing it."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

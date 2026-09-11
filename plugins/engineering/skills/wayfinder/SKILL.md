@@ -31,6 +31,8 @@ effort navigable without turning planning into implementation.
 - Research current external sources when packages, APIs, ecosystem behavior, pricing, product
   behavior, or examples affect the map.
 - Create no durable artifacts, project docs, issues, specs, branches, or implementation changes.
+- Create disposable prototype artifacts only under `engineering:prototype`'s placement rules, and
+  clean them up before the map is returned.
 - Keep scratch notes temporary and do not present them as project state.
 
 ## Chart the map
@@ -62,7 +64,8 @@ enough for one future focused session. Each chunk should name the question or ou
 not prescribe a premature implementation.
 
 Classify each visible chunk by the workflow the user should invoke next. Recommend each skill named
-below instead of invoking it from this workflow; mapping stops before implementation:
+below instead of invoking it from this workflow, except where the research paragraph below allows;
+mapping stops before implementation:
 
 - research, with no skill, for an external or repository fact;
 - `engineering:grill-me` for a user-owned decision;
@@ -75,7 +78,10 @@ fact — no user decision to make and no artifact beyond the finding — resolve
 read-only research subagents, run in parallel when the agent supports subagents, and fold each
 finding into the known ground instead of leaving the chunk on the map. Keep a research chunk on the
 map only when the fact is unreachable this session, such as missing access, credentials, or a person
-to ask.
+to ask. When the agent supports subagents, a prototype chunk that is the only thing keeping another
+chunk off the frontier is resolved the same way: apply `engineering:prototype` through a subagent
+and fold the evidence into the known ground. Without subagents, or when the chunk blocks nothing,
+the prototype chunk stays on the map.
 
 Record dependencies between chunks. The **frontier** is the set of chunks that are precise,
 unblocked, and useful to start next.
@@ -90,10 +96,10 @@ scope does not return unless the destination changes.
 
 ### 5. Stop at the map
 
-Leave mapped chunks unresolved, apart from research chunks resolved during mapping; resolving any
-other chunk belongs to the workflow it is classified under. If the entire effort is already clear
-and small enough for one session, say that a map is unnecessary and recommend the next explicit
-workflow instead.
+Leave mapped chunks unresolved, apart from research chunks and the prototype chunks step 3 resolves
+during mapping; resolving any other chunk belongs to the workflow it is classified under. If the
+entire effort is already clear and small enough for one session, say that a map is unnecessary and
+recommend the next explicit workflow instead.
 
 ## Output
 

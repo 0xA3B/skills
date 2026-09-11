@@ -50,6 +50,7 @@ state and the buttons.
 
 The interesting moments are when the reader says "wait, that shouldn't be possible" — those are bugs
 in the idea, which is the point. Add actions or scenarios they ask for. When the demo has answered
-its question, capture the question, evidence, and decision through the handoff the skill body
-defines — the validated behavior, the states and transitions the module demonstrated, not its code.
-The whole demo, module included, stays disposable; `engineering:tdd` implements the behavior fresh.
+its question, capture the evidence record through the handoff the skill body defines — the validated
+behavior, the states and transitions the module demonstrated, with the module snippet as the
+extract. The whole demo, module included, stays disposable; `engineering:tdd` implements the
+behavior fresh.

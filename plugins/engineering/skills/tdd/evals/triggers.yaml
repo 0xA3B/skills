@@ -77,6 +77,7 @@ cases:
       Spike a throwaway script to see whether the vendor API paginates results, so we can decide the
       design.
     expect: skip
+    invoke-instead: engineering:prototype
     rationale: Disposable evidence for a design question belongs to prototype.
 
   - id: bug-with-unknown-cause

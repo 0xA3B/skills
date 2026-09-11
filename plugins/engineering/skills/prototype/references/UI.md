@@ -8,7 +8,7 @@ navigation, density, auth, data, and constraints gives better evidence than an i
 Use a new throwaway route only when the surface has no sensible existing host. Host the existing
 page from a detached `.local/worktrees/<slug>/` worktree (`SKILL.md ## Placement`, item 2) so the
 main checkout stays clean; use source-adjacent files only when the framework cannot host the
-experiment from a worktree.
+prototype from a worktree.
 
 ## Process
 

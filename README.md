@@ -102,12 +102,12 @@ skill records its original author and source in its Agent Skills frontmatter met
 
 The typical implementation flow starts with `wayfinder`, which maps a loose idea into decision-sized
 chunks. `grill-me` resolves a selected direction, and `prototype` answers questions that need
-executable evidence. `tdd` implements observable behavior through a red-green-refactor loop over a
-frontier of behaviors, and loads on its own for implementation requests. `review-changes` reviews
-changes the session authored through focused lanes, fixes accepted findings, and reruns the lanes
-those fixes invalidated; `tdd` applies it at completion. `codebase-design` provides shared
-background discipline. Use `handoff` when another agent session should continue from an ignored
-local context document.
+executable evidence and loads on its own for prototype and spike requests. `tdd` implements
+observable behavior through a red-green-refactor loop over a frontier of behaviors, and loads on its
+own for implementation requests. `review-changes` reviews changes the session authored through
+focused lanes, fixes accepted findings, and reruns the lanes those fixes invalidated; `tdd` applies
+it at completion. `codebase-design` provides shared background discipline. Use `handoff` when
+another agent session should continue from an ignored local context document.
 
 - [`engineering:codebase-design`](./plugins/engineering/skills/codebase-design/): Applies shared
   deep-module and interface-design discipline.
