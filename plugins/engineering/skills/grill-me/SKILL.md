@@ -33,9 +33,10 @@ implement, defer, or reject.
   to them so questioning continues while they run.
 - When a question needs executable evidence and the harness provides subagents, apply
   `engineering:prototype` to dispatch a disposable prototype to a subagent and treat it as a running
-  lookup. When no subagent capability exists, or the user wants to drive the prototype, hold the
-  question, recommend the explicit invocation, and carry the question to the completion summary as
-  unresolved.
+  lookup. When no subagent capability exists, or the user wants to drive the prototype, recommend
+  the explicit invocation and move the question and the decisions downstream of it off the frontier
+  into the completion summary's unresolved list; they return to the frontier only when the evidence
+  arrives.
 - Do not ask the user to supply facts that can be established safely from available evidence.
 - Decisions belong to the user. Present each material choice in the shape `## Question shapes`
   assigns, then wait for the user's answer.
