@@ -47,12 +47,12 @@ re-review of the fixes themselves. The three depths:
 - For a small, low-risk diff such as wording, comments, metadata text, or narrow configuration, do a
   lightweight main-thread review: inspect the exact diff, check obvious behavior and policy risks,
   run the smallest relevant validation, and report concisely.
-- For a narrow change with a bounded failure cost — one function or module, a bug fix with a known
-  cause, a follow-up at an established test seam, or a rewritten instruction section — run a
-  targeted independent review: the lanes Lane selection selects for the changed content, plus test
-  review when the change introduces or materially changes behavior-focused tests, and no lane beyond
-  those. A narrow change still warrants an independent reviewer to counter authorship bias; it does
-  not warrant more lanes.
+- For a change beyond the lightweight tier whose failure cost stays within one function or module —
+  a bug fix with a known cause, a follow-up at an established test seam, or a rewritten instruction
+  section — run a targeted independent review: the lanes Lane selection selects for the changed
+  content, plus test review when the change introduces or materially changes behavior-focused tests,
+  and no lane beyond those. A narrow change still warrants an independent reviewer to counter
+  authorship bias; it does not warrant more lanes.
 - Use the full lane workflow when the change introduces non-trivial control flow, changes a
   consequential external contract, crosses components, has a failure cost that reaches beyond the
   changed function or module, affects security or release behavior, or is explicitly requested as a
