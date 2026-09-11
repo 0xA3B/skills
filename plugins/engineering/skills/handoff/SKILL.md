@@ -28,8 +28,8 @@ and save the document as `<scratch-dir>/handoffs/<YYYYMMDD-HHMMSS>-<slug>.md`, f
 fall back to the operating system's temporary directory instead of changing ignore rules. Outside a
 repository, use the temporary directory.
 
-Create only the handoff document and its parent directory; leave project files, ignore rules, the
-index, branches, and trackers untouched.
+Create only the handoff document, the snapshots it references, and their parent directory; leave
+project files, ignore rules, the index, branches, and trackers untouched.
 
 ## Content
 
@@ -45,11 +45,18 @@ Include only context the next session cannot cheaply recover:
 - the immediate next action;
 - suggested skills to invoke explicitly.
 
-Reference existing specs, plans, diffs, commits, issues, and generated artifacts instead of copying
-their contents: the handoff is an index into them, and durable facts stay in their owning artifacts.
+Reference durable artifacts instead of copying their contents: the handoff is an index into them,
+and durable facts stay in their owning artifacts. A commit, a branch, a tracked file, an issue, a
+change request, a URL, or a file already under the scratch directory that holds the handoff is
+durable. Snapshot every other referenced artifact, such as an uncommitted diff, output under a
+temporary directory, or anything inside a worktree the harness created: save the snapshot in the
+handoff's directory, named after the handoff with a `-<name>.<ext>` suffix, for example
+`20260809-142530-auth-refactor-canary.patch` beside `20260809-142530-auth-refactor.md`, and
+reference it; the next session may start after the original is gone.
 
 Redact secrets, credentials, tokens, personal data unrelated to the task, and sensitive command
-output. Do not preserve secret values merely because they appeared earlier in the conversation.
+output from the handoff and its snapshots. Do not preserve secret values merely because they
+appeared earlier in the conversation.
 
 ## Completion
 
