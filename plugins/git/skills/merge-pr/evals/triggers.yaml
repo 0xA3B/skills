@@ -1,0 +1,69 @@
+version: 1
+cases:
+  - id: merge-approved-pr
+    prompt: >-
+      Pull request 42 is approved and every check passes. Merge it and clean up the topic branch.
+    expect: invoke
+    rationale: The user asks to merge a specific ready pull request.
+
+  - id: land-merge-request
+    prompt: >-
+      Merge request 17 on GitLab has its approvals. Land it with the repository's merge method and
+      delete the source branch.
+    expect: invoke
+    rationale: Merging a ready GitLab merge request is this skill's workflow.
+
+  - id: merge-and-verify
+    prompt: >-
+      Review feedback on my pull request is resolved. Merge it, verify the merge on main, and
+      fast-forward my local checkout.
+    expect: invoke
+    rationale: Forge merge plus verified local cleanup is the complete merge-pr workflow.
+
+  - id: merge-main-into-branch
+    prompt: >-
+      Merge main into my feature branch so it picks up the latest changes.
+    expect: skip
+    rationale: A local branch integration is not a change-request merge.
+
+  - id: merge-conflict
+    prompt: >-
+      My rebase stopped on conflicts in src/config.ts. Resolve the merge conflicts.
+    expect: skip
+    rationale: Conflict resolution is excluded from the lifecycle skills.
+
+  - id: merge-functions
+    prompt: >-
+      Merge the two duplicate parse functions in src/date.ts into one.
+    workspace_files:
+      src/date.ts: |
+        export function parseIso(s: string) { return new Date(s); }
+        export function parseIsoDate(s: string) { return new Date(s); }
+    expect: skip
+    rationale: Merging code is an implementation request, not a change-request merge.
+
+  - id: squash-local-commits
+    prompt: >-
+      Squash my last three local commits into one before I push.
+    expect: skip
+    rationale: Local history editing is not a forge merge.
+
+  - id: open-pull-request
+    prompt: >-
+      This branch is committed and ready. Open the pull request against main.
+    expect: skip
+    invoke-instead: git:create-pr
+    rationale: Creating the pull request belongs to create-pr.
+
+  - id: address-bot-feedback
+    prompt: >-
+      Codex left three findings on pull request 42. Work through them and request another review.
+    expect: skip
+    invoke-instead: git:address-pr-feedback
+    rationale: Automated review feedback belongs to address-pr-feedback.
+
+  - id: conceptual-question
+    prompt: >-
+      What is the difference between a merge commit and a squash merge?
+    expect: skip
+    rationale: A conceptual question does not ask to merge a change request.

@@ -2,12 +2,14 @@
 name: merge-pr
 description: >-
   Merge a ready GitHub pull request or GitLab merge request and verify remote and local cleanup. Use
-  only when explicitly invoked after review feedback is resolved and the user wants forge-native
-  merge gates checked, a merge method selected, the terminal merge observed, branches cleaned up,
-  and ignored SHA references refreshed. Do not use for creating change requests, handling review
-  feedback, resolving conflicts, or bypassing protections.
+  when the user asks to merge or land a specific pull request or merge request whose review is
+  resolved, including checking forge merge gates, selecting the merge method, observing the merge,
+  deleting branches, and refreshing ignored SHA references. Do not use for merging one branch into
+  another locally, resolving merge conflicts, squashing or rewriting local history, merging code
+  such as functions or files, creating change requests, handling review feedback, or bypassing
+  protections.
 license: MIT
-disable-model-invocation: true
+
 argument-hint: "[change-request|instructions]"
 ---
 
@@ -30,8 +32,8 @@ and perform verification and remaining cleanup.
 
 ## Authority and boundaries
 
-Explicit invocation authorizes a normal policy-compliant merge and verified branch cleanup. It does
-not authorize:
+A user request that names merging this change request authorizes a normal policy-compliant merge and
+verified branch cleanup; a description match alone never merges. The request does not authorize:
 
 - administrative bypass of checks, approvals, branch protections, merge queues, or unresolved
   threads;

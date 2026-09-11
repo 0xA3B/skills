@@ -21,7 +21,7 @@
     "defaultPrompt": [
       "Prepare this branch and open its change request.",
       "Drive the automated review feedback on this pull request to a clean approval.",
-      "Use $git:merge-pr to merge this ready change request and clean up."
+      "Merge this ready change request and clean up its branches."
     ]
   }
 }

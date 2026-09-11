@@ -46,7 +46,8 @@ cases:
     prompt: >-
       Pull request 42 is approved and every check passes. Merge it and clean up the branch.
     expect: skip
-    rationale: Merging belongs to the manual-only merge-pr workflow.
+    invoke-instead: git:merge-pr
+    rationale: Merging belongs to merge-pr.
 
   - id: human-review-comments
     prompt: >-
