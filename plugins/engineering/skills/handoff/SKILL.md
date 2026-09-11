@@ -46,13 +46,13 @@ Include only context the next session cannot cheaply recover:
 - suggested skills to invoke explicitly.
 
 Reference durable artifacts instead of copying their contents: the handoff is an index into them,
-and durable facts stay in their owning artifacts. A commit, a branch, a tracked file, an issue, a
-change request, a URL, or a file already in the handoff's directory is durable. Snapshot every other
-referenced artifact, such as an uncommitted diff, output under a temporary directory, or anything
-inside a worktree, whoever created it: save the snapshot in the handoff's directory, named after the
-handoff with a `-<name>.<ext>` suffix, for example `20260809-142530-auth-refactor-canary.patch`
-beside `20260809-142530-auth-refactor.md`, and reference it; the next session may start after the
-original is gone.
+and durable facts stay in their owning artifacts. A commit, a branch, a tracked file with no
+uncommitted changes, an issue, a change request, a URL, or a file already in the handoff's directory
+is durable. Snapshot every other referenced artifact, such as an uncommitted diff, output under a
+temporary directory, or anything inside a worktree, whoever created it: save the snapshot in the
+handoff's directory, named after the handoff with a `-<name>.<ext>` suffix, for example
+`20260809-142530-auth-refactor-canary.patch` beside `20260809-142530-auth-refactor.md`, and
+reference it; the next session may start after the original is gone.
 
 Redact secrets, credentials, tokens, personal data unrelated to the task, and sensitive command
 output from the handoff and its snapshots. Do not preserve secret values merely because they
