@@ -8,8 +8,9 @@ preparation through automated review and verified merge cleanup.
 `address-pr-feedback` requires the `engineering` plugin so it can apply
 `engineering:receiving-feedback`.
 
-An agent can invoke `commit` and `create-pr` implicitly. The feedback and merge skills are
-manual-only; each stops at an explicit hand off instead of chaining into the next workflow.
+An agent can invoke every skill implicitly. No skill invokes the next one itself; each stops at a
+hand off that recommends the next workflow, and `merge-pr` merges only when the user's request asks
+to merge the change request.
 
 Conflict resolution is intentionally outside these lifecycle skills; `create-pr` and `merge-pr` stop
 and report when a merge or a rebase would require it.

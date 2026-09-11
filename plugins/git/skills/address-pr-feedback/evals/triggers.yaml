@@ -1,0 +1,71 @@
+version: 1
+workspace:
+  seed: node-service
+cases:
+  - id: drive-codex-review
+    prompt: >-
+      Codex left three findings on pull request 42. Work through them, push the accepted fixes, and
+      request another Codex review until it approves the head.
+    expect: invoke
+    rationale: The user asks to drive an automated reviewer's feedback on an existing pull request.
+
+  - id: handle-bot-review-on-pr
+    prompt: >-
+      Handle the automated review feedback on my open pull request and get it to a clean bot
+      approval.
+    expect: invoke
+    rationale: Automated review feedback on a pull request is this skill's loop.
+
+  - id: poll-copilot-review
+    prompt: >-
+      Copilot is reviewing pull request 17. Wait for its review, triage whatever it reports, and
+      resolve the threads.
+    expect: invoke
+    rationale: Polling a review bot and dispositioning its threads is the adapter workflow.
+
+  - id: rerequest-after-fixes
+    prompt: >-
+      I pushed fixes to pull request 42 after the last bot review. Request a fresh automated review
+      and take it through to approval.
+    expect: invoke
+    rationale: Requesting a follow-up bot review on a pushed head is part of the review loop.
+
+  - id: review-before-pr
+    prompt: >-
+      Review my current changes before I open a pull request.
+    expect: skip
+    invoke-instead: engineering:review-changes
+    rationale: Local review of session changes belongs to review-changes.
+
+  - id: open-pull-request
+    prompt: >-
+      This branch is committed and ready. Open the pull request against main.
+    expect: skip
+    invoke-instead: git:create-pr
+    rationale: Creating the pull request belongs to create-pr.
+
+  - id: merge-approved-pr
+    prompt: >-
+      Pull request 42 is approved and every check passes. Merge it and clean up the branch.
+    expect: skip
+    invoke-instead: git:merge-pr
+    rationale: Merging belongs to merge-pr.
+
+  - id: human-review-comments
+    prompt: >-
+      My teammate left two comments on pull request 42 asking why the retry limit is five. Reply to
+      them in the threads.
+    expect: skip
+    rationale: Human-only review comments are outside the automated-review adapters.
+
+  - id: ci-repair
+    prompt: >-
+      The lint job on pull request 42 is failing. Fix the pipeline so the checks pass.
+    expect: skip
+    rationale: CI repair is excluded from the review loop.
+
+  - id: conceptual-question
+    prompt: >-
+      How do automated pull request reviewers like Codex decide what to flag?
+    expect: skip
+    rationale: A conceptual question does not ask to drive a review.

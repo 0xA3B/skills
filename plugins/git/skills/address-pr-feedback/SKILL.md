@@ -1,13 +1,15 @@
 ---
 name: address-pr-feedback
 description: >-
-  Drive configured automated-review feedback on an existing GitHub pull request to current-head
-  approval or a clearly reported exception. Use only when explicitly invoked to poll active review
-  adapters, triage their findings, apply permitted fixes, respond to threads, and request follow-up
-  reviews. Do not use for local code review, CI repair, human-only feedback handling, change-request
-  creation, or merging.
+  Drive automated-review feedback on an existing GitHub pull request to current-head approval or a
+  clearly reported exception. Use when the user asks to handle, address, or drive bot or automated
+  review feedback on a pull request through review rounds to approval, wait for or poll a review
+  bot, disposition and resolve its review threads, or request a follow-up automated review after
+  pushing fixes. Do not use for reviewing the session's own changes locally, human-only review
+  comments, CI repair, creating or refreshing a pull request, merging, or triaging findings
+  delivered outside a pull request's automated review, such as sub-agent or in-session review-agent
+  findings.
 license: MIT
-disable-model-invocation: true
 argument-hint: "[change-request|adapters|instructions]"
 ---
 
@@ -42,11 +44,16 @@ the change request's own surface and tests; such a fix is a permitted fix. Gate 
 
 ## Authority and boundaries
 
-For active adapters, this invocation authorizes polling, adapter-defined reactions and replies,
-thread resolution after disposition, permitted edits, relevant validation, applying `git:commit`,
-normal pushes, and adapter-defined follow-up review requests.
+An explicit invocation of this skill, or a user request that asks to handle, address, or drive the
+feedback, to resolve its review threads, or to request a follow-up review, authorizes for active
+adapters polling, adapter-defined reactions and replies, thread resolution after disposition,
+permitted edits, relevant validation, applying `git:commit`, normal pushes, and adapter-defined
+follow-up review requests. A request that asks only to wait for, poll, or triage a review bot's
+findings authorizes polling and triage: classify each finding, report the dispositions, and return
+`blocked` on the user's decision before any reaction, reply, thread resolution, edit, commit, push,
+or follow-up review request.
 
-It does not authorize:
+Neither authorization extends to:
 
 - handling feedback from an unknown source unless the initial prompt grants that authority or the
   user grants it when asked;
@@ -124,8 +131,8 @@ For each new finding:
 2. classify it using that skill's status taxonomy;
 3. implement only accepted work within granted authority;
 4. validate the smallest coherent fix;
-5. respond, react, and resolve the thread according to the active adapter;
-6. preserve rejected or deferred reasoning in the change request.
+5. respond, react, and resolve the thread according to the active adapter within granted authority;
+6. preserve rejected or deferred reasoning in the change request within granted authority.
 
 When accepted work changes the branch, apply `git:commit` to the completed round and push normally.
 A new head invalidates every earlier adapter approval. Record the new SHA and reset adapter states.
@@ -176,5 +183,5 @@ resolution, required CI state, and one terminal status per adapter.
 When every active adapter is `approved`, stop and recommend invoking `git:merge-pr` next.
 
 For `resolved-with-exceptions`, include every exception and the missing green signal in the same
-hand off. The user decides whether to rerun this skill or explicitly invoke `merge-pr`. For
+hand off. The user decides whether to rerun this skill or continue with `git:merge-pr`. For
 `round-limit`, `timed-out`, or `blocked`, do not suggest that the review gate passed.
