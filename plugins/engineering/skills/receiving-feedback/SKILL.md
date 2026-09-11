@@ -33,28 +33,30 @@ Classify each feedback item before acting:
 
 ## Evaluate each item
 
-Run the four steps in order on every item, stopping at the first step that assigns a status, and
-classify an item `accepted` or `auto-accepted` only when all four hold:
+Run the three steps in order on every item, stopping at the first step that assigns a status, and
+classify an item `accepted` or `auto-accepted` only when all three hold:
 
 1. Confirm the reported behavior or mechanism exists in the repository or runtime.
 2. Identify the authoritative contract, requirement, or prior decision that makes the behavior
    incorrect. A real observation is not a defect when the assumed contract is wrong. When the
    governing contract is unknown, classify the item `needs-clarification`.
-3. Weigh the failing input. When the input that triggers the failure is authored inside the project
-   — a committed fixture, seed, or configuration file — and lies outside the contract from step 2,
-   meaning malformed, unsupported, or adversarial, and the failure is loud, meaning the command that
-   consumes the input fails or an error names the input, classify the item `deferred` and capture it
-   through Decision capture. A supported input that a change broke is a regression however loud it
-   fails, and a silent failure, a wrong result under a passing status, stays a defect whatever the
-   input's origin: a fixture file left out of a commit under a clean `git status` is a defect; a
-   crash on a NUL byte in a committed fixture key is hardening to defer.
-4. Judge the proposed remedy on its own. Accepting a defect is not accepting the reviewer's fix;
+3. Judge the proposed remedy on its own. Accepting a defect is not accepting the reviewer's fix;
    choose the smallest change that is correct under that authority. A remedy that adds new behavior
    — a new concurrent path, subprocess, persisted field, or external call — is a change request
    whatever the reviewer labelled it: classify the item `gated`, and after explicit agreement it
    gets what a change of that size normally gets, its own tests and its own review pass, instead of
    being absorbed into the current fix budget. The tell is the remedy, not the severity: "this can
    deadlock" is a fix; "add a reader thread so it cannot deadlock" is a change.
+
+   A remedy that hardens the consumer of a project-authored input — a committed fixture, seed, or
+   configuration file — against an input that lies outside the contract from step 2, meaning
+   malformed, unsupported, or adversarial, is hardening to defer when the failure is loud, meaning
+   the command that consumes the input fails or an error names the input: classify the item
+   `deferred` and capture it through Decision capture. Correcting the invalid input itself is a fix,
+   a supported input that a change broke is a regression however loud it fails, and a silent
+   failure, a wrong result under a passing status, stays a defect whatever the input's origin. A
+   fixture file left out of a commit under a clean `git status` is a defect; a crash on a NUL byte
+   in a committed fixture key is hardening to defer.
 
    When the remedy touches a validator, an ordering rule, or a state classification, name the
    mechanism and list its sibling cases before editing — the other layers, the opposite direction,
@@ -75,7 +77,7 @@ classify an item `accepted` or `auto-accepted` only when all four hold:
 - Clarify unclear multi-item feedback before implementing any item that may depend on the unclear
   part.
 - When a new item's mechanism is a fix applied for an earlier item, reopen the earlier item: its fix
-  had the wrong shape. Re-judge that remedy under step 4 and replace the earlier fix with the
+  had the wrong shape. Re-judge that remedy under step 3 and replace the earlier fix with the
   reshaped one instead of adding a second fix beside it.
 - When edits are permitted, fix one mechanism at a time — its items and sibling cases together —
   then validate with the smallest relevant command.
