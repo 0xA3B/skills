@@ -1,4 +1,6 @@
 version: 1
+workspace:
+  seed: node-service
 cases:
   - id: merge-approved-pr
     prompt: >-

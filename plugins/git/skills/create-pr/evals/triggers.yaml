@@ -65,6 +65,8 @@ cases:
   - id: merge-existing-pr
     prompt: >-
       Pull request 42 is approved and all checks pass. Merge it and clean up the topic branch.
+    workspace:
+      seed: node-service
     expect: skip
     invoke-instead: git:merge-pr
     rationale: Merging an existing pull request belongs to merge-pr.
