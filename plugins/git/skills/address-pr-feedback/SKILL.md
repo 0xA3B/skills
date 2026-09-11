@@ -18,7 +18,8 @@ order or silently expanding edit authority.
 
 ## Outcome
 
-Finish with every active adapter classified against the current source head:
+Finish with every active adapter classified against the current source head, or against the last
+head it reviewed when it converged:
 
 - `approved`: the adapter explicitly approved the current head;
 - `resolved-with-exceptions`: all known findings are dispositioned, but the adapter did not approve;
@@ -35,8 +36,9 @@ Do not call an exception, timeout, or stale approval green.
 Before triage, confirm `engineering:receiving-feedback` is available. If it is absent, stop and
 report that the `engineering` plugin must be installed or enabled.
 
-Apply `engineering:receiving-feedback` to every finding. This invocation permits fixing only the
-low-risk findings that discipline marks `auto-accepted`; gate everything else.
+Apply `engineering:receiving-feedback` to every finding. This invocation permits fixing a finding
+that discipline marks `accepted` or `auto-accepted` when the fix preserves behavior and stays within
+the change request's own surface and tests; such a fix is a permitted fix. Gate everything else.
 
 ## Authority and boundaries
 
@@ -126,20 +128,36 @@ For each new finding:
 6. preserve rejected or deferred reasoning in the change request.
 
 When accepted work changes the branch, apply `git:commit` to the completed round and push normally.
-A new head invalidates every earlier adapter approval. Record the new SHA, reset adapter states, and
-advance each active adapter according to its own follow-up protocol.
+A new head invalidates every earlier adapter approval. Record the new SHA and reset adapter states.
+Unless the convergence rule in step 4 has stopped an adapter, advance each active adapter according
+to its own follow-up protocol.
 
 Never filter new feedback by commit association alone when the forge can re-anchor old threads.
 Track stable thread or comment IDs and compare them with the snapshot.
 
-### 4. Stop non-convergence
+### 4. Stop rounds
 
-A review round covers all active adapters reviewing the same source head through their terminal
-response. A current-head review already observed when the invocation starts counts as round one.
-Allow at most seven review rounds total per invocation unless the user explicitly changes the limit.
-Disposition every finding received in round seven and commit and push permitted fixes, then stop
-before requesting round eight. Return `round-limit` whenever round seven is dispositioned and the
-current head lacks approval, whether or not the disposition produced a new head. Stop sooner when:
+A review round covers every active adapter that has not converged, reviewing the same source head
+through their terminal response. A current-head review already observed when the invocation starts
+counts as round one. Allow at most seven review rounds total per invocation unless the user
+explicitly changes the limit. Disposition every finding received in round seven and commit and push
+permitted fixes, then stop before requesting round eight. Return `round-limit` whenever round seven
+is dispositioned and the current head lacks approval, whether or not the disposition produced a new
+head.
+
+An adapter that returned findings in the round has converged when every one of them sits below that
+adapter's top severity tier, as its adapter reference defines the tier, and none is a silent failure
+as `engineering:receiving-feedback` defines it. This is the convergence rule; an adapter's terminal
+clean signal on the current head classifies it `approved` and the rule does not apply. After
+dispositioning a converged adapter's findings and pushing its permitted fixes, request no further
+review from that adapter and stop polling it, whether or not repository policy requires its
+approval: classify it `resolved-with-exceptions`, and report the current source head, the earlier
+head its last review covered, and every disposition applied since that review. If a review of a
+later head from that adapter appears while the loop is still polling another adapter, disposition
+its findings; when that review itself fails the convergence rule, the adapter is active again and
+its rounds continue. Continue rounds for adapters that have not converged.
+
+Stop before the round limit when:
 
 - a required user decision remains;
 - the same rejected finding returns without new evidence;
@@ -157,8 +175,6 @@ resolution, required CI state, and one terminal status per adapter.
 
 When every active adapter is `approved`, stop and recommend invoking `git:merge-pr` next.
 
-Treat `resolved-with-exceptions` as an acceptable stopping point when repository policy does not
-require the adapter's approval. Include every exception and the missing green signal in the same
-hand off; do not request another round only to chase an optional approval. The user decides whether
-to rerun this skill or explicitly invoke `merge-pr`. For `round-limit`, `timed-out`, or `blocked`,
-do not suggest that the review gate passed.
+For `resolved-with-exceptions`, include every exception and the missing green signal in the same
+hand off. The user decides whether to rerun this skill or explicitly invoke `merge-pr`. For
+`round-limit`, `timed-out`, or `blocked`, do not suggest that the review gate passed.
