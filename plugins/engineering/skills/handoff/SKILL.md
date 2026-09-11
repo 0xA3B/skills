@@ -23,13 +23,13 @@ The handoff document must never become tracked project state.
 Inside a repository, prefer the repository's ignored scratch convention when project instructions
 define one or an ignored scratch directory already exists (for example `.local/` or `.scratch/`),
 and save the document as `<scratch-dir>/handoffs/<YYYYMMDD-HHMMSS>-<slug>.md`, for example
-`.local/handoffs/20260809-142530-auth-refactor.md`. Confirm the path is ignored, for example with
-`git check-ignore`, before writing. When no ignored convention exists or the path is not ignored,
-fall back to the operating system's temporary directory instead of changing ignore rules. Outside a
-repository, use the temporary directory.
+`.local/handoffs/20260809-142530-auth-refactor.md`. Confirm the path of the handoff and of every
+snapshot is ignored, for example with `git check-ignore`, before writing. When no ignored convention
+exists or the path is not ignored, fall back to the operating system's temporary directory instead
+of changing ignore rules. Outside a repository, use the temporary directory.
 
-Create only the handoff document and its parent directory; leave project files, ignore rules, the
-index, branches, and trackers untouched.
+Create only the handoff document, the snapshots it references, and their parent directory; leave
+project files, ignore rules, the index, branches, and trackers untouched.
 
 ## Content
 
@@ -45,11 +45,19 @@ Include only context the next session cannot cheaply recover:
 - the immediate next action;
 - suggested skills to invoke explicitly.
 
-Reference existing specs, plans, diffs, commits, issues, and generated artifacts instead of copying
-their contents: the handoff is an index into them, and durable facts stay in their owning artifacts.
+Reference durable artifacts instead of copying their contents: the handoff is an index into them,
+and durable facts stay in their owning artifacts. A branch that is pushed or predates this session,
+a commit on such a branch, a tracked file whose content matches such a commit, an issue, a change
+request, a URL, or a file already in the handoff's directory is durable. Snapshot every other
+referenced artifact, such as an uncommitted diff, a commit only on a branch this session created,
+output under a temporary directory, or anything inside a worktree, whoever created it: save the
+snapshot in the handoff's directory, named after the handoff with a `-<name>.<ext>` suffix, for
+example `20260809-142530-auth-refactor-canary.patch` beside `20260809-142530-auth-refactor.md`, and
+reference it; the next session may start after the original is gone.
 
 Redact secrets, credentials, tokens, personal data unrelated to the task, and sensitive command
-output. Do not preserve secret values merely because they appeared earlier in the conversation.
+output from the handoff and its snapshots. Do not preserve secret values merely because they
+appeared earlier in the conversation.
 
 ## Completion
 
