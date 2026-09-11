@@ -44,11 +44,16 @@ the change request's own surface and tests; such a fix is a permitted fix. Gate 
 
 ## Authority and boundaries
 
-For active adapters, this invocation authorizes polling, adapter-defined reactions and replies,
-thread resolution after disposition, permitted edits, relevant validation, applying `git:commit`,
-normal pushes, and adapter-defined follow-up review requests.
+An explicit invocation of this skill, or a user request that asks to handle, address, or drive the
+feedback, to resolve its review threads, or to request a follow-up review, authorizes for active
+adapters polling, adapter-defined reactions and replies, thread resolution after disposition,
+permitted edits, relevant validation, applying `git:commit`, normal pushes, and adapter-defined
+follow-up review requests. A request that asks only to wait for, poll, or triage a review bot's
+findings authorizes polling and triage: classify each finding, report the dispositions, and return
+`blocked` on the user's decision before any reaction, reply, thread resolution, edit, commit, push,
+or follow-up review request.
 
-It does not authorize:
+Neither authorization extends to:
 
 - handling feedback from an unknown source unless the initial prompt grants that authority or the
   user grants it when asked;
@@ -126,8 +131,8 @@ For each new finding:
 2. classify it using that skill's status taxonomy;
 3. implement only accepted work within granted authority;
 4. validate the smallest coherent fix;
-5. respond, react, and resolve the thread according to the active adapter;
-6. preserve rejected or deferred reasoning in the change request.
+5. respond, react, and resolve the thread according to the active adapter within granted authority;
+6. preserve rejected or deferred reasoning in the change request within granted authority.
 
 When accepted work changes the branch, apply `git:commit` to the completed round and push normally.
 A new head invalidates every earlier adapter approval. Record the new SHA and reset adapter states.
