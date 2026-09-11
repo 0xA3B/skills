@@ -40,12 +40,23 @@ autonomous triage below relies on the authoring context.
 
 ## Review depth
 
-For a small, low-risk diff such as wording, comments, metadata text, or narrow configuration, do a
-lightweight main-thread review: inspect the exact diff, check obvious behavior and policy risks, run
-the smallest relevant validation, and report concisely.
+Choose one of three depths, the deepest whose conditions the change meets, and recompute the choice
+when accepted fixes add surface the first choice did not cover; Verify fixes and rerun lanes governs
+re-review of the fixes themselves. The three depths:
 
-Use the full lane workflow when the change is behavior-affecting, non-trivial, cross-cutting,
-security-sensitive, release-affecting, or explicitly requested as a full review.
+- For a small, low-risk diff such as wording, comments, metadata text, or narrow configuration, do a
+  lightweight main-thread review: inspect the exact diff, check obvious behavior and policy risks,
+  run the smallest relevant validation, and report concisely.
+- For a narrow change with a bounded failure cost — one function or module, a bug fix with a known
+  cause, a follow-up at an established test seam, or a rewritten instruction section — run a
+  targeted independent review: the lanes Lane selection selects for the changed content, plus test
+  review when the change introduces or materially changes behavior-focused tests, and no lane beyond
+  those. A narrow change still warrants an independent reviewer to counter authorship bias; it does
+  not warrant more lanes.
+- Use the full lane workflow when the change introduces non-trivial control flow, changes a
+  consequential external contract, crosses components, has a failure cost that reaches beyond the
+  changed function or module, affects security or release behavior, or is explicitly requested as a
+  full review.
 
 ## Lane selection
 
@@ -163,28 +174,37 @@ surface settle before re-reviewing. Ask about one gated finding at a time; gate 
 `receiving-feedback` taxonomy, not by finding size alone. Defer unrelated cleanup rather than
 expanding the worktree.
 
-## Rerun invalidated lanes
+## Verify fixes and rerun lanes
 
 Lane results describe one revision. After accepted fixes settle, identify each selected lane whose
-reviewed assumptions the fixes materially changed:
+findings the fixes addressed or whose reviewed assumptions the fixes changed, and choose one pass
+per lane. The default is fix verification: return to the lane's original reviewer with the accepted
+or auto-accepted findings, the fix, the assumptions the fix changed, and the adjacent regression
+risk, and ask it to confirm each finding is resolved and to report only regressions the fixes
+introduced or findings not resolved. When the agent cannot resume a reviewer, dispatch a fresh
+reviewer with that same verification brief. A rerun of the lane against the settled diff with a
+fresh reviewer replaces verification only when a fix materially changes the lane's reviewed
+assumptions:
 
-- a changed public interface or ownership boundary invalidates API-seam review and can invalidate
-  code review;
-- a changed state transition, ordering rule, or external protocol invalidates code review and can
-  invalidate test review and spec adherence;
+- a changed public interface or ownership boundary invalidates API-seam review, and invalidates code
+  review when the fix changes behavior at that boundary;
+- a changed state transition, ordering rule, or external protocol invalidates code review, and
+  invalidates test review and spec adherence when their tests or intent source cover that
+  transition;
 - new or restructured tests invalidate test review;
 - a changed reading of a requirement invalidates spec adherence and every lane that relied on it;
 - materially rewritten prose invalidates prose review.
 
-Rerun only those lanes against the settled diff, with fresh reviewers, and triage their findings as
-new feedback through the same gate. Repeat until a rerun applies no material fix. A typo fix,
-mechanical rename, formatting change, or test-expectation update that leaves a lane's assumptions
-intact invalidates nothing. State which lanes reran and why.
+Triage findings from either pass as new feedback through the same gate. Repeat until a pass applies
+no material fix. A typo fix, mechanical rename, formatting change, or test-expectation update that
+leaves a lane's assumptions intact needs neither pass; a focused regression test added for an
+accepted finding needs verification by the test lane's reviewer, not a rerun of the test lane. State
+which lanes were verified, which were rerun, and why.
 
 ## Validation and output
 
 Run the smallest relevant fresh validation for applied fixes. Add or update behavior-focused tests
 when a fix changes behavior and a stable test seam exists.
 
-End with scope, lanes and reviewers, fixes applied, lanes rerun and why, deferred or rejected
-findings with rationale, validation commands and results, and remaining decisions.
+End with scope, lanes and reviewers, fixes applied, lanes verified or rerun and why, deferred or
+rejected findings with rationale, validation commands and results, and remaining decisions.
