@@ -73,7 +73,8 @@ cases:
       The automated reviewer left two findings on pull request 42. Work through those comments and
       request another review after accepted fixes.
     expect: skip
-    rationale: Existing review feedback belongs to the manual-only address-pr-feedback workflow.
+    invoke-instead: git:address-pr-feedback
+    rationale: Existing automated review feedback belongs to address-pr-feedback.
 
   - id: commit-only
     prompt: >-
