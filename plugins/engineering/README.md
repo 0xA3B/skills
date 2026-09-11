@@ -9,9 +9,10 @@ decision-sized chunks. `grill-me` resolves a selected direction through adversar
 `prototype` answers questions that need disposable executable evidence, and loads on its own for
 prototype and spike requests. `tdd` implements observable behavior through a red-green-refactor loop
 over a frontier of behaviors, and loads on its own for implementation requests. `review-changes`
-reviews changes the session authored through focused lanes, fixes accepted findings, and reruns the
-lanes those fixes invalidated; `tdd` applies it at completion. Use `handoff` when another agent
-session should continue the work from an ignored local context document.
+reviews changes the session authored through focused lanes, fixes accepted findings, verifies the
+fixes with the lanes that reviewed them, and reruns the lanes those fixes invalidated; `tdd` applies
+it at completion. Use `handoff` when another agent session should continue the work from an ignored
+local context document.
 
 `codebase-design` is a shared background discipline consumed by the user-facing workflows.
 `terminology`, `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`, and

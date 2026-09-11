@@ -47,7 +47,7 @@ collaborators, incidental data shape, or mocks that mirror the current implement
 test("checkout calls paymentService.process", async () => {
   const mockPayment = jest.spyOn(paymentService, "process");
   await checkout(cart, paymentMethod);
-  expect(mockPayment.process).toHaveBeenCalledWith(cart.total);
+  expect(mockPayment).toHaveBeenCalledWith(cart.total);
 });
 ```
 
