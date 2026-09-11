@@ -78,9 +78,10 @@ fact — no user decision to make and no artifact beyond the finding — resolve
 read-only research subagents, run in parallel when the agent supports subagents, and fold each
 finding into the known ground instead of leaving the chunk on the map. Keep a research chunk on the
 map only when the fact is unreachable this session, such as missing access, credentials, or a person
-to ask. A prototype chunk that is the only thing keeping another chunk off the frontier is resolved
-the same way: apply `engineering:prototype` through a subagent and fold the evidence into the known
-ground. A prototype chunk that blocks nothing stays on the map.
+to ask. When the agent supports subagents, a prototype chunk that is the only thing keeping another
+chunk off the frontier is resolved the same way: apply `engineering:prototype` through a subagent
+and fold the evidence into the known ground. Without subagents, or when the chunk blocks nothing,
+the prototype chunk stays on the map.
 
 Record dependencies between chunks. The **frontier** is the set of chunks that are precise,
 unblocked, and useful to start next.

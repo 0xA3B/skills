@@ -124,8 +124,8 @@ continue questioning, reject the direction, or hand off to `engineering:tdd`.
 3. Build only enough code to make the question inspectable.
 4. Surface the relevant state after every action or variant switch.
 5. Give the user one command, URL, or file to open.
-6. Capture the evidence record: the question, observed evidence, extract, and decision, in chat or a
-   local `NOTES.md` next to the prototype.
+6. Capture the evidence record, the question, observed evidence, extract, and decision, in chat
+   before any cleanup. A `NOTES.md` next to the prototype is a working copy that cleanup removes.
 
 ## Completion
 
@@ -133,7 +133,7 @@ End with:
 
 - The question the prototype answered.
 - The prototype path and run command or URL.
-- What was learned.
+- The evidence record, including the extract.
 - Whether the prototype should be deleted, kept briefly for user inspection, or reduced to its
   extract for the implementation handoff.
 
