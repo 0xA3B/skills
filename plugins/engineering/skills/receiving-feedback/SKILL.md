@@ -41,11 +41,13 @@ classify an item `accepted` or `auto-accepted` only when all four hold:
    incorrect. A real observation is not a defect when the assumed contract is wrong. When the
    governing contract is unknown, classify the item `needs-clarification`.
 3. Weigh the failing input. When the input that triggers the failure is authored inside the project
-   — a committed fixture, seed, or configuration file — and the failure is loud, meaning the command
-   that consumes the input fails or an error names the input, classify the item `deferred` and
-   capture it through Decision capture. A silent failure, a wrong result under a passing status,
-   stays a defect whatever the input's origin: a fixture file left out of a commit under a clean
-   `git status` is a defect; a crash on a NUL byte in a committed fixture key is hardening to defer.
+   — a committed fixture, seed, or configuration file — and lies outside the contract from step 2,
+   meaning malformed, unsupported, or adversarial, and the failure is loud, meaning the command that
+   consumes the input fails or an error names the input, classify the item `deferred` and capture it
+   through Decision capture. A supported input that a change broke is a regression however loud it
+   fails, and a silent failure, a wrong result under a passing status, stays a defect whatever the
+   input's origin: a fixture file left out of a commit under a clean `git status` is a defect; a
+   crash on a NUL byte in a committed fixture key is hardening to defer.
 4. Judge the proposed remedy on its own. Accepting a defect is not accepting the reviewer's fix;
    choose the smallest change that is correct under that authority. A remedy that adds new behavior
    — a new concurrent path, subprocess, persisted field, or external call — is a change request
