@@ -109,6 +109,7 @@ The subagent returns only:
 - prototype path and run command or URL
 - what it built
 - what the prototype shows; for an experiment, the report `EXPERIMENT.md` defines
+- the extract, when the subagent deleted the prototype before returning
 - cleanup status or remaining disposable files
 - blockers or missing evidence
 
