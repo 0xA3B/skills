@@ -145,15 +145,17 @@ permitted fixes, then stop before requesting round eight. Return `round-limit` w
 is dispositioned and the current head lacks approval, whether or not the disposition produced a new
 head.
 
-An adapter has converged when every finding it returned in the round sits below that adapter's top
-severity tier, as its adapter reference defines the tier, and none is a silent failure as
-`engineering:receiving-feedback` defines it. This is the convergence rule. After dispositioning a
-converged adapter's findings and pushing its permitted fixes, request no further review from that
-adapter and stop polling it, whether or not repository policy requires its approval: classify it
-`resolved-with-exceptions`, and report the current source head, the earlier head its last review
-covered, and every disposition applied since that review. If a review of a later head from that
-adapter appears while the loop is still polling another adapter, disposition its findings under the
-same rule without requesting a further review. Continue rounds for adapters that have not converged.
+An adapter that returned findings in the round has converged when every one of them sits below that
+adapter's top severity tier, as its adapter reference defines the tier, and none is a silent failure
+as `engineering:receiving-feedback` defines it. This is the convergence rule; an adapter's terminal
+clean signal on the current head classifies it `approved` and the rule does not apply. After
+dispositioning a converged adapter's findings and pushing its permitted fixes, request no further
+review from that adapter and stop polling it, whether or not repository policy requires its
+approval: classify it `resolved-with-exceptions`, and report the current source head, the earlier
+head its last review covered, and every disposition applied since that review. If a review of a
+later head from that adapter appears while the loop is still polling another adapter, disposition
+its findings; when that review itself fails the convergence rule, the adapter is active again and
+its rounds continue. Continue rounds for adapters that have not converged.
 
 Stop before the round limit when:
 
