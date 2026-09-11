@@ -176,15 +176,17 @@ expanding the worktree.
 
 ## Verify fixes and rerun lanes
 
-Lane results describe one revision. After accepted fixes settle, identify each selected lane whose
-findings the fixes addressed or whose reviewed assumptions the fixes changed, and choose one pass
-per lane. The default is fix verification: return to the lane's original reviewer with the accepted
-or auto-accepted findings, the fix, the assumptions the fix changed, and the adjacent regression
-risk, and ask it to confirm each finding is resolved and to report only regressions the fixes
-introduced or findings not resolved. When the agent cannot resume a reviewer, dispatch a fresh
-reviewer with that same verification brief. A rerun of the lane against the settled diff with a
-fresh reviewer replaces verification only when a fix materially changes the lane's reviewed
-assumptions:
+Lane results describe one revision. After accepted fixes settle, recompute the review depth as
+Review depth directs; a lane that recomputation selects for the first time reviews the settled
+surface as an initial run, and verification and rerun apply only to lanes that already ran. Then
+identify each lane that already ran whose findings the fixes addressed or whose reviewed assumptions
+the fixes changed, and choose one pass per lane. The default is fix verification: return to the
+lane's original reviewer with the accepted or auto-accepted findings, the fix, the assumptions the
+fix changed, and the adjacent regression risk, and ask it to confirm each finding is resolved and to
+report only regressions the fixes introduced or findings not resolved. When the agent cannot resume
+a reviewer, dispatch a fresh reviewer with that same verification brief. A rerun of the lane against
+the settled diff with a fresh reviewer replaces verification only when a fix materially changes the
+lane's reviewed assumptions:
 
 - a changed public interface or ownership boundary invalidates API-seam review, and invalidates code
   review when the fix changes behavior at that boundary;
@@ -198,8 +200,8 @@ assumptions:
 Triage findings from either pass as new feedback through the same gate. Repeat until a pass applies
 no material fix. A typo fix, mechanical rename, formatting change, or test-expectation update that
 leaves a lane's assumptions intact needs neither pass; a focused regression test added for an
-accepted finding needs verification by the test lane's reviewer, not a rerun of the test lane. State
-which lanes were verified, which were rerun, and why.
+accepted finding needs verification by the test lane's reviewer when that lane already ran, not a
+rerun of the test lane. State which lanes were verified, which were rerun, and why.
 
 ## Validation and output
 
