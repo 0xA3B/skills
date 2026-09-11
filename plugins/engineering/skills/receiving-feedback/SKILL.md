@@ -33,20 +33,33 @@ Classify each feedback item before acting:
 
 ## Evaluate each item
 
-Run the three steps in order on every item, stopping at the first step that assigns a status, and
-classify an item `accepted` or `auto-accepted` only when all three hold:
+Run the four steps in order on every item, stopping at the first step that assigns a status, and
+classify an item `accepted` or `auto-accepted` only when all four hold:
 
 1. Confirm the reported behavior or mechanism exists in the repository or runtime.
 2. Identify the authoritative contract, requirement, or prior decision that makes the behavior
    incorrect. A real observation is not a defect when the assumed contract is wrong. When the
    governing contract is unknown, classify the item `needs-clarification`.
-3. Judge the proposed remedy on its own. Accepting a defect is not accepting the reviewer's fix;
+3. Weigh the failing input. When the input that triggers the failure is authored inside the project
+   — a committed fixture, seed, or configuration file — and the failure is loud, meaning the command
+   that consumes the input fails or an error names the input, classify the item `deferred` and
+   capture it through Decision capture. A silent failure, a wrong result under a passing status,
+   stays a defect whatever the input's origin: a fixture file left out of a commit under a clean
+   `git status` is a defect; a crash on a NUL byte in a committed fixture key is hardening to defer.
+4. Judge the proposed remedy on its own. Accepting a defect is not accepting the reviewer's fix;
    choose the smallest change that is correct under that authority. A remedy that adds new behavior
    — a new concurrent path, subprocess, persisted field, or external call — is a change request
    whatever the reviewer labelled it: classify the item `gated`, and after explicit agreement it
    gets what a change of that size normally gets, its own tests and its own review pass, instead of
    being absorbed into the current fix budget. The tell is the remedy, not the severity: "this can
    deadlock" is a fix; "add a reader thread so it cannot deadlock" is a change.
+
+   When the remedy touches a validator, an ordering rule, or a state classification, name the
+   mechanism and list its sibling cases before editing — the other layers, the opposite direction,
+   the other input classes — then fix the set with one test per case, or record each excluded case
+   as a deliberate limit through Decision capture. "Smallest change" bounds the remedy within the
+   mechanism, not the cases it covers: a fix that handles the reported case and leaves its siblings
+   open returns as the next round's finding.
 
 ## Triage rules
 
@@ -59,8 +72,11 @@ classify an item `accepted` or `auto-accepted` only when all three hold:
 - If feedback conflicts with user direction or durable project guidance, stop and ask the user.
 - Clarify unclear multi-item feedback before implementing any item that may depend on the unclear
   part.
-- When edits are permitted, fix one coherent item or small batch at a time, then validate with the
-  smallest relevant command.
+- When a new item's mechanism is a fix applied for an earlier item, reopen the earlier item: its fix
+  had the wrong shape. Re-judge that remedy under step 4 and replace the earlier fix with the
+  reshaped one instead of adding a second fix beside it.
+- When edits are permitted, fix one mechanism at a time — its items and sibling cases together —
+  then validate with the smallest relevant command.
 
 ## Decision capture
 
