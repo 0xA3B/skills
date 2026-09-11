@@ -31,12 +31,12 @@ implement, defer, or reject.
 - Find facts by inspecting the environment: repository files, history, tools, configured services,
   and current external sources when relevant. When the harness provides subagents, dispatch lookups
   to them so questioning continues while they run.
-- When a question needs executable evidence and the harness provides subagents, apply
-  `engineering:prototype` to dispatch a disposable prototype to a subagent and treat it as a running
-  lookup. When no subagent capability exists, or the user wants to drive the prototype, recommend
-  the explicit invocation and move the question and the decisions downstream of it off the frontier
-  into the completion summary's unresolved list; they return to the frontier only when the evidence
-  arrives.
+- When a question needs executable evidence, apply `engineering:prototype`; its subagent decision
+  tree decides where the prototype runs. When that tree dispatches a subagent, treat the prototype
+  as a running lookup. When the tree keeps the prototype in the main thread, no subagent capability
+  exists, or the user wants to drive the prototype, recommend the explicit invocation and move the
+  question and the decisions downstream of it off the frontier into the completion summary's
+  unresolved list; they return to the frontier only when the evidence arrives.
 - Do not ask the user to supply facts that can be established safely from available evidence.
 - Decisions belong to the user. Present each material choice in the shape `## Question shapes`
   assigns, then wait for the user's answer.
