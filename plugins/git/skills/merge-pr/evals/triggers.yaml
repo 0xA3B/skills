@@ -22,6 +22,14 @@ cases:
     expect: invoke
     rationale: Forge merge plus verified local cleanup is the complete merge-pr workflow.
 
+  - id: merge-plain-request
+    prompt: >-
+      Merge PR 42 and delete the branch.
+    expect: invoke
+    rationale:
+      A plain request to merge a specific pull request is this skill's workflow; readiness is
+      checked by the pre-merge gate, not by the trigger.
+
   - id: merge-main-into-branch
     prompt: >-
       Merge main into my feature branch so it picks up the latest changes.

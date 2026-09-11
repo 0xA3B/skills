@@ -2,14 +2,12 @@
 name: merge-pr
 description: >-
   Merge a ready GitHub pull request or GitLab merge request and verify remote and local cleanup. Use
-  when the user asks to merge or land a specific pull request or merge request whose review is
-  resolved, including checking forge merge gates, selecting the merge method, observing the merge,
-  deleting branches, and refreshing ignored SHA references. Do not use for merging one branch into
-  another locally, resolving merge conflicts, squashing or rewriting local history, merging code
-  such as functions or files, creating change requests, handling review feedback, or bypassing
-  protections.
+  when the user asks to merge or land a specific pull request or merge request, including checking
+  forge merge gates, selecting the merge method, observing the merge, deleting branches, and
+  refreshing ignored SHA references. Do not use for merging one branch into another locally,
+  resolving merge conflicts, squashing or rewriting local history, merging code such as functions or
+  files, creating change requests, handling review feedback, or bypassing protections.
 license: MIT
-
 argument-hint: "[change-request|instructions]"
 ---
 
@@ -32,8 +30,9 @@ and perform verification and remaining cleanup.
 
 ## Authority and boundaries
 
-A user request that names merging this change request authorizes a normal policy-compliant merge and
-verified branch cleanup; a description match alone never merges. The request does not authorize:
+An explicit invocation of this skill, or a user request that asks to merge the change request,
+authorizes a normal policy-compliant merge and verified branch cleanup; implicit invocation alone
+never authorizes a merge. That authorization does not extend to:
 
 - administrative bypass of checks, approvals, branch protections, merge queues, or unresolved
   threads;
@@ -80,8 +79,7 @@ error. Do not troubleshoot CI in this workflow.
 When target drift makes the branch unmergeable or requires new commits, stop and recommend invoking
 `git:create-pr` next.
 
-After any head change, recommend an explicit `git:address-pr-feedback` round before returning to
-this skill.
+After any head change, recommend a `git:address-pr-feedback` round before returning to this skill.
 
 ## Merge method
 
