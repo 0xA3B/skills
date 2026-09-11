@@ -64,9 +64,10 @@ below assume `.local/` is that convention.
    small copied model.
 2. Use a detached `.local/worktrees/<slug>/` worktree when the prototype must import project
    modules, exercise real routing, run the app, integrate with the build system, or run an
-   experiment. Base it on the current commit unless the user asks for another revision. When the
-   harness creates the worktree itself, such as subagent isolation under `.claude/worktrees/`,
-   accept that location and apply the same cleanup.
+   experiment. Base it on the current commit unless the user asks for another revision, and when the
+   question depends on uncommitted changes in the main checkout, apply those changes to the worktree
+   before running anything. When the harness creates the worktree itself, such as subagent isolation
+   under `.claude/worktrees/`, accept that location and apply the same cleanup.
 3. Use source-adjacent prototype files only when the framework cannot realistically host the
    prototype from `.local/`. Mark filenames, routes, comments, and run commands as prototype-only.
 
