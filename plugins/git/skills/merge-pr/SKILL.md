@@ -80,8 +80,9 @@ When target drift makes the branch unmergeable or requires new commits, stop and
 `git:create-pr` next.
 
 After any head change, recommend a `git:address-pr-feedback` round before returning to this skill;
-run that round only when this skill was explicitly invoked or the user's request asked for the
-review loop or for the merge.
+run that round only when the change request or its repository shows automated review activity and
+either this skill was explicitly invoked or the user's request asked for the review loop or for the
+merge.
 
 ## Merge method
 
