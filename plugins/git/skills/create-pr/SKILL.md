@@ -148,7 +148,8 @@ Report:
 - blockers or pending work.
 
 After publishing the head, stop and recommend `git:address-pr-feedback` next; continue into it only
-when the user's request asked for the review loop or for the merge.
+when the user's request asked for the review loop, or asked for the merge and the change request or
+its repository shows automated review activity.
 
 If target drift later changes mergeability, recommend an explicit `git:create-pr` rerun against the
 existing change request.
