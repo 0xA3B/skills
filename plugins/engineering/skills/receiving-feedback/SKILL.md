@@ -41,12 +41,15 @@ classify an item `accepted` or `auto-accepted` only when all three hold:
    incorrect. A real observation is not a defect when the assumed contract is wrong. When the
    governing contract is unknown, classify the item `needs-clarification`.
 3. Judge the proposed remedy on its own. Accepting a defect is not accepting the reviewer's fix;
-   choose the smallest change that is correct under that authority. A remedy that adds new behavior
-   — a new concurrent path, subprocess, persisted field, or external call — is a change request
-   whatever the reviewer labelled it: classify the item `gated`, and after explicit agreement it
-   gets what a change of that size normally gets, its own tests and its own review pass, instead of
-   being absorbed into the current fix budget. The tell is the remedy, not the severity: "this can
-   deadlock" is a fix; "add a reader thread so it cannot deadlock" is a change.
+   choose the smallest change that is correct under that authority, and fit it to the context it
+   enters — the sentence, list, function, or section — then confirm that context still reads one way
+   with the edit in place. A remedy applied verbatim from the reviewer is still the author's remedy.
+   A remedy that adds new behavior — a new concurrent path, subprocess, persisted field, or external
+   call — is a change request whatever the reviewer labelled it: classify the item `gated`, and
+   after explicit agreement it gets what a change of that size normally gets, its own tests and its
+   own review pass, instead of being absorbed into the current fix budget. The tell is the remedy,
+   not the severity: "this can deadlock" is a fix; "add a reader thread so it cannot deadlock" is a
+   change.
 
    A remedy that hardens the consumer of a project-authored input — a committed fixture, seed, or
    configuration file — against an input that lies outside the contract from step 2, meaning
