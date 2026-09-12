@@ -1,7 +1,7 @@
 {
   "name": "git",
   "displayName": "Git",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "Skills for commits and GitHub or GitLab change-request lifecycles.",
   "author": {
     "name": "Alex Baker"

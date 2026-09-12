@@ -159,10 +159,14 @@ clean signal on the current head classifies it `approved` and the rule does not 
 dispositioning a converged adapter's findings and pushing its permitted fixes, request no further
 review from that adapter and stop polling it, whether or not repository policy requires its
 approval: classify it `resolved-with-exceptions`, and report the current source head, the earlier
-head its last review covered, and every disposition applied since that review. If a review of a
-later head from that adapter appears while the loop is still polling another adapter, disposition
-its findings; when that review itself fails the convergence rule, the adapter is active again and
-its rounds continue. Continue rounds for adapters that have not converged.
+head its last review covered, and every disposition applied since that review. Before the hand off,
+watch the current head across two poll intervals for a review that adapter started on its own; when
+acknowledgment of the current head appears in that window, wait for its terminal response under the
+inactivity timeout. Report that observation with the adapter's status. If a review of a later head
+from a converged adapter appears at that final observation, or while the loop is still polling
+another adapter, disposition its findings; when that review itself fails the convergence rule, the
+adapter is active again and its rounds continue. Continue rounds for adapters that have not
+converged.
 
 Stop before the round limit when:
 
@@ -180,7 +184,8 @@ session-only counters or assumptions.
 Report the current source head, active adapters, rounds completed, feedback dispositions, thread
 resolution, required CI state, and one terminal status per adapter.
 
-When every active adapter is `approved`, stop and recommend invoking `git:merge-pr` next.
+When every active adapter is `approved`, stop and recommend `git:merge-pr` next; continue into it
+only when the user's request asked to merge the change request.
 
 For `resolved-with-exceptions`, include every exception and the missing green signal in the same
 hand off. The user decides whether to rerun this skill or continue with `git:merge-pr`. For
