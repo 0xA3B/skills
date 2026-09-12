@@ -145,7 +145,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
    - at least one clear positive case
    - at least one clear negative case
    - near-miss cases that exercise the description boundary
-4. Run:
+4. When the working tree's `description` differs from the committed one in more than mechanical or
+   incidental wording, run the prose lane of `engineering:review-changes` over that description
+   before the first eval run and apply the lane's accepted fixes.
+5. Run:
 
    ```bash
    mise exec -- pnpm eval:trigger -- plugins/<plugin>/skills/<skill> --agent both
@@ -191,23 +194,24 @@ cases where loaded repository instructions should affect the trigger boundary, s
    smaller-model proxy. Use `--model` and `--effort` to spot-check other models or match a different
    working setup.
 
-5. Read the report and failed case outputs under `.local/skill-evals/trigger/`.
-6. For false negatives, make the description more explicit about the missing user intent.
-7. For false positives, narrow the description with clearer ownership boundaries or exclusions. When
+6. Read the report and failed case outputs under `.local/skill-evals/trigger/`.
+7. For false negatives, make the description more explicit about the missing user intent.
+8. For false positives, narrow the description with clearer ownership boundaries or exclusions. When
    only Claude Code needs different tuning, prefer adding or adjusting the Claude-only `when_to_use`
    frontmatter key over forking the shared `description`: Claude appends `when_to_use` to the
    description in its skill listing (combined text truncated at 1,536 characters), while Codex
    ignores the key entirely.
-8. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
+9. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
    direction — fix the repo-local description. Marketplace descriptions serve every installation;
    edit one only when the overlap would also misfire in a session without the repo-local skills.
-9. Rerun the same eval after edits. After a description edit, rerun with `--with-dependents` the
-   fixtures of every skill whose description changed and every skill named in `wrong-skill` results:
-   `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both --with-dependents`.
-   The flag runs each selected skill's dependent cases under their own fixtures and lanes. After a
-   seed edit, use the same command to rerun every fixture that names the seed; the edit alters the
-   workspace each of those cases runs in.
-10. Run repository validation for changed files:
+10. Rerun the same eval after edits. After a description edit, review the description as in step 4,
+    then rerun with `--with-dependents` the fixtures of every skill whose description changed and
+    every skill named in `wrong-skill` results:
+    `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both --with-dependents`.
+    The flag runs each selected skill's dependent cases under their own fixtures and lanes. After a
+    seed edit, use the same command to rerun every fixture that names the seed; the edit alters the
+    workspace each of those cases runs in.
+11. Run repository validation for changed files:
 
     ```bash
     mise exec -- pnpm lint:plugins
