@@ -30,14 +30,3 @@ To apply the base style to every session's chat responses, add a pointer line to
 memory (for example `CLAUDE.md` or `AGENTS.md`): "Apply the writing:prose skill to chat responses."
 A similar pointer makes sub-agent dispatch reliable: "Load the writing:agent-instructions skill
 before writing a sub-agent prompt."
-
-## Output styles
-
-Deprecated: the `prose` skill and its chat-responses reference replace these styles, and a memory
-pointer to the skill covers both Claude Code and Codex. The files remain for reference and will be
-removed in a future release.
-
-- `google-developer-style`: Chat responses in the spirit of the Google developer documentation style
-  guide.
-- `simplified-technical-english`: Chat responses in the spirit of ASD-STE100 Simplified Technical
-  English.

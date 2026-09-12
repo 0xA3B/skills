@@ -172,9 +172,6 @@ For chat apps without access to installed skills, copy the writing plugin's
 [`chat-instructions.md`](./plugins/writing/chat-instructions.md) into the app's persistent
 instructions. It combines the `prose` skill's base style and chat-response guidance.
 
-Output styles still ship in [`plugins/writing/output-styles/`](./plugins/writing/output-styles/) but
-are deprecated: the `prose` skill replaces them, and they will be removed in a future release.
-
 ## License
 
 This repository is under the MIT license. See [LICENSE](./LICENSE), and see each plugin's license
