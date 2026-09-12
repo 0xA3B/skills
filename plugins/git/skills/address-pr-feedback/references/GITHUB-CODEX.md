@@ -85,12 +85,17 @@ commits, and push authority.
 
 ## Follow-up review
 
-A push does not reliably request another Codex review. After a permitted fix round is committed and
-pushed, comment:
+Whether a push starts another Codex review depends on the connector's automatic-review
+configuration, which reviews new pushes in some repositories and only requested heads in others.
+After a permitted fix round is committed and pushed, watch two polls for acknowledgment of the new
+head: either a 👀 reaction or a summary-comment transition naming the new commit. When neither
+appears, comment:
 
 ```text
 @codex review
 ```
 
 This follow-up request is authorized for the active adapter. Begin a new round tied to the new
-`headRefOid`, watch for acknowledgment, and require a new current-head terminal response.
+`headRefOid`, watch for acknowledgment, and require a new current-head terminal response. When the
+connector reviews pushes on its own, it also reviews a head pushed after the adapter converged under
+`4. Stop rounds`; that review is the later-head review the convergence rule describes.

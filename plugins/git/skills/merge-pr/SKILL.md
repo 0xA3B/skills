@@ -79,7 +79,9 @@ error. Do not troubleshoot CI in this workflow.
 When target drift makes the branch unmergeable or requires new commits, stop and recommend invoking
 `git:create-pr` next.
 
-After any head change, recommend a `git:address-pr-feedback` round before returning to this skill.
+After any head change, recommend a `git:address-pr-feedback` round before returning to this skill;
+run that round only when this skill was explicitly invoked or the user's request asked for the
+review loop or for the merge.
 
 ## Merge method
 
