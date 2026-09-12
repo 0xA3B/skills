@@ -201,12 +201,20 @@ Triage findings from either pass as new feedback through the same gate. Repeat u
 no material fix. A typo fix, mechanical rename, formatting change, or test-expectation update that
 leaves a lane's assumptions intact needs neither pass; a focused regression test added for an
 accepted finding needs verification by the test lane's reviewer when that lane already ran, not a
-rerun of the test lane. State which lanes were verified, which were rerun, and why.
+rerun of the test lane. A verification pass whose findings sit only in the wording or shape it
+recommended on the previous pass is a diminishing-returns signal. Apply without a further pass the
+findings whose fix leaves every rule condition, code path, named artifact, command, and reported
+status unchanged; triage the rest as ordinary findings. State which lanes were verified, which were
+rerun, and why.
 
 ## Validation and output
 
-Run the smallest relevant fresh validation for applied fixes. Add or update behavior-focused tests
-when a fix changes behavior and a stable test seam exists.
+Run cheap validation, such as formatting, linting, and unit tests, before dispatching the lanes so
+reviewers work from executed evidence, and hold a slow or costly gate the project names, such as an
+eval suite or an integration run, until the lanes and their fixes settle, including when an invoking
+workflow would otherwise run it first, so review fixes do not force a second costly run. Run the
+smallest relevant fresh validation for applied fixes. Add or update behavior-focused tests when a
+fix changes behavior and a stable test seam exists.
 
 End with scope, lanes and reviewers, fixes applied, lanes verified or rerun and why, deferred or
 rejected findings with rationale, validation commands and results, and remaining decisions.

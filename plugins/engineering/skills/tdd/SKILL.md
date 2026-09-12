@@ -188,7 +188,8 @@ system. Test internal collaborators through the public interface. Read
 
 When the requested behavior is implemented:
 
-- Run the full relevant validation for the touched area.
+- Run the full relevant validation for the touched area, holding a slow or costly gate the project
+  names until `engineering:review-changes` settles its fixes.
 - Report the red-green-refactor sequence at a high level.
 - Name the tests added, changed, or removed.
 - Note any behavior that remains intentionally untested and why.
