@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: extract-chat-instructions [--copy]
+
+Print the body of plugins/writing/output-styles/prose.md without its frontmatter, for pasting into
+a chat app's persistent instructions.
+
+Options:
+  --copy    Copy the body to the macOS clipboard with pbcopy
+  -h        Show this help text
+  --help    Show this help text
+USAGE
+}
+
+copy_mode=0
+
+while (($# > 0)); do
+  case "$1" in
+    --copy)
+      copy_mode=1
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      printf 'Unknown option: %s\n' "$1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+style_file="$script_dir/../plugins/writing/output-styles/prose.md"
+
+if [[ ! -f "$style_file" ]]; then
+  printf 'Output style not found: %s\n' "$style_file" >&2
+  exit 1
+fi
+
+extract_body() {
+  # Skip the leading frontmatter block and the blank line that follows it.
+  awk '
+    NR == 1 && $0 == "---" { in_frontmatter = 1; next }
+    in_frontmatter && $0 == "---" { in_frontmatter = 0; skip_blank = 1; next }
+    in_frontmatter { next }
+    skip_blank && $0 == "" { skip_blank = 0; next }
+    { skip_blank = 0; print }
+  ' "$style_file"
+}
+
+if ((copy_mode)); then
+  if ! command -v pbcopy >/dev/null 2>&1; then
+    printf 'pbcopy is required for --copy mode.\n' >&2
+    exit 1
+  fi
+  extract_body | pbcopy
+else
+  extract_body
+fi

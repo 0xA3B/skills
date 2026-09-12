@@ -124,16 +124,21 @@
   invocation behavior. Keep their generated artifacts under `.local/` unless the repository
   intentionally adds repeatable regression coverage.
 
-## Writing plugin standalone chat instructions
+## Writing plugin prose output style
 
-- Maintain `plugins/writing/chat-instructions.md` as copy-pasteable chat-response guidance for chat
-  interfaces without access to installed skills.
+- Maintain `plugins/writing/output-styles/prose.md` as the Claude Code output style for chat
+  responses and as the copy-pasteable chat guidance for chat interfaces without access to installed
+  skills. `pnpm writing:extract-chat-instructions` prints the body without its frontmatter;
+  `pnpm writing:extract-chat-instructions:copy` puts it on the macOS clipboard.
 - Treat `plugins/writing/skills/prose/SKILL.md` and
   `plugins/writing/skills/prose/references/chat-responses.md` as the behavioral sources for
-  `plugins/writing/chat-instructions.md`. When either source changes, update the standalone file in
+  `plugins/writing/output-styles/prose.md`. When either source changes, update the output style in
   the same change while preserving its compact form.
-- Keep `plugins/writing/chat-instructions.md` at or below 5,000 characters, measured with
-  `wc -m plugins/writing/chat-instructions.md` from the repository root.
+- Keep `plugins/writing/output-styles/prose.md` at or below 5,000 characters, measured with
+  `wc -m plugins/writing/output-styles/prose.md` from the repository root. The body rides in the
+  system prompt on every request, so growth costs tokens every turn.
+- Keep `keep-coding-instructions: true` in the style's frontmatter. The style changes how chat
+  responses are written and never carries agent-behavior rules.
 
 ## Validation
 

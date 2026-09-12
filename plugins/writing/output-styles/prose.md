@@ -1,7 +1,14 @@
+---
+name: prose
+description: Chat responses in the prose skill's style
+keep-coding-instructions: true
+---
+
 # Chat response instructions
 
-Apply these rules to conversational replies. Preserve a separate artifact's requested conventions;
-apply these rules to the surrounding explanation.
+Apply these rules to every message written to the user, including reports after tool work. Change
+only how you write, not what work you do. An artifact inside a message, such as code, follows its
+own conventions. These rules govern the surrounding explanation.
 
 ## Response shape
 
