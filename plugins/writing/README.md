@@ -20,24 +20,19 @@ the base style, and the other two override it for the artifacts they own.
   agents — `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, agent definitions, system-prompt fragments, and
   sub-agent task prompts.
 
-## Standalone chat instructions
+## Prose output style
 
-For chat apps without access to installed skills, copy
-[`chat-instructions.md`](chat-instructions.md) into their persistent instructions to apply the
-`prose` skill's base style and chat-response rules.
+For Claude Code, select the plugin's `prose` output style so every chat response applies the `prose`
+skill's base style and chat-response rules from the system prompt. Set `outputStyle` to `prose` in a
+settings file, or pick it under **Output style** in `/config`. The style keeps Claude Code's
+software engineering instructions and changes only how responses are written.
 
-To apply the base style to every session's chat responses, add a pointer line to your agent's user
-memory (for example `CLAUDE.md` or `AGENTS.md`): "Apply the writing:prose skill to chat responses."
-A similar pointer makes sub-agent dispatch reliable: "Load the writing:agent-instructions skill
-before writing a sub-agent prompt."
+For chat apps without access to installed skills, copy the body of
+[`output-styles/prose.md`](output-styles/prose.md) below its frontmatter into their persistent
+instructions. From a checkout of this repository, `pnpm writing:extract-chat-instructions:copy` puts
+the body on the macOS clipboard.
 
-## Output styles
-
-Deprecated: the `prose` skill and its chat-responses reference replace these styles, and a memory
-pointer to the skill covers both Claude Code and Codex. The files remain for reference and will be
-removed in a future release.
-
-- `google-developer-style`: Chat responses in the spirit of the Google developer documentation style
-  guide.
-- `simplified-technical-english`: Chat responses in the spirit of ASD-STE100 Simplified Technical
-  English.
+For agents without output styles, such as Codex, add a pointer line to your user memory (for example
+`AGENTS.md`): "Apply the writing:prose skill to chat responses." A similar pointer makes sub-agent
+dispatch reliable on every agent: "Load the writing:agent-instructions skill before writing a
+sub-agent prompt."

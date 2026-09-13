@@ -20,7 +20,9 @@
     "lint:staged": "lint-staged",
     "prepare": "husky",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "writing:extract-chat-instructions": "./scripts/extract-chat-instructions",
+    "writing:extract-chat-instructions:copy": "./scripts/extract-chat-instructions --copy"
   },
   "devDependencies": {
     "@commitlint/cli": "*",
