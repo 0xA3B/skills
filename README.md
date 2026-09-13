@@ -168,12 +168,11 @@ skill's Agent Skills frontmatter metadata.
   document mechanics for files and prompts that instruct agents — `AGENTS.md`, `CLAUDE.md`,
   `SKILL.md`, agent definitions, system-prompt fragments, and sub-agent task prompts.
 
-For chat apps without access to installed skills, copy the writing plugin's
-[`chat-instructions.md`](./plugins/writing/chat-instructions.md) into the app's persistent
-instructions. It combines the `prose` skill's base style and chat-response guidance.
-
-Output styles still ship in [`plugins/writing/output-styles/`](./plugins/writing/output-styles/) but
-are deprecated: the `prose` skill replaces them, and they will be removed in a future release.
+The writing plugin also ships a `prose` output style for Claude Code that applies the `prose`
+skill's chat-response guidance from the system prompt on every turn. For chat apps without access to
+installed skills, copy the body of
+[`output-styles/prose.md`](./plugins/writing/output-styles/prose.md) into the app's persistent
+instructions; see the plugin README for details.
 
 ## License
 
