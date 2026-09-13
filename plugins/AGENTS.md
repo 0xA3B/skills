@@ -128,7 +128,8 @@
 
 - Maintain `plugins/writing/output-styles/prose.md` as the Claude Code output style for chat
   responses and as the copy-pasteable chat guidance for chat interfaces without access to installed
-  skills. `pnpm writing:extract-chat-instructions` prints the body without its frontmatter;
+  skills. `pnpm --silent run writing:extract-chat-instructions` prints the body without its
+  frontmatter and without pnpm's command echo, so the output can be piped into a file;
   `pnpm writing:extract-chat-instructions:copy` puts it on the macOS clipboard.
 - Treat `plugins/writing/skills/prose/SKILL.md` and
   `plugins/writing/skills/prose/references/chat-responses.md` as the behavioral sources for
