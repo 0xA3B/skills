@@ -137,8 +137,9 @@
 - Keep `plugins/writing/output-styles/prose.md` at or below 5,000 characters, measured with
   `wc -m plugins/writing/output-styles/prose.md` from the repository root. The body rides in the
   system prompt on every request, so growth costs tokens every turn.
-- Keep `keep-coding-instructions: true` in the style's frontmatter. The style changes how chat
-  responses are written and never carries agent-behavior rules.
+- Keep `keep-coding-instructions: true` in the style's frontmatter so Claude Code's software
+  engineering instructions stay in force. Scope the style to chat responses and the evidence conduct
+  behind them; engineering workflow rules belong to skills and instruction files.
 
 ## Validation
 

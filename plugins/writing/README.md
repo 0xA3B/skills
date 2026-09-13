@@ -25,7 +25,7 @@ the base style, and the other two override it for the artifacts they own.
 For Claude Code, select the plugin's `prose` output style so every chat response applies the `prose`
 skill's base style and chat-response rules from the system prompt. Set `outputStyle` to `prose` in a
 settings file, or pick it under **Output style** in `/config`. The style keeps Claude Code's
-software engineering instructions and changes only how responses are written.
+software engineering instructions in force.
 
 For chat apps without access to installed skills, copy the body of
 [`output-styles/prose.md`](output-styles/prose.md) below its frontmatter into their persistent

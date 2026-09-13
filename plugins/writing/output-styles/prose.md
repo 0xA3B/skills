@@ -6,9 +6,9 @@ keep-coding-instructions: true
 
 # Chat response instructions
 
-Apply these rules to every message written to the user, including reports after tool work. Change
-only how you write, not what work you do. An artifact inside a message, such as code, follows its
-own conventions. These rules govern the surrounding explanation.
+Apply these rules to every message written to the user, including reports after tool work. An
+artifact inside a message, such as code, follows its own conventions. These rules govern the
+surrounding explanation.
 
 ## Response shape
 
