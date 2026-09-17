@@ -43,6 +43,7 @@ export type RepoFixtureOptions = {
     workspaceFiles?: Record<string, string>;
   }>;
   claudeOnly?: boolean;
+  portableVersion?: string;
   siblingSkills?: Array<{ name: string; manualOnly?: boolean }>;
   marketplace?: boolean;
 };
@@ -85,11 +86,20 @@ export async function writeRepoFixture(options: RepoFixtureOptions = {}): Promis
       JSON.stringify({ name: "demo", version: "1.0.0", description: "Demo plugin" }),
     );
   } else {
-    await mkdir(path.join(pluginPath, ".codex-plugin"), { recursive: true });
     await mkdir(path.join(skillPath, "agents"), { recursive: true });
     await writeFile(
-      path.join(pluginPath, ".codex-plugin", "plugin.json"),
-      JSON.stringify({ name: "demo", version: "1.0.0", skills: "./skills/" }),
+      path.join(pluginPath, "plugin.json"),
+      JSON.stringify({
+        $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+        name: "demo",
+        version: options.portableVersion ?? "1.0.0",
+        extensions: { "com.openai": {} },
+      }),
+    );
+    await mkdir(path.join(pluginPath, ".claude-plugin"), { recursive: true });
+    await writeFile(
+      path.join(pluginPath, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ name: "demo", version: "1.0.0", description: "Demo plugin" }),
     );
     await writeFile(
       path.join(skillPath, "agents", "openai.yaml"),
@@ -199,10 +209,14 @@ export async function writeRepoLocalSkillFixture(
 async function writeOtherPlugin(repoRoot: string): Promise<void> {
   const otherSkillPath = path.join(repoRoot, "plugins", "other", "skills", "other-skill");
   await mkdir(path.join(otherSkillPath, "agents"), { recursive: true });
-  await mkdir(path.join(repoRoot, "plugins", "other", ".codex-plugin"), { recursive: true });
   await writeFile(
-    path.join(repoRoot, "plugins", "other", ".codex-plugin", "plugin.json"),
-    JSON.stringify({ name: "other", version: "2.0.0", skills: "./skills/" }),
+    path.join(repoRoot, "plugins", "other", "plugin.json"),
+    JSON.stringify({
+      $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+      name: "other",
+      version: "2.0.0",
+      extensions: { "com.openai": {} },
+    }),
   );
   await writeFile(
     path.join(otherSkillPath, "SKILL.md"),

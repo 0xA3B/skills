@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { claudeExtensionPath } from "./claude-extension.js";
 import { error, type ValidationContext } from "./diagnostics.js";
 import { isDirectory, isFile, readJsonObject } from "./files.js";
 import { resolveRelativePath } from "./paths.js";
@@ -154,7 +155,7 @@ export async function validateClaudeMarketplace(
       continue;
     }
 
-    const manifestPath = path.join(pluginPath, ".claude-plugin", "plugin.json");
+    const manifestPath = claudeExtensionPath(pluginPath);
     if (!(await isFile(manifestPath))) {
       error(
         context,

@@ -13,6 +13,7 @@ import {
   writeJson,
   writeText,
   writeValidPluginRepo,
+  validPortableManifest,
 } from "../test-utils.js";
 import { validateTriggerFixture } from "./trigger-fixture.js";
 
@@ -296,9 +297,11 @@ cases:
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
       await writeImplicitSkill(repoRoot, "plugins/codex-only/skills/auto", "auto");
-      await writeJson(repoRoot, "plugins/codex-only/.codex-plugin/plugin.json", {
-        name: "codex-only",
-      });
+      await writeJson(
+        repoRoot,
+        "plugins/codex-only/plugin.json",
+        validPortableManifest({ name: "codex-only" }),
+      );
       await writeText(
         repoRoot,
         `${HELLO_SKILL}/evals/triggers.yaml`,
@@ -315,13 +318,43 @@ cases:
     });
   });
 
+  it("reports an alternate whose plugin ships no Codex extension when the fixture runs on Codex", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot);
+      await writeImplicitSkill(repoRoot, "plugins/claude-only/skills/auto", "auto");
+      await writeJson(
+        repoRoot,
+        "plugins/claude-only/plugin.json",
+        validPortableManifest({ extensions: undefined, name: "claude-only" }),
+      );
+      await writeJson(repoRoot, "plugins/claude-only/.claude-plugin/plugin.json", {
+        name: "claude-only",
+      });
+      await writeText(
+        repoRoot,
+        `${HELLO_SKILL}/evals/triggers.yaml`,
+        fixtureWithSkip("    invoke-instead: claude-only:auto\n"),
+      );
+      const context = createTestContext(repoRoot);
+
+      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+
+      expect(ruleIds(context)).toStrictEqual(["trigger-fixture/alternate-target"]);
+      expect(diagnosticByRule(context, "trigger-fixture/alternate-target")?.message).toBe(
+        'invoke-instead names "claude-only:auto", but plugin "claude-only" does not ship on codex, where this fixture also runs.',
+      );
+    });
+  });
+
   it("checks only the targets the fixture's own plugin ships on", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot, { claudeManifest: false, claudeMarketplace: false });
       await writeImplicitSkill(repoRoot, "plugins/codex-only/skills/auto", "auto");
-      await writeJson(repoRoot, "plugins/codex-only/.codex-plugin/plugin.json", {
-        name: "codex-only",
-      });
+      await writeJson(
+        repoRoot,
+        "plugins/codex-only/plugin.json",
+        validPortableManifest({ name: "codex-only" }),
+      );
       await writeText(
         repoRoot,
         `${HELLO_SKILL}/evals/triggers.yaml`,

@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
@@ -6,11 +6,11 @@ import { describe, expect, it, vi } from "vitest";
 import { lintPlugins, runLintPlugins } from "./runner.js";
 import {
   ruleIds,
-  toYaml,
+  validClaudeMarketplace,
   validClaudePluginManifest,
   validMarketplace,
   validOpenAiMetadata,
-  validPluginManifest,
+  validPortableManifest,
   validSkillMarkdown,
   withTempRepo,
   writeJson,
@@ -19,7 +19,10 @@ import {
 } from "./test-utils.js";
 
 describe("lint runner", () => {
-  it("returns a clean result for a valid dual-harness plugin repository", async () => {
+  // Agent Plugins 1.0.0: "The Agent Plugins core specification defines exactly one portable
+  // manifest per plugin", plugin.json at the plugin root. Codex reads its metadata from
+  // extensions.com.openai in that file; Claude Code keeps reading .claude-plugin/plugin.json.
+  it("returns a clean result for a plugin that ships a portable manifest and both target extensions", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
 
@@ -57,6 +60,11 @@ describe("lint runner", () => {
         owner: { name: "Test Developer" },
         plugins: [{ name: "demo-plugin", source: "./plugins/demo-plugin" }],
       });
+      await writeJson(
+        repoRoot,
+        "plugins/demo-plugin/plugin.json",
+        validPortableManifest({ extensions: undefined }),
+      );
       await writeJson(
         repoRoot,
         "plugins/demo-plugin/.claude-plugin/plugin.json",
@@ -98,7 +106,7 @@ describe("lint runner", () => {
     });
   });
 
-  it("reports Claude manifest versions that drift from the Codex manifest", async () => {
+  it("reports Claude extension versions that drift from the portable manifest", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot, {
         claudeManifest: validClaudePluginManifest({ version: "2.0.0" }),
@@ -107,65 +115,144 @@ describe("lint runner", () => {
       const result = await lintPlugins({ repoRoot });
 
       expect(result.errorCount).toBe(1);
-      expect(ruleIds(result.context)).toContain("alignment/dual-version");
+      expect(ruleIds(result.context)).toContain("alignment/claude-extension");
     });
   });
 
-  it("reports Claude-targeted plugins whose Codex manifest moves skills away from ./skills/", async () => {
+  // Decision: a plugin targets Codex exactly when it has both extensions.com.openai and a Codex
+  // catalog entry; either half without the other is an error.
+  it("reports a Codex catalog entry whose plugin ships no Codex extension", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot, {
-        manifest: validPluginManifest({ skills: "./other-skills/" }),
+        manifest: validPortableManifest({ extensions: undefined }),
       });
-      await writeText(
-        repoRoot,
-        "plugins/demo-plugin/other-skills/hello/SKILL.md",
-        validSkillMarkdown(),
-      );
-      await writeText(
-        repoRoot,
-        "plugins/demo-plugin/other-skills/hello/agents/openai.yaml",
-        toYaml(validOpenAiMetadata()),
-      );
 
       const result = await lintPlugins({ repoRoot });
 
-      expect(ruleIds(result.context)).toContain("claude-manifest/skills-discovery");
+      expect(result.errorCount).toBe(1);
+      expect(ruleIds(result.context)).toContain("coverage/codex-extension");
     });
   });
 
-  it("allows Codex-only plugins to relocate skills without the Claude discovery rule", async () => {
+  // Decision: a half-declared target still gets that target's skill checks, so one run surfaces
+  // the missing extension and the missing Codex UI metadata together.
+  it("keeps Codex skill checks for a plugin the Codex catalog lists without the extension", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot, {
+        manifest: validPortableManifest({ extensions: undefined }),
+      });
+      await rm(path.join(repoRoot, "plugins/demo-plugin/skills/hello/agents/openai.yaml"));
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.errorCount).toBe(2);
+      expect(ruleIds(result.context)).toStrictEqual([
+        "coverage/codex-extension",
+        "repo/openai-metadata-required",
+      ]);
+    });
+  });
+
+  it("reports a Codex extension whose plugin is missing from the Codex catalog", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot, { marketplace: validMarketplace({ plugins: [] }) });
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.errorCount).toBe(1);
+      expect(ruleIds(result.context)).toContain("coverage/manifest-listed");
+    });
+  });
+
+  // Agent Plugins 1.0.0: "The Agent Plugins core specification defines exactly one portable
+  // manifest per plugin." Every directory under plugins/ is a plugin, so each needs one.
+  it("reports a plugin directory without a portable manifest", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot);
+      await writeText(repoRoot, "plugins/bare/skills/hello/SKILL.md", validSkillMarkdown());
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.errorCount).toBe(1);
+      expect(ruleIds(result.context)).toContain("coverage/portable-manifest");
+      expect(result.pluginCount).toBe(2);
+    });
+  });
+
+  // Decision: a root manifest alone declares no target, and a plugin unreachable from both
+  // catalogs is an error.
+  it("reports a plugin that targets neither Codex nor Claude Code", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot, {
         claudeManifest: false,
         claudeMarketplace: false,
-        manifest: validPluginManifest({ skills: "./other-skills/" }),
+        marketplace: validMarketplace({ plugins: [] }),
+        manifest: validPortableManifest({ extensions: undefined }),
       });
-      await writeText(
-        repoRoot,
-        "plugins/demo-plugin/other-skills/hello/SKILL.md",
-        validSkillMarkdown(),
-      );
-      await writeText(
-        repoRoot,
-        "plugins/demo-plugin/other-skills/hello/agents/openai.yaml",
-        toYaml(validOpenAiMetadata()),
-      );
 
       const result = await lintPlugins({ repoRoot });
 
-      expect(result.errorCount).toBe(0);
-      expect(ruleIds(result.context)).not.toContain("claude-manifest/skills-discovery");
+      expect(result.errorCount).toBe(1);
+      expect(ruleIds(result.context)).toContain("coverage/target-required");
     });
   });
 
-  it("reports Claude plugin manifests that are missing from the Claude catalog", async () => {
+  // Decision: Codex settings live only in the Codex extension, so a leftover overlay is dead
+  // metadata that can drift, whether or not it still holds a manifest.
+  it("reports a leftover .codex-plugin directory even when it is empty", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot);
+      await mkdir(path.join(repoRoot, "plugins/demo-plugin/.codex-plugin"), { recursive: true });
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.errorCount).toBe(1);
+      expect(ruleIds(result.context)).toContain("coverage/legacy-codex-manifest");
+    });
+  });
+
+  // The hint to create the Claude catalog appears only while no catalog exists at all.
+  it("reports Claude extensions that are missing from the Claude catalog", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot, { claudeMarketplace: false });
 
       const result = await lintPlugins({ repoRoot });
 
       expect(result.errorCount).toBe(1);
-      expect(ruleIds(result.context)).toContain("coverage/manifest-listed");
+      expect(result.context.diagnostics.map((diagnostic) => diagnostic.message)).toStrictEqual([
+        "Plugin ships a Claude extension but is missing from the Claude marketplace catalog. Add .claude-plugin/marketplace.json to expose Claude plugins.",
+      ]);
+    });
+  });
+
+  it("reports Claude extensions that an existing Claude catalog omits without the hint", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot, {
+        claudeMarketplace: validClaudeMarketplace({ plugins: [] }),
+      });
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.errorCount).toBe(1);
+      expect(result.context.diagnostics.map((diagnostic) => diagnostic.message)).toStrictEqual([
+        "Plugin ships a Claude extension but is missing from the Claude marketplace catalog.",
+      ]);
+    });
+  });
+
+  // A shipped extension is a declared target even before its catalog entry exists, so the only
+  // error is the missing listing, not "targets no agent".
+  it("treats an unlisted Claude extension as a target rather than a target-less plugin", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot, {
+        claudeMarketplace: false,
+        marketplace: validMarketplace({ plugins: [] }),
+        manifest: validPortableManifest({ extensions: undefined }),
+      });
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(ruleIds(result.context)).toStrictEqual(["coverage/manifest-listed"]);
     });
   });
 
@@ -188,11 +275,11 @@ describe("lint runner", () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
       for (const manifestPath of [
-        ".claude/worktrees/x/plugins/demo/.codex-plugin/plugin.json",
-        "plugins/demo-plugin/.claude/worktrees/x/plugins/demo/.codex-plugin/plugin.json",
-        "plugins/.scratch/.codex-plugin/plugin.json",
+        ".claude/worktrees/x/plugins/demo/plugin.json",
+        "plugins/demo-plugin/.claude/worktrees/x/plugins/demo/plugin.json",
+        "plugins/.scratch/plugin.json",
       ]) {
-        await writeJson(repoRoot, manifestPath, validPluginManifest());
+        await writeJson(repoRoot, manifestPath, validPortableManifest());
       }
 
       const result = await lintPlugins({ repoRoot });
@@ -224,14 +311,12 @@ describe("lint runner", () => {
         ".agents/plugins/marketplace.json",
         validMarketplace({ plugins: [] }),
       );
-      await writeText(repoRoot, "plugins/broken/.codex-plugin/plugin.json", "{");
+      await writeText(repoRoot, "plugins/broken/plugin.json", "{");
 
       const result = await lintPlugins({ repoRoot });
 
-      expect(result.errorCount).toBe(2);
-      expect(ruleIds(result.context)).toStrictEqual(
-        expect.arrayContaining(["coverage/manifest-listed", "parse/json"]),
-      );
+      expect(result.errorCount).toBe(1);
+      expect(ruleIds(result.context)).toStrictEqual(["parse/json"]);
     });
   });
 

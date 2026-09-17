@@ -11,17 +11,13 @@ import {
 import type { TriggerFixture } from "../../trigger-evals/types.js";
 import { error, type ValidationContext } from "../diagnostics.js";
 import { isDirectory, pathExists } from "../files.js";
+import { readPluginTargets } from "../plugin-targets.js";
 import type { PluginTargets } from "../types.js";
 
 // The two skill layouts a fixture can live in. Alternates named by invoke-instead are resolved
 // against the same layouts, so a plugin fixture names <plugin>:<skill> and a repo-local fixture
 // names a bare skill name.
 type FixtureKind = "plugin" | "repo-local";
-
-const PLUGIN_MANIFESTS: Record<keyof PluginTargets, string> = {
-  claude: path.join(".claude-plugin", "plugin.json"),
-  codex: path.join(".codex-plugin", "plugin.json"),
-};
 
 // Lints evals/triggers.yaml when a skill ships one: every loader finding becomes a
 // trigger-fixture/schema diagnostic, and a fixture that parses cleanly is cross-checked against
@@ -156,17 +152,12 @@ async function validateAlternate(context: ValidationContext, check: AlternateChe
   }
   // A routing assertion runs on every lane the fixture's own plugin runs on, so the alternate's
   // plugin must ship on each of those targets or the assertion can never pass there.
+  const shipped = await readPluginTargets(path.join(context.repoRoot, "plugins", pluginName));
   for (const target of ["claude", "codex"] as const) {
     if (!targets[target]) {
       continue;
     }
-    const manifestPath = path.join(
-      context.repoRoot,
-      "plugins",
-      pluginName,
-      PLUGIN_MANIFESTS[target],
-    );
-    if (!(await pathExists(manifestPath))) {
+    if (!shipped[target]) {
       error(
         context,
         "trigger-fixture/alternate-target",

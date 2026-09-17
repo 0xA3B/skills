@@ -3,6 +3,7 @@ import path from "node:path";
 import { error, type ValidationContext } from "./diagnostics.js";
 import { isDirectory, isFile, readJsonObject } from "./files.js";
 import { marketplaceRootFromPath, resolveRelativePath } from "./paths.js";
+import { portableManifestPath } from "./portable-manifest.js";
 import { getObject, getOptionalString, getString, isObject } from "./schema.js";
 import type { Catalog, JsonObject, LocalCatalogEntry, RemoteCatalogEntry } from "./types.js";
 import { validateGitUrlString } from "./urls.js";
@@ -240,13 +241,13 @@ export async function validateLocalMarketplacePath(
     return undefined;
   }
 
-  const manifestPath = path.join(pluginPath, ".codex-plugin", "plugin.json");
+  const manifestPath = portableManifestPath(pluginPath);
   if (!(await isFile(manifestPath))) {
     error(
       context,
       "marketplace/source-manifest",
       marketplacePath,
-      `Plugin path is missing .codex-plugin/plugin.json: ${sourcePath}`,
+      `Plugin path is missing plugin.json: ${sourcePath}`,
       pointer,
     );
     return undefined;

@@ -1,7 +1,9 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import { CODEX_EXTENSION_POINTER } from "./codex-extension.js";
 import { type ValidationContext, warning } from "./diagnostics.js";
+import { codexInterface } from "./portable-manifest.js";
 import { isObject } from "./schema.js";
 import type { Catalog, ClaudeCatalog, JsonObject } from "./types.js";
 import { parseHttpUrlString } from "./urls.js";
@@ -54,29 +56,10 @@ export async function validateExternalReferences(
     if (manifest === undefined) {
       continue;
     }
-
-    tasks.push(
-      validateReachableUrl(context, manifest["repository"], entry.manifestPath, "/repository"),
-      validateReachableUrl(context, manifest["homepage"], entry.manifestPath, "/homepage"),
-    );
-
-    const author = isObject(manifest["author"]) ? manifest["author"] : undefined;
-    if (author !== undefined) {
-      tasks.push(validateReachableUrl(context, author["url"], entry.manifestPath, "/author/url"));
-    }
-
-    const manifestInterface = isObject(manifest["interface"]) ? manifest["interface"] : undefined;
-    if (manifestInterface !== undefined) {
-      for (const fieldName of ["websiteURL", "privacyPolicyURL", "termsOfServiceURL"]) {
-        tasks.push(
-          validateReachableUrl(
-            context,
-            manifestInterface[fieldName],
-            entry.manifestPath,
-            `/interface/${fieldName}`,
-          ),
-        );
-      }
+    for (const reference of manifestUrlReferences(manifest, entry.manifestPath)) {
+      tasks.push(
+        validateReachableUrl(context, reference.value, reference.filePath, reference.pointer),
+      );
     }
   }
 
@@ -85,19 +68,48 @@ export async function validateExternalReferences(
     if (manifest === undefined) {
       continue;
     }
-
-    tasks.push(
-      validateReachableUrl(context, manifest["repository"], entry.manifestPath, "/repository"),
-      validateReachableUrl(context, manifest["homepage"], entry.manifestPath, "/homepage"),
-    );
-
-    const author = isObject(manifest["author"]) ? manifest["author"] : undefined;
-    if (author !== undefined) {
-      tasks.push(validateReachableUrl(context, author["url"], entry.manifestPath, "/author/url"));
+    for (const reference of manifestUrlReferences(manifest, entry.manifestPath)) {
+      tasks.push(
+        validateReachableUrl(context, reference.value, reference.filePath, reference.pointer),
+      );
     }
   }
 
   await Promise.all(tasks);
+}
+
+export type UrlReference = {
+  filePath: string;
+  pointer: string;
+  value: unknown;
+};
+
+// Every URL-valued field a manifest can carry: the shared metadata URLs, and for a portable
+// manifest the Codex extension's interface URLs. Values are returned unchecked so the caller
+// decides whether to reach them.
+export function manifestUrlReferences(manifest: JsonObject, filePath: string): UrlReference[] {
+  const references: UrlReference[] = [
+    { filePath, pointer: "/repository", value: manifest["repository"] },
+    { filePath, pointer: "/homepage", value: manifest["homepage"] },
+  ];
+
+  const author = isObject(manifest["author"]) ? manifest["author"] : undefined;
+  if (author !== undefined) {
+    references.push({ filePath, pointer: "/author/url", value: author["url"] });
+  }
+
+  const manifestInterface = codexInterface(manifest);
+  if (manifestInterface !== undefined) {
+    for (const fieldName of ["websiteURL", "privacyPolicyURL", "termsOfServiceURL"]) {
+      references.push({
+        filePath,
+        pointer: `${CODEX_EXTENSION_POINTER}/interface/${fieldName}`,
+        value: manifestInterface[fieldName],
+      });
+    }
+  }
+
+  return references.filter((reference) => reference.value !== undefined);
 }
 
 export async function validateReachableUrl(

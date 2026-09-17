@@ -1,12 +1,16 @@
-import { readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { validateClaudeMarketplace } from "./claude-marketplace.js";
-import { validateClaudePlugin, validateDualManifestAlignment } from "./claude-plugin-manifest.js";
 import {
-  validateCatalogCoverage,
-  validateClaudeCatalogCoverage,
+  claudeExtensionPath,
+  validateClaudeExtension,
+  validateClaudeExtensionAlignment,
+} from "./claude-extension.js";
+import { validateClaudeMarketplace } from "./claude-marketplace.js";
+import {
+  listPluginPaths,
   validateLocalRepositoryAlignment,
+  validatePluginLayout,
+  validatePluginTargets,
 } from "./coverage.js";
 import {
   createValidationContext,
@@ -14,10 +18,15 @@ import {
   type ValidationOptions,
 } from "./diagnostics.js";
 import { validateExternalReferences } from "./external.js";
-import { isDirectory } from "./files.js";
+import { isDirectory, readdirNames } from "./files.js";
 import { validateMarketplace } from "./marketplace.js";
 import { printDiagnostics } from "./output.js";
-import { validatePlugin } from "./plugin-manifest.js";
+import { readPluginTargets } from "./plugin-targets.js";
+import {
+  codexInterface,
+  portableManifestPath,
+  validatePortableManifest,
+} from "./portable-manifest.js";
 import { validateSkill, validateSkillsForPlugin } from "./skills/index.js";
 import type {
   Catalog,
@@ -51,65 +60,31 @@ export async function lintPlugins(options: ValidationOptions = {}): Promise<Lint
   const manifestsByPath = new Map<string, JsonObject>();
   validateLocalRepositoryAlignment(context, catalog);
   validateLocalRepositoryAlignment(context, claudeCatalog);
-  await validateCatalogCoverage(context, catalog);
-  await validateClaudeCatalogCoverage(context, claudeCatalog);
 
+  // Every directory under plugins/ is a plugin, whether or not a catalog lists it; catalog entries
+  // join by resolved path so an entry pointing elsewhere still gets its own unit.
   const units = new Map<string, PluginUnit>();
+  for (const pluginPath of await listPluginPaths(context.repoRoot)) {
+    units.set(path.resolve(pluginPath), { pluginPath });
+  }
   for (const entry of catalog.localEntries.values()) {
-    units.set(path.resolve(entry.pluginPath), { codexEntry: entry, pluginPath: entry.pluginPath });
+    const key = path.resolve(entry.pluginPath);
+    const unit = units.get(key) ?? { pluginPath: entry.pluginPath };
+    unit.codexEntry = entry;
+    units.set(key, unit);
   }
   for (const entry of claudeCatalog.localEntries.values()) {
     const key = path.resolve(entry.pluginPath);
-    const unit = units.get(key);
-    if (unit === undefined) {
-      units.set(key, { claudeEntry: entry, pluginPath: entry.pluginPath });
-    } else {
-      unit.claudeEntry = entry;
-    }
+    const unit = units.get(key) ?? { pluginPath: entry.pluginPath };
+    unit.claudeEntry = entry;
+    units.set(key, unit);
   }
 
   const sortedUnits = [...units.values()].sort((left, right) =>
     left.pluginPath.localeCompare(right.pluginPath),
   );
   for (const unit of sortedUnits) {
-    const codexManifest =
-      unit.codexEntry === undefined ? undefined : await validatePlugin(context, unit.codexEntry);
-    if (unit.codexEntry !== undefined && codexManifest !== undefined) {
-      manifestsByPath.set(unit.codexEntry.manifestPath, codexManifest);
-    }
-
-    const claudeManifest =
-      unit.claudeEntry === undefined
-        ? undefined
-        : await validateClaudePlugin(context, unit.claudeEntry);
-    if (unit.claudeEntry !== undefined && claudeManifest !== undefined) {
-      manifestsByPath.set(unit.claudeEntry.manifestPath, claudeManifest);
-    }
-
-    if (
-      unit.claudeEntry !== undefined &&
-      claudeManifest !== undefined &&
-      codexManifest !== undefined
-    ) {
-      validateDualManifestAlignment(
-        context,
-        unit.claudeEntry.manifestPath,
-        claudeManifest,
-        codexManifest,
-      );
-    }
-
-    const codexReady = unit.codexEntry === undefined || codexManifest !== undefined;
-    const claudeReady = unit.claudeEntry === undefined || claudeManifest !== undefined;
-    const manifestPath = unit.codexEntry?.manifestPath ?? unit.claudeEntry?.manifestPath;
-    if (!codexReady || !claudeReady || manifestPath === undefined) {
-      continue;
-    }
-
-    await validateSkillsForPlugin(context, unit.pluginPath, manifestPath, codexManifest, {
-      claude: unit.claudeEntry !== undefined,
-      codex: unit.codexEntry !== undefined,
-    });
+    await validatePluginUnit(context, unit, claudeCatalog.present, manifestsByPath);
   }
 
   const repoLocalSkillCount = await validateRepoLocalSkills(context);
@@ -131,6 +106,60 @@ export async function lintPlugins(options: ValidationOptions = {}): Promise<Lint
   };
 }
 
+async function validatePluginUnit(
+  context: ValidationContext,
+  unit: PluginUnit,
+  claudeCatalogPresent: boolean,
+  manifestsByPath: Map<string, JsonObject>,
+): Promise<void> {
+  const { pluginPath } = unit;
+  if (!(await validatePluginLayout(context, pluginPath))) {
+    return;
+  }
+
+  const portable = await validatePortableManifest(context, {
+    catalogName: unit.codexEntry?.name,
+    category: unit.codexEntry?.category,
+    pluginPath,
+  });
+  if (portable === undefined) {
+    return;
+  }
+  manifestsByPath.set(portableManifestPath(pluginPath), portable.manifest);
+
+  const shipped = await readPluginTargets(pluginPath, portable.manifest);
+  validatePluginTargets(context, {
+    claudeCatalogPresent,
+    listed: { claude: unit.claudeEntry !== undefined, codex: unit.codexEntry !== undefined },
+    pluginPath,
+    shipped,
+  });
+
+  if (shipped.claude) {
+    const claudeManifest = await validateClaudeExtension(context, {
+      catalogName: unit.claudeEntry?.name,
+      pluginPath,
+    });
+    if (claudeManifest !== undefined) {
+      manifestsByPath.set(claudeExtensionPath(pluginPath), claudeManifest);
+      validateClaudeExtensionAlignment(
+        context,
+        claudeExtensionPath(pluginPath),
+        claudeManifest,
+        portable.manifest,
+        codexInterface(portable.manifest),
+      );
+    }
+  }
+
+  // A half-declared target (extension or listing alone) already errors above; its skills still
+  // get that target's checks so the plugin surfaces every problem in one run.
+  await validateSkillsForPlugin(context, pluginPath, {
+    claude: shipped.claude || unit.claudeEntry !== undefined,
+    codex: shipped.codex || unit.codexEntry !== undefined,
+  });
+}
+
 // Repo-local skills ship to no plugin target, but every session in this checkout can load them on
 // both agents, so they get the whole skill-level check set for both targets. Manifest, alignment,
 // coverage, and catalog checks stay plugin-only.
@@ -139,11 +168,7 @@ async function validateRepoLocalSkills(context: ValidationContext): Promise<numb
   if (!(await isDirectory(skillsPath))) {
     return 0;
   }
-  const entries = await readdir(skillsPath, { withFileTypes: true });
-  const skillDirs = entries
-    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
-    .map((entry) => entry.name)
-    .sort();
+  const skillDirs = await readdirNames(skillsPath);
   for (const skillName of skillDirs) {
     await validateSkill(context, skillName, path.join(skillsPath, skillName), {
       claude: true,
