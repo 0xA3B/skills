@@ -2,7 +2,7 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 
 import { error, type ValidationContext, warning } from "./diagnostics.js";
-import { readJsonObject } from "./files.js";
+import { isDirectory, isFile, readJsonObject } from "./files.js";
 import type { Catalog, ClaudeCatalog } from "./types.js";
 
 export async function validateCatalogCoverage(
@@ -75,31 +75,30 @@ async function validateManifestCoverage(
   }
 }
 
+// A plugin is a bundle under plugins/<name>/, so the scan is flat and never enters other roots.
+// Manifests elsewhere are not this repository's plugins: an agent worktree checkout under
+// .claude/worktrees/, a copy nested inside a plugin bundle, or retired/, which archives skills
+// rather than plugins (#107). Plugin names are lowercase kebab-case by convention, so a dot-prefixed
+// entry under plugins/ is scratch, matching the skill walk.
 export async function findPluginManifests(
-  searchRoot: string,
+  repoRoot: string,
   manifestDirName = ".codex-plugin",
 ): Promise<string[]> {
-  const skippedDirectoryNames = new Set([".cache", ".git", ".local", "node_modules"]);
+  const pluginsPath = path.join(repoRoot, "plugins");
+  if (!(await isDirectory(pluginsPath))) {
+    return [];
+  }
+  const entries = await readdir(pluginsPath, { withFileTypes: true });
   const manifests: string[] = [];
-
-  async function visit(directory: string): Promise<void> {
-    const entries = await readdir(directory, { withFileTypes: true });
-    for (const entry of entries) {
-      const entryPath = path.join(directory, entry.name);
-      if (entry.isDirectory()) {
-        if (skippedDirectoryNames.has(entry.name)) {
-          continue;
-        }
-        await visit(entryPath);
-      } else if (entry.isFile() && entry.name === "plugin.json") {
-        if (path.basename(path.dirname(entryPath)) === manifestDirName) {
-          manifests.push(entryPath);
-        }
-      }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) {
+      continue;
+    }
+    const manifestPath = path.join(pluginsPath, entry.name, manifestDirName, "plugin.json");
+    if (await isFile(manifestPath)) {
+      manifests.push(manifestPath);
     }
   }
-
-  await visit(searchRoot);
   return manifests.sort();
 }
 
