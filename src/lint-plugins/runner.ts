@@ -88,7 +88,7 @@ export async function lintPlugins(options: ValidationOptions = {}): Promise<Lint
   }
 
   const repoLocalSkillCount = await validateRepoLocalSkills(context);
-  await validateExternalReferences(context, catalog, claudeCatalog, manifestsByPath);
+  await validateExternalReferences(context, catalog, manifestsByPath);
 
   const errorCount = context.diagnostics.filter(
     (diagnostic) => diagnostic.severity === "error",

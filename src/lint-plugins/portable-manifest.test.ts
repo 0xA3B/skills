@@ -314,6 +314,25 @@ describe("portable manifest validation", () => {
     });
   });
 
+  // Repository decision (plugins/AGENTS.md): a Codex-targeted plugin carries the Codex extension
+  // "with the interface block", and the extension alone already makes the plugin Codex-targeted.
+  it("requires the Codex interface block", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeJson(
+        repoRoot,
+        MANIFEST,
+        validPortableManifest({ extensions: codexExtension({}) }),
+      );
+      const context = createTestContext(repoRoot);
+
+      await validatePortableManifest(context, demoOptions(repoRoot));
+
+      expect(diagnosticPointers(context, "schema/object")).toStrictEqual([
+        "/extensions/com.openai/interface",
+      ]);
+    });
+  });
+
   it("requires the Codex interface display strings", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeJson(

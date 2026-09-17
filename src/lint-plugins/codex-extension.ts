@@ -3,7 +3,7 @@ import { isFile } from "./files.js";
 import type { ManifestLocation } from "./manifest-fields.js";
 import { resolveRelativePath } from "./paths.js";
 import {
-  getOptionalObject,
+  getObject,
   getOptionalString,
   getString,
   isObject,
@@ -44,7 +44,9 @@ export async function validateCodexExtension(
     }
   }
 
-  const manifestInterface = getOptionalObject(
+  // Repository decision (plugins/AGENTS.md): the Codex extension carries the interface block, since
+  // the extension alone makes the plugin Codex-targeted and Codex renders the plugin from it.
+  const manifestInterface = getObject(
     context,
     extension,
     "interface",

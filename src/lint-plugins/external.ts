@@ -5,7 +5,7 @@ import { CODEX_EXTENSION_POINTER } from "./codex-extension.js";
 import { type ValidationContext, warning } from "./diagnostics.js";
 import { codexInterface } from "./portable-manifest.js";
 import { isObject } from "./schema.js";
-import type { Catalog, ClaudeCatalog, JsonObject } from "./types.js";
+import type { Catalog, JsonObject } from "./types.js";
 import { parseHttpUrlString } from "./urls.js";
 
 const execFileAsync = promisify(execFile);
@@ -13,7 +13,6 @@ const execFileAsync = promisify(execFile);
 export async function validateExternalReferences(
   context: ValidationContext,
   catalog: Catalog,
-  claudeCatalog: ClaudeCatalog,
   manifestsByPath: Map<string, JsonObject>,
 ): Promise<void> {
   if (!context.externalValidationEnabled) {
@@ -51,24 +50,11 @@ export async function validateExternalReferences(
     }
   }
 
-  for (const entry of catalog.localEntries.values()) {
-    const manifest = manifestsByPath.get(entry.manifestPath);
-    if (manifest === undefined) {
-      continue;
-    }
-    for (const reference of manifestUrlReferences(manifest, entry.manifestPath)) {
-      tasks.push(
-        validateReachableUrl(context, reference.value, reference.filePath, reference.pointer),
-      );
-    }
-  }
-
-  for (const entry of claudeCatalog.localEntries.values()) {
-    const manifest = manifestsByPath.get(entry.manifestPath);
-    if (manifest === undefined) {
-      continue;
-    }
-    for (const reference of manifestUrlReferences(manifest, entry.manifestPath)) {
+  // Every manifest the run parsed is probed, not only those a catalog entry points at: a
+  // Claude-only plugin has no Codex entry, yet its portable manifest is authoritative and may carry
+  // URLs the Claude extension does not duplicate.
+  for (const [manifestPath, manifest] of manifestsByPath) {
+    for (const reference of manifestUrlReferences(manifest, manifestPath)) {
       tasks.push(
         validateReachableUrl(context, reference.value, reference.filePath, reference.pointer),
       );

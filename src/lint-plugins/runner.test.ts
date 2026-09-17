@@ -256,6 +256,33 @@ describe("lint runner", () => {
     });
   });
 
+  // The portable manifest is authoritative and its optional URLs need not be duplicated into the
+  // Claude extension, so a Claude-only plugin's root manifest is probed even though no Codex
+  // catalog entry points at it.
+  it("probes the portable manifest URLs of a Claude-only plugin under external validation", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot, {
+        manifest: validPortableManifest({
+          extensions: undefined,
+          homepage: "https://example.invalid/home",
+        }),
+        marketplace: validMarketplace({ plugins: [] }),
+      });
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status: 404 }));
+
+      try {
+        const result = await lintPlugins({ externalValidationEnabled: true, repoRoot });
+
+        const unreachable = result.context.diagnostics
+          .filter((diagnostic) => diagnostic.ruleId === "external/url-reachable")
+          .map((diagnostic) => [path.relative(repoRoot, diagnostic.filePath), diagnostic.pointer]);
+        expect(unreachable).toStrictEqual([["plugins/demo-plugin/plugin.json", "/homepage"]]);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+  });
+
   it("reports repo-required OpenAI metadata through the result object", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
