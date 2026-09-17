@@ -29,5 +29,6 @@ Run Codex from Claude Code for adversarial code review and task delegation.
 
 ## Claude Code support
 
-- Claude Code loads this plugin from `.claude-plugin/plugin.json`.
+- Claude Code loads this plugin from `.claude-plugin/plugin.json`; the root `plugin.json` is the
+  Agent Plugins 1.0.0 manifest that other clients read.
 - Skill content lives in `skills/` and agent definitions in `agents/` at the plugin root.

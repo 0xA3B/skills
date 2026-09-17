@@ -45,6 +45,7 @@ session take precedence over the proxy's configured read-only default.
 
 ## Codex support
 
-- Codex loads this plugin from `.codex-plugin/plugin.json`.
+- Codex loads this plugin from the `extensions.com.openai` block of the root `plugin.json`, the
+  Agent Plugins 1.0.0 manifest.
 - Skill content lives in `skills/` at the plugin root.
 - Codex-specific skill metadata lives beside each skill in `agents/openai.yaml`.

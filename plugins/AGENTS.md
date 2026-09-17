@@ -3,16 +3,21 @@
 ## Plugin rules
 
 - Plugin names use lowercase kebab-case and match the plugin directory name.
+- Every plugin ships a portable manifest, `plugin.json` at the plugin root, that conforms to Agent
+  Plugins 1.0.0. The schema is closed, so client-specific data goes under `extensions`. The portable
+  manifest is authoritative: a field a target extension duplicates must match it exactly.
 - Plugins target both Claude Code and Codex by default. A plugin targets an agent by shipping that
-  agent's manifest and marketplace entry; omit both to keep a plugin single-agent (for example,
-  `claude-in-codex` is Codex-only because it exists to drive Claude Code from Codex).
-- Codex-targeted plugins include `.codex-plugin/plugin.json` and an entry in
-  `.agents/plugins/marketplace.json`.
-- Claude-targeted plugins include `.claude-plugin/plugin.json` and an entry in
+  agent's target extension and marketplace entry, and the linter rejects either without the other;
+  omit both to keep a plugin single-agent (for example, `claude-in-codex` is Codex-only because it
+  exists to drive Claude Code from Codex).
+- Codex-targeted plugins carry the Codex extension, `extensions.com.openai` in the portable manifest
+  with the `interface` block, and an entry in `.agents/plugins/marketplace.json`. This repository
+  keeps Codex settings only in the Codex extension, so a `.codex-plugin/` directory is a lint error.
+- Claude-targeted plugins carry the Claude extension, `.claude-plugin/plugin.json`, and an entry in
   `.claude-plugin/marketplace.json`.
-- Keep Codex plugin manifests pointed at `./skills/`; do not add per-skill manifest paths.
-- Leave the `skills` field unset in Claude plugin manifests. Claude Code auto-discovers `./skills/`,
-  and the field adds extra skill paths instead of replacing the default.
+- Keep skills under `skills/` at the plugin root. Agent Plugins clients and Claude Code both
+  discover that directory, so no manifest names it. Leave the `skills` field unset in the Claude
+  extension; the field adds extra skill paths instead of replacing the default.
 - When adding or renaming a plugin, keep the marketplace entries, plugin directory, and manifest
   `name` values aligned across every targeted agent.
 - When adding a plugin, also create its `plugin:<plugin-name>` label by hand in the marketplace
@@ -53,7 +58,8 @@
 - Apply at most one version bump per plugin per branch. If the branch already bumps the plugin
   version relative to the merge base, fold later changes into that bump, upgrading its size when a
   later change needs a larger bump (for example patch to minor), instead of stacking bumps.
-- Apply every version bump to all of the plugin's agent manifests in the same change.
+- In the same change, apply every version bump to the portable manifest. If the plugin ships a
+  Claude extension, bump its version to match.
 
 ## Skill rules
 
@@ -144,8 +150,8 @@
 
 ## Validation
 
-- After adding or changing plugin manifests, marketplace entries, skill frontmatter, or
-  `agents/openai.yaml`, run `pnpm lint:plugins`.
+- After adding or changing portable manifests, target extensions, marketplace entries, skill
+  frontmatter, or `agents/openai.yaml`, run `pnpm lint:plugins`.
 - When changing an implicitly invokable skill's `SKILL.md` frontmatter `description`, invocation
   policy, or trigger fixtures, run trigger evals. The `description` is the trigger contract shared
   by both agents; use `pnpm eval:trigger -- <skill-path> --agent both` to check that a description

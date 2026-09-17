@@ -36,7 +36,6 @@ is not clearly caused by this change, report the blocker and the safest next act
 - Follow the `writing:agent-instructions` skill for skill-body drafting, instruction quality,
   information hierarchy, and completion criteria.
 - Use existing skills in the target plugin as local style examples.
-- Keep plugin manifests pointed at `./skills/`; do not add per-skill manifest paths.
 - Follow the plugin version policy in `plugins/AGENTS.md`; adding a new skill requires a patch
   version bump unless the user explicitly asks to test same-version behavior.
 - Keep runtime instructions in `SKILL.md`.
@@ -86,9 +85,9 @@ is not clearly caused by this change, report the blocker and the safest next act
 9. When the skill should be visible from plugin-level prompt examples, update Codex plugin default
    prompts. Keep `interface.defaultPrompt` to three prompts or fewer, choose the most useful entry
    points, and include explicit `$plugin-name:skill-name` callouts for manual-only skills.
-10. Bump the patch version in every plugin manifest the plugin ships (`.codex-plugin/plugin.json`
-    and `.claude-plugin/plugin.json`) so both agents treat the installed skill set as changed. The
-    linter requires the versions to stay in lockstep.
+10. Bump the patch version in the plugin's portable manifest (`plugin.json`) so every targeted agent
+    treats the installed skill set as changed. If the plugin ships a Claude extension
+    (`.claude-plugin/plugin.json`), bump its version to match; the linter requires the two to match.
 11. If implicit invocation is enabled, run trigger validation on both agents:
 
 ```bash

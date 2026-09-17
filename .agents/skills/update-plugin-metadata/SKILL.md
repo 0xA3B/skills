@@ -33,7 +33,8 @@ report the remaining work instead of guessing.
 ## Workflow
 
 1. Identify the target plugin or plugins.
-2. Read the plugin manifest and marketplace entry before editing.
+2. Read the plugin's portable manifest, its target extensions, and its marketplace entries before
+   editing.
 3. Determine whether the request changes plugin name, version, description, author, repository,
    keywords, category, prompts, skill display names, skill descriptions, invocation policy, or
    README-visible summaries.
@@ -55,8 +56,9 @@ report the remaining work instead of guessing.
 
 ## Consistency rules
 
-- Keep plugin `name`, `version`, `description`, `author`, `repository`, `keywords`, and `skills`
-  aligned across the plugin manifests, marketplace catalogs, and plugin directory.
+- Keep plugin `name`, `version`, `description`, `author`, `repository`, and `keywords` aligned
+  across the portable manifest, the Claude extension, marketplace catalogs, and plugin directory;
+  the portable manifest is authoritative.
 - Keep README skill lists aligned with actual `plugins/<plugin-name>/skills/` directories.
 
 ## Boundaries

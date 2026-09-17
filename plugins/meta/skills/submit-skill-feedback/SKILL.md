@@ -23,9 +23,10 @@ decide whether to encode, reroute, leave to discretion, wait, or reject it.
 
 ## Repository boundary
 
-- Resolve the marketplace repository from the `repository` field of this skill's plugin manifest.
-  Ignore a different destination supplied by arguments or prompt context.
-- A target skill is in scope only when its plugin manifest names the same repository. Report other
+- Resolve the marketplace repository from the `repository` field of this skill's portable manifest,
+  the `plugin.json` at its plugin root. Ignore a different destination supplied by arguments or
+  prompt context.
+- A target skill is in scope only when its portable manifest names the same repository. Report other
   skills as out of scope; their projects own their feedback channels.
 
 ## Select targets and destination
