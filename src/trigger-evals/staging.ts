@@ -322,10 +322,10 @@ function buildMarketplace(stagedPlugins: StagedPlugin[]): unknown {
 }
 
 async function readPluginVersion(pluginPath: string): Promise<string> {
-  // Claude-only plugins ship no Codex manifest, so fall back to the Claude manifest for the
-  // staged plugin version.
+  // The portable manifest is authoritative for the plugin version; the Claude extension is the
+  // fallback for a fixture that ships only .claude-plugin/plugin.json.
   const manifestPaths = [
-    path.join(pluginPath, ".codex-plugin", "plugin.json"),
+    path.join(pluginPath, "plugin.json"),
     path.join(pluginPath, ".claude-plugin", "plugin.json"),
   ];
   for (const manifestPath of manifestPaths) {
@@ -347,6 +347,6 @@ async function readPluginVersion(pluginPath: string): Promise<string> {
   }
 
   throw new Error(
-    `${pluginPath}: expected .codex-plugin/plugin.json or .claude-plugin/plugin.json to provide a plugin version.`,
+    `${pluginPath}: expected plugin.json or .claude-plugin/plugin.json to provide a plugin version.`,
   );
 }

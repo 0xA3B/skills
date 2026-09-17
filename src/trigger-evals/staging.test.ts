@@ -122,7 +122,19 @@ describe("stagePluginCopies", () => {
     expect(stagedManual).not.toContain("Trigger Eval Instructions");
   });
 
-  it("resolves plugin versions from the Claude manifest when no Codex manifest ships", async () => {
+  it("resolves plugin versions from the portable manifest before the Claude extension", async () => {
+    const repoRoot = await writeRepoFixture({ portableVersion: "3.0.0" });
+    const target = await pluginTarget(repoRoot);
+    const { workspacePath } = await createStagedWorkspace();
+
+    const stagedPlugins = await stagePluginCopies(workspacePath, pluginsToStage(target, []));
+
+    expect(stagedPlugins).toStrictEqual([
+      { pluginName: "demo", sourcePath: target.pluginPath, version: "3.0.0" },
+    ]);
+  });
+
+  it("resolves plugin versions from the Claude extension when no portable manifest ships", async () => {
     const repoRoot = await writeRepoFixture({ claudeOnly: true });
     const target = await pluginTarget(repoRoot);
     const { workspacePath } = await createStagedWorkspace();

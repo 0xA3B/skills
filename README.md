@@ -1,7 +1,8 @@
 # Skills
 
 This repository holds my reusable skills and workflows for AI agents, packaged as Claude Code and
-Codex plugins. Use them directly, or explore them for inspiration.
+Codex plugins. Every plugin is also an [Agent Plugins](https://agent-plugins.org/) 1.0.0 package, so
+any client that reads that standard can load it. Use them directly, or explore them for inspiration.
 
 ## Install
 

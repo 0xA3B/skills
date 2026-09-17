@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 
 import { parse as parseYaml } from "yaml";
 
@@ -68,4 +68,16 @@ export async function readYamlObject(
     error(context, "parse/yaml", filePath, `Unable to parse YAML: ${errorMessage(readError)}`);
     return undefined;
   }
+}
+
+// Sorted child directory names, skipping dot-prefixed entries. Plugin and skill names are
+// lowercase kebab-case by convention, so a dot-prefixed directory is scratch (a harness worktree,
+// .cc-writes) rather than content, and gitignore is not consulted because lint results must not
+// depend on git configuration.
+export async function readdirNames(directoryPath: string): Promise<string[]> {
+  const entries = await readdir(directoryPath, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+    .map((entry) => entry.name)
+    .sort();
 }

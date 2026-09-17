@@ -1,9 +1,11 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import { CODEX_EXTENSION_POINTER } from "./codex-extension.js";
 import { type ValidationContext, warning } from "./diagnostics.js";
+import { codexInterface } from "./portable-manifest.js";
 import { isObject } from "./schema.js";
-import type { Catalog, ClaudeCatalog, JsonObject } from "./types.js";
+import type { Catalog, JsonObject } from "./types.js";
 import { parseHttpUrlString } from "./urls.js";
 
 const execFileAsync = promisify(execFile);
@@ -11,7 +13,6 @@ const execFileAsync = promisify(execFile);
 export async function validateExternalReferences(
   context: ValidationContext,
   catalog: Catalog,
-  claudeCatalog: ClaudeCatalog,
   manifestsByPath: Map<string, JsonObject>,
 ): Promise<void> {
   if (!context.externalValidationEnabled) {
@@ -49,55 +50,52 @@ export async function validateExternalReferences(
     }
   }
 
-  for (const entry of catalog.localEntries.values()) {
-    const manifest = manifestsByPath.get(entry.manifestPath);
-    if (manifest === undefined) {
-      continue;
-    }
-
-    tasks.push(
-      validateReachableUrl(context, manifest["repository"], entry.manifestPath, "/repository"),
-      validateReachableUrl(context, manifest["homepage"], entry.manifestPath, "/homepage"),
-    );
-
-    const author = isObject(manifest["author"]) ? manifest["author"] : undefined;
-    if (author !== undefined) {
-      tasks.push(validateReachableUrl(context, author["url"], entry.manifestPath, "/author/url"));
-    }
-
-    const manifestInterface = isObject(manifest["interface"]) ? manifest["interface"] : undefined;
-    if (manifestInterface !== undefined) {
-      for (const fieldName of ["websiteURL", "privacyPolicyURL", "termsOfServiceURL"]) {
-        tasks.push(
-          validateReachableUrl(
-            context,
-            manifestInterface[fieldName],
-            entry.manifestPath,
-            `/interface/${fieldName}`,
-          ),
-        );
-      }
-    }
-  }
-
-  for (const entry of claudeCatalog.localEntries.values()) {
-    const manifest = manifestsByPath.get(entry.manifestPath);
-    if (manifest === undefined) {
-      continue;
-    }
-
-    tasks.push(
-      validateReachableUrl(context, manifest["repository"], entry.manifestPath, "/repository"),
-      validateReachableUrl(context, manifest["homepage"], entry.manifestPath, "/homepage"),
-    );
-
-    const author = isObject(manifest["author"]) ? manifest["author"] : undefined;
-    if (author !== undefined) {
-      tasks.push(validateReachableUrl(context, author["url"], entry.manifestPath, "/author/url"));
+  // Every manifest the run parsed is probed, not only those a catalog entry points at: a
+  // Claude-only plugin has no Codex entry, yet its portable manifest is authoritative and may carry
+  // URLs the Claude extension does not duplicate.
+  for (const [manifestPath, manifest] of manifestsByPath) {
+    for (const reference of manifestUrlReferences(manifest, manifestPath)) {
+      tasks.push(
+        validateReachableUrl(context, reference.value, reference.filePath, reference.pointer),
+      );
     }
   }
 
   await Promise.all(tasks);
+}
+
+export type UrlReference = {
+  filePath: string;
+  pointer: string;
+  value: unknown;
+};
+
+// Every URL-valued field a manifest can carry: the shared metadata URLs, and for a portable
+// manifest the Codex extension's interface URLs. Values are returned unchecked so the caller
+// decides whether to reach them.
+export function manifestUrlReferences(manifest: JsonObject, filePath: string): UrlReference[] {
+  const references: UrlReference[] = [
+    { filePath, pointer: "/repository", value: manifest["repository"] },
+    { filePath, pointer: "/homepage", value: manifest["homepage"] },
+  ];
+
+  const author = isObject(manifest["author"]) ? manifest["author"] : undefined;
+  if (author !== undefined) {
+    references.push({ filePath, pointer: "/author/url", value: author["url"] });
+  }
+
+  const manifestInterface = codexInterface(manifest);
+  if (manifestInterface !== undefined) {
+    for (const fieldName of ["websiteURL", "privacyPolicyURL", "termsOfServiceURL"]) {
+      references.push({
+        filePath,
+        pointer: `${CODEX_EXTENSION_POINTER}/interface/${fieldName}`,
+        value: manifestInterface[fieldName],
+      });
+    }
+  }
+
+  return references.filter((reference) => reference.value !== undefined);
 }
 
 export async function validateReachableUrl(

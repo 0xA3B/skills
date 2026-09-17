@@ -286,13 +286,16 @@ async function writePlugin(
       JSON.stringify({ name: pluginName, version: "1.0.0", description: "Fixture plugin" }),
     );
   }
-  if (targets.codex) {
-    await mkdir(path.join(pluginPath, ".codex-plugin"), { recursive: true });
-    await writeFile(
-      path.join(pluginPath, ".codex-plugin", "plugin.json"),
-      JSON.stringify({ name: pluginName, version: "1.0.0", skills: "./skills/" }),
-    );
-  }
+  await mkdir(pluginPath, { recursive: true });
+  await writeFile(
+    path.join(pluginPath, "plugin.json"),
+    JSON.stringify({
+      $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+      name: pluginName,
+      version: "1.0.0",
+      ...(targets.codex ? { extensions: { "com.openai": {} } } : {}),
+    }),
+  );
 }
 
 async function writeSkill(

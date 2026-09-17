@@ -1,46 +1,22 @@
-import { readdir } from "node:fs/promises";
 import path from "node:path";
 
 import { error, type ValidationContext } from "../diagnostics.js";
-import { isDirectory, pathExists } from "../files.js";
-import { resolveRelativePath } from "../paths.js";
-import type { JsonObject, PluginTargets } from "../types.js";
+import { isDirectory, pathExists, readdirNames } from "../files.js";
+import type { PluginTargets } from "../types.js";
 import { validateSkillFrontmatter } from "./agentskills.js";
 import { validateOpenAiMetadata } from "./openai-metadata.js";
 import { validateTriggerFixture } from "./trigger-fixture.js";
 
+// Agent Plugins 1.0.0 discovers skills at the fixed location skills/, and Claude Code auto-discovers
+// the same directory, so no manifest field names it.
 export async function validateSkillsForPlugin(
   context: ValidationContext,
   pluginPath: string,
-  manifestPath: string,
-  codexManifest: JsonObject | undefined,
   targets: PluginTargets,
 ): Promise<void> {
-  const skillsReference =
-    codexManifest !== undefined && typeof codexManifest["skills"] === "string"
-      ? codexManifest["skills"]
-      : "./skills/";
-  const skillsPath = resolveRelativePath(
-    context,
-    skillsReference,
-    pluginPath,
-    manifestPath,
-    "/skills",
-    "manifest/path",
-  );
-
-  if (skillsPath === undefined || !(await isDirectory(skillsPath))) {
+  const skillsPath = path.join(pluginPath, "skills");
+  if (!(await isDirectory(skillsPath))) {
     return;
-  }
-
-  if (targets.claude && skillsPath !== path.resolve(pluginPath, "skills")) {
-    error(
-      context,
-      "claude-manifest/skills-discovery",
-      manifestPath,
-      `Claude Code discovers skills at ./skills/; Claude-targeted plugins must keep skills there, found "${skillsReference}".`,
-      "/skills",
-    );
   }
 
   await validateSkills(context, skillsPath, targets);
@@ -51,14 +27,7 @@ export async function validateSkills(
   skillsPath: string,
   targets: PluginTargets,
 ): Promise<void> {
-  // Skill names are lowercase kebab-case, so a dot-prefixed directory is never a skill; harness
-  // scratch directories land under skills/ when a shell runs there, and gitignore is not consulted
-  // because lint results must not depend on git configuration.
-  const entries = await readdir(skillsPath, { withFileTypes: true });
-  const skillDirs = entries
-    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
-    .map((entry) => entry.name)
-    .sort();
+  const skillDirs = await readdirNames(skillsPath);
 
   if (skillDirs.length === 0) {
     error(context, "skills/non-empty", skillsPath, "Expected at least one skill directory.");

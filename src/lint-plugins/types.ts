@@ -39,10 +39,3 @@ export type PluginTargets = {
   claude: boolean;
   codex: boolean;
 };
-
-export type ComponentPathRule = {
-  expectedKind: "directory" | "file";
-  fieldName: string;
-  pointer: string;
-  value: unknown;
-};

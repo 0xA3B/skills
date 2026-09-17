@@ -5,7 +5,7 @@ import path from "node:path";
 import { stringify as stringifyYaml } from "yaml";
 
 import { createValidationContext, type Diagnostic, type ValidationContext } from "./diagnostics.js";
-import type { ClaudeCatalogEntry, JsonObject, LocalCatalogEntry } from "./types.js";
+import type { JsonObject } from "./types.js";
 
 type MarketplacePlugin = {
   category: string;
@@ -23,11 +23,11 @@ type MarketplaceFixture = {
   plugins: MarketplacePlugin[];
 };
 
-type PluginManifestFixture = JsonObject & {
+type PortableManifestFixture = JsonObject & {
+  $schema: string;
   description: string;
-  interface: JsonObject;
+  extensions?: JsonObject | undefined;
   name: string;
-  skills: string;
   version: string;
 };
 
@@ -57,7 +57,7 @@ type PluginRepoFixture = {
   claudeManifest?: ClaudePluginManifestFixture | false;
   claudeMarketplace?: ClaudeMarketplaceFixture | false;
   marketplace?: MarketplaceFixture;
-  manifest?: PluginManifestFixture;
+  manifest?: PortableManifestFixture;
   openAiMetadata?: OpenAiMetadataFixture | string;
   skillMarkdown?: SkillMarkdownFixture | string;
 };
@@ -127,22 +127,27 @@ export function validMarketplace(overrides: Partial<MarketplaceFixture> = {}): M
   };
 }
 
-export function validPluginManifest(
-  overrides: Partial<PluginManifestFixture> = {},
-): PluginManifestFixture {
+export function validCodexInterface(overrides: JsonObject = {}): JsonObject {
   return {
+    capabilities: ["skills"],
+    category: "workflow",
+    defaultPrompt: ["Use $demo-plugin:hello."],
+    developerName: "Test Developer",
+    displayName: "Demo Plugin",
+    longDescription: "A plugin used by lint tests.",
+    shortDescription: "Demo plugin",
+    ...overrides,
+  };
+}
+
+export function validPortableManifest(
+  overrides: Partial<PortableManifestFixture> = {},
+): PortableManifestFixture {
+  return {
+    $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
     description: "Demo plugin",
-    interface: {
-      capabilities: ["skills"],
-      category: "workflow",
-      defaultPrompt: ["Use $demo-plugin:hello."],
-      developerName: "Test Developer",
-      displayName: "Demo Plugin",
-      longDescription: "A plugin used by lint tests.",
-      shortDescription: "Demo plugin",
-    },
+    extensions: { "com.openai": { interface: validCodexInterface() } },
     name: "demo-plugin",
-    skills: "./skills/",
     version: "1.0.0",
     ...overrides,
   };
@@ -191,16 +196,6 @@ export function validClaudePluginManifest(
   };
 }
 
-export function validClaudeCatalogEntry(repoRoot: string): ClaudeCatalogEntry {
-  return {
-    manifestPath: path.join(repoRoot, "plugins/demo-plugin/.claude-plugin/plugin.json"),
-    name: "demo-plugin",
-    pluginPath: path.join(repoRoot, "plugins/demo-plugin"),
-    pointer: "/plugins/0",
-    sourcePath: "./plugins/demo-plugin",
-  };
-}
-
 export function validOpenAiMetadata(
   overrides: Partial<OpenAiMetadataFixture> = {},
 ): OpenAiMetadataFixture {
@@ -218,17 +213,6 @@ export function validOpenAiMetadata(
   };
 }
 
-export function validLocalCatalogEntry(repoRoot: string): LocalCatalogEntry {
-  return {
-    category: "workflow",
-    manifestPath: path.join(repoRoot, "plugins/demo-plugin/.codex-plugin/plugin.json"),
-    name: "demo-plugin",
-    pluginPath: path.join(repoRoot, "plugins/demo-plugin"),
-    pointer: "/plugins/0",
-    sourcePath: "./plugins/demo-plugin",
-  };
-}
-
 export async function writeValidPluginRepo(
   repoRoot: string,
   fixture: PluginRepoFixture = {},
@@ -241,8 +225,8 @@ export async function writeValidPluginRepo(
 
   await writeJson(
     repoRoot,
-    "plugins/demo-plugin/.codex-plugin/plugin.json",
-    fixture.manifest ?? validPluginManifest(),
+    "plugins/demo-plugin/plugin.json",
+    fixture.manifest ?? validPortableManifest(),
   );
 
   if (fixture.claudeMarketplace !== false) {

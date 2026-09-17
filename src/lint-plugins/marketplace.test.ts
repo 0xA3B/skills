@@ -3,10 +3,13 @@ import { describe, expect, it } from "vitest";
 import { validateMarketplace } from "./marketplace.js";
 import {
   createTestContext,
+  diagnosticPointers,
   ruleIds,
   validMarketplace,
+  validSkillMarkdown,
   withTempRepo,
   writeJson,
+  writeText,
   writeValidPluginRepo,
 } from "./test-utils.js";
 
@@ -53,6 +56,22 @@ describe("marketplace catalog validation", () => {
           "marketplace/source-exists",
         ]),
       );
+    });
+  });
+
+  it("reports a local source directory without a portable manifest and lists no entry", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeJson(repoRoot, ".agents/plugins/marketplace.json", validMarketplace());
+      await writeText(repoRoot, "plugins/demo-plugin/skills/hello/SKILL.md", validSkillMarkdown());
+      const context = createTestContext(repoRoot);
+
+      const catalog = await validateMarketplace(context);
+
+      expect(ruleIds(context)).toStrictEqual(["marketplace/source-manifest"]);
+      expect(diagnosticPointers(context, "marketplace/source-manifest")).toStrictEqual([
+        "/plugins/0/source",
+      ]);
+      expect(catalog.localEntries.size).toBe(0);
     });
   });
 });
