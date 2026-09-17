@@ -181,6 +181,42 @@ describe("lint runner", () => {
     });
   });
 
+  // Issue #107: a plugin is a bundle under plugins/<name>/, so a manifest anywhere else is not one
+  // of the repository's plugins: an agent worktree checkout under .claude/worktrees/, a copy nested
+  // inside a plugin bundle, or a dot-prefixed scratch directory under plugins/.
+  it("ignores plugin manifests that are not directly under plugins/<name>", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot);
+      for (const manifestPath of [
+        ".claude/worktrees/x/plugins/demo/.codex-plugin/plugin.json",
+        "plugins/demo-plugin/.claude/worktrees/x/plugins/demo/.codex-plugin/plugin.json",
+        "plugins/.scratch/.codex-plugin/plugin.json",
+      ]) {
+        await writeJson(repoRoot, manifestPath, validPluginManifest());
+      }
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.errorCount).toBe(0);
+      expect(ruleIds(result.context)).not.toContain("coverage/manifest-listed");
+    });
+  });
+
+  it("lints a repository that has no plugins directory", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeJson(
+        repoRoot,
+        ".agents/plugins/marketplace.json",
+        validMarketplace({ plugins: [] }),
+      );
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.errorCount).toBe(0);
+      expect(result.pluginCount).toBe(0);
+    });
+  });
+
   it("reports parse errors for malformed manifests that are not listed in the marketplace", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeJson(
