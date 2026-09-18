@@ -11,6 +11,7 @@
     "format:check": "oxfmt --check",
     "format:local": "oxfmt .local/*.md .local/*/*.md --write --no-error-on-unmatched-pattern",
     "format:local:check": "oxfmt .local/*.md .local/*/*.md --check --no-error-on-unmatched-pattern",
+    "install:clean": "pnpm ci",
     "install:frozen": "pnpm install --frozen-lockfile",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives",
     "lint:commits": "commitlint --verbose",
@@ -53,6 +54,11 @@
       "body-leading-blank": [
         2,
         "always"
+      ],
+      "body-max-line-length": [
+        2,
+        "always",
+        100
       ],
       "footer-leading-blank": [
         2,
