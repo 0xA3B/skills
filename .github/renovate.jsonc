@@ -1,44 +1,80 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": ["config:recommended", ":semanticCommits"],
   "timezone": "America/New_York",
+  // Create regular update branches Friday midnight through 9:59 AM Eastern.
   "schedule": ["* 0-9 * * 5"],
   "minimumReleaseAge": "3 days",
   // Preserve unbounded manifest entries by updating only the lockfile.
   "rangeStrategy": "update-lockfile",
+  "rebaseWhen": "behind-base-branch",
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
   "labels": ["dependencies"],
   // Workspace seeds under evals/seeds are staged fixture projects, not dependencies of this repo.
   "ignorePaths": ["**/node_modules/**", "**/bower_components/**", "evals/seeds/**"],
-  // Run after regular updates so unbounded majors stay in reviewable PRs.
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["* 0-9 * * 6"]
+    // Refresh the lockfile on the first Friday of each month, midnight through 9:59 AM Eastern.
+    "schedule": ["* 0-9 1-7 * 5"]
   },
-  // Allow vulnerability alerts to bypass the three-day cooldown.
+  // Allow vulnerability alerts to bypass release-age cooldowns.
   "vulnerabilityAlerts": {
     "minimumReleaseAge": null,
     "labels": ["dependencies", "security"]
   },
   "packageRules": [
-    { "matchManagers": ["npm"], "groupName": "npm dependencies" },
     {
+      "description": "Group npm dependency updates",
+      "matchManagers": ["npm"],
+      "groupName": "npm dependencies"
+    },
+    {
+      "description": "Automerge stable npm patch updates after the seven-day cooldown and CI passes",
+      "matchManagers": ["npm"],
+      "matchCurrentVersion": "!/^0/",
+      "matchUpdateTypes": ["patch"],
+      "groupName": "npm stable patch dependencies",
+      // Give unattended updates more time to stabilize than reviewed updates.
+      // Friday-only runs turn seven days into an effective 7–14-day delay.
+      "minimumReleaseAge": "7 days",
+      "automerge": true
+    },
+    {
+      "description": "Separate major npm dependency updates",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["major"],
       "groupName": "npm major dependencies"
     },
-    { "matchManagers": ["github-actions"], "groupName": "github actions" },
-    { "matchManagers": ["nodenv"], "enabled": false },
     {
+      "description": "Group GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "Keep the Node.js runtime version manual",
+      "matchManagers": ["nodenv"],
+      "enabled": false
+    },
+    {
+      "description": "Keep TypeScript and Node.js type major updates manual",
       "matchManagers": ["npm"],
       "matchPackageNames": ["typescript", "@types/node"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     },
-    { "matchManagers": ["npm"], "matchDepTypes": ["engines"], "enabled": false },
     {
+      "description": "Keep the Node.js engine range manual",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["engines"],
+      "enabled": false
+    },
+    {
+      "description": "Keep lockfile maintenance separate and let pnpm enforce the cooldown",
       // pnpm enforces the cooldown while regenerating the lockfile.
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["lockFileMaintenance"],
+      "groupName": null,
       "minimumReleaseAge": null
     }
   ]
