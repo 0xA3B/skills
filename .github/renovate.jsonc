@@ -15,8 +15,8 @@
   "ignorePaths": ["**/node_modules/**", "**/bower_components/**", "evals/seeds/**"],
   "lockFileMaintenance": {
     "enabled": true,
-    // Refresh the lockfile on the first Friday of each month, midnight through 9:59 AM Eastern.
-    "schedule": ["* 0-9 1-7 * 5"]
+    // Refresh the lockfile on the first Saturday of each month, midnight through 9:59 AM Eastern.
+    "schedule": ["* 0-9 1-7 * 6"]
   },
   // Allow vulnerability alerts to bypass release-age cooldowns.
   "vulnerabilityAlerts": {
