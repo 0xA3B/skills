@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-import { parse as parseYaml } from "yaml";
-
+import { parseSkillDocument } from "../../skills/document.js";
 import { error, type ValidationContext, warning } from "../diagnostics.js";
 import {
   getOptionalBoolean,
@@ -36,14 +35,14 @@ export async function validateSkillFrontmatter(
   skillFilePath: string,
 ): Promise<SkillFrontmatterSummary> {
   const content = await readFile(skillFilePath, "utf8");
-  const frontmatter = extractYamlFrontmatter(content);
+  const document = parseSkillDocument(content);
 
-  if (frontmatter === undefined) {
+  if (document.status === "missing-frontmatter") {
     error(context, "agentskills/frontmatter", skillFilePath, "Missing YAML frontmatter.");
     return EMPTY_SUMMARY;
   }
 
-  if (frontmatter.body.trim().length === 0) {
+  if (document.body.trim().length === 0) {
     error(
       context,
       "agentskills/body",
@@ -52,22 +51,20 @@ export async function validateSkillFrontmatter(
     );
   }
 
-  validateRecommendedBodySize(context, skillFilePath, frontmatter.body);
+  validateRecommendedBodySize(context, skillFilePath, document.body);
 
-  let parsed: unknown;
-  try {
-    parsed = parseYaml(frontmatter.yaml);
-  } catch (parseError) {
+  if (document.status === "invalid-yaml") {
     error(
       context,
       "parse/yaml",
       skillFilePath,
-      `Unable to parse YAML frontmatter: ${errorMessage(parseError)}`,
+      `Unable to parse YAML frontmatter: ${errorMessage(document.error)}`,
       "/frontmatter",
     );
     return EMPTY_SUMMARY;
   }
 
+  const parsed = document.frontmatter;
   if (!isObject(parsed)) {
     error(
       context,
@@ -335,23 +332,6 @@ function validateEnumValue(
     return undefined;
   }
   return value;
-}
-
-function extractYamlFrontmatter(content: string): { yaml: string; body: string } | undefined {
-  const lines = content.split(/\r\n|\n|\r/);
-  if (lines[0] !== "---") {
-    return undefined;
-  }
-
-  const closingLineIndex = lines.indexOf("---", 1);
-  if (closingLineIndex === -1) {
-    return undefined;
-  }
-
-  return {
-    yaml: lines.slice(1, closingLineIndex).join("\n"),
-    body: lines.slice(closingLineIndex + 1).join("\n"),
-  };
 }
 
 function validateRecommendedBodySize(

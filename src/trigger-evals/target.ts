@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { parse as parseYaml } from "yaml";
 
+import { parseSkillDocument } from "../skills/document.js";
 import { isRecord } from "./json.js";
 import type { SkillTarget, TriggerEvalAgent } from "./types.js";
 
@@ -106,13 +107,14 @@ export async function readSkillFileAllowImplicitInvocation(
   skillFilePath: string,
 ): Promise<boolean> {
   const content = await readFile(skillFilePath, "utf8");
-  const frontmatterMatch = content.match(/^---\r?\n(?<frontmatter>[\s\S]*?)\r?\n---(?:\r?\n|$)/);
-  const frontmatter = frontmatterMatch?.groups?.["frontmatter"];
-  if (frontmatter === undefined) {
+  const document = parseSkillDocument(content);
+  if (document.status === "missing-frontmatter") {
     return true;
   }
-
-  const metadata = parseYaml(frontmatter) as unknown;
+  if (document.status === "invalid-yaml") {
+    throw document.error;
+  }
+  const metadata = document.frontmatter;
   return !isRecord(metadata) || metadata["disable-model-invocation"] !== true;
 }
 
