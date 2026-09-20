@@ -129,12 +129,14 @@ describe("Claude extension alignment", () => {
         "alignment/claude-extension",
         "alignment/claude-extension",
       ]);
-      expect(diagnosticPointers(context, "alignment/claude-extension").sort()).toStrictEqual([
+      expect(diagnosticPointers(context, "alignment/claude-extension")).toStrictEqual([
         "/author",
         "/keywords",
         "/version",
       ]);
-      expect(diagnosticByRule(context, "alignment/claude-extension")?.message).toBe(
+      expect(
+        diagnosticByRule(context, "alignment/claude-extension", { pointer: "/version" })?.message,
+      ).toBe(
         'Claude extension "version" ("2.0.0") does not match the portable manifest ("1.0.0"); plugin.json is authoritative.',
       );
     });

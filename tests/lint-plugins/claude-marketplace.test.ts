@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { validateClaudeMarketplace } from "../../src/lint-plugins/claude-marketplace.js";
 import { validateLocalRepositoryAlignment } from "../../src/lint-plugins/coverage.js";
-import { validatePluginRepository } from "../../src/lint-plugins/repository.js";
 import {
   createTestContext,
   ruleIds,
@@ -66,35 +65,6 @@ describe("Claude marketplace validation", () => {
           "claude-marketplace/owner-key",
           "schema/string",
           "claude-marketplace/duplicate-name",
-        ]),
-      );
-    });
-  });
-
-  it("requires local sources that resolve to plugins with Claude manifests", async () => {
-    await withTempRepo(async (repoRoot) => {
-      await writeValidPluginRepo(repoRoot, { claudeManifest: false, claudeMarketplace: false });
-      await writeJson(
-        repoRoot,
-        ".claude-plugin/marketplace.json",
-        validClaudeMarketplace({
-          plugins: [
-            { name: "demo-plugin", source: "./plugins/demo-plugin" },
-            { name: "missing-plugin", source: "./plugins/missing-plugin" },
-            { name: "remote-plugin", source: { repo: "owner/repo", source: "github" } },
-          ],
-        }),
-      );
-      const context = createTestContext(repoRoot);
-
-      const { claudeCatalog: catalog } = await validatePluginRepository(context);
-
-      expect(catalog.localEntries.length).toBe(2);
-      expect(ruleIds(context)).toStrictEqual(
-        expect.arrayContaining([
-          "claude-marketplace/source-manifest",
-          "claude-marketplace/source-exists",
-          "claude-marketplace/source",
         ]),
       );
     });

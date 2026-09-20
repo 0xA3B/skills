@@ -220,7 +220,7 @@ describe("portable manifest validation", () => {
 
       await validatePortableManifest(context, demoOptions(repoRoot));
 
-      expect(ruleIds(context).sort()).toStrictEqual([
+      expect(ruleIds(context)).toStrictEqual([
         "manifest/brand-color",
         "manifest/path",
         "manifest/path-exists",
@@ -265,7 +265,7 @@ describe("portable manifest validation", () => {
         ["./hooks/missing.json", ["manifest/path-exists"]],
         [
           ["./hooks/missing.json", 42],
-          ["manifest/path-exists", "manifest/hooks"],
+          ["manifest/hooks", "manifest/path-exists"],
         ],
         [42, ["manifest/hooks"]],
       ];
@@ -346,11 +346,11 @@ describe("portable manifest validation", () => {
       await validatePortableManifest(context, demoOptions(repoRoot));
 
       expect(diagnosticPointers(context, "schema/string")).toStrictEqual([
-        "/extensions/com.openai/interface/displayName",
-        "/extensions/com.openai/interface/shortDescription",
-        "/extensions/com.openai/interface/longDescription",
-        "/extensions/com.openai/interface/developerName",
         "/extensions/com.openai/interface/category",
+        "/extensions/com.openai/interface/developerName",
+        "/extensions/com.openai/interface/displayName",
+        "/extensions/com.openai/interface/longDescription",
+        "/extensions/com.openai/interface/shortDescription",
       ]);
     });
   });
@@ -388,7 +388,7 @@ describe("portable manifest validation", () => {
 
       await validatePortableManifest(context, demoOptions(repoRoot));
 
-      expect(ruleIds(context).sort()).toStrictEqual(["alignment/directory-name"]);
+      expect(ruleIds(context)).toStrictEqual(["alignment/directory-name"]);
     });
   });
 
@@ -403,8 +403,8 @@ describe("portable manifest validation", () => {
       await validatePortableManifest(context, demoOptions(repoRoot));
 
       expect(diagnosticPointers(context, "schema/string")).toStrictEqual([
-        "/version",
         "/description",
+        "/version",
       ]);
     });
   });
