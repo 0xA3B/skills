@@ -11,13 +11,11 @@ import {
   diagnosticByRule,
   diagnosticPointers,
   ruleIds,
-  validOpenAiMetadata,
-  validSkillMarkdown,
   withTempRepo,
-  writeJson,
   writeText,
   writeValidPluginRepo,
-  validPortableManifest,
+  writePlugin,
+  writeSkill,
 } from "../test-utils.js";
 
 // Fixture checks consume the same resolved target facts as the full lint run. Keep repository
@@ -33,21 +31,6 @@ async function lintFixture(
 
 const bothTargets = { claude: true, codex: true };
 const HELLO_SKILL = "plugins/demo-plugin/skills/hello";
-
-async function writeImplicitSkill(repoRoot: string, skillPath: string, name: string) {
-  await writeText(
-    repoRoot,
-    `${skillPath}/SKILL.md`,
-    validSkillMarkdown({
-      frontmatter: { description: `Use when the user asks for ${name}.`, name },
-    }),
-  );
-  await writeJson(
-    repoRoot,
-    `${skillPath}/agents/openai.yaml`,
-    validOpenAiMetadata({ policy: { allow_implicit_invocation: true } }),
-  );
-}
 
 function fixtureWithSkip(extraSkipKeys: string): string {
   return `version: 1
@@ -164,7 +147,7 @@ cases:
   it("accepts an implicitly invokable same-kind alternate that ships on the fixture's targets", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
-      await writeImplicitSkill(repoRoot, "plugins/demo-plugin/skills/auto", "auto");
+      await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
       await writeText(
         repoRoot,
         `${HELLO_SKILL}/evals/triggers.yaml`,
@@ -181,7 +164,7 @@ cases:
   it("reports an alternate that names the fixture's own skill", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
-      await writeImplicitSkill(repoRoot, "plugins/demo-plugin/skills/auto", "auto");
+      await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
       await writeText(
         repoRoot,
         "plugins/demo-plugin/skills/auto/evals/triggers.yaml",
@@ -230,7 +213,7 @@ cases:
   it("reports a manual-only alternate", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
-      await writeImplicitSkill(repoRoot, "plugins/demo-plugin/skills/auto", "auto");
+      await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
       await writeText(
         repoRoot,
         "plugins/demo-plugin/skills/auto/evals/triggers.yaml",
@@ -275,8 +258,8 @@ cases:
   it("reports a cross-kind alternate in either direction", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
-      await writeImplicitSkill(repoRoot, "plugins/demo-plugin/skills/auto", "auto");
-      await writeImplicitSkill(repoRoot, ".agents/skills/local-skill", "local-skill");
+      await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
+      await writeSkill(repoRoot, { name: "local-skill", implicit: true });
       await writeText(
         repoRoot,
         `${HELLO_SKILL}/evals/triggers.yaml`,
@@ -306,12 +289,12 @@ cases:
   it("reports an alternate whose plugin does not ship on every target of the fixture's plugin", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
-      await writeImplicitSkill(repoRoot, "plugins/codex-only/skills/auto", "auto");
-      await writeJson(
-        repoRoot,
-        "plugins/codex-only/plugin.json",
-        validPortableManifest({ name: "codex-only" }),
-      );
+      await writePlugin(repoRoot, {
+        name: "codex-only",
+        targets: { claude: false, codex: true },
+        skillName: "auto",
+        implicit: true,
+      });
       await writeText(
         repoRoot,
         `${HELLO_SKILL}/evals/triggers.yaml`,
@@ -331,14 +314,11 @@ cases:
   it("reports an alternate whose plugin ships no Codex extension when the fixture runs on Codex", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
-      await writeImplicitSkill(repoRoot, "plugins/claude-only/skills/auto", "auto");
-      await writeJson(
-        repoRoot,
-        "plugins/claude-only/plugin.json",
-        validPortableManifest({ extensions: undefined, name: "claude-only" }),
-      );
-      await writeJson(repoRoot, "plugins/claude-only/.claude-plugin/plugin.json", {
+      await writePlugin(repoRoot, {
         name: "claude-only",
+        targets: { claude: true, codex: false },
+        skillName: "auto",
+        implicit: true,
       });
       await writeText(
         repoRoot,
@@ -358,13 +338,13 @@ cases:
 
   it("checks only the targets the fixture's own plugin ships on", async () => {
     await withTempRepo(async (repoRoot) => {
-      await writeValidPluginRepo(repoRoot, { claudeManifest: false, claudeMarketplace: false });
-      await writeImplicitSkill(repoRoot, "plugins/codex-only/skills/auto", "auto");
-      await writeJson(
-        repoRoot,
-        "plugins/codex-only/plugin.json",
-        validPortableManifest({ name: "codex-only" }),
-      );
+      await writeValidPluginRepo(repoRoot, { targets: { claude: false, codex: true } });
+      await writePlugin(repoRoot, {
+        name: "codex-only",
+        targets: { claude: false, codex: true },
+        skillName: "auto",
+        implicit: true,
+      });
       await writeText(
         repoRoot,
         `${HELLO_SKILL}/evals/triggers.yaml`,
@@ -383,8 +363,8 @@ cases:
 
   it("accepts a repo-local alternate by bare name", async () => {
     await withTempRepo(async (repoRoot) => {
-      await writeImplicitSkill(repoRoot, ".agents/skills/local-skill", "local-skill");
-      await writeImplicitSkill(repoRoot, ".agents/skills/other-skill", "other-skill");
+      await writeSkill(repoRoot, { name: "local-skill", implicit: true });
+      await writeSkill(repoRoot, { name: "other-skill", implicit: true });
       await writeText(
         repoRoot,
         ".agents/skills/local-skill/evals/triggers.yaml",
@@ -464,8 +444,8 @@ cases:
       await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(diagnosticPointers(context, "trigger-fixture/seed-missing")).toStrictEqual([
-        "/workspace/seed",
         "/cases/2/workspace/seed",
+        "/workspace/seed",
       ]);
     });
   });

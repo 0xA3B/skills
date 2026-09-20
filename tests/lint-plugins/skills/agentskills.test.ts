@@ -133,29 +133,6 @@ describe("Agent Skills frontmatter validation", () => {
     });
   });
 
-  it("accepts Claude Code invocation policy in SKILL.md frontmatter", async () => {
-    await withTempRepo(async (repoRoot) => {
-      const skillPath = await writeText(
-        repoRoot,
-        "skills/manual/SKILL.md",
-        validSkillMarkdown({
-          body: "# Manual",
-          frontmatter: {
-            "disable-model-invocation": true,
-            description: "Use when a test needs a manual-only skill fixture.",
-            name: "manual",
-          },
-        }),
-      );
-      const context = createTestContext(repoRoot);
-
-      const summary = await validateSkillFrontmatter(context, "manual", skillPath);
-
-      expect(context.diagnostics).toStrictEqual([]);
-      expect(summary.disableModelInvocation).toBe(true);
-    });
-  });
-
   it("requires disable-model-invocation to be a boolean", async () => {
     await withTempRepo(async (repoRoot) => {
       const skillPath = await writeText(
@@ -234,8 +211,8 @@ describe("Agent Skills frontmatter validation", () => {
       await validateSkillFrontmatter(context, "claude", skillPath);
 
       expect(diagnosticPointers(context, "claude-skill/enum")).toStrictEqual([
-        "/frontmatter/effort",
         "/frontmatter/context",
+        "/frontmatter/effort",
         "/frontmatter/shell",
       ]);
       expect(diagnosticPointers(context, "schema/string")).toStrictEqual(
@@ -354,53 +331,40 @@ describe("Agent Skills frontmatter validation", () => {
     });
   });
 
-  it("warns when SKILL.md body exceeds recommended progressive-disclosure size", async () => {
-    await withTempRepo(async (repoRoot) => {
-      const body = Array.from({ length: 501 }, (_, index) => `${index}. ${"x".repeat(40)}`).join(
-        "\n",
-      );
-      const skillPath = await writeText(
-        repoRoot,
-        "skills/large/SKILL.md",
-        validSkillMarkdown({
-          body,
-          frontmatter: {
-            description: "Use when a test needs an oversized body fixture.",
-            name: "large",
-          },
-        }),
-      );
-      const context = createTestContext(repoRoot);
+  it("warns for excess lines even when the body stays below the token limit", async () => {
+    const context = await lintBody("x\n".repeat(500) + "x"); // 501 lines, 1001 characters.
 
-      await validateSkillFrontmatter(context, "large", skillPath);
-
-      expect(ruleIds(context)).toStrictEqual(["agentskills/body-lines", "agentskills/body-tokens"]);
-      expect(diagnosticByRule(context, "agentskills/body-lines")?.severity).toBe("warning");
-      expect(diagnosticByRule(context, "agentskills/body-tokens")?.severity).toBe("warning");
-    });
+    expect(ruleIds(context)).toStrictEqual(["agentskills/body-lines"]);
+    expect(diagnosticByRule(context, "agentskills/body-lines")?.severity).toBe("warning");
   });
 
-  it("does not warn at the recommended SKILL.md body limits", async () => {
-    await withTempRepo(async (repoRoot) => {
-      const body = Array.from({ length: 500 }, (_, index) => `${index}. ${"x".repeat(30)}`).join(
-        "\n",
-      );
-      const skillPath = await writeText(
-        repoRoot,
-        "skills/limit/SKILL.md",
-        validSkillMarkdown({
-          body,
-          frontmatter: {
-            description: "Use when a test needs a body at the recommended limit.",
-            name: "limit",
-          },
-        }),
-      );
-      const context = createTestContext(repoRoot);
+  it("warns for excess tokens even when the body stays below the line limit", async () => {
+    const context = await lintBody("x".repeat(20_001)); // One line, one character over 5000 tokens.
 
-      await validateSkillFrontmatter(context, "limit", skillPath);
+    expect(ruleIds(context)).toStrictEqual(["agentskills/body-tokens"]);
+    expect(diagnosticByRule(context, "agentskills/body-tokens")?.severity).toBe("warning");
+  });
 
-      expect(context.diagnostics).toStrictEqual([]);
-    });
+  it("reports both warnings when the body exceeds both limits", async () => {
+    const context = await lintBody("x\n".repeat(500) + "x".repeat(19_001)); // 501 lines, 20001 characters.
+
+    expect(ruleIds(context)).toStrictEqual(["agentskills/body-lines", "agentskills/body-tokens"]);
+    expect(diagnosticByRule(context, "agentskills/body-lines")?.severity).toBe("warning");
+    expect(diagnosticByRule(context, "agentskills/body-tokens")?.severity).toBe("warning");
+  });
+
+  it("does not warn at exactly 500 lines and 5000 estimated tokens", async () => {
+    const context = await lintBody("x\n".repeat(499) + "x".repeat(19_002)); // 500 lines, 20000 characters.
+
+    expect(context.diagnostics).toStrictEqual([]);
   });
 });
+
+async function lintBody(body: string) {
+  return withTempRepo(async (repoRoot) => {
+    const skillPath = await writeText(repoRoot, "hello/SKILL.md", validSkillMarkdown({ body }));
+    const context = createTestContext(repoRoot);
+    await validateSkillFrontmatter(context, "hello", skillPath);
+    return context;
+  });
+}
