@@ -76,7 +76,7 @@ export async function withTempRepo<T>(callback: (repoRoot: string) => Promise<T>
 }
 
 export function createTestContext(repoRoot: string): ValidationContext {
-  return createValidationContext({ externalValidationEnabled: false, repoRoot });
+  return createValidationContext({ repoRoot });
 }
 
 export function ruleIds(context: ValidationContext): string[] {

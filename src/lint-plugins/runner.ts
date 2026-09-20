@@ -5,7 +5,6 @@ import {
   type ValidationContext,
   type ValidationOptions,
 } from "./diagnostics.js";
-import { validateExternalReferences } from "./external.js";
 import { isDirectory, readdirNames } from "./files.js";
 import { printDiagnostics } from "./output.js";
 import { validatePluginRepository, type PluginRepository } from "./repository.js";
@@ -36,7 +35,6 @@ export async function lintPlugins(options: ValidationOptions = {}): Promise<Lint
     );
   }
   const repoLocalSkillCount = await validateRepoLocalSkills(context, repository);
-  await validateExternalReferences(context, catalog, repository.manifestsByPath);
 
   const errorCount = context.diagnostics.filter(
     (diagnostic) => diagnostic.severity === "error",
@@ -98,9 +96,8 @@ export async function runLintPlugins(options: ValidationOptions = {}): Promise<v
     return;
   }
 
-  const externalLabel = context.externalValidationEnabled ? " with external checks" : "";
   console.log(
-    `Linted ${pluginCount} local plugin(s) and ${repoLocalSkillCount} repo-local skill(s)${externalLabel}.`,
+    `Linted ${pluginCount} local plugin(s) and ${repoLocalSkillCount} repo-local skill(s).`,
   );
 }
 

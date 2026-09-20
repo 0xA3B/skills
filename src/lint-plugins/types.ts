@@ -8,16 +8,9 @@ export type LocalCatalogEntry = {
   sourcePath: string;
 };
 
-export type RemoteCatalogEntry = {
-  name: string;
-  pointer: string;
-  source: JsonObject;
-};
-
 export type Catalog = {
   localEntries: LocalCatalogEntry[];
   marketplacePath: string;
-  remoteEntries: RemoteCatalogEntry[];
 };
 
 export type ClaudeCatalogEntry = {

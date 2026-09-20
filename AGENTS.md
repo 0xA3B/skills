@@ -105,7 +105,6 @@ implementation.
 | **Invocation signal**        | The observed evidence that the agent invoked the target skill: an eval canary in Codex output, Claude Code Skill tool events, or legacy Codex skill-injection telemetry as a secondary signal.                                                                                                                                        | telemetry                                |
 | **Eval canary**              | An eval-only token appended to the body of a staged skill copy so its appearance in agent output proves invocation; the frontmatter description stays byte-identical to the committed skill.                                                                                                                                          | invocation signal                        |
 | **Plugin linter**            | The local validator behind `pnpm lint:plugins`, covering marketplace, manifest, skill, and metadata consistency.                                                                                                                                                                                                                      | validator                                |
-| **External validation**      | Opt-in network or remote URL checks run separately from default local plugin linting.                                                                                                                                                                                                                                                 | normal linting                           |
 | **Review lane**              | A focused review pass over the same target with one intent, such as code review, simplification, codebase design, API/seam review, test review, spec adherence, or prose review.                                                                                                                                                      | review scope                             |
 | **Decision map**             | The tracker-neutral output of Wayfinder: a destination, known ground, decision-sized chunks, dependencies, frontier, unresolved fog, and excluded scope.                                                                                                                                                                              | ticket list, spec                        |
 | **Frontier**                 | The items whose prerequisites are already settled and that are useful to work next: chunks on a Decision map in wayfinder, open questions in a grill-me round, acceptance criteria in a tdd round.                                                                                                                                    | backlog                                  |
@@ -134,7 +133,6 @@ Relationships:
   shared by every fixture that names it.
 - A **Trigger fixture** skip case carries zero or one **Routing assertion**; the cases whose
   **Routing assertion** names a skill are that skill's **Dependent cases**.
-- **Plugin linter** checks are local and deterministic by default; **External validation** is
-  opt-in.
+- **Plugin linter** checks are local and deterministic.
 - A **Review lane** separates review intent from review scope; scope belongs to the invoking review
   workflow.

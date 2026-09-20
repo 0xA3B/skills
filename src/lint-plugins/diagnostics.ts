@@ -10,19 +10,16 @@ export type Diagnostic = {
 
 export type ValidationContext = {
   diagnostics: Diagnostic[];
-  externalValidationEnabled: boolean;
   repoRoot: string;
 };
 
 export type ValidationOptions = {
-  externalValidationEnabled?: boolean;
   repoRoot?: string;
 };
 
 export function createValidationContext(options: ValidationOptions = {}): ValidationContext {
   return {
     diagnostics: [],
-    externalValidationEnabled: options.externalValidationEnabled ?? false,
     repoRoot: options.repoRoot ?? process.cwd(),
   };
 }
