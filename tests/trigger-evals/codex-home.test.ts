@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { prepareCodexHome } from "./codex-home.js";
+import { prepareCodexHome } from "../../src/trigger-evals/codex-home.js";
 
 describe("prepareCodexHome", () => {
   it("builds an eval config when the source config is missing", async () => {

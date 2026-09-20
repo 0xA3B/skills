@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { lintPlugins, runLintPlugins } from "./runner.js";
+import { lintPlugins, runLintPlugins } from "../../src/lint-plugins/runner.js";
 import {
   ruleIds,
   validClaudeMarketplace,

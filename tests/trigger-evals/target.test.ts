@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { readAllowImplicitInvocation, resolveSkillTarget } from "./target.js";
+import { readAllowImplicitInvocation, resolveSkillTarget } from "../../src/trigger-evals/target.js";
 
 describe("resolveSkillTarget", () => {
   it("accepts repo plugin skill paths", () => {

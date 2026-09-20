@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { cliRunError, spawnStreamingCli, type StreamingCliOptions } from "./exec.js";
+import {
+  cliRunError,
+  spawnStreamingCli,
+  type StreamingCliOptions,
+} from "../../src/trigger-evals/exec.js";
 
 const node = process.execPath;
 

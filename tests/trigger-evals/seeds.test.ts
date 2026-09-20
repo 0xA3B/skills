@@ -12,7 +12,7 @@ import {
   seedGitEnvironment,
   stageSeededWorkspace,
   writeWorkspaceFiles,
-} from "./seeds.js";
+} from "../../src/trigger-evals/seeds.js";
 import { writeSeedFixture } from "./test-utils.js";
 
 const execFileAsync = promisify(execFile);

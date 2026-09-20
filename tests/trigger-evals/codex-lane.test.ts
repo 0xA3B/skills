@@ -6,18 +6,18 @@ import { promisify } from "node:util";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createCodexLane, observeCodexOutput } from "./codex-lane.js";
-import type { StreamingCliOptions, StreamingCliResult } from "./exec.js";
-import type { LaneRunOptions } from "./lanes.js";
-import { seedGitEnvironment } from "./seeds.js";
-import { resolveSkillTarget, skillTargetLabel } from "./target.js";
+import { createCodexLane, observeCodexOutput } from "../../src/trigger-evals/codex-lane.js";
+import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
+import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
+import { seedGitEnvironment } from "../../src/trigger-evals/seeds.js";
+import { resolveSkillTarget, skillTargetLabel } from "../../src/trigger-evals/target.js";
+import type { SkillTarget } from "../../src/trigger-evals/types.js";
 import {
   agentMessageEvent,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
   writeSeedFixture,
 } from "./test-utils.js";
-import type { SkillTarget } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -26,7 +26,7 @@ const spawnCalls = vi.hoisted(
 );
 
 // The lane is tested against the real filesystem; only the process boundary is faked.
-vi.mock(import("./exec.js"), async (importOriginal) => {
+vi.mock(import("../../src/trigger-evals/exec.js"), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,

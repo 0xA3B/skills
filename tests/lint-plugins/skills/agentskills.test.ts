@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { validateSkillFrontmatter } from "../../../src/lint-plugins/skills/agentskills.js";
 import {
   createTestContext,
   diagnosticByRule,
@@ -9,7 +10,6 @@ import {
   withTempRepo,
   writeText,
 } from "../test-utils.js";
-import { validateSkillFrontmatter } from "./agentskills.js";
 
 describe("Agent Skills frontmatter validation", () => {
   it("accepts a spec-shaped SKILL.md", async () => {

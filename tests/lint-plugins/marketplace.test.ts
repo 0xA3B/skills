@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateMarketplace } from "./marketplace.js";
+import { validateMarketplace } from "../../src/lint-plugins/marketplace.js";
 import {
   createTestContext,
   diagnosticPointers,

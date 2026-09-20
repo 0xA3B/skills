@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { validateTriggerFixture } from "../../../src/lint-plugins/skills/trigger-fixture.js";
 import {
   createTestContext,
   diagnosticByRule,
@@ -15,7 +16,6 @@ import {
   writeValidPluginRepo,
   validPortableManifest,
 } from "../test-utils.js";
-import { validateTriggerFixture } from "./trigger-fixture.js";
 
 const bothTargets = { claude: true, codex: true };
 const HELLO_SKILL = "plugins/demo-plugin/skills/hello";

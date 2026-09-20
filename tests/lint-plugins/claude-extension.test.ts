@@ -2,7 +2,10 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { validateClaudeExtension, validateClaudeExtensionAlignment } from "./claude-extension.js";
+import {
+  validateClaudeExtension,
+  validateClaudeExtensionAlignment,
+} from "../../src/lint-plugins/claude-extension.js";
 import {
   createTestContext,
   diagnosticByRule,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validatePortableManifest } from "./portable-manifest.js";
+import { validatePortableManifest } from "../../src/lint-plugins/portable-manifest.js";
 import {
   createTestContext,
   diagnosticByRule,

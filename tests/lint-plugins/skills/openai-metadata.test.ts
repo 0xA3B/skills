@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { validateOpenAiMetadata } from "../../../src/lint-plugins/skills/openai-metadata.js";
 import {
   createTestContext,
   ruleIds,
@@ -11,7 +12,6 @@ import {
   withTempRepo,
   writeText,
 } from "../test-utils.js";
-import { validateOpenAiMetadata } from "./openai-metadata.js";
 
 describe("OpenAI skill metadata validation", () => {
   it("accepts Codex openai.yaml metadata with optional icons and tool dependencies", async () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { validateClaudeMarketplace } from "./claude-marketplace.js";
-import { validateLocalRepositoryAlignment } from "./coverage.js";
+import { validateClaudeMarketplace } from "../../src/lint-plugins/claude-marketplace.js";
+import { validateLocalRepositoryAlignment } from "../../src/lint-plugins/coverage.js";
 import {
   createTestContext,
   ruleIds,

@@ -4,8 +4,12 @@ import path from "node:path";
 
 import { stringify as stringifyYaml } from "yaml";
 
-import { createValidationContext, type Diagnostic, type ValidationContext } from "./diagnostics.js";
-import type { JsonObject } from "./types.js";
+import {
+  createValidationContext,
+  type Diagnostic,
+  type ValidationContext,
+} from "../../src/lint-plugins/diagnostics.js";
+import type { JsonObject } from "../../src/lint-plugins/types.js";
 
 type MarketplacePlugin = {
   category: string;

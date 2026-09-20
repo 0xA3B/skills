@@ -3,8 +3,8 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { validateSkills } from "../../../src/lint-plugins/skills/index.js";
 import { createTestContext, ruleIds, withTempRepo, writeValidPluginRepo } from "../test-utils.js";
-import { validateSkills } from "./index.js";
 
 const bothTargets = { claude: true, codex: true };
 
