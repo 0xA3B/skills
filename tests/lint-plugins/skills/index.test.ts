@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { validatePluginRepository } from "../../../src/lint-plugins/repository.js";
 import { validateSkills } from "../../../src/lint-plugins/skills/index.js";
 import { createTestContext, ruleIds, withTempRepo, writeValidPluginRepo } from "../test-utils.js";
 
@@ -19,7 +20,8 @@ describe("validateSkills", () => {
       await mkdir(path.join(skillsPath, ".claude", ".cc-writes"), { recursive: true });
       const context = createTestContext(repoRoot);
 
-      await validateSkills(context, skillsPath, bothTargets);
+      const repository = await validatePluginRepository(createTestContext(repoRoot));
+      await validateSkills(context, skillsPath, bothTargets, repository.missingTargets);
 
       expect(ruleIds(context)).toStrictEqual([]);
     });
@@ -31,7 +33,8 @@ describe("validateSkills", () => {
       await mkdir(path.join(skillsPath, ".hidden"), { recursive: true });
       const context = createTestContext(repoRoot);
 
-      await validateSkills(context, skillsPath, bothTargets);
+      const repository = await validatePluginRepository(createTestContext(repoRoot));
+      await validateSkills(context, skillsPath, bothTargets, repository.missingTargets);
 
       expect(ruleIds(context)).toStrictEqual(["skills/non-empty"]);
     });

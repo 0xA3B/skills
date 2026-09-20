@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { error, type ValidationContext } from "../diagnostics.js";
 import { isDirectory, pathExists, readdirNames } from "../files.js";
+import type { FindMissingPluginTargets } from "../repository.js";
 import type { PluginTargets } from "../types.js";
 import { validateSkillFrontmatter } from "./agentskills.js";
 import { validateOpenAiMetadata } from "./openai-metadata.js";
@@ -13,19 +14,21 @@ export async function validateSkillsForPlugin(
   context: ValidationContext,
   pluginPath: string,
   targets: PluginTargets,
+  missingTargets: FindMissingPluginTargets,
 ): Promise<void> {
   const skillsPath = path.join(pluginPath, "skills");
   if (!(await isDirectory(skillsPath))) {
     return;
   }
 
-  await validateSkills(context, skillsPath, targets);
+  await validateSkills(context, skillsPath, targets, missingTargets);
 }
 
 export async function validateSkills(
   context: ValidationContext,
   skillsPath: string,
   targets: PluginTargets,
+  missingTargets: FindMissingPluginTargets,
 ): Promise<void> {
   const skillDirs = await readdirNames(skillsPath);
 
@@ -35,7 +38,7 @@ export async function validateSkills(
 
   for (const skillName of skillDirs) {
     const skillPath = path.join(skillsPath, skillName);
-    await validateSkill(context, skillName, skillPath, targets);
+    await validateSkill(context, skillName, skillPath, targets, missingTargets);
   }
 }
 
@@ -44,6 +47,7 @@ export async function validateSkill(
   skillName: string,
   skillPath: string,
   targets: PluginTargets,
+  missingTargets: FindMissingPluginTargets,
 ): Promise<void> {
   const skillFilePath = path.join(skillPath, "SKILL.md");
   if (!(await pathExists(skillFilePath))) {
@@ -52,7 +56,7 @@ export async function validateSkill(
   }
 
   const frontmatter = await validateSkillFrontmatter(context, skillName, skillFilePath);
-  await validateTriggerFixture(context, skillPath, targets);
+  await validateTriggerFixture(context, skillPath, targets, missingTargets);
   const metadataPath = path.join(skillPath, "agents", "openai.yaml");
   if (!(await pathExists(metadataPath))) {
     if (targets.codex) {

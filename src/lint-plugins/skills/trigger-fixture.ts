@@ -8,16 +8,16 @@ import {
   resolveSkillTarget,
   skillTargetLabel,
 } from "../../trigger-evals/target.js";
-import type { TriggerFixture } from "../../trigger-evals/types.js";
+import type { SkillTarget, TriggerFixture } from "../../trigger-evals/types.js";
 import { error, type ValidationContext } from "../diagnostics.js";
 import { isDirectory, pathExists } from "../files.js";
-import { readPluginTargets } from "../plugin-targets.js";
+import type { FindMissingPluginTargets } from "../repository.js";
 import type { PluginTargets } from "../types.js";
 
 // The two skill layouts a fixture can live in. Alternates named by invoke-instead are resolved
 // against the same layouts, so a plugin fixture names <plugin>:<skill> and a repo-local fixture
 // names a bare skill name.
-type FixtureKind = "plugin" | "repo-local";
+type FixtureKind = SkillTarget["kind"];
 
 // Lints evals/triggers.yaml when a skill ships one: every loader finding becomes a
 // trigger-fixture/schema diagnostic, and a fixture that parses cleanly is cross-checked against
@@ -26,6 +26,7 @@ export async function validateTriggerFixture(
   context: ValidationContext,
   skillPath: string,
   targets: PluginTargets,
+  missingTargets: FindMissingPluginTargets,
 ): Promise<void> {
   const fixturePath = path.join(skillPath, "evals", "triggers.yaml");
   if (!(await pathExists(fixturePath))) {
@@ -47,19 +48,23 @@ export async function validateTriggerFixture(
     return;
   }
 
-  const kind = fixtureKind(context.repoRoot, skillPath);
+  const ownTarget = fixtureTarget(context.repoRoot, skillPath);
   for (const [index, testCase] of fixture.cases.entries()) {
-    if (testCase.invokeInstead === undefined || kind === undefined) {
+    if (testCase.invokeInstead === undefined || ownTarget === undefined) {
       continue;
     }
-    await validateAlternate(context, {
-      fixturePath,
-      kind,
-      targets,
-      ownLabel: skillTargetLabel(resolveSkillTarget(context.repoRoot, skillPath)),
-      label: testCase.invokeInstead,
-      caseIndex: index,
-    });
+    await validateAlternate(
+      context,
+      {
+        fixturePath,
+        kind: ownTarget.kind,
+        targets,
+        ownLabel: skillTargetLabel(ownTarget),
+        label: testCase.invokeInstead,
+        caseIndex: index,
+      },
+      missingTargets,
+    );
   }
 
   await validateSeeds(context, fixturePath, fixture);
@@ -75,7 +80,11 @@ type AlternateCheck = {
   caseIndex: number;
 };
 
-async function validateAlternate(context: ValidationContext, check: AlternateCheck): Promise<void> {
+async function validateAlternate(
+  context: ValidationContext,
+  check: AlternateCheck,
+  missingTargets: FindMissingPluginTargets,
+): Promise<void> {
   const { fixturePath, kind, targets, ownLabel, label, caseIndex } = check;
   const pointer = `/cases/${caseIndex}/invoke-instead`;
   const { pluginName, skillName } = parseSkillLabel(label);
@@ -152,20 +161,14 @@ async function validateAlternate(context: ValidationContext, check: AlternateChe
   }
   // A routing assertion runs on every lane the fixture's own plugin runs on, so the alternate's
   // plugin must ship on each of those targets or the assertion can never pass there.
-  const shipped = await readPluginTargets(path.join(context.repoRoot, "plugins", pluginName));
-  for (const target of ["claude", "codex"] as const) {
-    if (!targets[target]) {
-      continue;
-    }
-    if (!shipped[target]) {
-      error(
-        context,
-        "trigger-fixture/alternate-target",
-        fixturePath,
-        `invoke-instead names "${label}", but plugin "${pluginName}" does not ship on ${target}, where this fixture also runs.`,
-        pointer,
-      );
-    }
+  for (const target of missingTargets(pluginName, targets)) {
+    error(
+      context,
+      "trigger-fixture/alternate-target",
+      fixturePath,
+      `invoke-instead names "${label}", but plugin "${pluginName}" does not ship on ${target}, where this fixture also runs.`,
+      pointer,
+    );
   }
 }
 
@@ -200,15 +203,14 @@ async function validateSeeds(
   }
 }
 
-function fixtureKind(repoRoot: string, skillPath: string): FixtureKind | undefined {
-  const segments = path.relative(repoRoot, skillPath).split(path.sep);
-  if (segments.length === 4 && segments[0] === "plugins" && segments[2] === "skills") {
-    return "plugin";
+// Standalone skill validation also accepts directories outside the repository layouts. Such
+// fixtures still receive schema and seed checks, but have no repository identity for routing.
+function fixtureTarget(repoRoot: string, skillPath: string): SkillTarget | undefined {
+  try {
+    return resolveSkillTarget(repoRoot, skillPath);
+  } catch {
+    return undefined;
   }
-  if (segments.length === 3 && segments[0] === ".agents" && segments[1] === "skills") {
-    return "repo-local";
-  }
-  return undefined;
 }
 
 // Loader pointers use the fixture's own vocabulary (cases[3].workspace_files["src/a.ts"], with

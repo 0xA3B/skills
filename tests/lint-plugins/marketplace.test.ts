@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { validateMarketplace } from "../../src/lint-plugins/marketplace.js";
+import { validatePluginRepository } from "../../src/lint-plugins/repository.js";
 import {
   createTestContext,
   diagnosticPointers,
@@ -22,7 +23,7 @@ describe("marketplace catalog validation", () => {
       const catalog = await validateMarketplace(context);
 
       expect(context.diagnostics).toStrictEqual([]);
-      expect([...catalog.localEntries.keys()]).toStrictEqual(["demo-plugin"]);
+      expect(catalog.localEntries.map((entry) => entry.name)).toStrictEqual(["demo-plugin"]);
     });
   });
 
@@ -47,7 +48,7 @@ describe("marketplace catalog validation", () => {
       });
       const context = createTestContext(repoRoot);
 
-      await validateMarketplace(context);
+      await validatePluginRepository(context);
 
       expect(ruleIds(context)).toStrictEqual(
         expect.arrayContaining([
@@ -59,19 +60,19 @@ describe("marketplace catalog validation", () => {
     });
   });
 
-  it("reports a local source directory without a portable manifest and lists no entry", async () => {
+  it("reports a missing portable manifest without discarding the catalog declaration", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeJson(repoRoot, ".agents/plugins/marketplace.json", validMarketplace());
       await writeText(repoRoot, "plugins/demo-plugin/skills/hello/SKILL.md", validSkillMarkdown());
       const context = createTestContext(repoRoot);
 
-      const catalog = await validateMarketplace(context);
+      const { catalog } = await validatePluginRepository(context);
 
-      expect(ruleIds(context)).toStrictEqual(["marketplace/source-manifest"]);
+      expect(ruleIds(context)).toContain("marketplace/source-manifest");
       expect(diagnosticPointers(context, "marketplace/source-manifest")).toStrictEqual([
         "/plugins/0/source",
       ]);
-      expect(catalog.localEntries.size).toBe(0);
+      expect(catalog.localEntries.length).toBe(1);
     });
   });
 });

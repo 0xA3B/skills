@@ -30,7 +30,7 @@ type CodexPathRule = {
 export async function validateCodexExtension(
   context: ValidationContext,
   extension: JsonObject,
-  location: { category: string | undefined; manifestPath: string; pluginPath: string },
+  location: ManifestLocation,
 ): Promise<void> {
   for (const key of Object.keys(extension)) {
     if (!CODEX_EXTENSION_KEYS.has(key)) {
@@ -66,7 +66,7 @@ export async function validateCodexExtension(
 function validatePluginInterface(
   context: ValidationContext,
   manifestInterface: JsonObject,
-  location: ManifestLocation & { category: string | undefined },
+  location: ManifestLocation,
   pointerBase: string,
 ): void {
   const { manifestPath } = location;
@@ -74,27 +74,7 @@ function validatePluginInterface(
   for (const fieldName of ["displayName", "shortDescription", "longDescription", "developerName"]) {
     getString(context, manifestInterface, fieldName, manifestPath, `${pointer}/${fieldName}`);
   }
-  const interfaceCategory = getString(
-    context,
-    manifestInterface,
-    "category",
-    manifestPath,
-    `${pointer}/category`,
-  );
-
-  if (
-    location.category !== undefined &&
-    interfaceCategory !== undefined &&
-    location.category !== interfaceCategory
-  ) {
-    error(
-      context,
-      "alignment/category",
-      manifestPath,
-      `Plugin interface category "${interfaceCategory}" does not match marketplace category "${location.category}".`,
-      `${pointer}/category`,
-    );
-  }
+  getString(context, manifestInterface, "category", manifestPath, `${pointer}/category`);
 
   validateStringArray(
     context,

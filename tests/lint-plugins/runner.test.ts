@@ -19,6 +19,197 @@ import {
 } from "./test-utils.js";
 
 describe("lint runner", () => {
+  it.each(["missing", "unreadable"])(
+    "leaves alternate Codex presence unknown when its portable manifest is %s",
+    async (state) => {
+      await withTempRepo(async (repoRoot) => {
+        await writeValidPluginRepo(repoRoot);
+        if (state === "missing") {
+          await rm(path.join(repoRoot, "plugins/demo-plugin/plugin.json"));
+        } else {
+          await writeText(repoRoot, "plugins/demo-plugin/plugin.json", "{");
+        }
+        await writeText(
+          repoRoot,
+          "plugins/demo-plugin/skills/auto/SKILL.md",
+          validSkillMarkdown({
+            frontmatter: { name: "auto", description: "Use for the alternate routing case." },
+          }),
+        );
+        await writeJson(
+          repoRoot,
+          "plugins/demo-plugin/skills/auto/agents/openai.yaml",
+          validOpenAiMetadata({
+            policy: { allow_implicit_invocation: true },
+          }),
+        );
+        await writeText(
+          repoRoot,
+          "plugins/demo-plugin/skills/hello/evals/triggers.yaml",
+          `version: 1
+cases:
+  - id: invoke-case
+    prompt: Do the thing.
+    expect: invoke
+  - id: skip-case
+    prompt: Do something else.
+    expect: skip
+    invoke-instead: demo-plugin:auto
+`,
+        );
+
+        const result = await lintPlugins({ repoRoot });
+
+        expect(ruleIds(result.context)).toContain(
+          state === "missing" ? "coverage/portable-manifest" : "parse/json",
+        );
+        expect(ruleIds(result.context)).not.toContain("trigger-fixture/alternate-target");
+        expect(ruleIds(result.context)).not.toContain("coverage/codex-extension");
+      });
+    },
+  );
+
+  it("resolves later plugins before checking cross-plugin routing assertions", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const marketplace = validMarketplace();
+      marketplace.plugins.push({
+        ...marketplace.plugins[0]!,
+        name: "z-plugin",
+        source: "./plugins/z-plugin",
+      });
+      await writeValidPluginRepo(repoRoot, { marketplace });
+      await writeJson(
+        repoRoot,
+        "plugins/z-plugin/plugin.json",
+        validPortableManifest({ name: "z-plugin" }),
+      );
+      await writeText(
+        repoRoot,
+        "plugins/z-plugin/skills/auto/SKILL.md",
+        validSkillMarkdown({
+          frontmatter: {
+            name: "auto",
+            description: "Use when a routing assertion needs an alternate.",
+          },
+        }),
+      );
+      await writeJson(
+        repoRoot,
+        "plugins/z-plugin/skills/auto/agents/openai.yaml",
+        validOpenAiMetadata({
+          policy: { allow_implicit_invocation: true },
+        }),
+      );
+      await writeText(
+        repoRoot,
+        "plugins/demo-plugin/skills/hello/evals/triggers.yaml",
+        `version: 1
+cases:
+  - id: invoke-case
+    prompt: Do the thing.
+    expect: invoke
+  - id: skip-case
+    prompt: Do something else.
+    expect: skip
+    invoke-instead: z-plugin:auto
+`,
+      );
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.errorCount).toBe(1);
+      expect(result.context.diagnostics).toStrictEqual([
+        expect.objectContaining({
+          ruleId: "trigger-fixture/alternate-target",
+          pointer: "/cases/1/invoke-instead",
+          message:
+            'invoke-instead names "z-plugin:auto", but plugin "z-plugin" does not ship on claude, where this fixture also runs.',
+        }),
+      ]);
+    });
+  });
+
+  it("checks category alignment on every declaration, including duplicate names", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const marketplace = validMarketplace();
+      marketplace.plugins.unshift({ ...marketplace.plugins[0]!, category: "wrong-category" });
+      await writeValidPluginRepo(repoRoot, { marketplace });
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(result.catalog.localEntries).toHaveLength(2);
+      expect(ruleIds(result.context)).toStrictEqual(
+        expect.arrayContaining(["marketplace/duplicate-name", "alignment/category"]),
+      );
+      expect(
+        result.context.diagnostics.find((d) => d.ruleId === "alignment/category"),
+      ).toMatchObject({
+        filePath: path.join(repoRoot, "plugins/demo-plugin/plugin.json"),
+        pointer: "/extensions/com.openai/interface/category",
+      });
+    });
+  });
+
+  it.each(["codex", "claude"] as const)(
+    "checks every %s catalog declaration when two names resolve to one plugin",
+    async (target) => {
+      await withTempRepo(async (repoRoot) => {
+        const marketplace = validMarketplace();
+        const claudeMarketplace = validClaudeMarketplace();
+        if (target === "codex") {
+          marketplace.plugins.unshift({
+            ...marketplace.plugins[0]!,
+            name: "wrong-name",
+          });
+        } else {
+          claudeMarketplace.plugins.unshift({
+            name: "wrong-name",
+            source: "./plugins/demo-plugin",
+          });
+        }
+        await writeValidPluginRepo(repoRoot, { marketplace, claudeMarketplace });
+
+        const result = await lintPlugins({ repoRoot });
+
+        expect(result.pluginCount).toBe(1);
+        expect(
+          result.context.diagnostics.filter((d) => d.ruleId === "alignment/name"),
+        ).toStrictEqual([
+          expect.objectContaining({
+            filePath: path.join(
+              repoRoot,
+              "plugins/demo-plugin",
+              target === "codex" ? "plugin.json" : ".claude-plugin/plugin.json",
+            ),
+            pointer: "/name",
+            message: 'Manifest name "demo-plugin" does not match marketplace name "wrong-name".',
+          }),
+        ]);
+      });
+    },
+  );
+
+  it("keeps checking the Claude extension and skills when the portable manifest cannot be parsed", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot, {
+        claudeManifest: validClaudePluginManifest({ skills: "./elsewhere" }),
+      });
+      await writeText(repoRoot, "plugins/demo-plugin/plugin.json", "{");
+      await rm(path.join(repoRoot, "plugins/demo-plugin/skills/hello/agents/openai.yaml"));
+
+      const result = await lintPlugins({ repoRoot });
+
+      expect(ruleIds(result.context)).toStrictEqual(
+        expect.arrayContaining([
+          "parse/json",
+          "claude-manifest/skills-path",
+          "repo/openai-metadata-required",
+        ]),
+      );
+      expect(ruleIds(result.context)).not.toContain("coverage/codex-extension");
+    });
+  });
+
   // Agent Plugins 1.0.0: "The Agent Plugins core specification defines exactly one portable
   // manifest per plugin", plugin.json at the plugin root. Codex reads its metadata from
   // extensions.com.openai in that file; Claude Code keeps reading .claude-plugin/plugin.json.
@@ -30,8 +221,8 @@ describe("lint runner", () => {
 
       expect(result.errorCount).toBe(0);
       expect(result.warningCount).toBe(0);
-      expect(result.catalog.localEntries.size).toBe(1);
-      expect(result.claudeCatalog.localEntries.size).toBe(1);
+      expect(result.catalog.localEntries.length).toBe(1);
+      expect(result.claudeCatalog.localEntries.length).toBe(1);
       expect(result.pluginCount).toBe(1);
     });
   });

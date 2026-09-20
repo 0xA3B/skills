@@ -1,9 +1,8 @@
 import path from "node:path";
 
 import { error, type ValidationContext } from "./diagnostics.js";
-import { isDirectory, isFile, readJsonObject } from "./files.js";
+import { readJsonObject } from "./files.js";
 import { marketplaceRootFromPath, resolveRelativePath } from "./paths.js";
-import { portableManifestPath } from "./portable-manifest.js";
 import { getObject, getOptionalString, getString, isObject } from "./schema.js";
 import type { Catalog, JsonObject, LocalCatalogEntry, RemoteCatalogEntry } from "./types.js";
 import { validateGitUrlString } from "./urls.js";
@@ -12,7 +11,7 @@ export async function validateMarketplace(context: ValidationContext): Promise<C
   const marketplacePath = path.join(context.repoRoot, ".agents", "plugins", "marketplace.json");
   const marketplaceRoot = marketplaceRootFromPath(marketplacePath);
   const marketplace = await readJsonObject(context, marketplacePath);
-  const localEntries = new Map<string, LocalCatalogEntry>();
+  const localEntries: LocalCatalogEntry[] = [];
   const remoteEntries: RemoteCatalogEntry[] = [];
   const seenNames = new Set<string>();
 
@@ -89,7 +88,7 @@ export async function validateMarketplace(context: ValidationContext): Promise<C
 
     const source = plugin["source"];
     if (typeof source === "string") {
-      const pluginPath = await validateLocalMarketplacePath(
+      const pluginPath = validateLocalMarketplacePath(
         context,
         name,
         source,
@@ -99,7 +98,7 @@ export async function validateMarketplace(context: ValidationContext): Promise<C
         `${pointer}/source`,
       );
       if (pluginPath !== undefined) {
-        localEntries.set(name, pluginPath);
+        localEntries.push(pluginPath);
       }
       continue;
     }
@@ -134,7 +133,7 @@ export async function validateMarketplace(context: ValidationContext): Promise<C
         continue;
       }
 
-      const pluginPath = await validateLocalMarketplacePath(
+      const pluginPath = validateLocalMarketplacePath(
         context,
         name,
         sourcePath,
@@ -144,7 +143,7 @@ export async function validateMarketplace(context: ValidationContext): Promise<C
         `${pointer}/source/path`,
       );
       if (pluginPath !== undefined) {
-        localEntries.set(name, pluginPath);
+        localEntries.push(pluginPath);
       }
     } else if (sourceType === "url" || sourceType === "git-subdir") {
       validateRemoteMarketplaceSource(context, source, sourceType, marketplacePath, pointer);
@@ -208,7 +207,7 @@ export function validatePolicy(
   }
 }
 
-export async function validateLocalMarketplacePath(
+function validateLocalMarketplacePath(
   context: ValidationContext,
   name: string,
   sourcePath: string,
@@ -216,7 +215,7 @@ export async function validateLocalMarketplacePath(
   marketplacePath: string,
   marketplaceRoot: string,
   pointer: string,
-): Promise<LocalCatalogEntry | undefined> {
+): LocalCatalogEntry | undefined {
   const pluginPath = resolveRelativePath(
     context,
     sourcePath,
@@ -230,30 +229,7 @@ export async function validateLocalMarketplacePath(
     return undefined;
   }
 
-  if (!(await isDirectory(pluginPath))) {
-    error(
-      context,
-      "marketplace/source-exists",
-      marketplacePath,
-      `Plugin path does not exist or is not a directory: ${sourcePath}`,
-      pointer,
-    );
-    return undefined;
-  }
-
-  const manifestPath = portableManifestPath(pluginPath);
-  if (!(await isFile(manifestPath))) {
-    error(
-      context,
-      "marketplace/source-manifest",
-      marketplacePath,
-      `Plugin path is missing plugin.json: ${sourcePath}`,
-      pointer,
-    );
-    return undefined;
-  }
-
-  return { category, manifestPath, name, pluginPath, pointer, sourcePath };
+  return { category, name, pluginPath, pointer, sourcePath };
 }
 
 export function validateRemoteMarketplaceSource(

@@ -15,9 +15,9 @@ import {
 
 const MANIFEST = "plugins/demo-plugin/plugin.json";
 
-// The plugin as its Codex catalog entry describes it.
+// The plugin location for document validation.
 function demoOptions(repoRoot: string, name = "demo-plugin") {
-  return { catalogName: name, category: "workflow", pluginPath: `${repoRoot}/plugins/${name}` };
+  return { pluginPath: `${repoRoot}/plugins/${name}` };
 }
 
 function codexExtension(extension: Record<string, unknown>): Record<string, unknown> {
@@ -221,7 +221,6 @@ describe("portable manifest validation", () => {
       await validatePortableManifest(context, demoOptions(repoRoot));
 
       expect(ruleIds(context).sort()).toStrictEqual([
-        "alignment/category",
         "manifest/brand-color",
         "manifest/path",
         "manifest/path-exists",
@@ -382,14 +381,14 @@ describe("portable manifest validation", () => {
     });
   });
 
-  it("reports marketplace and directory name misalignment", async () => {
+  it("reports directory name misalignment", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeJson(repoRoot, MANIFEST, validPortableManifest({ name: "other-plugin" }));
       const context = createTestContext(repoRoot);
 
       await validatePortableManifest(context, demoOptions(repoRoot));
 
-      expect(ruleIds(context).sort()).toStrictEqual(["alignment/directory-name", "alignment/name"]);
+      expect(ruleIds(context).sort()).toStrictEqual(["alignment/directory-name"]);
     });
   });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { validateClaudeMarketplace } from "../../src/lint-plugins/claude-marketplace.js";
 import { validateLocalRepositoryAlignment } from "../../src/lint-plugins/coverage.js";
+import { validatePluginRepository } from "../../src/lint-plugins/repository.js";
 import {
   createTestContext,
   ruleIds,
@@ -21,8 +22,10 @@ describe("Claude marketplace validation", () => {
 
       expect(context.diagnostics).toStrictEqual([]);
       expect(catalog.present).toBe(true);
-      expect(catalog.localEntries.size).toBe(1);
-      expect(catalog.localEntries.get("demo-plugin")?.sourcePath).toBe("./plugins/demo-plugin");
+      expect(catalog.localEntries.length).toBe(1);
+      expect(catalog.localEntries.find((entry) => entry.name === "demo-plugin")?.sourcePath).toBe(
+        "./plugins/demo-plugin",
+      );
     });
   });
 
@@ -34,7 +37,7 @@ describe("Claude marketplace validation", () => {
 
       expect(context.diagnostics).toStrictEqual([]);
       expect(catalog.present).toBe(false);
-      expect(catalog.localEntries.size).toBe(0);
+      expect(catalog.localEntries.length).toBe(0);
     });
   });
 
@@ -84,9 +87,9 @@ describe("Claude marketplace validation", () => {
       );
       const context = createTestContext(repoRoot);
 
-      const catalog = await validateClaudeMarketplace(context);
+      const { claudeCatalog: catalog } = await validatePluginRepository(context);
 
-      expect(catalog.localEntries.size).toBe(0);
+      expect(catalog.localEntries.length).toBe(2);
       expect(ruleIds(context)).toStrictEqual(
         expect.arrayContaining([
           "claude-marketplace/source-manifest",
@@ -102,7 +105,7 @@ describe("Claude marketplace validation", () => {
       await writeValidPluginRepo(repoRoot);
       const context = createTestContext(repoRoot);
       const catalog = await validateClaudeMarketplace(context);
-      const entry = catalog.localEntries.get("demo-plugin");
+      const entry = catalog.localEntries.find((candidate) => candidate.name === "demo-plugin");
       if (entry === undefined) {
         throw new Error("Expected demo-plugin entry.");
       }

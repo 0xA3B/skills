@@ -2,7 +2,10 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { ValidationContext } from "../../../src/lint-plugins/diagnostics.js";
+import { validatePluginRepository } from "../../../src/lint-plugins/repository.js";
 import { validateTriggerFixture } from "../../../src/lint-plugins/skills/trigger-fixture.js";
+import type { PluginTargets } from "../../../src/lint-plugins/types.js";
 import {
   createTestContext,
   diagnosticByRule,
@@ -16,6 +19,17 @@ import {
   writeValidPluginRepo,
   validPortableManifest,
 } from "../test-utils.js";
+
+// Fixture checks consume the same resolved target facts as the full lint run. Keep repository
+// diagnostics separate so each fixture test asserts only its own rule's output.
+async function lintFixture(
+  context: ValidationContext,
+  skillPath: string,
+  targets: PluginTargets,
+): Promise<void> {
+  const repository = await validatePluginRepository(createTestContext(context.repoRoot));
+  await validateTriggerFixture(context, skillPath, targets, repository.missingTargets);
+}
 
 const bothTargets = { claude: true, codex: true };
 const HELLO_SKILL = "plugins/demo-plugin/skills/hello";
@@ -53,7 +67,7 @@ describe("validateTriggerFixture", () => {
       await writeValidPluginRepo(repoRoot);
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual([]);
     });
@@ -81,7 +95,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(context.diagnostics).toStrictEqual([
         {
@@ -122,7 +136,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(diagnosticPointers(context, "trigger-fixture/schema")).toStrictEqual([
         '/cases/0/workspace_files/src~1a~0b"c.ts',
@@ -136,7 +150,7 @@ cases:
       await writeText(repoRoot, `${HELLO_SKILL}/evals/triggers.yaml`, "cases: [\n");
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual(["trigger-fixture/schema"]);
       expect(diagnosticByRule(context, "trigger-fixture/schema")?.message).toMatch(
@@ -158,7 +172,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual([]);
     });
@@ -175,7 +189,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(
+      await lintFixture(
         context,
         path.join(repoRoot, "plugins/demo-plugin/skills/auto"),
         bothTargets,
@@ -198,7 +212,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(context.diagnostics).toStrictEqual([
         {
@@ -224,7 +238,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(
+      await lintFixture(
         context,
         path.join(repoRoot, "plugins/demo-plugin/skills/auto"),
         bothTargets,
@@ -252,7 +266,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual([]);
     });
@@ -275,12 +289,8 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
-      await validateTriggerFixture(
-        context,
-        path.join(repoRoot, ".agents/skills/local-skill"),
-        bothTargets,
-      );
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, ".agents/skills/local-skill"), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual([
         "trigger-fixture/alternate-kind",
@@ -309,7 +319,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual(["trigger-fixture/alternate-target"]);
       expect(diagnosticByRule(context, "trigger-fixture/alternate-target")?.message).toBe(
@@ -337,7 +347,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual(["trigger-fixture/alternate-target"]);
       expect(diagnosticByRule(context, "trigger-fixture/alternate-target")?.message).toBe(
@@ -362,7 +372,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), {
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), {
         claude: false,
         codex: true,
       });
@@ -382,11 +392,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(
-        context,
-        path.join(repoRoot, ".agents/skills/local-skill"),
-        bothTargets,
-      );
+      await lintFixture(context, path.join(repoRoot, ".agents/skills/local-skill"), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual([]);
     });
@@ -416,7 +422,7 @@ cases:
       await writeText(repoRoot, "evals/seeds/node-service/package.json", "{}\n");
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(context.diagnostics).toStrictEqual([
         {
@@ -455,7 +461,7 @@ cases:
       );
       const context = createTestContext(repoRoot);
 
-      await validateTriggerFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(diagnosticPointers(context, "trigger-fixture/seed-missing")).toStrictEqual([
         "/workspace/seed",

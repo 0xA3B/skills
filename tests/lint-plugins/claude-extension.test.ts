@@ -18,9 +18,9 @@ import {
   writeJson,
 } from "./test-utils.js";
 
-// The plugin as its Claude catalog entry describes it.
+// The plugin location for document validation.
 function demoOptions(repoRoot: string) {
-  return { catalogName: "demo-plugin", pluginPath: `${repoRoot}/plugins/demo-plugin` };
+  return { pluginPath: `${repoRoot}/plugins/demo-plugin` };
 }
 
 describe("Claude extension validation", () => {
@@ -71,7 +71,7 @@ describe("Claude extension validation", () => {
     });
   });
 
-  it("reports marketplace and directory name misalignment", async () => {
+  it("reports directory name misalignment", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeJson(
         repoRoot,
@@ -82,9 +82,7 @@ describe("Claude extension validation", () => {
 
       await validateClaudeExtension(context, demoOptions(repoRoot));
 
-      expect(ruleIds(context)).toStrictEqual(
-        expect.arrayContaining(["alignment/name", "alignment/directory-name"]),
-      );
+      expect(ruleIds(context)).toStrictEqual(expect.arrayContaining(["alignment/directory-name"]));
     });
   });
 });
