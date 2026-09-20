@@ -1,20 +1,10 @@
 import { parseArgs } from "node:util";
 
-import type { ValidationOptions } from "./diagnostics.js";
-
-export function parseCliOptions(args: readonly string[]): ValidationOptions {
-  const parsed = parseLintPluginArgs(args);
-
-  return { externalValidationEnabled: parsed.values.external === true };
-}
-
-function parseLintPluginArgs(args: readonly string[]) {
+export function validateCliArgs(args: readonly string[]): void {
   try {
-    return parseArgs({
+    parseArgs({
       args: args.filter((arg) => arg !== "--"),
-      options: {
-        external: { type: "boolean" },
-      },
+      options: {},
     });
   } catch (caught: unknown) {
     throw normalizeParseArgsError(caught);

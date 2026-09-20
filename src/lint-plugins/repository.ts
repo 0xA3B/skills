@@ -47,7 +47,6 @@ export type PluginRepository = {
   claudeCatalog: ClaudeCatalog;
   plugins: ReadonlyArray<{ pluginPath: string; targets: PluginTargets }>;
   missingTargets: FindMissingPluginTargets;
-  manifestsByPath: Map<string, JsonObject>;
 };
 
 // One lint-run snapshot owns discovery, source checks, and target relationships. Catalog readers
@@ -88,7 +87,6 @@ export async function validatePluginRepository(
 
   const plugins: Array<{ pluginPath: string; targets: PluginTargets }> = [];
   const shippedTargets = new Map<string, PluginTargetPresence>();
-  const manifestsByPath = new Map<string, JsonObject>();
   for (const unit of [...units.values()].sort((a, b) => a.pluginPath.localeCompare(b.pluginPath))) {
     const { pluginPath } = unit;
     const directoryExists = await isDirectory(pluginPath);
@@ -142,7 +140,6 @@ export async function validatePluginRepository(
 
     if (portable !== undefined) {
       const manifestPath = portableManifestPath(pluginPath);
-      manifestsByPath.set(manifestPath, portable.manifest);
       for (const entry of unit.codex) {
         validateCatalogName(context, manifestPath, portable.manifest, entry.name);
         const category = codexInterface(portable.manifest)?.["category"];
@@ -167,7 +164,6 @@ export async function validatePluginRepository(
       const claudeManifest = await validateClaudeExtension(context, { pluginPath });
       if (claudeManifest !== undefined) {
         const manifestPath = claudeExtensionPath(pluginPath);
-        manifestsByPath.set(manifestPath, claudeManifest);
         for (const entry of unit.claude) {
           validateCatalogName(context, manifestPath, claudeManifest, entry.name);
         }
@@ -187,7 +183,6 @@ export async function validatePluginRepository(
     catalog,
     claudeCatalog,
     plugins,
-    manifestsByPath,
     missingTargets(pluginName, required) {
       const shipped = shippedTargets.get(path.resolve(context.repoRoot, "plugins", pluginName));
       return (["claude", "codex"] as const).filter(

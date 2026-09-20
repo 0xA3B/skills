@@ -17,7 +17,6 @@
     "lint:commits": "commitlint --verbose",
     "lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix",
     "lint:plugins": "node --import tsx src/lint-plugins/cli.ts",
-    "lint:plugins:external": "node --import tsx src/lint-plugins/cli.ts --external",
     "lint:staged": "lint-staged",
     "prepare": "husky",
     "test": "vitest run",

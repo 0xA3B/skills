@@ -3,20 +3,18 @@ import path from "node:path";
 import { error, type ValidationContext } from "./diagnostics.js";
 import { readJsonObject } from "./files.js";
 import { marketplaceRootFromPath, resolveRelativePath } from "./paths.js";
-import { getObject, getOptionalString, getString, isObject } from "./schema.js";
-import type { Catalog, JsonObject, LocalCatalogEntry, RemoteCatalogEntry } from "./types.js";
-import { validateGitUrlString } from "./urls.js";
+import { getObject, getString, isObject } from "./schema.js";
+import type { Catalog, JsonObject, LocalCatalogEntry } from "./types.js";
 
 export async function validateMarketplace(context: ValidationContext): Promise<Catalog> {
   const marketplacePath = path.join(context.repoRoot, ".agents", "plugins", "marketplace.json");
   const marketplaceRoot = marketplaceRootFromPath(marketplacePath);
   const marketplace = await readJsonObject(context, marketplacePath);
   const localEntries: LocalCatalogEntry[] = [];
-  const remoteEntries: RemoteCatalogEntry[] = [];
   const seenNames = new Set<string>();
 
   if (marketplace === undefined) {
-    return { localEntries, marketplacePath, remoteEntries };
+    return { localEntries, marketplacePath };
   }
 
   getString(context, marketplace, "name", marketplacePath, "/name");
@@ -46,7 +44,7 @@ export async function validateMarketplace(context: ValidationContext): Promise<C
       'Expected "plugins" to be an array.',
       "/plugins",
     );
-    return { localEntries, marketplacePath, remoteEntries };
+    return { localEntries, marketplacePath };
   }
 
   for (const [index, plugin] of plugins.entries()) {
@@ -145,21 +143,18 @@ export async function validateMarketplace(context: ValidationContext): Promise<C
       if (pluginPath !== undefined) {
         localEntries.push(pluginPath);
       }
-    } else if (sourceType === "url" || sourceType === "git-subdir") {
-      validateRemoteMarketplaceSource(context, source, sourceType, marketplacePath, pointer);
-      remoteEntries.push({ name, pointer, source });
     } else if (sourceType !== undefined) {
       error(
         context,
         "marketplace/source-type",
         marketplacePath,
-        'Expected source.source to be "local", "url", or "git-subdir".',
+        'Only local plugin sources are supported; expected source.source to be "local".',
         `${pointer}/source/source`,
       );
     }
   }
 
-  return { localEntries, marketplacePath, remoteEntries };
+  return { localEntries, marketplacePath };
 }
 
 export function validatePolicy(
@@ -230,56 +225,4 @@ function validateLocalMarketplacePath(
   }
 
   return { category, name, pluginPath, pointer, sourcePath };
-}
-
-export function validateRemoteMarketplaceSource(
-  context: ValidationContext,
-  source: JsonObject,
-  sourceType: string,
-  marketplacePath: string,
-  pluginPointer: string,
-): void {
-  const sourcePointer = `${pluginPointer}/source`;
-  const url = getString(context, source, "url", marketplacePath, `${sourcePointer}/url`);
-  validateGitUrlString(context, url, marketplacePath, `${sourcePointer}/url`);
-
-  const pathValue = getOptionalString(
-    context,
-    source,
-    "path",
-    marketplacePath,
-    `${sourcePointer}/path`,
-  );
-  if (sourceType === "git-subdir") {
-    if (pathValue === undefined) {
-      error(
-        context,
-        "marketplace/git-subdir-path",
-        marketplacePath,
-        'Expected git-subdir source to include a "./"-prefixed path.',
-        `${sourcePointer}/path`,
-      );
-    } else {
-      resolveRelativePath(
-        context,
-        pathValue,
-        context.repoRoot,
-        marketplacePath,
-        `${sourcePointer}/path`,
-        "marketplace/git-subdir-path",
-      );
-    }
-  }
-
-  const ref = getOptionalString(context, source, "ref", marketplacePath, `${sourcePointer}/ref`);
-  const sha = getOptionalString(context, source, "sha", marketplacePath, `${sourcePointer}/sha`);
-  if (ref !== undefined && sha !== undefined) {
-    error(
-      context,
-      "marketplace/ref-or-sha",
-      marketplacePath,
-      "Use either source.ref or source.sha, not both.",
-      sourcePointer,
-    );
-  }
 }
