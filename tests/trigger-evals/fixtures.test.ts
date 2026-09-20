@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { loadTriggerFixture, parseTriggerFixture } from "./fixtures.js";
+import { loadTriggerFixture, parseTriggerFixture } from "../../src/trigger-evals/fixtures.js";
 
 describe("loadTriggerFixture", () => {
   it("loads trigger fixtures with positive and negative cases", async () => {

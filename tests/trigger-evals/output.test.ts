@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCaseLine } from "./output.js";
-import type { TriggerCaseResult } from "./types.js";
+import { formatCaseLine } from "../../src/trigger-evals/output.js";
+import type { TriggerCaseResult } from "../../src/trigger-evals/types.js";
 
 function caseResult(overrides: Partial<TriggerCaseResult> = {}): TriggerCaseResult {
   return {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { manifestUrlReferences } from "./external.js";
+import { manifestUrlReferences } from "../../src/lint-plugins/external.js";
 import {
   validClaudePluginManifest,
   validCodexInterface,

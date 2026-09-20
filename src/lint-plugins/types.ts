@@ -2,7 +2,6 @@ export type JsonObject = Record<string, unknown>;
 
 export type LocalCatalogEntry = {
   category: string | undefined;
-  manifestPath: string;
   name: string;
   pluginPath: string;
   pointer: string;
@@ -16,13 +15,12 @@ export type RemoteCatalogEntry = {
 };
 
 export type Catalog = {
-  localEntries: Map<string, LocalCatalogEntry>;
+  localEntries: LocalCatalogEntry[];
   marketplacePath: string;
   remoteEntries: RemoteCatalogEntry[];
 };
 
 export type ClaudeCatalogEntry = {
-  manifestPath: string;
   name: string;
   pluginPath: string;
   pointer: string;
@@ -30,7 +28,7 @@ export type ClaudeCatalogEntry = {
 };
 
 export type ClaudeCatalog = {
-  localEntries: Map<string, ClaudeCatalogEntry>;
+  localEntries: ClaudeCatalogEntry[];
   marketplacePath: string;
   present: boolean;
 };
@@ -38,4 +36,10 @@ export type ClaudeCatalog = {
 export type PluginTargets = {
   claude: boolean;
   codex: boolean;
+};
+
+// An unreadable portable manifest leaves Codex presence unknown, not absent.
+export type PluginTargetPresence = {
+  claude: boolean;
+  codex: boolean | undefined;
 };

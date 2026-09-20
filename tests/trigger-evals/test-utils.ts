@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import type { CliRunResult } from "./exec.js";
+import type { CliRunResult } from "../../src/trigger-evals/exec.js";
 
 export function agentMessageEvent(text: string): string {
   return `${JSON.stringify({ type: "item.completed", item: { type: "agent_message", text } })}\n`;

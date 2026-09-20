@@ -20,8 +20,6 @@ export function claudeExtensionPath(pluginPath: string): string {
 }
 
 export type ClaudeExtensionOptions = {
-  // The plugin's name in the Claude marketplace catalog, when the catalog lists it.
-  catalogName?: string | undefined;
   pluginPath: string;
 };
 
@@ -65,7 +63,6 @@ export async function validateClaudeExtension(
   getOptionalString(context, manifest, "displayName", manifestPath, "/displayName");
 
   const { author } = validateCommonManifestFields(context, manifest, {
-    catalogName: options.catalogName,
     manifestPath,
     pluginPath,
   });

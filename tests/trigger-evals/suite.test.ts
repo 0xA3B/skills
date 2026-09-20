@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { selectMarketplaceSuite, selectPluginSuite } from "./suite.js";
+import { selectMarketplaceSuite, selectPluginSuite } from "../../src/trigger-evals/suite.js";
 
 describe("selectPluginSuite", () => {
   it("partitions fixture-bearing skills by the agent's invocation policy", async () => {

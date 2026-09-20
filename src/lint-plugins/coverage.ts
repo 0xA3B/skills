@@ -3,26 +3,13 @@ import path from "node:path";
 import { claudeExtensionPath } from "./claude-extension.js";
 import { CODEX_EXTENSION_FIELD, CODEX_EXTENSION_POINTER } from "./codex-extension.js";
 import { error, type ValidationContext, warning } from "./diagnostics.js";
-import { isDirectory, isFile, readdirNames } from "./files.js";
+import { isDirectory, isFile } from "./files.js";
 import { portableManifestPath } from "./portable-manifest.js";
-import type { PluginTargets } from "./types.js";
-
-// A plugin is a bundle under plugins/<name>/, so the scan is flat and never enters other roots.
-// Manifests elsewhere are not this repository's plugins: an agent worktree checkout under
-// .claude/worktrees/, a copy nested inside a plugin bundle, or retired/, which archives skills
-// rather than plugins (#107).
-export async function listPluginPaths(repoRoot: string): Promise<string[]> {
-  const pluginsPath = path.join(repoRoot, "plugins");
-  if (!(await isDirectory(pluginsPath))) {
-    return [];
-  }
-  return (await readdirNames(pluginsPath)).map((name) => path.join(pluginsPath, name));
-}
+import type { PluginTargets, PluginTargetPresence } from "./types.js";
 
 // Repository decision: every plugin ships the portable manifest, and Codex settings live only in
 // the Codex extension, so a .codex-plugin/ overlay is stale metadata that can drift. Returns
-// whether the portable manifest exists, because nothing else about the plugin can be checked
-// without it.
+// whether the portable manifest exists; independent extension and skill checks can still run.
 export async function validatePluginLayout(
   context: ValidationContext,
   pluginPath: string,
@@ -59,15 +46,12 @@ export type PluginTargetCoverage = {
   listed: PluginTargets;
   pluginPath: string;
   // Whether the plugin carries each target extension.
-  shipped: PluginTargets;
+  shipped: PluginTargetPresence;
 };
 
-// Repository decision: a plugin targets an agent exactly when it carries that agent's target
-// extension and that agent's catalog lists it, and either half without the other is an error. The
-// Claude catalog validator already drops a listing whose plugin has no Claude extension
-// (claude-marketplace/source-manifest), so that direction is not repeated here. The rules below
-// cover a Codex listing without the Codex extension, either extension without its listing, and a
-// plugin that no catalog can reach.
+// Target declarations and listings must agree. Missing Claude extension files are reported at
+// each source declaration by repository validation; coverage owns the inverse and Codex presence.
+// Unknown Codex presence suppresses only checks that require reading the portable manifest.
 export function validatePluginTargets(
   context: ValidationContext,
   coverage: PluginTargetCoverage,
@@ -75,7 +59,7 @@ export function validatePluginTargets(
   const { listed, pluginPath, shipped } = coverage;
   const manifestPath = portableManifestPath(pluginPath);
 
-  if (listed.codex && !shipped.codex) {
+  if (listed.codex && shipped.codex === false) {
     error(
       context,
       "coverage/codex-extension",
@@ -104,7 +88,7 @@ export function validatePluginTargets(
     );
   }
 
-  if (!shipped.codex && !shipped.claude) {
+  if (shipped.codex === false && !shipped.claude) {
     error(
       context,
       "coverage/target-required",
@@ -117,7 +101,7 @@ export function validatePluginTargets(
 // Shared across the Codex and Claude catalogs; both entry shapes satisfy this structural type.
 type RepositoryAlignmentCatalog = {
   marketplacePath: string;
-  localEntries: Map<string, { name: string; sourcePath: string; pointer: string }>;
+  localEntries: ReadonlyArray<{ name: string; sourcePath: string; pointer: string }>;
 };
 
 export function validateLocalRepositoryAlignment(

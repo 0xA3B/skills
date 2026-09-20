@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseCliOptions } from "./cli-options.js";
+import { parseCliOptions } from "../../src/lint-plugins/cli-options.js";
 
 describe("CLI option parsing", () => {
   it("accepts the external validation flag", () => {

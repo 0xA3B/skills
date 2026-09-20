@@ -29,7 +29,8 @@ evaluated, and improved over time. Preserve these outcomes:
 ## Project conventions
 
 - Use Conventional Commits.
-- Keep tests co-located in `src/`.
+- Keep repository tests under `tests/`, grouped by subsystem; workspace seed tests stay with their
+  seeds.
 - `.node-version` is the canonical Node version; `package.json#packageManager` is the canonical pnpm
   version.
 - When a command relies on a runtime tool managed by mise, run it with `mise exec --` in

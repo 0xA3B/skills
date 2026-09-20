@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import type { CaseObservations } from "../../src/trigger-evals/types.js";
+import {
+  buildCaseResult,
+  type CaseVerdictOptions,
+  shouldStopEarly,
+} from "../../src/trigger-evals/verdict.js";
 import { buildCliRunResult } from "./test-utils.js";
-import type { CaseObservations } from "./types.js";
-import { buildCaseResult, type CaseVerdictOptions, shouldStopEarly } from "./verdict.js";
 
 const TARGET = "demo:auto-skill";
 

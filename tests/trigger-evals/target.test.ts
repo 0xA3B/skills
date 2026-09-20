@@ -1,10 +1,11 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
+import { YAMLParseError } from "yaml";
 
-import { readAllowImplicitInvocation, resolveSkillTarget } from "./target.js";
+import { readAllowImplicitInvocation, resolveSkillTarget } from "../../src/trigger-evals/target.js";
 
 describe("resolveSkillTarget", () => {
   it("accepts repo plugin skill paths", () => {
@@ -43,6 +44,7 @@ describe("readAllowImplicitInvocation", () => {
     openAiYaml?: string;
   }): Promise<ReturnType<typeof resolveSkillTarget>> {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-target-"));
+    onTestFinished(() => rm(repoRoot, { force: true, recursive: true }));
     const skillPath = path.join(repoRoot, "plugins", "demo", "skills", "auto-skill");
     await mkdir(skillPath, { recursive: true });
     await writeFile(
@@ -63,20 +65,50 @@ describe("readAllowImplicitInvocation", () => {
     await expect(readAllowImplicitInvocation(target, "claude")).resolves.toBe(true);
   });
 
-  it("treats disable-model-invocation as manual-only on the Claude lane", async () => {
-    const target = await writeSkillFixture({
-      skillMarkdown: "---\nname: auto-skill\ndisable-model-invocation: true\n---\n",
-    });
+  it.each(["\n", "\r\n", "\r"])(
+    "reads manual-only frontmatter with %j line endings",
+    async (newline) => {
+      const target = await writeSkillFixture({
+        skillMarkdown: [
+          "---",
+          "name: auto-skill",
+          "disable-model-invocation: true",
+          "---",
+          "# Skill",
+        ].join(newline),
+      });
 
-    await expect(readAllowImplicitInvocation(target, "claude")).resolves.toBe(false);
-  });
+      await expect(readAllowImplicitInvocation(target, "claude")).resolves.toBe(false);
+    },
+  );
 
   it("reads the Codex policy from agents/openai.yaml", async () => {
     const target = await writeSkillFixture({
+      skillMarkdown: "---\ndisable-model-invocation: true\n---\n",
       openAiYaml: "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
     });
 
     await expect(readAllowImplicitInvocation(target, "codex")).resolves.toBe(true);
+  });
+
+  it.each([
+    "# No frontmatter\n",
+    "# Body\n---\ndisable-model-invocation: true\n---\n",
+    "---\ndisable-model-invocation: true\n",
+    "---\n---\n# Empty frontmatter\n",
+    "---\n- a list\n---\n",
+  ])("keeps the Claude default for absent or non-object frontmatter: %j", async (skillMarkdown) => {
+    const target = await writeSkillFixture({ skillMarkdown });
+
+    await expect(readAllowImplicitInvocation(target, "claude")).resolves.toBe(true);
+  });
+
+  it("surfaces malformed YAML instead of treating it as implicit invocation", async () => {
+    const target = await writeSkillFixture({
+      skillMarkdown: "---\nname: [unclosed\n---\n# Skill\n",
+    });
+
+    await expect(readAllowImplicitInvocation(target, "claude")).rejects.toThrow(YAMLParseError);
   });
 
   it("explains missing Codex metadata instead of surfacing a raw read error", async () => {

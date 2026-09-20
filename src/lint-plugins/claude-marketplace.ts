@@ -1,8 +1,7 @@
 import path from "node:path";
 
-import { claudeExtensionPath } from "./claude-extension.js";
 import { error, type ValidationContext } from "./diagnostics.js";
-import { isDirectory, isFile, readJsonObject } from "./files.js";
+import { isFile, readJsonObject } from "./files.js";
 import { resolveRelativePath } from "./paths.js";
 import { getObject, getOptionalString, getString, isObject } from "./schema.js";
 import {
@@ -18,7 +17,7 @@ export async function validateClaudeMarketplace(
 ): Promise<ClaudeCatalog> {
   const marketplacePath = path.join(context.repoRoot, ".claude-plugin", "marketplace.json");
   const marketplaceRoot = path.resolve(path.dirname(marketplacePath), "..");
-  const localEntries = new Map<string, ClaudeCatalogEntry>();
+  const localEntries: ClaudeCatalogEntry[] = [];
 
   if (!(await isFile(marketplacePath))) {
     return { localEntries, marketplacePath, present: false };
@@ -144,30 +143,7 @@ export async function validateClaudeMarketplace(
       continue;
     }
 
-    if (!(await isDirectory(pluginPath))) {
-      error(
-        context,
-        "claude-marketplace/source-exists",
-        marketplacePath,
-        `Plugin path does not exist or is not a directory: ${source}`,
-        `${pointer}/source`,
-      );
-      continue;
-    }
-
-    const manifestPath = claudeExtensionPath(pluginPath);
-    if (!(await isFile(manifestPath))) {
-      error(
-        context,
-        "claude-marketplace/source-manifest",
-        marketplacePath,
-        `Plugin path is missing .claude-plugin/plugin.json: ${source}`,
-        `${pointer}/source`,
-      );
-      continue;
-    }
-
-    localEntries.set(name, { manifestPath, name, pluginPath, pointer, sourcePath: source });
+    localEntries.push({ name, pluginPath, pointer: `${pointer}/source`, sourcePath: source });
   }
 
   return { localEntries, marketplacePath, present: true };

@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { CODEX_EXTENSION_POINTER, validateCodexExtension } from "./codex-extension.js";
@@ -20,10 +19,6 @@ import type { JsonObject } from "./types.js";
 // the authoritative source for fields the target extensions duplicate. Rules follow Agent Plugins
 // 1.0.0 (see specs.ts for the schema URL) plus the repository decisions noted inline.
 export type PortableManifestOptions = {
-  // The plugin's name in the Codex marketplace catalog, when the catalog lists it.
-  catalogName?: string | undefined;
-  // The plugin's category in the Codex marketplace catalog, when the catalog lists it.
-  category?: string | undefined;
   pluginPath: string;
 };
 
@@ -48,17 +43,6 @@ export function codexExtension(manifest: JsonObject): JsonObject | undefined {
 export function codexInterface(manifest: JsonObject): JsonObject | undefined {
   const manifestInterface = codexExtension(manifest)?.["interface"];
   return isObject(manifestInterface) ? manifestInterface : undefined;
-}
-
-// Quiet read for callers that only need to know whether a plugin targets Codex; the portable
-// manifest's own validation reports parse and schema problems.
-export async function readCodexExtension(pluginPath: string): Promise<JsonObject | undefined> {
-  try {
-    const parsed: unknown = JSON.parse(await readFile(portableManifestPath(pluginPath), "utf8"));
-    return isObject(parsed) ? codexExtension(parsed) : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 export async function validatePortableManifest(
@@ -97,7 +81,6 @@ export async function validatePortableManifest(
   }
 
   const { author, name } = validateCommonManifestFields(context, manifest, {
-    catalogName: options.catalogName,
     manifestPath,
     pluginPath,
   });
@@ -167,7 +150,6 @@ export async function validatePortableManifest(
 
   if (extension !== undefined) {
     await validateCodexExtension(context, extension, {
-      category: options.category,
       manifestPath,
       pluginPath,
     });

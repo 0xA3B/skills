@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { validateSkillFrontmatter } from "../../../src/lint-plugins/skills/agentskills.js";
 import {
   createTestContext,
   diagnosticByRule,
@@ -9,9 +10,45 @@ import {
   withTempRepo,
   writeText,
 } from "../test-utils.js";
-import { validateSkillFrontmatter } from "./agentskills.js";
 
 describe("Agent Skills frontmatter validation", () => {
+  it.each(["\n", "\r\n", "\r"])(
+    "reads manual-only frontmatter with %j line endings",
+    async (newline) => {
+      await withTempRepo(async (repoRoot) => {
+        const skillPath = await writeText(
+          repoRoot,
+          "hello/SKILL.md",
+          [
+            "---",
+            "name: hello",
+            "description: A sample skill",
+            "disable-model-invocation: true",
+            "---",
+            "# Hello",
+          ].join(newline),
+        );
+        const context = createTestContext(repoRoot);
+
+        const summary = await validateSkillFrontmatter(context, "hello", skillPath);
+
+        expect(summary.disableModelInvocation).toBe(true);
+        expect(context.diagnostics).toStrictEqual([]);
+      });
+    },
+  );
+
+  it("reports malformed YAML while still checking the document body", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const skillPath = await writeText(repoRoot, "hello/SKILL.md", "---\nname: [unclosed\n---\n");
+      const context = createTestContext(repoRoot);
+
+      await validateSkillFrontmatter(context, "hello", skillPath);
+
+      expect(ruleIds(context)).toStrictEqual(["agentskills/body", "parse/yaml"]);
+    });
+  });
+
   it("accepts a spec-shaped SKILL.md", async () => {
     await withTempRepo(async (repoRoot) => {
       const skillPath = await writeText(

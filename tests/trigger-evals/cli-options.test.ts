@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { HelpRequested, parseTriggerEvalCliOptions, usage } from "./cli-options.js";
+import {
+  HelpRequested,
+  parseTriggerEvalCliOptions,
+  usage,
+} from "../../src/trigger-evals/cli-options.js";
 
 describe("parseTriggerEvalCliOptions", () => {
   it("accepts --with-dependents on every selection mode", () => {

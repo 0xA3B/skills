@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 
 import { describe, expect, it } from "vitest";
 
-import { seedGitEnvironment } from "./seeds.js";
+import { seedGitEnvironment } from "../../src/trigger-evals/seeds.js";
 import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
@@ -18,10 +18,10 @@ import {
   stagePluginCopies,
   stageRepoLocalSkill,
   surveyStagedSkills,
-} from "./staging.js";
-import { resolveSkillTarget } from "./target.js";
+} from "../../src/trigger-evals/staging.js";
+import { resolveSkillTarget } from "../../src/trigger-evals/target.js";
+import type { PluginSkillTarget } from "../../src/trigger-evals/types.js";
 import { writeRepoFixture, writeRepoLocalSkillFixture, writeSeedFixture } from "./test-utils.js";
-import type { PluginSkillTarget } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 

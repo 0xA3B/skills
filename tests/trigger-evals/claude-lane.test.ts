@@ -4,10 +4,11 @@ import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createClaudeLane, observeClaudeOutput } from "./claude-lane.js";
-import type { StreamingCliOptions, StreamingCliResult } from "./exec.js";
-import type { LaneRunOptions } from "./lanes.js";
-import { resolveSkillTarget } from "./target.js";
+import { createClaudeLane, observeClaudeOutput } from "../../src/trigger-evals/claude-lane.js";
+import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
+import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
+import { resolveSkillTarget } from "../../src/trigger-evals/target.js";
+import { buildCaseResult, shouldStopEarly } from "../../src/trigger-evals/verdict.js";
 import {
   buildCliRunResult,
   skillToolUseEvent,
@@ -15,14 +16,13 @@ import {
   writeRepoLocalSkillFixture,
   writeSeedFixture,
 } from "./test-utils.js";
-import { buildCaseResult, shouldStopEarly } from "./verdict.js";
 
 const spawnCalls = vi.hoisted(
   () => [] as Array<{ command: string; args: string[]; options: StreamingCliOptions }>,
 );
 
 // The lane is tested against the real filesystem; only the process boundary is faked.
-vi.mock(import("./exec.js"), async (importOriginal) => {
+vi.mock(import("../../src/trigger-evals/exec.js"), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,

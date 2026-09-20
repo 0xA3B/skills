@@ -20,7 +20,7 @@ export type CommonManifestFields = {
 export function validateCommonManifestFields(
   context: ValidationContext,
   manifest: JsonObject,
-  location: ManifestLocation & { catalogName?: string | undefined },
+  location: ManifestLocation,
 ): CommonManifestFields {
   const { manifestPath } = location;
   const manifestName = getString(context, manifest, "name", manifestPath, "/name");
@@ -40,20 +40,6 @@ export function validateCommonManifestFields(
 
   const homepage = getOptionalString(context, manifest, "homepage", manifestPath, "/homepage");
   validateUrlString(context, homepage, manifestPath, "/homepage", "url/http");
-
-  if (
-    manifestName !== undefined &&
-    location.catalogName !== undefined &&
-    manifestName !== location.catalogName
-  ) {
-    error(
-      context,
-      "alignment/name",
-      manifestPath,
-      `Manifest name "${manifestName}" does not match marketplace name "${location.catalogName}".`,
-      "/name",
-    );
-  }
 
   if (manifestName !== undefined && path.basename(location.pluginPath) !== manifestName) {
     error(
