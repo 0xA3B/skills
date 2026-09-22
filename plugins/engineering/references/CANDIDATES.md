@@ -24,7 +24,8 @@ in the final response. Each record carries:
 ## Read
 
 Before scanning an area, list the open candidates whose area overlaps it: the tracker's open
-`candidate` issues, for GitHub `gh issue list --label candidate --state open --limit 500`, plus
+`candidate` issues, for GitHub
+`gh issue list --label candidate --state open --limit 500 --json number,title,body,createdAt`, plus
 every file under `candidates/` in the ignored scratch directory when that directory exists. Check
 each revisit trigger against the history since the record was written. A candidate whose trigger
 fired enters the pass with its recorded evidence. Leave a candidate whose trigger has not fired open
