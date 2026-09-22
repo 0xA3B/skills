@@ -30,6 +30,10 @@ representative examples instead. This paragraph restates the collection-membersh
 skill's `references/tests.md` because an isolated lane reviewer cannot load that skill; change both
 together.
 
+When a finding's remedy reaches beyond the changed tests into the suite's shared scaffold, fixtures,
+or helpers, mark the finding suite-level in its summary; the workflow records it for a later suite
+pass instead of fixing it in this review.
+
 Require expected values from an independent authority such as a known-good literal, worked example,
 protocol rule, or specification. Do not demand tests for every line or private branch; prioritize
 public behavior and risk.

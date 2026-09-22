@@ -25,23 +25,28 @@ rules throughout this workflow.
 
 Produce a prioritized, repository-grounded architecture review or a concrete plan for one selected
 refactor. The first pass is analysis-only apart from decision records written under
-`engineering:decision-records`, unless the user explicitly requests implementation.
+`engineering:decision-records` and candidate records, unless the user explicitly requests
+implementation.
 
 ## Scope before scanning
 
 Deepening pays off where future change is likely. Choose the review area before searching:
 
 1. Use the module, subsystem, pain point, or path named by the user.
-2. Otherwise rank files by change frequency over recent history (for example
+2. Otherwise apply the read step in [CANDIDATES.md](../../references/CANDIDATES.md), kind
+   `architecture`, to the repository and take the area from a candidate whose revisit trigger fired.
+3. Otherwise rank files by change frequency over recent history (for example
    `git log --since='6 months ago' --name-only --pretty=format:`) and start with the top hot spots.
-3. Widen only when changes are scattered or evidence shows the initial area depends on a broader
+4. Widen only when changes are scattered or evidence shows the initial area depends on a broader
    architectural problem.
 
 ## Explore
 
 Read `AGENTS.md ## Terminology`, repository guidance, nearby docs, code, callers, and tests. Apply
 `engineering:decision-records` to read the decision records that touch the scoped area; a candidate
-that contradicts one surfaces only under that skill's conflict rule. Follow concrete friction:
+that contradicts one surfaces only under that skill's conflict rule. Apply the read step in
+[CANDIDATES.md](../../references/CANDIDATES.md) to the scoped area, so a candidate whose revisit
+trigger fired enters this pass. Follow concrete friction:
 
 - understanding one concept requires bouncing through many shallow modules;
 - caller knowledge, bugs, or policy are duplicated across a cluster;
@@ -96,7 +101,6 @@ finishing: a test that exercises the new seam, caller knowledge that no longer e
 equivalent observable change. A benefit that cannot be demonstrated is a risk to report, not a
 result.
 
-Record deferred candidates, and declined candidates that earned no decision record, with their
-evidence so a later architecture pass builds on them instead of re-deriving them. Write them to the
-repository's ignored scratch directory, confirming the path is ignored with `git check-ignore`
-before writing. When no ignored convention exists, record them in the final response instead.
+Record each deferred candidate, and each candidate the user declined for a reason that earned no
+decision record, through the write step in [CANDIDATES.md](../../references/CANDIDATES.md), so a
+later architecture pass builds on it instead of re-deriving it.

@@ -172,7 +172,9 @@ Automatically apply accepted or auto-accepted behavior-preserving fixes within t
 or directly adjacent tests and docs. Apply dependent fixes in dependency order and let the affected
 surface settle before re-reviewing. Ask about one gated finding at a time; gate by the
 `receiving-feedback` taxonomy, not by finding size alone. Defer unrelated cleanup rather than
-expanding the worktree.
+expanding the worktree. Record a deferred suite-level finding from the test-review lane through the
+write step in [CANDIDATES.md](../../references/CANDIDATES.md), kind `tests`;
+`engineering:improve-codebase-tests` starts from those records.
 
 ## Verify fixes and rerun lanes
 
