@@ -84,8 +84,8 @@ differ:
   with no effect on any result, such as a typo, a naming inconsistency, or a redundant check.
 
 A top-tier consequence keeps its tier whatever the reviewer's label. A rating below the reviewer's
-label names the loud signal or the recovery path that bounds the consequence; without one, keep the
-reviewer's tier.
+label names the loud signal or the recovery path that bounds the consequence, or the result the
+defect leaves unaffected; without one, keep the reviewer's tier.
 
 ## Triage rules
 
