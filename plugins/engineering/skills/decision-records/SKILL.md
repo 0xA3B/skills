@@ -72,7 +72,8 @@ decision sentence.
 ## Read before proposing
 
 Before proposing a change to an area, list the ADR directory and read every record whose title names
-a module, boundary, or technology in scope. If the directory is absent, continue without comment.
+a module, boundary, or technology in scope, and every record whose title names none, because a rule
+without a named scope may apply anywhere. If the directory is absent, continue without comment.
 
 If the proposal contradicts a record, either drop the proposal or present it with the record cited
 and the friction that justifies reopening it. If the user reopens the decision, write a new record
@@ -86,5 +87,5 @@ term. The record names the term; the terminology entry cites the record.
 ## Completion
 
 Stop when the record is written in the ADR directory and passes every gate, or when the proposal has
-been checked against every record whose title names a module, boundary, or technology in scope, and
-each contradiction is cited. Report each record written or superseded by path.
+been checked against every record that Read before proposing selects, and each contradiction is
+cited. Report each record written or superseded by path.

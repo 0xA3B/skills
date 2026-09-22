@@ -127,9 +127,10 @@ continue questioning, reject the direction, or hand off to `engineering:tdd`.
 4. Surface the relevant state after every action or variant switch.
 5. Give the user one command, URL, or file to open.
 6. Capture the evidence record, the question, observed evidence, extract, and decision, in chat
-   before any cleanup. When the answer passes the gates in `engineering:decision-records`, apply
-   that skill before deleting anything. A `NOTES.md` next to the prototype is a working copy that
-   cleanup removes.
+   before any cleanup. When the answer passes the gates in `engineering:decision-records`, the
+   parent session applies that skill from the evidence record; a subagent returns the record and
+   writes nothing durable. A `NOTES.md` next to the prototype is a working copy that cleanup
+   removes.
 
 ## Completion
 
