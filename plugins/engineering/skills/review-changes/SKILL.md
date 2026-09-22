@@ -189,9 +189,10 @@ report only regressions the fixes introduced or findings not resolved. When the 
 a reviewer, dispatch a fresh reviewer with that same verification brief. A rerun of the lane against
 the settled diff with a fresh reviewer replaces verification only when a fix changes what the lane
 reviewed rather than how one finding was resolved: the interface, boundary, transition, requirement
-reading, tests, or prose that the lane's findings and `verified_sound` list rest on, outside the
-lines the finding named. Such a fix invalidates every lane that relied on the changed assumption,
-not only the lane that reported the finding.
+reading, tests, or prose that the lane's findings and `verified_sound` list rest on. For the lane
+that reported the finding, a change confined to the lines the finding named resolves the finding;
+for every other lane that relied on the changed interface, boundary, transition, or reading, the
+same change is a changed assumption whatever lines it touched.
 
 Triage findings from either pass as new feedback through the same gate. Repeat until a pass applies
 no material fix. A typo fix, mechanical rename, formatting change, or test-expectation update that

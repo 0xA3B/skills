@@ -66,7 +66,8 @@ classify an item `accepted` or `auto-accepted` only when all three hold:
    the other input classes — then fix the set with one test per case, or record each excluded case
    as a deliberate limit through Decision capture. A lifecycle or storage rule in an instruction
    file is a state classification: its sibling cases are each state, each location a record can live
-   in, and each transition between them, and the set is fixed when every case has a defined action
+   in, and each transition between them; the set is fixed when every case whose failure is silent or
+   mutates external state has a defined action and the remaining cases fall under a stated default
    or a recorded limit. "Smallest change" bounds the remedy within the mechanism, not the cases it
    covers: a fix that handles the reported case and leaves its siblings open returns as the next
    round's finding.

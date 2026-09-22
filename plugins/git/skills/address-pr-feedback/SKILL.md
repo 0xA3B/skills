@@ -35,8 +35,10 @@ Do not call an exception, timeout, or stale approval green.
 
 ## Required feedback discipline
 
-Before triage, confirm `engineering:receiving-feedback` is available. If it is absent, stop and
-report that the `engineering` plugin must be installed or enabled.
+Before triage, confirm `engineering:receiving-feedback` is available and rates the consequence of
+accepted findings, which the `engineering` plugin ships from 2.6.1. If the skill is absent, stop and
+report that the `engineering` plugin must be installed or enabled; if the skill assigns no rating,
+stop and report that the `engineering` plugin must be updated.
 
 Apply `engineering:receiving-feedback` to every finding. This invocation permits fixing a finding
 that discipline marks `accepted` or `auto-accepted` when the fix preserves behavior and stays within
