@@ -12,8 +12,8 @@ create it first, for GitHub `gh label create candidate`; if the session cannot c
 the tracker as unreachable. When the tracker is unreachable, write the same content to one file per
 candidate under `candidates/` in the repository's ignored scratch directory, confirming the path is
 ignored with `git check-ignore` before writing; when no ignored convention exists, put the content
-in the final response. When the candidate already has a record, update that record's reason and
-trigger instead of writing a second one. Each record carries:
+in the final response. When the candidate already has a record, update that record's date, reason,
+and trigger instead of writing a second one. Each record carries:
 
 - the date the record was written;
 - the area: the files, modules, or suites involved;
@@ -29,12 +29,11 @@ trigger instead of writing a second one. Each record carries:
 
 Before scanning an area, list the open candidates whose area overlaps it: the tracker's open
 `candidate` issues, for GitHub
-`gh issue list --label candidate --state open --limit 500 --json number,title,body,createdAt`, plus
-every file under `candidates/` in the ignored scratch directory when that directory exists. Check
-each revisit trigger against the history since the record was written. A candidate whose trigger
-fired enters the pass with its recorded evidence. Leave a candidate whose trigger has not fired open
-and out of this pass; when this pass finds new evidence for it, add the evidence to its existing
-record.
+`gh issue list --label candidate --state open --limit 500 --json number,title,body`, plus every file
+under `candidates/` in the ignored scratch directory when that directory exists. Check each revisit
+trigger against the history since the record's date. A candidate whose trigger fired enters the pass
+with its recorded evidence. Leave a candidate whose trigger has not fired open and out of this pass;
+when this pass finds new evidence for it, add the evidence to its existing record.
 
 ## Close
 
