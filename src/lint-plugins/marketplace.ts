@@ -144,6 +144,8 @@ export async function validateMarketplace(context: ValidationContext): Promise<C
         localEntries.push(pluginPath);
       }
     } else if (sourceType !== undefined) {
+      // Remote sources are rejected because this repository ships only local plugins and #153
+      // removed the unused network validation; see docs/adr/0001-validate-local-plugin-sources-only.md.
       error(
         context,
         "marketplace/source-type",
