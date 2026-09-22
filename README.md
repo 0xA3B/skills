@@ -107,11 +107,15 @@ executable evidence and loads on its own for prototype and spike requests. `tdd`
 observable behavior through a red-green-refactor loop over a frontier of behaviors, and loads on its
 own for implementation requests. `review-changes` reviews changes the session authored through
 focused lanes, fixes accepted findings, and reruns the lanes those fixes invalidated; `tdd` applies
-it at completion. `codebase-design` provides shared background discipline. Use `handoff` when
-another agent session should continue from an ignored local context document.
+it at completion. `codebase-design` provides shared background discipline, and `decision-records`
+both backs the other workflows and loads on its own for requests to record or check a decision. Use
+`handoff` when another agent session should continue from an ignored local context document.
 
 - [`engineering:codebase-design`](./plugins/engineering/skills/codebase-design/): Applies shared
   deep-module and interface-design discipline.
+- [`engineering:decision-records`](./plugins/engineering/skills/decision-records/): Records,
+  updates, or supersedes architecture decision records, and reads the records that touch an area
+  before a change there.
 - [`engineering:dependency-maintenance`](./plugins/engineering/skills/dependency-maintenance/):
   Reviews dependency update PRs, merges ready ones, syncs local state, refreshes repo-pinned
   tooling, and files linked follow-up issues.

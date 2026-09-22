@@ -14,9 +14,14 @@ fixes with the lanes that reviewed them, and reruns the lanes those fixes invali
 it at completion. Use `handoff` when another agent session should continue the work from an ignored
 local context document.
 
-`codebase-design` is a shared background discipline consumed by the user-facing workflows.
-`terminology`, `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`, and
-`dependency-maintenance` remain focused workflows for their respective concerns.
+`codebase-design` is a shared background discipline consumed by the user-facing workflows, which
+also apply `decision-records`; `decision-records` loads on its own for requests to record or check a
+decision. `terminology` and `decision-records` together are the plugin's surface for language and
+decisions: `terminology` keeps the ubiquitous language in `AGENTS.md`, and `decision-records` keeps
+architecture decision records under `docs/adr/`, following domain-driven design's separation of the
+shared language from the decisions expressed in that language. `diagnose`,
+`improve-codebase-architecture`, `improve-codebase-tests`, and `dependency-maintenance` remain
+focused workflows for their respective concerns.
 
 On Claude Code, the bundled `code-review` skill competes with `review-changes` for generic review
 prompts. To keep the bundled skill typable as `/code-review` but stop its implicit invocation, set
@@ -31,6 +36,8 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
 ## Skills
 
 - `engineering:codebase-design`: Apply shared deep-module and interface-design discipline.
+- `engineering:decision-records`: Record, update, or supersede architecture decision records, and
+  read the records that touch an area before a change there.
 - `engineering:dependency-maintenance`: Review dependency update PRs, merge ready ones, sync local
   state, refresh repo-pinned tooling, and file linked follow-up issues.
 - `engineering:diagnose`: Diagnose bugs through a tight red-capable loop, minimization, falsifiable

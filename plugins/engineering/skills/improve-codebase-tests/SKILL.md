@@ -24,7 +24,8 @@ fixtures are modules with interfaces and depth like anything else.
 ## Outcome
 
 Produce a prioritized, repository-grounded test-suite review or a concrete plan for one selected
-improvement. The first pass is analysis-only unless the user explicitly requests implementation.
+improvement. The first pass is analysis-only apart from decision records written under
+`engineering:decision-records`, unless the user explicitly requests implementation.
 
 ## Two costs
 
@@ -55,6 +56,9 @@ Test improvement pays off where tests cost the most. Choose the review area befo
    suite, and run it two or three times to surface nondeterminism.
 
 Widen only when the friction traces to a shared scaffold or a missing production seam.
+
+Apply `engineering:decision-records` to read the decision records that touch the chosen suite; a
+candidate that contradicts one surfaces only under that skill's conflict rule.
 
 ## Friction signals
 
@@ -90,7 +94,9 @@ For each candidate include:
 - approximate size, the specific future change made cheaper, and risks.
 
 Ask which candidate the user wants to explore or implement. Treat every candidate that deletes or
-weakens a test as a gated user decision: it changes what the suite proves.
+weakens a test as a gated user decision: it changes what the suite proves. If the user declines a
+candidate for a reason a later pass would need in order not to re-propose it, apply
+`engineering:decision-records` to record the decision.
 
 ## Resolve a selected candidate
 
@@ -116,9 +122,10 @@ repeated runs, a measured suite-runtime delta, or a deleted test with a written 
 nothing user-visible is now unproven. A benefit that cannot be demonstrated is a risk to report, not
 a result.
 
-Record declined and deferred candidates with their evidence in the repository's ignored scratch
-directory, confirming the path is ignored with `git check-ignore` before writing. When no ignored
-convention exists, record them in the final response instead.
+Record deferred candidates, and declined candidates that earned no decision record, with their
+evidence in the repository's ignored scratch directory, confirming the path is ignored with
+`git check-ignore` before writing. When no ignored convention exists, record them in the final
+response instead.
 
 ## Boundaries
 

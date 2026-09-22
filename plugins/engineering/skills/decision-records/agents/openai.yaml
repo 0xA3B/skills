@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Decision Records"
+  short_description: "Record and read architecture decision records"
+  default_prompt: "Record this decision as an ADR."
+policy:
+  allow_implicit_invocation: true

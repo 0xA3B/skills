@@ -24,7 +24,8 @@ rules throughout this workflow.
 ## Outcome
 
 Produce a prioritized, repository-grounded architecture review or a concrete plan for one selected
-refactor. The first pass is analysis-only unless the user explicitly requests implementation.
+refactor. The first pass is analysis-only apart from decision records written under
+`engineering:decision-records`, unless the user explicitly requests implementation.
 
 ## Scope before scanning
 
@@ -38,8 +39,9 @@ Deepening pays off where future change is likely. Choose the review area before 
 
 ## Explore
 
-Read `AGENTS.md ## Terminology`, repository guidance, nearby docs, code, callers, and tests. Follow
-concrete friction:
+Read `AGENTS.md ## Terminology`, repository guidance, nearby docs, code, callers, and tests. Apply
+`engineering:decision-records` to read the decision records that touch the scoped area; a candidate
+that contradicts one surfaces only under that skill's conflict rule. Follow concrete friction:
 
 - understanding one concept requires bouncing through many shallow modules;
 - caller knowledge, bugs, or policy are duplicated across a cluster;
@@ -64,7 +66,8 @@ For each candidate include:
 - risks, compatibility or migration costs, and uncertainty.
 
 Do not propose a detailed interface during the first pass. Ask which candidate the user wants to
-explore or implement.
+explore or implement. If the user declines a candidate for a reason a later pass would need in order
+not to re-propose it, apply `engineering:decision-records` to record the decision.
 
 ## Resolve a selected candidate
 
@@ -93,7 +96,7 @@ finishing: a test that exercises the new seam, caller knowledge that no longer e
 equivalent observable change. A benefit that cannot be demonstrated is a risk to report, not a
 result.
 
-Record declined and deferred candidates with their evidence so a later architecture pass builds on
-them instead of re-deriving them. Write them to the repository's ignored scratch directory,
-confirming the path is ignored with `git check-ignore` before writing. When no ignored convention
-exists, record them in the final response instead.
+Record deferred candidates, and declined candidates that earned no decision record, with their
+evidence so a later architecture pass builds on them instead of re-deriving them. Write them to the
+repository's ignored scratch directory, confirming the path is ignored with `git check-ignore`
+before writing. When no ignored convention exists, record them in the final response instead.
