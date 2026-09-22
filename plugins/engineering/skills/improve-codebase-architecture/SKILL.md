@@ -33,8 +33,8 @@ implementation.
 Deepening pays off where future change is likely. Choose the review area before searching:
 
 1. Use the module, subsystem, pain point, or path named by the user.
-2. Otherwise apply the read step in [CANDIDATES.md](../../references/CANDIDATES.md) to the
-   repository and take the area from a candidate whose revisit trigger fired.
+2. Otherwise apply the read step in [CANDIDATES.md](../../references/CANDIDATES.md), kind
+   `architecture`, to the repository and take the area from a candidate whose revisit trigger fired.
 3. Otherwise rank files by change frequency over recent history (for example
    `git log --since='6 months ago' --name-only --pretty=format:`) and start with the top hot spots.
 4. Widen only when changes are scattered or evidence shows the initial area depends on a broader

@@ -48,10 +48,10 @@ so verification residue accumulates structurally.
 Test improvement pays off where tests cost the most. Choose the review area before searching:
 
 1. Use the suite, path, or pain point named by the user.
-2. Otherwise apply the read step in [CANDIDATES.md](../../references/CANDIDATES.md) to the whole
-   suite and take the area from a candidate whose revisit trigger fired. Earlier passes record those
-   candidates, and so does `engineering:review-changes` when its test-review lane defers a
-   suite-level finding.
+2. Otherwise apply the read step in [CANDIDATES.md](../../references/CANDIDATES.md), kind `tests`,
+   to the whole suite and take the area from a candidate whose revisit trigger fired. Earlier passes
+   record those candidates, and so does `engineering:review-changes` when its test-review lane
+   defers a suite-level finding.
 3. Otherwise find hot spots from evidence: slowest files, flake history (CI retries, `.skip` and
    `.todo` accretion, timing constants), test files changed in most commits, and test files
    repeatedly broken by unrelated changes.
