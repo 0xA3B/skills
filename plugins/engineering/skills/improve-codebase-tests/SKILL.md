@@ -25,7 +25,8 @@ fixtures are modules with interfaces and depth like anything else.
 
 Produce a prioritized, repository-grounded test-suite review or a concrete plan for one selected
 improvement. The first pass is analysis-only apart from decision records written under
-`engineering:decision-records`, unless the user explicitly requests implementation.
+`engineering:decision-records` and candidate records, unless the user explicitly requests
+implementation.
 
 ## Two costs
 

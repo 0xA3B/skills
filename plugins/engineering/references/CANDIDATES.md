@@ -14,12 +14,13 @@ candidate under `candidates/` in the repository's ignored scratch directory, con
 ignored with `git check-ignore` before writing; when no ignored convention exists, put the content
 in the final response. Each record carries:
 
+- the date the record was written;
 - the area: the files, modules, or suites involved;
 - the evidence the candidate rests on, with command output where a run demonstrates it;
 - the reason it was set aside;
 - a revisit trigger written as a statement a later pass can check against history, such as "the
   manifest layout changes" or "a third caller of `parseFixture` appears"; for a candidate the user
-  declined, record the decline reason in place of a trigger, so no later pass re-proposes it.
+  declined, the trigger is the condition under which the decline reason stops holding.
 
 ## Read
 

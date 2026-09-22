@@ -25,16 +25,19 @@ rules throughout this workflow.
 
 Produce a prioritized, repository-grounded architecture review or a concrete plan for one selected
 refactor. The first pass is analysis-only apart from decision records written under
-`engineering:decision-records`, unless the user explicitly requests implementation.
+`engineering:decision-records` and candidate records, unless the user explicitly requests
+implementation.
 
 ## Scope before scanning
 
 Deepening pays off where future change is likely. Choose the review area before searching:
 
 1. Use the module, subsystem, pain point, or path named by the user.
-2. Otherwise rank files by change frequency over recent history (for example
+2. Otherwise apply the read step in [CANDIDATES.md](../../references/CANDIDATES.md) to the
+   repository and take the area from a candidate whose revisit trigger fired.
+3. Otherwise rank files by change frequency over recent history (for example
    `git log --since='6 months ago' --name-only --pretty=format:`) and start with the top hot spots.
-3. Widen only when changes are scattered or evidence shows the initial area depends on a broader
+4. Widen only when changes are scattered or evidence shows the initial area depends on a broader
    architectural problem.
 
 ## Explore
