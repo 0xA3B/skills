@@ -43,9 +43,10 @@ where the invoking workflow already puts pending work.
 ## Location
 
 - If the repository has an ADR directory, such as `docs/adr/` or a directory its instructions name,
-  use it.
+  use it. If that directory has a naming scheme, a template, or a status vocabulary, follow them
+  over the rules below.
 - Otherwise create `docs/adr/` when the first record is written.
-- Name each file `NNNN-slug.md`. Take the highest existing number plus one.
+- Name each new file `NNNN-slug.md`, taking the highest existing number plus one.
 
 ## Format
 
@@ -65,9 +66,9 @@ context never blocks the other. Billing's view of an order can lag by the event 
 
 ## Point from the code
 
-If the decision surfaces at a code location, put one sentence of why and the record's path in a
-comment at each site where a reader first meets it. The comment carries no more than the record's
-decision sentence.
+When writing or superseding a record for a decision that surfaces at a code location, put one
+sentence of why and the record's path in a comment at each site where a reader first meets it. The
+comment carries no more than the record's decision sentence.
 
 ## Read before proposing
 
