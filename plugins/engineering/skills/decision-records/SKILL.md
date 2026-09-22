@@ -68,7 +68,8 @@ context never blocks the other. Billing's view of an order can lag by the event 
 
 When writing or superseding a record for a decision that surfaces at a code location, put one
 sentence of why and the record's path in a comment at each site where a reader first meets it. The
-comment carries no more than the record's decision sentence.
+comment carries no more than the record's decision sentence. If the invoking workflow's write
+authority excludes source edits, list the sites in the report in place of the comments.
 
 ## Read before proposing
 
