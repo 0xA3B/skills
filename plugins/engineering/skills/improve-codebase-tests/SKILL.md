@@ -47,8 +47,10 @@ so verification residue accumulates structurally.
 Test improvement pays off where tests cost the most. Choose the review area before searching:
 
 1. Use the suite, path, or pain point named by the user.
-2. Use deferred suite-level findings from earlier test-review lane runs when the repository has
-   them.
+2. Otherwise apply the read step in [CANDIDATES.md](../../references/CANDIDATES.md) to the whole
+   suite and take the area from a candidate whose revisit trigger fired. Earlier passes record those
+   candidates, and so does `engineering:review-changes` when its test-review lane defers a
+   suite-level finding.
 3. Otherwise find hot spots from evidence: slowest files, flake history (CI retries, `.skip` and
    `.todo` accretion, timing constants), test files changed in most commits, and test files
    repeatedly broken by unrelated changes.
@@ -57,8 +59,10 @@ Test improvement pays off where tests cost the most. Choose the review area befo
 
 Widen only when the friction traces to a shared scaffold or a missing production seam.
 
-Apply `engineering:decision-records` to read the decision records that touch the chosen suite; a
-candidate that contradicts one surfaces only under that skill's conflict rule.
+Apply `engineering:decision-records` and the read step in
+[CANDIDATES.md](../../references/CANDIDATES.md) to the chosen suite: a candidate whose revisit
+trigger fired enters this pass, and a candidate that contradicts a decision record surfaces only
+under that skill's conflict rule.
 
 ## Friction signals
 
@@ -122,10 +126,9 @@ repeated runs, a measured suite-runtime delta, or a deleted test with a written 
 nothing user-visible is now unproven. A benefit that cannot be demonstrated is a risk to report, not
 a result.
 
-Record deferred candidates, and declined candidates that earned no decision record, with their
-evidence in the repository's ignored scratch directory, confirming the path is ignored with
-`git check-ignore` before writing. When no ignored convention exists, record them in the final
-response instead.
+Record each deferred candidate, and each candidate the user declined for a reason that earned no
+decision record, through the write step in [CANDIDATES.md](../../references/CANDIDATES.md), so a
+later pass builds on it instead of re-deriving it.
 
 ## Boundaries
 
