@@ -20,7 +20,9 @@ in the final response. Each record carries:
 - the reason it was set aside;
 - a revisit trigger written as a statement a later pass can check against history, such as "the
   manifest layout changes" or "a third caller of `parseFixture` appears"; for a candidate the user
-  declined, the trigger is the condition under which the decline reason stops holding.
+  declined, the trigger is the condition under which the decline reason stops holding; for work that
+  is due now and set aside only because it exceeds the current scope, the trigger is the next pass
+  over its area.
 
 ## Read
 
