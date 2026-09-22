@@ -64,9 +64,27 @@ classify an item `accepted` or `auto-accepted` only when all three hold:
    When the remedy touches a validator, an ordering rule, or a state classification, name the
    mechanism and list its sibling cases before editing — the other layers, the opposite direction,
    the other input classes — then fix the set with one test per case, or record each excluded case
-   as a deliberate limit through Decision capture. "Smallest change" bounds the remedy within the
-   mechanism, not the cases it covers: a fix that handles the reported case and leaves its siblings
-   open returns as the next round's finding.
+   as a deliberate limit through Decision capture. A lifecycle or storage rule in an instruction
+   file is a state classification: its sibling cases are each state, each location a record can live
+   in, and each transition between them, and the set is fixed when every case has a defined action
+   or a recorded limit. "Smallest change" bounds the remedy within the mechanism, not the cases it
+   covers: a fix that handles the reported case and leaves its siblings open returns as the next
+   round's finding.
+
+## Rate the consequence
+
+A reviewer's severity label is a claim about consequence made without the authoring context. Rate
+each `accepted` or `auto-accepted` item by the consequence the defect has when it stays unfixed, and
+carry that rating into the report and into any reply, alongside the reviewer's label when the two
+differ:
+
+- top tier: a silent wrong result, data loss, an external mutation, or a crossed authority boundary;
+- below the top tier: any other failure that is loud or has a recovery path, and noise, a defect
+  with no effect on any result, such as a typo, a naming inconsistency, or a redundant check.
+
+A top-tier consequence keeps its tier whatever the reviewer's label. A rating below the reviewer's
+label names the loud signal or the recovery path that bounds the consequence; without one, keep the
+reviewer's tier.
 
 ## Triage rules
 
