@@ -35,6 +35,8 @@ workflow.
 
 - Create disposable prototype artifacts in the locations `## Placement` defines.
 - Add one local run command when the project task runner supports it.
+- The parent session writes a decision record under `engineering:decision-records` when the answer
+  passes its gates; nothing else durable.
 - Do not stage, commit, branch, publish, or present prototype code as durable implementation.
 - Do not add tests, broad abstractions, production persistence, or unrelated cleanup.
 
@@ -125,7 +127,10 @@ continue questioning, reject the direction, or hand off to `engineering:tdd`.
 4. Surface the relevant state after every action or variant switch.
 5. Give the user one command, URL, or file to open.
 6. Capture the evidence record, the question, observed evidence, extract, and decision, in chat
-   before any cleanup. A `NOTES.md` next to the prototype is a working copy that cleanup removes.
+   before any cleanup. When the answer passes the gates in `engineering:decision-records`, the
+   parent session applies that skill from the evidence record; a subagent returns the record and
+   writes nothing durable. A `NOTES.md` next to the prototype is a working copy that cleanup
+   removes.
 
 ## Completion
 

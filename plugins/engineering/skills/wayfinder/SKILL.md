@@ -30,7 +30,8 @@ effort navigable without turning planning into implementation.
 - Inspect repository code, docs, tests, history, issues, and local artifacts.
 - Research current external sources when packages, APIs, ecosystem behavior, pricing, product
   behavior, or examples affect the map.
-- Create no durable artifacts, project docs, issues, specs, branches, or implementation changes.
+- Create no durable artifacts, project docs, issues, specs, branches, or implementation changes,
+  including decision records; recording belongs to the workflow that settles the decision.
 - Create disposable prototype artifacts only under `engineering:prototype`'s placement rules, and
   clean them up before the map is returned.
 - Keep scratch notes temporary and do not present them as project state.
@@ -55,7 +56,9 @@ Gather only enough evidence to map the space:
 - explicit rejected or out-of-scope paths.
 
 Challenge vague domain terms. Use concrete edge cases when a relationship, state transition, or
-ownership boundary is unclear, and verify important claims against code.
+ownership boundary is unclear, and verify important claims against code. Apply
+`engineering:decision-records` to read the decision records that touch the effort; they are known
+ground.
 
 ### 3. Map breadth-first
 

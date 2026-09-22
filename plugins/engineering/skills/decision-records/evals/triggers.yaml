@@ -1,0 +1,48 @@
+version: 1
+workspace:
+  seed: node-service
+  committed:
+    docs/adr/0001-store-items-in-memory.md: |
+      # Store items in memory
+
+      The service is a reference implementation with no persistence requirement. Items live in an
+      in-process map instead of a database, so the service has no runtime dependencies. A restart
+      clears every item.
+cases:
+  - id: record-decision
+    prompt: >-
+      Record our decision to keep items in memory instead of adding SQLite as an ADR.
+    expect: invoke
+    rationale: The user asks to write an architecture decision record.
+
+  - id: supersede-decision
+    prompt: >-
+      We're moving items to SQLite after all. Supersede the in-memory ADR and record the new
+      decision.
+    expect: invoke
+    rationale: Superseding a recorded decision belongs to decision-records.
+
+  - id: rejected-alternative
+    prompt: >-
+      Write up why we rejected a message queue for the list endpoint so nobody proposes it again.
+    expect: invoke
+    rationale: A rejected alternative with a non-obvious reason is a decision record.
+
+  - id: define-term
+    prompt: >-
+      Add "page" to our AGENTS.md terminology and mark "batch" as an alias to avoid.
+    expect: skip
+    invoke-instead: engineering:terminology
+    rationale: A glossary entry belongs to terminology, not to a decision record.
+
+  - id: fix-bug
+    prompt: >-
+      Fix the off-by-one in the list endpoint's page size.
+    expect: skip
+    rationale: A direct bug fix settles no hard-to-reverse decision.
+
+  - id: conceptual-adr
+    prompt: >-
+      What is an architecture decision record and when do teams use them?
+    expect: skip
+    rationale: A conceptual question does not ask to record or read a repository decision.

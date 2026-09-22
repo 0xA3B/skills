@@ -37,6 +37,8 @@ implement, defer, or reject.
   exists, or the user wants to drive the prototype, recommend the explicit invocation and move the
   question and the decisions downstream of it off the frontier into the completion summary's
   unresolved list; they return to the frontier only when the evidence arrives.
+- Before the first round, apply `engineering:decision-records` to read the records that touch the
+  topic and fold them into the established facts.
 - Do not ask the user to supply facts that can be established safely from available evidence.
 - Decisions belong to the user. Present each material choice in the shape `## Question shapes`
   assigns, then wait for the user's answer.
@@ -126,9 +128,11 @@ Confirm: <the consequence to confirm>. If rejected: <what changes>.
   disagree, pause and resolve which should be authoritative.
 - Use `AGENTS.md ## Terminology` when present. Update stable domain terms there as they crystallize;
   skip generic programming terms and incidental implementation names.
-- Keep the session to questions and evidence gathering, including dispatched disposable prototypes;
-  implementing, ticket creation, and enacting the approach belong to the next explicit workflow
-  after the handoff.
+- Apply `engineering:decision-records` to record a choice the user settles when it passes that
+  skill's gates.
+- Keep the session to questions and evidence gathering, dispatched disposable prototypes, and
+  terminology and decision-record updates; implementing, ticket creation, and enacting the approach
+  belong to the next explicit workflow after the handoff.
 
 When terminology is the main unresolved work, recommend `engineering:terminology`.
 
@@ -139,7 +143,8 @@ nothing left silently assumed. Before declaring completion:
 
 1. Summarize the decisions, facts, assumptions, rejected paths, and remaining follow-ups.
 2. State why the approach is ready to implement, defer, or reject.
-3. Report terminology changes, unresolved questions that need executable evidence, and the
-   recommended next explicit workflow. If another manual engineering skill is next, include a
-   handoff note with the context to carry forward and its exact `engineering:<skill>` invocation.
+3. Report terminology changes, decision records written, unresolved questions that need executable
+   evidence, and the recommended next explicit workflow. If another manual engineering skill is
+   next, include a handoff note with the context to carry forward and its exact
+   `engineering:<skill>` invocation.
 4. Ask the user to confirm that shared understanding has been reached.

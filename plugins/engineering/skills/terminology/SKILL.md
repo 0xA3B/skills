@@ -88,3 +88,5 @@ Judge placement by where the work happens, not where the topic's files sit.
 - Preserve established terms unless evidence shows they are wrong or misleading.
 - When code names conflict with durable terminology, recommend whether to rename code, update
   terminology, or defer the decision.
+- When a term exists because of a recorded trade-off, cite the decision record in the term's
+  relationship bullet, adding that bullet when the term has none.
