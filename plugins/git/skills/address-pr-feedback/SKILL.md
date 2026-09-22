@@ -35,8 +35,10 @@ Do not call an exception, timeout, or stale approval green.
 
 ## Required feedback discipline
 
-Before triage, confirm `engineering:receiving-feedback` is available. If it is absent, stop and
-report that the `engineering` plugin must be installed or enabled.
+Before triage, confirm `engineering:receiving-feedback` is available and rates the consequence of
+accepted findings, which the `engineering` plugin ships from 2.6.1. If the skill is absent, stop and
+report that the `engineering` plugin must be installed or enabled; if the skill assigns no rating,
+stop and report that the `engineering` plugin must be updated.
 
 Apply `engineering:receiving-feedback` to every finding. This invocation permits fixing a finding
 that discipline marks `accepted` or `auto-accepted` when the fix preserves behavior and stays within
@@ -152,21 +154,22 @@ permitted fixes, then stop before requesting round eight. Return `round-limit` w
 is dispositioned and the current head lacks approval, whether or not the disposition produced a new
 head.
 
-An adapter that returned findings in the round has converged when every one of them sits below that
-adapter's top severity tier, as its adapter reference defines the tier, and none is a silent failure
-as `engineering:receiving-feedback` defines it. This is the convergence rule; an adapter's terminal
-clean signal on the current head classifies it `approved` and the rule does not apply. After
-dispositioning a converged adapter's findings and pushing its permitted fixes, request no further
-review from that adapter and stop polling it, whether or not repository policy requires its
-approval: classify it `resolved-with-exceptions`, and report the current source head, the earlier
-head its last review covered, and every disposition applied since that review. Before the hand off,
-watch the current head across two poll intervals for a review that adapter started on its own; when
-acknowledgment of the current head appears in that window, wait for its terminal response under the
-inactivity timeout. Report that observation with the adapter's status. If a review of a later head
-from a converged adapter appears at that final observation, or while the loop is still polling
-another adapter, disposition its findings; when that review itself fails the convergence rule, the
-adapter is active again and its rounds continue. Continue rounds for adapters that have not
-converged.
+An adapter that returned findings in the round has converged when every one of them sits below the
+top consequence tier: an accepted or auto-accepted finding carries the rating
+`engineering:receiving-feedback` assigns, a finding dispositioned deferred or rejected sits below
+the top tier, and a gated or needs-clarification finding blocks convergence and stops rounds as a
+required user decision. This is the convergence rule; an adapter's terminal clean signal on the
+current head classifies it `approved` and the rule does not apply. After dispositioning a converged
+adapter's findings and pushing its permitted fixes, request no further review from that adapter and
+stop polling it, whether or not repository policy requires its approval: classify it
+`resolved-with-exceptions`, and report the current source head, the earlier head its last review
+covered, and every disposition applied since that review. Before the hand off, watch the current
+head across two poll intervals for a review that adapter started on its own; when acknowledgment of
+the current head appears in that window, wait for its terminal response under the inactivity
+timeout. Report that observation with the adapter's status. If a review of a later head from a
+converged adapter appears at that final observation, or while the loop is still polling another
+adapter, disposition its findings; when that review itself fails the convergence rule, the adapter
+is active again and its rounds continue. Continue rounds for adapters that have not converged.
 
 Stop before the round limit when:
 
@@ -182,7 +185,10 @@ session-only counters or assumptions.
 ## Completion and hand off
 
 Report the current source head, active adapters, rounds completed, feedback dispositions, thread
-resolution, required CI state, and one terminal status per adapter.
+resolution, required CI state, and one terminal status per adapter. When more than three rounds
+completed, add the round trend: findings per round, findings whose mechanism repeated an earlier
+round, and each round's fix size in changed lines, so the user can judge whether a further
+invocation would pay.
 
 When every active adapter is `approved`, stop and recommend `git:merge-pr` next; continue into it
 only when the user's request asked to merge the change request.

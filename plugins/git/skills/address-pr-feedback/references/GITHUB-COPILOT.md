@@ -44,9 +44,8 @@ inline review comments. Track inline comment IDs and review thread IDs. GitHub m
 unresolved comments to a newer commit, so `commit_id` is not a stable indication that a finding is
 new.
 
-Copilot findings carry no severity badge. For the convergence rule in `4. Stop rounds`, a Copilot
-finding is top-tier when its accepted fix changes runtime behavior; a finding dispositioned deferred
-or rejected, or whose fix touches only tests, documentation, or wording, sits below the top tier.
+Copilot findings carry no severity badge, so the rating the shared feedback discipline assigns
+stands on its own.
 
 Inspect review-body details such as `Suppressed comments`. Copilot may place previously missed
 findings there while reporting zero new inline comments. Give an item labeled `Previously missed`

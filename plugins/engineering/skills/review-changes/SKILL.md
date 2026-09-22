@@ -187,17 +187,12 @@ lane's original reviewer with the accepted or auto-accepted findings, the fix, t
 fix changed, and the adjacent regression risk, and ask it to confirm each finding is resolved and to
 report only regressions the fixes introduced or findings not resolved. When the agent cannot resume
 a reviewer, dispatch a fresh reviewer with that same verification brief. A rerun of the lane against
-the settled diff with a fresh reviewer replaces verification only when a fix materially changes the
-lane's reviewed assumptions:
-
-- a changed public interface or ownership boundary invalidates API-seam review, and invalidates code
-  review when the fix changes behavior at that boundary;
-- a changed state transition, ordering rule, or external protocol invalidates code review, and
-  invalidates test review and spec adherence when their tests or intent source cover that
-  transition;
-- new or restructured tests invalidate test review;
-- a changed reading of a requirement invalidates spec adherence and every lane that relied on it;
-- materially rewritten prose invalidates prose review.
+the settled diff with a fresh reviewer replaces verification only when a fix changes what the lane
+reviewed rather than how one finding was resolved: the interface, boundary, transition, requirement
+reading, tests, or prose that the lane's findings and `verified_sound` list rest on. For the lane
+that reported the finding, a change confined to the lines the finding named resolves the finding;
+for every other lane that relied on the changed interface, boundary, transition, or reading, the
+same change is a changed assumption whatever lines it touched.
 
 Triage findings from either pass as new feedback through the same gate. Repeat until a pass applies
 no material fix. A typo fix, mechanical rename, formatting change, or test-expectation update that

@@ -26,7 +26,11 @@ prevents is a finding even when its sentences are clean. When a changed rule cla
 or workspace state — durable or disposable, tracked or ignored, safe to delete — test each case the
 rule names against the placement and cleanup rules of the other skills in the same plugin, or of the
 sibling skills when the changed file is not a plugin skill, and report a case that another skill's
-placement or cleanup rules contradict.
+placement or cleanup rules contradict. When a changed rule defines the lifecycle of a record or
+artifact — where it is written, read, updated, and closed — enumerate each state, each location, and
+each transition the rule names, and report a path that neither a defined action nor a stated default
+covers, `high` when the path loses a record or mutates external state without a visible trace and
+`low` when the gap shows in the artifact's own location.
 
 Anchor each finding on the nearest enclosing heading in `symbol`; prose has no code symbols, and
 line numbers go stale. List in `verified_sound` the checklist areas or rule groups the lane checked
