@@ -12,7 +12,8 @@ create it first, for GitHub `gh label create candidate`; if the session cannot c
 the tracker as unreachable. When the tracker is unreachable, write the same content to one file per
 candidate under `candidates/` in the repository's ignored scratch directory, confirming the path is
 ignored with `git check-ignore` before writing; when no ignored convention exists, put the content
-in the final response. Each record carries:
+in the final response. When the candidate already has a record, update that record's reason and
+trigger instead of writing a second one. Each record carries:
 
 - the date the record was written;
 - the area: the files, modules, or suites involved;
@@ -40,4 +41,4 @@ record.
 When this pass implements a candidate, add a closing reference to its record in the change request,
 for GitHub `Closes #<number>` in the description, so the merge closes it. When this pass invalidates
 a candidate, or declines it for a reason that `engineering:decision-records` now holds, close the
-record and state the reason in the closing comment.
+record and state the reason in the closing comment. A scratch record closes by deleting its file.
