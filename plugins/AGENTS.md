@@ -129,6 +129,15 @@
 - Use `pressure-test-skill` for non-trivial behavior shaping and `optimize-trigger` for implicit
   invocation behavior. Keep their generated artifacts under `.local/` unless the repository
   intentionally adds repeatable regression coverage.
+- Specify a workflow transition in a skill body when it crosses a boundary (authority, external
+  mutation, deletion, or a result a later session must find), when it is a terminal state or a
+  completion criterion, when an observed run produced a wrong or rejected result there, or when its
+  failure is silent, meaning a passing status over a wrong result. Leave recovery from transient
+  errors, the ordering of independent steps, and edge paths whose failure is loud and recoverable to
+  the model's judgment, stating a default when one exists. A rule derived by enumerating a state
+  matrix, rather than taken from an observed run, earns its place only when its failure is silent or
+  mutates external state; otherwise wait for the observed run. Rules beyond this threshold spend the
+  attention budget on cells a reviewer can trace one at a time.
 
 ## Writing plugin prose output style
 
