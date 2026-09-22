@@ -38,6 +38,8 @@ when this pass finds new evidence for it, add the evidence to its existing recor
 ## Close
 
 When this pass implements a candidate, add a closing reference to its record in the change request,
-for GitHub `Closes #<number>` in the description, so the merge closes it. When this pass invalidates
-a candidate, or declines it for a reason that `engineering:decision-records` now holds, close the
-record and state the reason in the closing comment. A scratch record closes by deleting its file.
+for GitHub `Closes #<number>` in the description, so the merge closes it; when no change request
+will carry the implementation, close the record once the implementation lands. When this pass
+invalidates a candidate, or declines it for a reason that `engineering:decision-records` now holds,
+close the record and state the reason in the closing comment. A scratch record closes by deleting
+its file.
