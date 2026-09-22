@@ -14,7 +14,8 @@ create labels, treat the tracker as unreachable. When the tracker is unreachable
 content to one file per candidate under `candidates/<kind>/` in the repository's ignored scratch
 directory, confirming the path is ignored with `git check-ignore` before writing; when no ignored
 convention exists, put the content in the final response. When the candidate already has a record,
-update that record's date, reason, and trigger instead of writing a second one. Each record carries:
+update that record's date, area, reason, and trigger instead of writing a second one. Each record
+carries:
 
 - the date the record was written;
 - the area: the files, modules, or suites involved;
