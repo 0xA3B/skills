@@ -136,8 +136,8 @@ Relationships:
 - A **Trigger fixture** skip case carries zero or one **Routing assertion**; the cases whose
   **Routing assertion** names a skill are that skill's **Dependent cases**.
 - **Plugin linter** checks are local and deterministic.
-- A **Candidate** closes through the pull request that implements it, a **Decision record** that
-  declines it, or a stated invalidation reason.
+- A **Candidate** closes when its implementation lands, when a **Decision record** declines it, or
+  with a stated invalidation reason.
 - A **Candidate** joins the **Frontier** of a codebase pass once its revisit trigger fires.
 - A **Review lane** separates review intent from review scope; scope belongs to the invoking review
   workflow.
