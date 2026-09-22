@@ -31,10 +31,11 @@ Write a record only when all three hold:
 3. **A real trade-off.** Genuine alternatives existed and one was chosen for specific reasons.
 
 A choice that fails any gate gets no record: an easy reversal will be reversed, an obvious choice
-raises no question, and a choice without alternatives has no reason to explain. Choices that pass
-include an architectural shape, an integration pattern between contexts, a technology with lock-in,
-a boundary or ownership rule, a deliberate deviation from the obvious path, a constraint invisible
-in the code, and a rejected alternative whose rejection is not obvious.
+raises no question, and a choice without alternatives has no reason to explain. A surprise whose
+reason fits in a comment at the site, and that fails either other gate, gets the comment and no
+record. Choices that pass include an architectural shape, an integration pattern between contexts, a
+technology with lock-in, a boundary or ownership rule, a deliberate deviation from the obvious path,
+a constraint invisible in the code, and a rejected alternative whose rejection is not obvious.
 
 Deferred candidates, open questions, specs, and tickets are pending work, not decisions; leave them
 where the invoking workflow already puts pending work.
@@ -61,6 +62,12 @@ Billing needs order state but must keep working while Ordering deploys. Ordering
 events and Billing projects them, instead of Billing calling Ordering over HTTP, so a deploy in one
 context never blocks the other. Billing's view of an order can lag by the event delivery delay.
 ```
+
+## Point from the code
+
+If the decision surfaces at a code location, put one sentence of why and the record's path in a
+comment at each site where a reader first meets it. The comment carries no more than the record's
+decision sentence.
 
 ## Read before proposing
 
