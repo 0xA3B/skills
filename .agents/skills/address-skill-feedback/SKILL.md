@@ -221,9 +221,11 @@ For every dispositioned GitHub issue:
 - **reroute**: when the owner is another skill in this marketplace, open a replacement issue labeled
   `feedback` and `plugin:<owning-plugin>` that links the original, then close the original with the
   link; if a label is missing, create the issue without it and name the missing label in the report.
-  Otherwise, comment the owner and a link to the record the user filed with that owner, or state
-  that no durable record exists, then close. Keep the discussion history by link, not by retitling
-  or relabeling the original.
+  When the owner is this repository's harness, linter, tooling, or instructions, open a `bug` or
+  `enhancement` issue that links the original, then close the original with the link. When the owner
+  is outside this repository, comment the owner and a link to the record the user filed with that
+  owner, or state that no durable record exists, then close. Keep the discussion history by link,
+  not by retitling or relabeling the original.
 - **discretion**: close with the rationale comment.
 - **wait**: comment the disposition and the evidence that would trigger reconsideration, and leave
   the issue open.
