@@ -58,8 +58,8 @@ reviewed commit to match `headRefOid`, and treat the comment as corroborating ev
 requirement.
 
 Bind the 👍 to a head before trusting it. When the current head is the only head the pull request
-has ever had, the 👍 binds to that head. After any push, a pre-existing 👍 is stale; request a new
-round and require a new terminal signal for the new head.
+has ever had, the 👍 binds to that head. After a push, a pre-existing 👍 covers the earlier head;
+Follow-up review decides whether the new head needs its own signal.
 
 ## Responses and thread resolution
 
@@ -84,17 +84,11 @@ commits, and push authority.
 
 ## Follow-up review
 
-Whether a push starts another Codex review depends on the connector's automatic-review
-configuration, which reviews new pushes in some repositories and only requested heads in others.
-After a permitted fix round is committed and pushed, watch two polls for acknowledgment of the new
-head: either a 👀 reaction or a summary-comment transition naming the new commit. When neither
-appears, comment:
-
-```text
-@codex review
-```
-
-This follow-up request is authorized for the active adapter. Begin a new round tied to the new
-`headRefOid`, watch for acknowledgment, and require a new current-head terminal response. When the
-connector reviews pushes on its own, it also reviews a head pushed after the adapter converged under
-`4. Stop rounds`; that review is the later-head review the convergence rule describes.
+The connector's automatic-review configuration decides whether a push starts another Codex review,
+and this adapter requests none beyond the single retry the transient-error rule allows. After a
+push, watch two polls for acknowledgment of the new head: a 👀 reaction or a summary-comment
+transition naming the new commit. When neither appears, the adapter keeps the classification its
+last review earned and the report names the head that review covered. When acknowledgment appears,
+tie a new round to the new `headRefOid` and require a current-head terminal response under the
+inactivity timeout; a review of a head pushed after the adapter converged under `4. Stop rounds` is
+the later-head review the convergence rule describes.

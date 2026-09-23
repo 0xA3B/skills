@@ -21,17 +21,20 @@ order or silently expanding edit authority.
 ## Outcome
 
 Finish with every active adapter classified against the current source head, or against the last
-head it reviewed when it converged:
+head it reviewed when it converged or when the repository's review configuration reviewed no later
+head:
 
-- `approved`: the adapter explicitly approved the current head;
+- `approved`: the adapter gave its terminal clean signal on the current head, or on the last head
+  the configuration reviewed;
 - `resolved-with-exceptions`: all known findings are dispositioned, but the adapter did not approve;
 - `round-limit`: all findings from the last permitted review round are dispositioned, but the
-  current head lacks approval;
+  adapter is not `approved`;
 - `timed-out`: no adapter-defined activity occurred for ten minutes;
 - `blocked`: missing prerequisites, user decisions, CI state, or unsupported behavior prevent
   continuation.
 
-Do not call an exception, timeout, or stale approval green.
+Do not call an exception or timeout green, or an approval on a head the configuration was still due
+to review.
 
 ## Required feedback discipline
 
@@ -49,11 +52,12 @@ the change request's own surface and tests; such a fix is a permitted fix. Gate 
 An explicit invocation of this skill, or a user request that asks to handle, address, or drive the
 feedback, to resolve its review threads, or to request a follow-up review, authorizes for active
 adapters polling, adapter-defined reactions and replies, thread resolution after disposition,
-permitted edits, relevant validation, applying `git:commit`, normal pushes, and adapter-defined
-follow-up review requests. A request that asks only to wait for, poll, or triage a review bot's
-findings authorizes polling and triage: classify each finding, report the dispositions, and return
-`blocked` on the user's decision before any reaction, reply, thread resolution, edit, commit, push,
-or follow-up review request.
+permitted edits, relevant validation, applying `git:commit`, normal pushes, and the transient-error
+retry an adapter defines. A request for a follow-up review is answered by each adapter's follow-up
+protocol, which observes the repository's review configuration instead of requesting a review. A
+request that asks only to wait for, poll, or triage a review bot's findings authorizes polling and
+triage: classify each finding, report the dispositions, and return `blocked` on the user's decision
+before any reaction, reply, thread resolution, edit, commit, or push.
 
 Neither authorization extends to:
 
@@ -137,9 +141,11 @@ For each new finding:
 6. preserve rejected or deferred reasoning in the change request within granted authority.
 
 When accepted work changes the branch, apply `git:commit` to the completed round and push normally.
-A new head invalidates every earlier adapter approval. Record the new SHA and reset adapter states.
-Unless the convergence rule in step 4 has stopped an adapter, advance each active adapter according
-to its own follow-up protocol.
+Record the new SHA. The repository's review configuration decides whether the new head gets another
+review, and each adapter's follow-up protocol observes that decision: when the configuration reviews
+the new head, every earlier signal from that adapter is stale and its round continues on the new
+head; when it does not, the classification the adapter's last review earned carries forward and the
+report names the head that review covered.
 
 Never filter new feedback by commit association alone when the forge can re-anchor old threads.
 Track stable thread or comment IDs and compare them with the snapshot.
@@ -150,9 +156,9 @@ A review round covers every active adapter that has not converged, reviewing the
 through their terminal response. A current-head review already observed when the invocation starts
 counts as round one. Allow at most seven review rounds total per invocation unless the user
 explicitly changes the limit. Disposition every finding received in round seven and commit and push
-permitted fixes, then stop before requesting round eight. Return `round-limit` whenever round seven
-is dispositioned and the current head lacks approval, whether or not the disposition produced a new
-head.
+permitted fixes, then stop before round eight. Return `round-limit` whenever round seven is
+dispositioned and the adapter is not `approved` under Outcome, whether or not the disposition
+produced a new head.
 
 An adapter that returned findings in the round has converged when every one of them sits below the
 top consequence tier: an accepted or auto-accepted finding carries the rating
@@ -160,16 +166,15 @@ top consequence tier: an accepted or auto-accepted finding carries the rating
 the top tier, and a gated or needs-clarification finding blocks convergence and stops rounds as a
 required user decision. This is the convergence rule; an adapter's terminal clean signal on the
 current head classifies it `approved` and the rule does not apply. After dispositioning a converged
-adapter's findings and pushing its permitted fixes, request no further review from that adapter and
-stop polling it, whether or not repository policy requires its approval: classify it
-`resolved-with-exceptions`, and report the current source head, the earlier head its last review
-covered, and every disposition applied since that review. Before the hand off, watch the current
-head across two poll intervals for a review that adapter started on its own; when acknowledgment of
-the current head appears in that window, wait for its terminal response under the inactivity
-timeout. Report that observation with the adapter's status. If a review of a later head from a
-converged adapter appears at that final observation, or while the loop is still polling another
-adapter, disposition its findings; when that review itself fails the convergence rule, the adapter
-is active again and its rounds continue. Continue rounds for adapters that have not converged.
+adapter's findings and pushing its permitted fixes, stop its rounds: classify it by the signal its
+last review earned under its adapter reference, `resolved-with-exceptions` when that review gave no
+clean signal, and report the current source head, the earlier head its last review covered, and
+every disposition applied since that review. Before the hand off, apply that adapter's follow-up
+protocol to the current head and report the observation with its status. If a review of a later head
+appears from an adapter that converged or whose classification carried forward, at that final
+observation or while the loop is still polling another adapter, disposition its findings; when that
+review itself fails the convergence rule, the adapter is active again and its rounds continue.
+Continue rounds for adapters that have not converged.
 
 Stop before the round limit when:
 
