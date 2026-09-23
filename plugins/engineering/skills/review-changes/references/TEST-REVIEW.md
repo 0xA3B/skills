@@ -16,9 +16,12 @@ Look for:
 
 For each meaningful changed behavior, name a specific mutation — a deleted branch, an inverted
 condition, a widened catch — and say whether any existing test would catch it. When the mutation is
-cheap to run in isolation — a separate worktree or a disposable copy, never the checkout other lanes
-are reading — apply it there and report the resulting test failures by count and name. Without that
-isolation, report the mutation as unexecuted analysis.
+cheap to run in isolation, create a separate worktree or a disposable copy at an absolute path
+resolved with `pwd -P`, never the checkout other lanes are reading, and make every write depend on
+being inside it: chain `cd "$MUTDIR" && [ "$(pwd -P)" = "$MUTDIR" ]` before each write with `&&`, so
+a failed `cd` aborts the command instead of running it in the checkout. Apply the mutation there and
+report the resulting test failures by count and name. Without that isolation, report the mutation as
+unexecuted analysis.
 
 When a test asserts the exact membership or size of a collection, determine whether the collection
 is closed by contract — a protocol enum, a security allowlist, a migration sequence whose order is

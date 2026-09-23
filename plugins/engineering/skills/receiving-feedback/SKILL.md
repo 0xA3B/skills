@@ -26,8 +26,8 @@ Classify each feedback item before acting:
 - `needs-clarification`: plausible but unclear; ask the reviewer or user before deciding.
 - `gated`: valid or plausible, but the remedy needs a user decision. Gate a fix that changes
   intended behavior, a public interface, a data model, a migration, a dependency, security policy,
-  broad architecture, or prior user direction, that falls outside the requested scope, or whose
-  remedy adds new behavior (see Evaluate each item).
+  broad architecture, or prior user direction whose premise still stands (see Triage rules), that
+  falls outside the requested scope, or whose remedy adds new behavior (see Evaluate each item).
 - `deferred`: valid but outside current scope or not worth fixing now.
 - `rejected`: invalid, duplicate, already addressed, or based on wrong context.
 
@@ -95,7 +95,10 @@ defect leaves unaffected; without one, keep the reviewer's tier.
   not duplication; treat as duplicate only repeats from the same source.
 - Push back with technical evidence when feedback is wrong, under-evidenced, or conflicts with
   established project decisions.
-- If feedback conflicts with user direction or durable project guidance, stop and ask the user.
+- If feedback conflicts with user direction or durable project guidance, stop and ask the user. A
+  direction whose stated premise the same change has since invalidated is superseded: when durable
+  project guidance decides the remedy, classify the item `accepted` and report the override with the
+  premise that changed; otherwise stop and ask the user as for a conflict.
 - Clarify unclear multi-item feedback before implementing any item that may depend on the unclear
   part.
 - When a new item's mechanism is a fix applied for an earlier item, reopen the earlier item: its fix
