@@ -96,9 +96,10 @@ defect leaves unaffected; without one, keep the reviewer's tier.
 - Push back with technical evidence when feedback is wrong, under-evidenced, or conflicts with
   established project decisions.
 - If feedback conflicts with user direction or durable project guidance, stop and ask the user. A
-  direction whose stated premise the same change has since invalidated is superseded: when durable
-  project guidance decides the remedy, classify the item `accepted` and report the override with the
-  premise that changed; otherwise stop and ask the user as for a conflict.
+  direction whose stated premise the same change has invalidated on purpose is superseded: when
+  durable project guidance decides the remedy, classify the item `accepted` and report the override
+  with the premise that changed; otherwise stop and ask the user as for a conflict. An edit that
+  removed the premise by accident is a regression to correct, not a superseding change.
 - Clarify unclear multi-item feedback before implementing any item that may depend on the unclear
   part.
 - When a new item's mechanism is a fix applied for an earlier item, reopen the earlier item: its fix

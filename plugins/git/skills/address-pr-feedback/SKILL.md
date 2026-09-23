@@ -26,7 +26,8 @@ head:
 
 - `approved`: the adapter gave its terminal clean signal on the current head, or on the last head
   the configuration reviewed;
-- `resolved-with-exceptions`: all known findings are dispositioned, but the adapter did not approve;
+- `resolved-with-exceptions`: all known findings are dispositioned, but the adapter gave no terminal
+  clean signal;
 - `round-limit`: all findings from the last permitted review round are dispositioned, but the
   adapter is not `approved`;
 - `timed-out`: no adapter-defined activity occurred for ten minutes;

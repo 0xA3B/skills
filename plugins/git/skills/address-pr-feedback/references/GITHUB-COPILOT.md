@@ -93,7 +93,9 @@ steps that have no target.
 ## Follow-up review
 
 The repository's ruleset decides whether a push starts another Copilot review, and this adapter
-never requests one. After a push, watch two polls for a `review_requested` event or a review on the
-new head. When neither appears, the adapter keeps the classification its last review earned and the
-report names the head that review covered. When a request appears, tie a new round to the new
-`headRefOid` and require a current-head terminal response under the inactivity timeout.
+never requests one. After a push, watch for a `review_requested` event created after the push or a
+review of the new head, through the inactivity timeout, or through two polls when an earlier push on
+this pull request drew neither. When neither appears, the adapter keeps the classification its last
+review earned and the report names the head that review covered. When a request appears, tie a new
+round to the new `headRefOid` and require a current-head terminal response under the inactivity
+timeout.

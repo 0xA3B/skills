@@ -86,8 +86,9 @@ commits, and push authority.
 
 The connector's automatic-review configuration decides whether a push starts another Codex review,
 and this adapter requests none beyond the single retry the transient-error rule allows. After a
-push, watch two polls for acknowledgment of the new head: a 👀 reaction or a summary-comment
-transition naming the new commit. When neither appears, the adapter keeps the classification its
+push, watch for acknowledgment of the new head, a 👀 reaction or a summary-comment transition naming
+the new commit, through the inactivity timeout, or through two polls when an earlier push on this
+pull request drew no acknowledgment. When none appears, the adapter keeps the classification its
 last review earned and the report names the head that review covered. When acknowledgment appears,
 tie a new round to the new `headRefOid` and require a current-head terminal response under the
 inactivity timeout; a review of a head pushed after the adapter converged under `4. Stop rounds` is
