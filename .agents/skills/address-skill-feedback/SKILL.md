@@ -202,7 +202,8 @@ Follow `plugins/AGENTS.md` for plugin versioning and the repository's required v
      pass after the last description change; a fresh eval session has no prior turns, so give any
      fixture that corrects earlier work the corrected text inline.
    - For non-trivial workflow behavior, use `pressure-test-skill` when realistic shortcut pressure
-     can test the new decision rule.
+     can test the new decision rule; when the pressure test edits the skill, repeat step 3 on the
+     final diff.
    - Run the repository's targeted checks, then its full gate before declaring the batch complete.
 6. If validation exposes a harness, fixture, runtime, or repository failure, reroute that failure.
    Do not weaken the skill change merely to make invalid evidence pass.
@@ -214,35 +215,37 @@ creating a public issue, or mutating one, show the exact commit scope and messag
 issue, public comment, or closure, then obtain the user's explicit confirmation. Read back every
 public mutation and correct a material publication alteration.
 
-For every dispositioned GitHub issue:
+For every dispositioned GitHub issue, record each item's disposition as below, then close the issue
+only when every item on it is terminal and every encoded change has landed; a `wait` item or an
+unlanded encode keeps it open.
 
-- **encode**: reference the issue in the fix commit, and close it once the change lands, naming the
-  commit.
+- **encode**: reference the issue in the fix commit and name the landed commit on the issue.
 - **reroute**: when the owner is another skill in this marketplace, open a replacement issue labeled
-  `feedback` and `plugin:<owning-plugin>` that links the original, then close the original with the
-  link; if a label is missing, create the issue without it and name the missing label in the report.
-  When the owner is this repository's harness, linter, tooling, or instructions, open a `bug` or
-  `enhancement` issue that links the original, then close the original with the link. When the owner
-  is outside this repository, comment the owner and a link to the record the user filed with that
-  owner, or state that no durable record exists, then close. Keep the discussion history by link,
-  not by retitling or relabeling the original.
-- **discretion**: close with the rationale comment.
-- **wait**: comment the disposition and the evidence that would trigger reconsideration, and leave
-  the issue open.
-- **reject**: close with the evidence that disproves the mechanism, contract, or attribution.
+  `feedback` and `plugin:<owning-plugin>` that links the original, and record the link on the
+  original; if a label is missing, create the issue without it and name the missing label in the
+  report. When the owner is this repository's harness, linter, tooling, or instructions, open a
+  `bug` or `enhancement` issue that links the original, and record the link on the original. When
+  the owner is outside this repository, comment the owner and a link to the record the user filed
+  with that owner, or state that no durable record exists. Keep the discussion history by link, not
+  by retitling or relabeling the original.
+- **discretion**: comment the rationale.
+- **wait**: comment the disposition and the evidence that would trigger reconsideration.
+- **reject**: comment the evidence that disproves the mechanism, contract, or attribution.
 - When one issue mixes terminal and `wait` items, record the terminal items on it, open a focused
   issue labeled `feedback` and `plugin:<plugin>` that carries only the `wait` items and their
-  triggers and links the original, then close the original once every encoded change lands.
+  triggers and links the original, so the original can close.
 
 For private local feedback, preserve the same evidence without publishing it:
 
 - Keep untriaged and active sources in `.local/feedback/`.
 - Put a `wait` item in `.local/feedback-deferred/` with the exact recurrence, cost, or cross-context
   evidence that would trigger reconsideration.
-- For a rerouted private item, save a redacted record for the owning skill in `.local/feedback/`
-  before archiving the source, or name the external owner's record in the archived file.
+- For a rerouted private item whose owner is a marketplace skill, save a redacted record for that
+  skill in `.local/feedback/` before archiving the source. For any other owner, name in the archived
+  file the record the user filed with that owner, or the absence of one.
 - After every atomic item in a source reaches a terminal disposition and any encoded change lands,
-  move the original source to `.local/feedback-archive/`. Move a `.local/feedback-deferred/` record
+  write each item's disposition, rationale, owner, and landed commit into the source and replace its
+  status line, then move it to `.local/feedback-archive/`. Move a `.local/feedback-deferred/` record
   there once its items reach a terminal disposition.
 - When one source mixes terminal and deferred items, archive the original and create one focused
   deferred file containing only the unresolved items and their reconsideration triggers.
