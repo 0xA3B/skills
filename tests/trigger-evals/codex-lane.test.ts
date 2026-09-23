@@ -578,19 +578,30 @@ describe("observeCodexOutput", () => {
     expect(observed.loadedSkills).toBeUndefined();
   });
 
-  it("reports a failed turn or an error event as a runtime error signal", () => {
-    // Documented `codex exec --json` shapes; no recorded run under .local has produced either.
+  it("reports a failed turn as a runtime error signal", () => {
+    // Documented `codex exec --json` shape; no recorded run under .local has produced it.
     const failed = observe(
       [
         JSON.stringify({ type: "turn.started" }),
         JSON.stringify({ type: "turn.failed", error: { message: "stream disconnected" } }),
       ].join("\n"),
     );
+
     expect(failed.errorSignal).toBe("stream disconnected");
     expect(failed.hasActivity).toBe(false);
+  });
 
-    const errored = observe(JSON.stringify({ type: "error", message: "unexpected status 500" }));
-    expect(errored.errorSignal).toBe("unexpected status 500");
+  it("ignores nonterminal error events such as retry notices", () => {
+    const recovered = observe(
+      [
+        JSON.stringify({ type: "error", message: "Reconnecting... 2/5 (stream disconnected)" }),
+        JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: "done" } }),
+        JSON.stringify({ type: "turn.completed" }),
+      ].join("\n"),
+    );
+
+    expect(recovered.errorSignal).toBeUndefined();
+    expect(recovered.hasActivity).toBe(true);
   });
 
   it("reports no activity for an empty run", () => {

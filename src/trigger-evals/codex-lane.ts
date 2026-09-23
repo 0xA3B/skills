@@ -209,10 +209,11 @@ export function observeCodexOutput(
     if (event["type"] === "item.completed" || event["type"] === "turn.completed") {
       hasActivity = true;
     }
-    // Documented `codex exec --json` failure shapes: a turn.failed event carrying error.message,
-    // or a top-level error event carrying message.
-    if (event["type"] === "turn.failed" || event["type"] === "error") {
-      errorSignal = codexErrorMessage(event) ?? `${event["type"]} event`;
+    // turn.failed is the terminal failure event of `codex exec --json`. Top-level error events are
+    // not terminal: they also carry retry notices ("Reconnecting... 2/5") after which the turn
+    // continues, so they never set the signal.
+    if (event["type"] === "turn.failed") {
+      errorSignal = codexErrorMessage(event) ?? "turn.failed event";
     }
     if (event["type"] !== "item.completed") {
       continue;
@@ -255,9 +256,6 @@ export function observeCodexOutput(
 }
 
 function codexErrorMessage(event: Record<string, unknown>): string | undefined {
-  if (typeof event["message"] === "string") {
-    return event["message"];
-  }
   const error = event["error"];
   return isRecord(error) && typeof error["message"] === "string" ? error["message"] : undefined;
 }
