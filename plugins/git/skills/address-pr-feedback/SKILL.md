@@ -30,7 +30,8 @@ head:
   clean signal;
 - `round-limit`: all findings from the last permitted review round are dispositioned, but the
   adapter is not `approved`;
-- `timed-out`: no adapter-defined activity occurred for ten minutes;
+- `timed-out`: the initial head drew no acknowledgment in the acknowledgment window, or an
+  acknowledged head drew no activity through the response timeout;
 - `blocked`: missing prerequisites, user decisions, CI state, or unsupported behavior prevent
   continuation.
 
@@ -115,18 +116,20 @@ thread as a user gate unless the invocation already authorized handling unknown 
 Poll once per minute. Each adapter defines which signals count as acknowledgment, progress,
 findings, and current-head approval.
 
-Before starting or advancing the inactivity timer, prove that the observation channel can fetch a
+Before starting or advancing either timer, prove that the observation channel can fetch a
 known-present change-request field such as the current source head. Treat a command error or an
 unexpectedly missing field as an observation failure, not inactivity. Retry one plausibly transient
 failure; if observation remains broken, return `blocked` without diagnosing or repairing the
 environment in this workflow.
 
-Use ten minutes without adapter-defined activity as the inactivity timeout for a head the adapter
-has acknowledged. Reset the timer only for a recognized adapter state transition tied to the current
-review round or source head. Unrelated comments, stale reactions, and old approvals do not reset it.
-A terminal response ends the wait immediately. After a push the adapter has not acknowledged, the
-same window elapsing means the configuration did not review the head: the adapter's follow-up
-protocol carries its classification forward, and `timed-out` does not apply.
+Two windows govern the wait. The acknowledgment window is two poll intervals after a head is
+published: when no adapter-defined acknowledgment of that head appears in it, the initial head
+returns `timed-out` with the configuration hint, and a pushed head keeps the classification the
+adapter's last review earned, with the head that review covered named in the report. The response
+timeout is ten minutes without adapter-defined activity after acknowledgment. Reset it only for a
+recognized adapter state transition tied to the current review round or source head; unrelated
+comments, stale reactions, and old approvals do not reset it. A terminal response ends the wait
+immediately.
 
 CI is observable context, not this skill's repair scope. Report a failed or errored required check
 as a blocker. Allow clearly advancing CI to continue; do not claim merge readiness from review state
@@ -185,7 +188,7 @@ Stop before the round limit when:
 - the same rejected finding returns without new evidence;
 - an adapter or forge changes behavior beyond its reference;
 - CI or permissions block progress;
-- the inactivity timeout expires.
+- the response timeout expires.
 
 The user may rerun this skill later; reconstruct state from the forge rather than relying on
 session-only counters or assumptions.
