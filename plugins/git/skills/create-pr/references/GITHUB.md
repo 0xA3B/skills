@@ -37,6 +37,16 @@ gh pr create --repo <base-repo> --base <target> --head <head> --title <title> --
 Do not use `--fill`; deriving the artifact from commits bypasses the authored content model and can
 replace repository templates. Add `--draft` only when requested.
 
+GitHub links one issue per closing keyword. When the description closes several issues, write one
+keyword per issue, each on its own line:
+
+```text
+Closes #123
+Closes #124
+```
+
+A list after one keyword, such as `Closes #123, #124`, closes only the first issue.
+
 If the branch lookup finds an open pull request, compare `baseRefName` with the resolved target.
 When the core workflow authorizes retargeting, use `gh pr edit <pr-url> --base <target>`, then
 refetch and reassess the pull request. Refresh its title and body when they no longer match the
