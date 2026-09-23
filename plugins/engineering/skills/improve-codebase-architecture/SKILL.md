@@ -87,8 +87,9 @@ For the selected candidate, make explicit:
 - observable behavior the refactor changes, each named as a defect it corrects or an intentional
   change, and whether it lands with the refactor or in its own commit;
 - tests that should survive the refactor, the interface each attaches to after the seam moves,
-  chosen by the Test migration section of `codebase-design` DEEPENING.md, and a surviving test for
-  each invariant and each one-snapshot value named above;
+  chosen by the Test migration section of `codebase-design` DEEPENING.md, a surviving test for each
+  invariant named above, and for each group of values that must share one snapshot or transaction a
+  test that proves they do;
 - durable concepts the refactor introduces or renames, with proposed `AGENTS.md ## Terminology`
   entries when a name is new or collides with an existing term;
 - migration and compatibility constraints.

@@ -125,12 +125,12 @@ For the selected candidate, make explicit:
 Demonstrate each claimed benefit before finishing: a formerly flaky test now deterministic across
 repeated runs, a measured suite-runtime delta, a deleted test with a written statement of why
 nothing user-visible is now unproven, or a mutation run in an isolated copy made by the steps in
-`engineering:review-changes` references/TEST-REVIEW.md. For a brittleness remedy, the mutation is
-the change the old tests were coupled to, and the revised tests stay green; for a split or
-strengthened test, the mutation is a defect, and the new test fails where the old one passed. A
-benefit that cannot be demonstrated is a risk to report, not a result. State in the completion
-report the cost each change addressed and, for the cost no change addressed, what was examined and
-why nothing qualified.
+`engineering:review-changes` TEST-REVIEW.md. For a brittleness remedy, the mutation is the change
+the old tests were coupled to, and the old tests fail where the revised tests stay green; for a
+split or strengthened test, the mutation is a defect, and the new test fails where the old one
+passed. A benefit that cannot be demonstrated is a risk to report, not a result. State in the
+completion report the cost each change addressed and, for the cost no change addressed, what was
+examined and why nothing qualified.
 
 Record each deferred candidate, and each candidate the user declined for a reason that earned no
 decision record, through the write step in [CANDIDATES.md](../../references/CANDIDATES.md), so a
