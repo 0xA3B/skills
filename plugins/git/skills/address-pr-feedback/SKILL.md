@@ -4,11 +4,11 @@ description: >-
   Drive automated-review feedback on an existing GitHub pull request to current-head approval or a
   clearly reported exception. Use when the user asks to handle, address, or drive bot or automated
   review feedback on a pull request through review rounds to approval, wait for or poll a review
-  bot, disposition and resolve its review threads, or request a follow-up automated review after
-  pushing fixes. Do not use for reviewing the session's own changes locally, human-only review
-  comments, CI repair, creating or refreshing a pull request, merging, or triaging findings
-  delivered outside a pull request's automated review, such as sub-agent or in-session review-agent
-  findings.
+  bot, disposition and resolve its review threads, or take pushed fixes through the bot's next
+  review, including when the user asks to re-request that review. Do not use for reviewing the
+  session's own changes locally, human-only review comments, CI repair, creating or refreshing a
+  pull request, merging, or triaging findings delivered outside a pull request's automated review,
+  such as sub-agent or in-session review-agent findings.
 license: MIT
 argument-hint: "[change-request|adapters|instructions]"
 ---

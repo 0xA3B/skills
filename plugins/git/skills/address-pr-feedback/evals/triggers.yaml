@@ -23,12 +23,12 @@ cases:
     expect: invoke
     rationale: Polling a review bot and dispositioning its threads is the adapter workflow.
 
-  - id: rerequest-after-fixes
+  - id: pushed-after-review
     prompt: >-
-      I pushed fixes to pull request 42 after the last bot review. Request a fresh automated review
-      and take it through to approval.
+      I pushed fixes to pull request 42 after the last bot review. Take it through the next
+      automated review to approval.
     expect: invoke
-    rationale: Requesting a follow-up bot review on a pushed head is part of the review loop.
+    rationale: Taking pushed fixes through the bot's next review is part of the review loop.
 
   - id: review-before-pr
     prompt: >-
