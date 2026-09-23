@@ -43,8 +43,10 @@ exists, and keep a clearer established domain term rather than replacing it with
 
 ## Principles
 
-- Apply the deletion test: if removing a module makes complexity disappear, it was likely
-  pass-through; if complexity spreads into callers, the module was earning its keep.
+- Apply the deletion test to modules and to parameters: if removing a module makes complexity
+  disappear, it was likely pass-through; if complexity spreads into callers, the module was earning
+  its keep. A parameter a module carries without reading is a pass-through on that dependency's
+  delivery path from its origin to its consumer.
 - A deep module hides one coherent body of knowledge. Split it when independent caller populations,
   dependency categories, or reasons to change accumulate, even while its interface still has
   leverage, and keep the resulting seams private unless callers need the variation. File length or
@@ -67,8 +69,9 @@ When the interface itself is the unresolved decision, read
 recommending one.
 
 Stop when the recommendation states, in writing: interface knowledge, seam placement, hidden
-behavior, dependency strategy, test surface, and the event that would trigger reconsidering it, such
-as another caller, another production adapter, a new dependency category, or repeated conditional
-routing. When the design holds durable state, also state which module owns each piece of state, its
-lifecycle transitions, and its invariants, or the coordination contract when ownership is shared.
-Omit an item only when it does not apply to the decision, and say which.
+behavior, dependency strategy with each dependency's delivery path and the knowledge it adds to each
+intermediary, test surface, and the event that would trigger reconsidering it, such as another
+caller, another production adapter, a new dependency category, or repeated conditional routing. When
+the design holds durable state, also state which module owns each piece of state, its lifecycle
+transitions, and its invariants, or the coordination contract when ownership is shared. Omit an item
+only when it does not apply to the decision, and say which.

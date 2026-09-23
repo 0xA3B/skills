@@ -55,9 +55,8 @@ trigger fired enters this pass. Follow concrete friction:
 - one logical change repeatedly causes scattered edits;
 - code names conflict with durable domain language.
 
-Apply the deletion test to suspected pass-through modules. Tie every candidate to specific files,
-callers, tests, history, or observed navigation friction. Pattern preference without repository
-evidence is not a finding.
+Tie every candidate to specific files, callers, tests, history, or observed navigation friction.
+Pattern preference without repository evidence is not a finding.
 
 ## Present candidates
 
@@ -79,10 +78,17 @@ not to re-propose it, apply `engineering:decision-records` to record the decisio
 For the selected candidate, make explicit:
 
 - behavior that belongs behind the interface;
-- knowledge callers should lose;
+- knowledge callers should lose, and knowledge any caller or intermediary gains;
 - dependencies and adapter strategy;
-- invariants, errors, ordering, configuration, and performance that remain part of the interface;
-- tests that should survive the refactor;
+- invariants, errors, ordering, configuration, and performance that remain part of the interface.
+  When the refactor splits an operation that several values came from into narrower operations, name
+  for each affected caller the values that must still come from one snapshot or transaction, how
+  failures aggregate, and the operation lifetime the caller depends on;
+- observable behavior the refactor changes, each named as a defect it corrects or an intentional
+  change, and whether it lands with the refactor or in its own commit;
+- tests that should survive the refactor, the interface each attaches to after the seam moves,
+  chosen by the Test migration section of `codebase-design` DEEPENING.md, and a surviving test for
+  each invariant and each one-snapshot value named above;
 - durable concepts the refactor introduces or renames, with proposed `AGENTS.md ## Terminology`
   entries when a name is new or collides with an existing term;
 - migration and compatibility constraints.
@@ -99,7 +105,10 @@ files, callers, tests, or history, and no unexamined hot spot from the scoped ar
 When the session also implements the selected candidate, demonstrate each claimed benefit before
 finishing: a test that exercises the new seam, caller knowledge that no longer exists, or an
 equivalent observable change. A benefit that cannot be demonstrated is a risk to report, not a
-result.
+result. Then apply `engineering:review-changes` over the session's changes with the resolved
+candidate as the intent source, and hand off test debt that remains outside the migrated tests by
+noting it in the completion report and recommending an explicit `engineering:improve-codebase-tests`
+invocation.
 
 Record each deferred candidate, and each candidate the user declined for a reason that earned no
 decision record, through the write step in [CANDIDATES.md](../../references/CANDIDATES.md), so a
