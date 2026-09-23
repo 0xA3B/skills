@@ -80,6 +80,20 @@ describe("spawnStreamingCli", () => {
     expect(result.endedBy).toBe("abort");
     expect(result.stdout).toBe("closing");
   });
+
+  it("escalates to SIGKILL when an aborted child ignores SIGTERM", async () => {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 100);
+
+    const result = await spawnStreamingCli(
+      node,
+      ["-e", "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);"],
+      cliOptions({ abortSignal: controller.signal, abortGraceMs: 200 }),
+    );
+
+    expect(result.endedBy).toBe("abort");
+    expect(result.error).toBe("test cli aborted.");
+  });
 });
 
 describe("cliRunError", () => {
