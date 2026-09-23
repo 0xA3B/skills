@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Address Skill Feedback"
+  short_description: "Triage and encode qualified skill feedback"
+  default_prompt:
+    "Use $address-skill-feedback to work through the open feedback issues for a plugin."
+policy:
+  allow_implicit_invocation: false
