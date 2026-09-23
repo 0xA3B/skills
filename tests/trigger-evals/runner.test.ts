@@ -646,6 +646,38 @@ describe("runTriggerEval", () => {
     expect(state.runCleanups).toBe(1);
   });
 
+  it("carries a cleanup failure on the error when the run itself fails", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    const { lane, state } = createFakeLane({
+      runtimeRoot,
+      executeResult: async () => {
+        throw new Error("exec blew up");
+      },
+    });
+    const runParent = path.join(runtimeRoot, "run-parent");
+    await mkdir(path.join(runParent, "run"), { recursive: true });
+    await chmod(runParent, 0o555);
+
+    try {
+      const failure = await runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        caseIds: ["skip-case"],
+        lane,
+      }).then(
+        () => undefined,
+        (caught: unknown) => caught as Error & { cleanupFailures?: string[] },
+      );
+
+      expect(failure?.message).toBe("exec blew up");
+      expect(failure?.cleanupFailures).toHaveLength(1);
+      expect(failure?.cleanupFailures?.[0]).toContain(state.runtimeDir ?? "");
+    } finally {
+      await chmod(runParent, 0o755);
+    }
+  });
+
   it("records a cleanup failure on the result instead of failing the run", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));

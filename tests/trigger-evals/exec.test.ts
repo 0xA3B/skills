@@ -61,6 +61,25 @@ describe("spawnStreamingCli", () => {
 
     expect(result.error).toBe("test cli aborted.");
   });
+
+  it("resolves an aborted run only after the child has exited", async () => {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 100);
+
+    // The child answers SIGTERM by writing a marker before it exits; the marker is in the
+    // result only when the result waited for the close event.
+    const result = await spawnStreamingCli(
+      node,
+      [
+        "-e",
+        "process.on('SIGTERM', () => { process.stdout.write('closing'); process.exit(0); }); setInterval(() => {}, 1000);",
+      ],
+      cliOptions({ abortSignal: controller.signal }),
+    );
+
+    expect(result.endedBy).toBe("abort");
+    expect(result.stdout).toBe("closing");
+  });
 });
 
 describe("cliRunError", () => {
