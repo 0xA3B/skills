@@ -47,13 +47,6 @@ cases:
     expect: invoke
     rationale: The user is asking to author a one-shot sub-agent prompt, which the skill owns.
 
-  # Known-finicky on Claude Code (2026-08): delegate-task-to-subagent and delegate-implementation
-  # consistently skip there while passing on Codex. Claude reads "delegate X" as a task to execute
-  # and dispatches without loading a writing skill first.
-  # Tried: three description wordings for the dispatch trigger and Claude-only `when_to_use`
-  # tuning; none changed the outcome (Codex passed under every wording), so the shortest wording
-  # and no `when_to_use` key were kept. A repeat failure on Claude is this known behavior, not a
-  # regression; a user-memory pointer is the reliable mechanism for load-before-dispatch.
   - id: delegate-task-to-subagent
     prompt: >-
       Delegate the flaky-test investigation to a background agent and have it report what it finds.
