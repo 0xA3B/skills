@@ -120,9 +120,18 @@ async function main(): Promise<void> {
       }
     } catch (caught: unknown) {
       console.error(caught instanceof Error ? caught.message : String(caught));
+      for (const cleanupFailure of cleanupFailuresOf(caught)) {
+        console.warn(`WARNING: runtime cleanup left ${cleanupFailure}`);
+      }
       process.exitCode = 1;
     }
   }
+}
+
+// A run that failed after leaving a runtime directory behind carries the leftover on its error.
+function cleanupFailuresOf(caught: unknown): string[] {
+  const failures = (caught as { cleanupFailures?: unknown }).cleanupFailures;
+  return Array.isArray(failures) ? failures.filter((f): f is string => typeof f === "string") : [];
 }
 
 // Dependent cases run under their owning fixture, on that fixture's own lanes.

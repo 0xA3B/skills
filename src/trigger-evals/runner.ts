@@ -3,7 +3,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { loadTriggerFixture } from "./fixtures.js";
-import { type AgentLane, createLane, DEFAULT_EVAL_EFFORT, DEFAULT_EVAL_MODELS } from "./lanes.js";
+import {
+  type AgentLane,
+  createLane,
+  DEFAULT_EVAL_EFFORT,
+  DEFAULT_EVAL_MODELS,
+  type LaneRun,
+} from "./lanes.js";
 import { listMarketplacePlugins } from "./marketplace.js";
 import { createRuntimeResources } from "./runtime.js";
 import { listRepoLocalSkills } from "./staging.js";
@@ -93,27 +99,31 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   // case's share once its output is captured and the rest when the run ends, however it ends.
   const runtime = createRuntimeResources({ keep: options.keepRuntime === true });
   const cleanupFailures: string[] = [];
-  const laneRun = await lane.prepareRun({
-    runDir,
-    target,
-    model,
-    effort,
-    runtime,
-    extraPlugins: await listMarketplacePlugins(repoRoot, agent),
-    ...(extraRepoLocalSkills.length > 0 ? { extraRepoLocalSkills } : {}),
-  });
   const targetLabel = skillTargetLabel(target);
-
   const results: Array<TriggerCaseResult | undefined> = new Array(fixture.cases.length);
-  const concurrency = normalizeConcurrency(options.concurrency ?? DEFAULT_CONCURRENCY);
+  // Run preparation tracks the staged workspace before its fallible staging steps, so it sits
+  // inside the same try whose finally releases the runtime.
+  let laneRun: LaneRun | undefined;
+  let failure: unknown;
   try {
+    laneRun = await lane.prepareRun({
+      runDir,
+      target,
+      model,
+      effort,
+      runtime,
+      extraPlugins: await listMarketplacePlugins(repoRoot, agent),
+      ...(extraRepoLocalSkills.length > 0 ? { extraRepoLocalSkills } : {}),
+    });
+    const preparedRun = laneRun;
+    const concurrency = normalizeConcurrency(options.concurrency ?? DEFAULT_CONCURRENCY);
     await runConcurrently(fixture.cases, concurrency, async (testCase, index) => {
       if (options.abortSignal?.aborted === true) {
         return;
       }
       const caseDir = path.join(runDir, "cases", testCase.id);
       try {
-        const laneCase = await laneRun.prepareCase(testCase);
+        const laneCase = await preparedRun.prepareCase(testCase);
         try {
           const caseStartedAt = Date.now();
           const runResult = await laneCase.execute({
@@ -125,7 +135,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           results[index] = buildCaseResult({
             testCase,
             targetLabel,
-            stagedSkillLabels: laneRun.stagedSkillLabels,
+            stagedSkillLabels: preparedRun.stagedSkillLabels,
             observations: laneCase.observe(runResult),
             runResult,
             durationMs: Date.now() - caseStartedAt,
@@ -137,12 +147,22 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         cleanupFailures.push(...(await runtime.release(testCase.id)));
       }
     });
+  } catch (caught) {
+    failure = caught;
+  }
+  try {
+    await laneRun?.cleanup();
+  } catch (caught) {
+    failure ??= caught;
   } finally {
-    try {
-      await laneRun.cleanup();
-    } finally {
-      cleanupFailures.push(...(await runtime.release()));
-    }
+    cleanupFailures.push(...(await runtime.release()));
+  }
+  if (failure !== undefined) {
+    // The run's own error stays the primary failure; a leftover directory rides along on it so
+    // the CLI can still warn about it.
+    throw cleanupFailures.length > 0 && failure instanceof Error
+      ? Object.assign(failure, { cleanupFailures })
+      : failure;
   }
 
   const reportPath = path.join(runDir, "report.json");
@@ -159,25 +179,35 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   return result;
 }
 
+// A worker failure stops the queue and is rethrown only after every running worker has finished,
+// so the caller's release never removes a directory a sibling case is still using.
 async function runConcurrently<T>(
   items: T[],
   concurrency: number,
   worker: (item: T, index: number) => Promise<void>,
 ): Promise<void> {
   let nextIndex = 0;
+  let firstFailure: { error: unknown } | undefined;
   const workerCount = Math.min(concurrency, items.length);
   const workers = Array.from({ length: workerCount }, async () => {
-    while (nextIndex < items.length) {
+    while (firstFailure === undefined && nextIndex < items.length) {
       const currentIndex = nextIndex;
       nextIndex += 1;
       const item = items[currentIndex];
       if (item === undefined) {
         continue;
       }
-      await worker(item, currentIndex);
+      try {
+        await worker(item, currentIndex);
+      } catch (caught) {
+        firstFailure ??= { error: caught };
+      }
     }
   });
   await Promise.all(workers);
+  if (firstFailure !== undefined) {
+    throw firstFailure.error;
+  }
 }
 
 function isDefined<T>(value: T | undefined): value is T {

@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -228,8 +228,9 @@ describe("createCodexLane", () => {
         "utf8",
       ),
     ).rejects.toThrow(/ENOENT/);
-    // The half-built case home was tracked before the failure, so a release removes it.
-    await runOptions.runtime.release();
+    // The half-built case home was tracked under the case scope before the failure, so releasing
+    // that case alone removes it.
+    await runOptions.runtime.release("invoke-case");
     expect(await exists(path.join(runOptions.runDir, "codex-home", "cases", "invoke-case"))).toBe(
       false,
     );
@@ -316,6 +317,28 @@ describe("createCodexLane", () => {
       "I handled the request.",
     );
     expect(runResult.finalMessage).toBe("I handled the request.");
+  });
+
+  it("falls back to the parsed last message when final.txt is unreadable for another reason", async () => {
+    const repoRoot = await writeRepoFixture();
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const laneRun = await lane.prepareRun(
+      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill"),
+    );
+    const laneCase = await laneRun.prepareCase({
+      id: "skip-case",
+      prompt: "Do not invoke the skill.",
+      expect: "skip",
+    });
+    const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
+    // A directory at the -o path fails the read with EISDIR, which is not a missing file.
+    await mkdir(path.join(caseDir, "final.txt"));
+
+    const runResult = await laneCase.execute({ caseDir, timeoutMs: 60_000 });
+
+    expect(runResult.finalMessage).toBe("I handled the request.");
+    expect((await stat(path.join(caseDir, "final.txt"))).isDirectory()).toBe(true);
   });
 
   it("observes staged canaries in agent output, attributing siblings distinctly", async () => {

@@ -73,11 +73,11 @@ describe("createClaudeLane", () => {
       expect: "invoke",
       workspaceFiles: { "notes.md": "hello" },
     });
-    const workspaceRoot = path.dirname(path.dirname(path.dirname(laneCase.workspacePath)));
-    await expect(stat(workspaceRoot)).resolves.toBeDefined();
+    await expect(stat(laneCase.workspacePath)).resolves.toBeDefined();
 
+    // Releasing the tracked root takes the case workspace beneath it along.
     await expect(runOptions.runtime.release()).resolves.toStrictEqual([]);
-    await expect(stat(workspaceRoot)).rejects.toThrow(/ENOENT/);
+    await expect(stat(laneCase.workspacePath)).rejects.toThrow(/ENOENT/);
   });
 
   it("stages only Claude surfaces for plugin targets", async () => {

@@ -20,7 +20,11 @@ type FakeLaneOptions = {
   // Runtime directories the fake lane creates and tracks, mirroring a real lane's staged
   // workspace root (run scope) and per-case Codex home (case scope).
   runtimeRoot?: string;
+  prepareRunError?: Error;
   prepareCaseError?: (testCase: TriggerCase) => Error | undefined;
+  // Hold a case's execute until the named sibling's runtime directory has been released, so a
+  // test can observe what a sibling's release did to a case that is still running.
+  holdUntilReleased?: (testCase: TriggerCase) => string | undefined;
 };
 
 type FakeLaneState = {
@@ -35,7 +39,18 @@ type FakeLaneState = {
   caseRuntimeDirs: Map<string, string>;
   // Which case runtime directories still existed when each case executed.
   liveCaseDirsAtExecute: Map<string, string[]>;
+  // Whether the case's own directory and the run directory still existed when its execute ended.
+  runtimeLiveAtExecuteEnd: Map<string, { caseDir: boolean; runDir: boolean }>;
 };
+
+async function waitUntilGone(dirPath: string): Promise<void> {
+  const deadline = Date.now() + 2_000;
+  let present = await exists(dirPath);
+  while (present && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    present = await exists(dirPath);
+  }
+}
 
 async function exists(dirPath: string): Promise<boolean> {
   try {
@@ -60,6 +75,7 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
     runtimeDir: undefined,
     caseRuntimeDirs: new Map(),
     liveCaseDirsAtExecute: new Map(),
+    runtimeLiveAtExecuteEnd: new Map(),
   };
   const defaultObservations = (testCase: TriggerCase): CaseObservations =>
     testCase.expect === "invoke"
@@ -78,6 +94,9 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
         state.runtimeDir = path.join(options.runtimeRoot, "run-parent", "run");
         await mkdir(state.runtimeDir, { recursive: true });
         runOptions.runtime.track(state.runtimeDir);
+      }
+      if (options.prepareRunError !== undefined) {
+        throw options.prepareRunError;
       }
       return {
         stagedSkillLabels: new Set(["demo:auto-skill"]),
@@ -108,14 +127,27 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
                 }
               }
               state.liveCaseDirsAtExecute.set(testCase.id, live);
+              // Evidence a real lane writes under the case directory, which cleanup must keep.
+              await mkdir(executeOptions.caseDir, { recursive: true });
+              await writeFile(path.join(executeOptions.caseDir, "events.jsonl"), "{}\n");
               try {
                 if (options.executeResult !== undefined) {
                   return await options.executeResult(testCase);
+                }
+                const sibling = options.holdUntilReleased?.(testCase);
+                const siblingDir =
+                  sibling === undefined ? undefined : state.caseRuntimeDirs.get(sibling);
+                if (siblingDir !== undefined) {
+                  await waitUntilGone(siblingDir);
                 }
                 await new Promise((resolve) => setTimeout(resolve, 20));
                 return buildCliRunResult();
               } finally {
                 state.activeExecs -= 1;
+                state.runtimeLiveAtExecuteEnd.set(testCase.id, {
+                  caseDir: await exists(state.caseRuntimeDirs.get(testCase.id) ?? ""),
+                  runDir: await exists(state.runtimeDir ?? ""),
+                });
               }
             },
             cleanup: async () => {
@@ -425,8 +457,13 @@ describe("runTriggerEval", () => {
     expect(await exists(state.caseRuntimeDirs.get("case-b") ?? "")).toBe(false);
     expect(await exists(state.runtimeDir ?? "")).toBe(false);
     expect(result.cleanupFailures).toBeUndefined();
-    // Durable artifacts survive: the report is still on disk.
+    // Durable artifacts survive: the report and each case's evidence are still on disk.
     await expect(stat(result.reportPath)).resolves.toBeDefined();
+    for (const caseId of ["case-a", "case-b"]) {
+      await expect(
+        stat(path.join(result.runDir, "cases", caseId, "events.jsonl")),
+      ).resolves.toBeDefined();
+    }
   });
 
   it("keeps a running case's runtime state while a concurrent sibling is released", async () => {
@@ -439,7 +476,11 @@ describe("runTriggerEval", () => {
       ],
     });
     const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
-    const { lane, state } = createFakeLane({ runtimeRoot });
+    // case-c outlives case-a's release, so it observes what that release removed.
+    const { lane, state } = createFakeLane({
+      runtimeRoot,
+      holdUntilReleased: (testCase) => (testCase.id === "case-c" ? "case-a" : undefined),
+    });
 
     await runTriggerEval({
       repoRoot,
@@ -453,6 +494,94 @@ describe("runTriggerEval", () => {
       expect(state.liveCaseDirsAtExecute.get(caseId)).toContain(caseId);
       expect(await exists(state.caseRuntimeDirs.get(caseId) ?? "")).toBe(false);
     }
+    expect(state.runtimeLiveAtExecuteEnd.get("case-c")).toStrictEqual({
+      caseDir: true,
+      runDir: true,
+    });
+    expect(await exists(state.runtimeDir ?? "")).toBe(false);
+  });
+
+  it.each(["timeout", "abort"] as const)(
+    "releases runtime state when a case ends by %s",
+    async (endedBy) => {
+      const repoRoot = await writeRepoFixture({ marketplace: true });
+      const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+      const abortController = new AbortController();
+      const { lane, state } = createFakeLane({
+        runtimeRoot,
+        executeResult: async () => {
+          if (endedBy === "abort") {
+            abortController.abort();
+          }
+          return buildCliRunResult({ endedBy, error: `fake ${endedBy}` });
+        },
+      });
+
+      await runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        caseIds: ["skip-case"],
+        abortSignal: abortController.signal,
+        lane,
+      });
+
+      expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
+      expect(await exists(state.runtimeDir ?? "")).toBe(false);
+    },
+  );
+
+  it("releases the workspace a failed run preparation left behind", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    const { lane, state } = createFakeLane({
+      runtimeRoot,
+      prepareRunError: new Error("run staging blew up"),
+    });
+
+    await expect(
+      runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        caseIds: ["skip-case"],
+        lane,
+      }),
+    ).rejects.toThrow("run staging blew up");
+    expect(await exists(state.runtimeDir ?? "")).toBe(false);
+    expect(state.runCleanups).toBe(0);
+  });
+
+  it("lets running siblings finish before a failed case releases the run", async () => {
+    const repoRoot = await writeRepoFixture({
+      marketplace: true,
+      cases: [
+        { id: "case-a", expect: "invoke" },
+        { id: "case-b", expect: "skip" },
+        { id: "case-c", expect: "skip" },
+      ],
+    });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    // case-a fails to stage while case-b executes; case-c must never start.
+    const { lane, state } = createFakeLane({
+      runtimeRoot,
+      prepareCaseError: (testCase) =>
+        testCase.id === "case-a" ? new Error("staging blew up") : undefined,
+      holdUntilReleased: (testCase) => (testCase.id === "case-b" ? "case-a" : undefined),
+    });
+
+    await expect(
+      runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        concurrency: 2,
+        lane,
+      }),
+    ).rejects.toThrow("staging blew up");
+
+    expect(state.runtimeLiveAtExecuteEnd.get("case-b")).toStrictEqual({
+      caseDir: true,
+      runDir: true,
+    });
+    expect(state.preparedCaseIds).not.toContain("case-c");
     expect(await exists(state.runtimeDir ?? "")).toBe(false);
   });
 

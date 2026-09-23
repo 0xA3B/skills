@@ -140,9 +140,12 @@ export function spawnStreamingCli(
       maybeStopEarly();
     });
     child.on("error", (caught) => {
-      const aborted = options.abortSignal?.aborted === true;
-      const error = aborted ? `${options.label} aborted.` : caught.message;
-      resolveResult(null, aborted ? "abort" : "spawn-error", error);
+      // An abort's error event fires as the kill signal is sent; the close event that follows
+      // marks the child gone, so the result waits for it and a release cannot race the exit.
+      if (options.abortSignal?.aborted === true) {
+        return;
+      }
+      resolveResult(null, "spawn-error", caught.message);
     });
 
     child.on("close", (exitCode, signal) => {
