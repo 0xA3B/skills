@@ -130,6 +130,9 @@ async function main(): Promise<void> {
 
 // A run that failed after leaving a runtime directory behind carries the leftover on its error.
 function cleanupFailuresOf(caught: unknown): string[] {
+  if (typeof caught !== "object" || caught === null) {
+    return [];
+  }
   const failures = (caught as { cleanupFailures?: unknown }).cleanupFailures;
   return Array.isArray(failures) ? failures.filter((f): f is string => typeof f === "string") : [];
 }
