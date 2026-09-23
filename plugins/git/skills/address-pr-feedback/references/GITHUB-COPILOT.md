@@ -21,8 +21,9 @@ Treat a Copilot `review_requested` event in the pull request timeline as acknowl
 activity. The event remains observable after GitHub consumes the request and removes Copilot from
 `requested_reviewers`.
 
-If no current-head review appears before the inactivity timeout, return `timed-out` and report that
-the automatic-review or review-request configuration may need checking.
+If neither a review request nor a current-head review appears within the acknowledgment window,
+return `timed-out` and report that the automatic-review or review-request configuration may need
+checking.
 
 ## Findings and approval
 
@@ -55,14 +56,18 @@ evidence for any repeated claim. The label alone neither validates nor invalidat
 Treat each suppressed item as a body-only finding and record its disposition in a pull-request
 comment.
 
-Treat a current-head `COMMENTED` review as a completed response, not approval. When it has findings,
-triage its review body and inline comments. When it has no findings, classify the adapter as
-`resolved-with-exceptions` because the explicit approval signal is absent.
+A current-head review whose body states that Copilot could not review, such as a quota limit or an
+error, is adapter activity but not a completed response: classify the adapter `blocked` with the
+stated cause, and let the user decide whether to re-request or proceed on the other adapters.
 
-Some GitHub configurations permit Copilot to submit an `APPROVED` review. Treat `APPROVED` as the
-terminal clean signal only when its `commit_id` matches `headRefOid` and no unresolved Copilot
-threads remain. Whether that approval satisfies a branch or ruleset requirement is repository
-policy; verify the pull request's merge state instead of encoding that policy in this adapter.
+Treat any other current-head `COMMENTED` review as a completed response and triage its review body
+and inline comments. This adapter's terminal clean signal, with no unresolved Copilot threads in
+either form, is an `APPROVED` review whose `commit_id` matches `headRefOid`, or a completed review
+with no findings or with findings that all sit below the top consequence tier, every one
+dispositioned and none gated or needing clarification. A completed review with a top-tier finding
+earns no clean signal: once its fixes are pushed, the adapter is `resolved-with-exceptions` unless
+the configuration reviews the new head. Whether Copilot may approve, and whether a Copilot approval
+is required for merge, are repository settings that `git:merge-pr` checks against the merge state.
 
 ## Responses and thread resolution
 
@@ -88,15 +93,9 @@ steps that have no target.
 
 ## Follow-up review
 
-A push triggers another Copilot review only when the active automatic-review configuration includes
-new pushes. After a permitted fix round is committed and pushed, inspect review requests and
-timeline events created after the push. If neither shows a new review in progress, request Copilot
-through the GitHub reviewer API:
-
-```text
-gh api --method POST repos/{owner}/{repo}/pulls/<pr>/requested_reviewers \
-  -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
-```
-
-This follow-up request is authorized for the active adapter. Begin a new round tied to the new
-`headRefOid` and require a current-head terminal response.
+The repository's ruleset decides whether a push starts another Copilot review, and this adapter
+never requests one. After a push, watch the acknowledgment window for a `review_requested` event
+created after the push or a review of the new head. When neither appears, the adapter keeps the
+classification its last review earned and the report names the head that review covered. When either
+appears, tie a new round to the new `headRefOid` and require a current-head terminal response within
+the response timeout.
