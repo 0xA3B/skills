@@ -169,12 +169,21 @@ cases:
     expect: skip
     rationale: Writing documentation belongs to the writing skills.
 
+  - id: design-storage-interface
+    prompt: >-
+      Design a deeper interface for this service's storage layer so callers stop reaching into its
+      internals.
+    expect: skip
+    invoke-instead: engineering:codebase-design
+    rationale: A module interface design request belongs to codebase-design.
+
   - id: architecture-audit
     prompt: >-
       Review the architecture of this codebase and find deepening opportunities.
     expect: skip
-    invoke-instead: engineering:codebase-design
-    rationale: A codebase-wide architecture audit belongs to codebase-design.
+    rationale:
+      A whole-codebase architecture audit is not a review of the session's changes; its owner,
+      improve-codebase-architecture, is manual-only.
 
   - id: conceptual-question
     prompt: >-
