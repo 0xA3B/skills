@@ -41,10 +41,10 @@ rely on.
 6. When a new issue references closed feedback, read the earlier disposition and change. Determine
    whether the behavior regressed, the earlier remedy missed the new context, or the earlier
    resolution did not address the mechanism. When a selected issue already carries a `wait`
-   disposition, or a new item matches a record in `.local/feedback-deferred/`, test the recorded
-   trigger against the evidence since that disposition; leave the item out of this pass when the
-   trigger has not fired. Leave an item whose recorded encode is pending out of this pass until its
-   change lands.
+   disposition, or a new item matches a `wait` record on an open issue or in
+   `.local/feedback-deferred/`, test the recorded trigger against the evidence since that
+   disposition; leave the item out of this pass when the trigger has not fired. Leave an item whose
+   recorded encode is pending out of this pass until its change lands.
 
 ## Reconstruct the feedback
 
@@ -255,5 +255,12 @@ For private local feedback, preserve the same evidence without publishing it:
   terminal disposition.
 - When one source mixes terminal and deferred items, archive the original and create one focused
   deferred file containing only the unresolved items and their reconsideration triggers.
-- Keep these directories ignored and private. Do not turn a local artifact into a public issue
-  unless the user separately authorizes publication.
+- Keep these directories ignored and private. When the user separately authorizes publishing a
+  record from `.local/feedback/` or `.local/feedback-deferred/`, draft the issue in the
+  `meta:submit-skill-feedback` issue format from the record's current text, carrying every recorded
+  disposition, rationale, reconsideration trigger, and pending commit, with public redaction
+  revalidated; label it `feedback` and `plugin:<plugin>` under the missing-label fallback above;
+  then replace the source's status line with `Status: Promoted to <issue-url>` and move the source
+  to `.local/feedback-archive/`. From then on the issue is the primary record and the public
+  lifecycle above governs it, including closure once every item is terminal and landed; the archived
+  file is history.
