@@ -313,21 +313,28 @@ describe("buildCaseResult", () => {
     expect(result.environmentalFailure).toContain("stream disconnected");
   });
 
-  it("ignores a runtime error the harness itself caused by stopping the run", () => {
-    // Claude Code 2.1.x (recorded 2026-08) answers the harness SIGTERM with an is_error result
-    // whose terminal_reason is aborted_tools or aborted_streaming, so a budget stop must not read
-    // as an environmental failure.
-    const result = buildCaseResult(
-      verdictOptions({
-        testCase: { id: "skip-case", expect: "skip" },
-        observations: observations({ errorSignal: "Request was aborted." }),
-        runResult: buildCliRunResult({ endedBy: "stop-when" }),
-      }),
-    );
+  it.each([
+    ["stop-when", "item-budget"],
+    ["timeout", "timeout"],
+    ["abort", undefined],
+  ] as const)(
+    "ignores a runtime error the harness itself caused by ending the run (%s)",
+    (endedBy, skipSignal) => {
+      // Claude Code 2.1.x (recorded 2026-08) answers the harness SIGTERM with an is_error result
+      // whose terminal_reason is aborted_tools or aborted_streaming, so a harness-caused ending
+      // must not read as an environmental failure.
+      const result = buildCaseResult(
+        verdictOptions({
+          testCase: { id: "skip-case", expect: "skip" },
+          observations: observations({ errorSignal: "Request was aborted." }),
+          runResult: buildCliRunResult({ endedBy }),
+        }),
+      );
 
-    expect(result).toMatchObject({ passed: true, skipSignal: "item-budget" });
-    expect(result.environmentalFailure).toBeUndefined();
-  });
+      expect(result.environmentalFailure).toBeUndefined();
+      expect(result.skipSignal).toBe(skipSignal);
+    },
+  );
 
   it("trusts stop-when and abort endings without agent activity", () => {
     const result = buildCaseResult(
