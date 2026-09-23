@@ -39,8 +39,10 @@ rely on.
    test below decides what it can earn.
 6. When a new issue references closed feedback, read the earlier disposition and change. Determine
    whether the behavior regressed, the earlier remedy missed the new context, or the earlier
-   resolution did not address the mechanism. When a new item matches a record in
-   `.local/feedback-deferred/`, read that record and test its reconsideration trigger.
+   resolution did not address the mechanism. When a selected issue already carries a `wait`
+   disposition, or a new item matches a record in `.local/feedback-deferred/`, test the recorded
+   trigger against the evidence since that disposition; leave the item out of this pass when the
+   trigger has not fired.
 
 ## Reconstruct the feedback
 
@@ -197,13 +199,12 @@ Follow `plugins/AGENTS.md` for plugin versioning and the repository's required v
 4. Triage findings from self-review, review lanes, or an external reviewer through this same gate. A
    later reviewer finding is new evidence, not an automatic addition to the batch.
 5. Validate the owning layer:
-   - For a trigger-contract change, run the target skill's fixtures on every supported agent. When
-     the campaign will change more descriptions, defer the adjacent and marketplace-wide runs to one
-     pass after the last description change; a fresh eval session has no prior turns, so give any
-     fixture that corrects earlier work the corrected text inline.
+   - For a trigger-contract change, run the target skill's fixtures with its dependent cases on
+     every supported agent. When the campaign will change more descriptions, defer the adjacent and
+     marketplace-wide runs to one pass after the last description change; a fresh eval session has
+     no prior turns, so give any fixture that corrects earlier work the corrected text inline.
    - For non-trivial workflow behavior, use `pressure-test-skill` when realistic shortcut pressure
-     can test the new decision rule; when the pressure test edits the skill, repeat step 3 on the
-     final diff.
+     can test the new decision rule; treat an edit the pressure test proposes as a step 4 finding.
    - Run the repository's targeted checks, then its full gate before declaring the batch complete.
 6. If validation exposes a harness, fixture, runtime, or repository failure, reroute that failure.
    Do not weaken the skill change merely to make invalid evidence pass.
