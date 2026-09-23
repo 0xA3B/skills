@@ -60,13 +60,13 @@ error, is adapter activity but not a completed response: classify the adapter `b
 stated cause, and let the user decide whether to re-request or proceed on the other adapters.
 
 Treat any other current-head `COMMENTED` review as a completed response and triage its review body
-and inline comments. This adapter's terminal clean signal is either an `APPROVED` review whose
-`commit_id` matches `headRefOid` with no unresolved Copilot threads, or a completed review with no
-findings or with findings that all sit below the top consequence tier, every one dispositioned. A
-completed review with a top-tier finding earns no clean signal: once its fixes are pushed, the
-adapter is `resolved-with-exceptions` unless the configuration reviews the new head. Whether Copilot
-may approve, and whether a Copilot approval is required for merge, are repository settings that
-`git:merge-pr` checks against the merge state.
+and inline comments. This adapter's terminal clean signal, with no unresolved Copilot threads in
+either form, is an `APPROVED` review whose `commit_id` matches `headRefOid`, or a completed review
+with no findings or with findings that all sit below the top consequence tier, every one
+dispositioned and none gated or needing clarification. A completed review with a top-tier finding
+earns no clean signal: once its fixes are pushed, the adapter is `resolved-with-exceptions` unless
+the configuration reviews the new head. Whether Copilot may approve, and whether a Copilot approval
+is required for merge, are repository settings that `git:merge-pr` checks against the merge state.
 
 ## Responses and thread resolution
 
@@ -96,6 +96,6 @@ The repository's ruleset decides whether a push starts another Copilot review, a
 never requests one. After a push, watch for a `review_requested` event created after the push or a
 review of the new head, through the inactivity timeout, or through two polls when an earlier push on
 this pull request drew neither. When neither appears, the adapter keeps the classification its last
-review earned and the report names the head that review covered. When a request appears, tie a new
+review earned and the report names the head that review covered. When either appears, tie a new
 round to the new `headRefOid` and require a current-head terminal response under the inactivity
 timeout.

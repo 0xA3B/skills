@@ -121,10 +121,12 @@ unexpectedly missing field as an observation failure, not inactivity. Retry one 
 failure; if observation remains broken, return `blocked` without diagnosing or repairing the
 environment in this workflow.
 
-Use ten minutes without adapter-defined activity as the inactivity timeout. Reset the timer only for
-a recognized adapter state transition tied to the current review round or source head. Unrelated
-comments, stale reactions, and old approvals do not reset it. A terminal response ends the wait
-immediately.
+Use ten minutes without adapter-defined activity as the inactivity timeout for a head the adapter
+has acknowledged. Reset the timer only for a recognized adapter state transition tied to the current
+review round or source head. Unrelated comments, stale reactions, and old approvals do not reset it.
+A terminal response ends the wait immediately. After a push the adapter has not acknowledged, the
+same window elapsing means the configuration did not review the head: the adapter's follow-up
+protocol carries its classification forward, and `timed-out` does not apply.
 
 CI is observable context, not this skill's repair scope. Report a failed or errored required check
 as a blocker. Allow clearly advancing CI to continue; do not claim merge readiness from review state
