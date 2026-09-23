@@ -134,8 +134,8 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
     // A result with is_error carries the runtime's failure text as its result string; the
     // synthetic assistant event before it repeats that text, so it looks like a normal reply.
     if (event["type"] === "result" && event["is_error"] === true) {
-      errorSignal =
-        typeof event["result"] === "string" ? event["result"] : "result reported an error";
+      const text = event["result"];
+      errorSignal = typeof text === "string" && text.length > 0 ? text : "result reported an error";
     }
     if (isClaudeDecisionItem(event)) {
       decisionItemCount += 1;

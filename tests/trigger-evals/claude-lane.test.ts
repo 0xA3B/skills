@@ -331,6 +331,28 @@ describe("observeClaudeOutput", () => {
     expect(observations.signal).toBe("none");
     expect(observations.errorSignal).toBe(errorText);
     expect(observations.hasActivity).toBe(true);
+    const result = buildCaseResult({
+      testCase: { id: "conceptual-adr", expect: "skip" },
+      targetLabel: "demo:auto-skill",
+      stagedSkillLabels: new Set(["demo:auto-skill"]),
+      observations,
+      runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
+      durationMs: 10,
+    });
+    expect(result.passed).toBe(false);
+    expect(result.environmentalFailure).toContain(errorText);
+  });
+
+  it("quotes a fallback when an is_error result carries no text", () => {
+    const stdout = JSON.stringify({
+      type: "result",
+      subtype: "error_during_execution",
+      is_error: true,
+      terminal_reason: "aborted_tools",
+      result: "",
+    });
+
+    expect(observeClaudeOutput(stdout).errorSignal).toBe("result reported an error");
   });
 
   it("reports no error signal for a completed result", () => {

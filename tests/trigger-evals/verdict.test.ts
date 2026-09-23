@@ -296,6 +296,39 @@ describe("buildCaseResult", () => {
     expect(result.environmentalFailure).toBeUndefined();
   });
 
+  it("quotes the runtime error over the no-output message when a run had no activity", () => {
+    const result = buildCaseResult(
+      verdictOptions({
+        testCase: { id: "skip-case", expect: "skip" },
+        observations: observations({
+          hasActivity: false,
+          decisionItemCount: 0,
+          errorSignal: "stream disconnected",
+        }),
+        runResult: buildCliRunResult({ exitCode: 1, error: "codex exec exited with code 1." }),
+      }),
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.environmentalFailure).toContain("stream disconnected");
+  });
+
+  it("ignores a runtime error the harness itself caused by stopping the run", () => {
+    // Claude Code 2.1.x (recorded 2026-08) answers the harness SIGTERM with an is_error result
+    // whose terminal_reason is aborted_tools or aborted_streaming, so a budget stop must not read
+    // as an environmental failure.
+    const result = buildCaseResult(
+      verdictOptions({
+        testCase: { id: "skip-case", expect: "skip" },
+        observations: observations({ errorSignal: "Request was aborted." }),
+        runResult: buildCliRunResult({ endedBy: "stop-when" }),
+      }),
+    );
+
+    expect(result).toMatchObject({ passed: true, skipSignal: "item-budget" });
+    expect(result.environmentalFailure).toBeUndefined();
+  });
+
   it("trusts stop-when and abort endings without agent activity", () => {
     const result = buildCaseResult(
       verdictOptions({
