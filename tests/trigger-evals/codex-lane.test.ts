@@ -578,6 +578,21 @@ describe("observeCodexOutput", () => {
     expect(observed.loadedSkills).toBeUndefined();
   });
 
+  it("reports a failed turn or an error event as a runtime error signal", () => {
+    // Documented `codex exec --json` shapes; no recorded run under .local has produced either.
+    const failed = observe(
+      [
+        JSON.stringify({ type: "turn.started" }),
+        JSON.stringify({ type: "turn.failed", error: { message: "stream disconnected" } }),
+      ].join("\n"),
+    );
+    expect(failed.errorSignal).toBe("stream disconnected");
+    expect(failed.hasActivity).toBe(false);
+
+    const errored = observe(JSON.stringify({ type: "error", message: "unexpected status 500" }));
+    expect(errored.errorSignal).toBe("unexpected status 500");
+  });
+
   it("reports no activity for an empty run", () => {
     const observed = observe("");
 

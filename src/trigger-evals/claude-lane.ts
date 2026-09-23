@@ -113,6 +113,7 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
   let decisionItemCount = 0;
   let sawInitEvent = false;
   let loadedSkills: string[] | undefined;
+  let errorSignal: string | undefined;
 
   for (const event of parseJsonlEvents(stdout)) {
     if (!isRecord(event)) {
@@ -130,6 +131,12 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
     if (event["type"] === "assistant" || event["type"] === "result") {
       hasActivity = true;
     }
+    // A result with is_error carries the runtime's failure text as its result string; the
+    // synthetic assistant event before it repeats that text, so it looks like a normal reply.
+    if (event["type"] === "result" && event["is_error"] === true) {
+      errorSignal =
+        typeof event["result"] === "string" ? event["result"] : "result reported an error";
+    }
     if (isClaudeDecisionItem(event)) {
       decisionItemCount += 1;
     }
@@ -143,6 +150,7 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
     hasActivity,
     decisionItemCount,
     ...(loadedSkills === undefined ? {} : { loadedSkills }),
+    ...(errorSignal === undefined ? {} : { errorSignal }),
   };
 }
 

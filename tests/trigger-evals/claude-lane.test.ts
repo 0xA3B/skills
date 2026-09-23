@@ -306,6 +306,44 @@ describe("createClaudeLane", () => {
 });
 
 describe("observeClaudeOutput", () => {
+  it("reports an is_error result as a runtime error signal", () => {
+    // Recorded shape from the run in #168: init, one synthetic assistant text event carrying the
+    // error, then a result with subtype success but is_error true.
+    const errorText =
+      "API Error: 500 Internal server error. This is a server-side issue, usually temporary.";
+    const stdout = [
+      JSON.stringify({ type: "system", subtype: "init", skills: ["demo:auto-skill"] }),
+      JSON.stringify({
+        type: "assistant",
+        message: { model: "<synthetic>", content: [{ type: "text", text: errorText }] },
+      }),
+      JSON.stringify({
+        type: "result",
+        subtype: "success",
+        is_error: true,
+        terminal_reason: "api_error",
+        result: errorText,
+      }),
+    ].join("\n");
+
+    const observations = observeClaudeOutput(stdout);
+
+    expect(observations.signal).toBe("none");
+    expect(observations.errorSignal).toBe(errorText);
+    expect(observations.hasActivity).toBe(true);
+  });
+
+  it("reports no error signal for a completed result", () => {
+    const stdout = JSON.stringify({
+      type: "result",
+      subtype: "success",
+      is_error: false,
+      result: "done",
+    });
+
+    expect(observeClaudeOutput(stdout).errorSignal).toBeUndefined();
+  });
+
   it("collects Skill tool_use targets from the command key", () => {
     const stdout = [
       "non-json noise",

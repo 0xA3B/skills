@@ -256,6 +256,46 @@ describe("buildCaseResult", () => {
     expect(result.environmentalFailure).toContain("codex: unable to authenticate");
   });
 
+  it("reports an environmental failure when the lane observed a runtime error and no invocation", () => {
+    // The API-error transcript from #168: the error arrives as an assistant text event plus an
+    // is_error result, so activity and decision counts look like a normal run.
+    const result = buildCaseResult(
+      verdictOptions({
+        testCase: { id: "skip-case", expect: "skip" },
+        observations: observations({ errorSignal: "API Error: 500 Internal server error." }),
+        runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
+      }),
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.environmentalFailure).toContain("API Error: 500 Internal server error.");
+    expect(result.error).toBe("claude -p exited with code 1.");
+  });
+
+  it("marks an invoke case as environmental, not a trigger miss, on a runtime error", () => {
+    const result = buildCaseResult(
+      verdictOptions({
+        observations: observations({ errorSignal: "API Error: 500 Internal server error." }),
+        runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
+      }),
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.environmentalFailure).toContain("API Error: 500 Internal server error.");
+  });
+
+  it("keeps an observed invocation over a later runtime error", () => {
+    const result = buildCaseResult(
+      verdictOptions({
+        observations: { ...invokedObservations(TARGET), errorSignal: "stream aborted" },
+        runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
+      }),
+    );
+
+    expect(result.passed).toBe(true);
+    expect(result.environmentalFailure).toBeUndefined();
+  });
+
   it("trusts stop-when and abort endings without agent activity", () => {
     const result = buildCaseResult(
       verdictOptions({

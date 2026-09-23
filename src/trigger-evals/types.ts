@@ -72,6 +72,9 @@ export type CaseObservations = {
   // Skills the agent reported loading at session start (Claude's init event); undefined when the
   // lane has no such signal.
   loadedSkills?: string[];
+  // The agent runtime's own report that the turn failed (an API error, a dropped stream), quoted
+  // from the lane's terminal error event. Such a run never reached a settled trigger decision.
+  errorSignal?: string;
 };
 
 export type TriggerCaseResult = {

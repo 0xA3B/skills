@@ -200,6 +200,7 @@ export function observeCodexOutput(
 ): CaseObservations {
   let hasActivity = false;
   let decisionItemCount = 0;
+  let errorSignal: string | undefined;
   const messageTexts: string[] = [];
   for (const event of parseJsonlEvents(output.stdout)) {
     if (!isRecord(event)) {
@@ -207,6 +208,11 @@ export function observeCodexOutput(
     }
     if (event["type"] === "item.completed" || event["type"] === "turn.completed") {
       hasActivity = true;
+    }
+    // Documented `codex exec --json` failure shapes: a turn.failed event carrying error.message,
+    // or a top-level error event carrying message.
+    if (event["type"] === "turn.failed" || event["type"] === "error") {
+      errorSignal = codexErrorMessage(event) ?? `${event["type"]} event`;
     }
     if (event["type"] !== "item.completed") {
       continue;
@@ -223,7 +229,11 @@ export function observeCodexOutput(
     }
   }
 
-  const base = { hasActivity, decisionItemCount };
+  const base = {
+    hasActivity,
+    decisionItemCount,
+    ...(errorSignal === undefined ? {} : { errorSignal }),
+  };
   const messageText = messageTexts.join("\n");
   const canaryInvoked = [...canaryLabels.entries()]
     .filter(([canary]) => messageText.includes(canary))
@@ -242,6 +252,14 @@ export function observeCodexOutput(
   }
 
   return { ...base, signal: "none", invokedSkills: [] };
+}
+
+function codexErrorMessage(event: Record<string, unknown>): string | undefined {
+  if (typeof event["message"] === "string") {
+    return event["message"];
+  }
+  const error = event["error"];
+  return isRecord(error) && typeof error["message"] === "string" ? error["message"] : undefined;
 }
 
 // Boundary-match a skill label in stderr telemetry so a label is never credited from inside a
