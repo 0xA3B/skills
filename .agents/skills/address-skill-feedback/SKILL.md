@@ -48,8 +48,9 @@ rely on.
    this pass; otherwise leave it out. When the new item is a public issue and the record is private,
    the issue instead becomes the public `wait` record, carrying the disposition and trigger, and the
    private record takes the `Status: Promoted to <issue-url>` line and moves to
-   `.local/feedback-archive/`. Leave an item whose recorded encode is pending out of this pass until
-   its change lands.
+   `.local/feedback-archive/`. Leave an item whose recorded encode is pending, shown by an open
+   change request cross-referenced on the issue timeline or recorded in the private source, out of
+   this pass until its change lands.
 
 ## Reconstruct the feedback
 
@@ -210,25 +211,28 @@ Follow `plugins/AGENTS.md` for plugin versioning and the repository's required v
      every supported agent. When the campaign will change more descriptions, defer the adjacent and
      marketplace-wide runs to one pass after the last description change; a fresh eval session has
      no prior turns, so give any fixture that corrects earlier work the corrected text inline.
-   - For non-trivial workflow behavior, use `pressure-test-skill` when realistic shortcut pressure
-     can test the new decision rule; treat an edit the pressure test proposes as a step 4 finding.
+   - Run `pressure-test-skill` on each workflow rule that realistic shortcut pressure can test, and
+     in the report name the rule tested or why no rule in the batch could; treat an edit the
+     pressure test proposes as a step 4 finding.
    - Run the repository's targeted checks, then its full gate before declaring the batch complete.
 6. If validation exposes a harness, fixture, runtime, or repository failure, reroute that failure.
    Do not weaken the skill change merely to make invalid evidence pass.
 
 ## Close with a record
 
-The dispositions below define the desired record, not authority to create it. Before committing,
-creating a public issue, or mutating one, show the exact commit scope and message or the exact new
-issue, public comment, or closure, then obtain the user's explicit confirmation. Read back every
-public mutation and correct a material publication alteration.
+The user's approval of the dispositions in step 1 of "Apply and re-evaluate" authorizes the records
+those dispositions determine: the comments and closures below, posted once their conditions hold.
+Before any other change to an issue, including creating one or posting a comment whose content the
+approved disposition does not determine, show the exact text and obtain the user's explicit
+confirmation. Read back every public mutation and correct a material publication alteration.
 
 For every dispositioned GitHub issue, record each item's disposition as below, then close the issue
 only when every item on it is terminal and every encoded change has landed; a `wait` item or an
 unlanded encode keeps it open.
 
-- **encode**: reference the issue in the fix commit, comment the pending commit or change request
-  when it is created, and name the landed commit on the issue.
+- **encode**: reference the issue in the fix commit and in the change request description, whose
+  cross-reference on the issue timeline is the pending-change record, and name the landed commit on
+  the issue.
 - **reroute**: when the owner is another skill in this marketplace, open a replacement issue labeled
   `feedback` and `plugin:<owning-plugin>` that links the original, and record the link on the
   original; if a label is missing, create the issue without it and name the missing label in the
