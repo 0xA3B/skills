@@ -256,6 +256,86 @@ describe("buildCaseResult", () => {
     expect(result.environmentalFailure).toContain("codex: unable to authenticate");
   });
 
+  it("reports an environmental failure when the lane observed a runtime error and no invocation", () => {
+    // The API-error transcript from #168: the error arrives as an assistant text event plus an
+    // is_error result, so activity and decision counts look like a normal run.
+    const result = buildCaseResult(
+      verdictOptions({
+        testCase: { id: "skip-case", expect: "skip" },
+        observations: observations({ errorSignal: "API Error: 500 Internal server error." }),
+        runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
+      }),
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.environmentalFailure).toContain("API Error: 500 Internal server error.");
+    expect(result.error).toBe("claude -p exited with code 1.");
+  });
+
+  it("marks an invoke case as environmental, not a trigger miss, on a runtime error", () => {
+    const result = buildCaseResult(
+      verdictOptions({
+        observations: observations({ errorSignal: "API Error: 500 Internal server error." }),
+        runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
+      }),
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.environmentalFailure).toContain("API Error: 500 Internal server error.");
+  });
+
+  it("keeps an observed invocation over a later runtime error", () => {
+    const result = buildCaseResult(
+      verdictOptions({
+        observations: { ...invokedObservations(TARGET), errorSignal: "stream aborted" },
+        runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
+      }),
+    );
+
+    expect(result.passed).toBe(true);
+    expect(result.environmentalFailure).toBeUndefined();
+  });
+
+  it("quotes the runtime error over the no-output message when a run had no activity", () => {
+    const result = buildCaseResult(
+      verdictOptions({
+        testCase: { id: "skip-case", expect: "skip" },
+        observations: observations({
+          hasActivity: false,
+          decisionItemCount: 0,
+          errorSignal: "stream disconnected",
+        }),
+        runResult: buildCliRunResult({ exitCode: 1, error: "codex exec exited with code 1." }),
+      }),
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.environmentalFailure).toContain("stream disconnected");
+  });
+
+  it.each([
+    ["stop-when", "item-budget"],
+    ["timeout", "timeout"],
+    ["abort", undefined],
+  ] as const)(
+    "ignores a runtime error the harness itself caused by ending the run (%s)",
+    (endedBy, skipSignal) => {
+      // Claude Code 2.1.x (recorded 2026-08) answers the harness SIGTERM with an is_error result
+      // whose terminal_reason is aborted_tools or aborted_streaming, so a harness-caused ending
+      // must not read as an environmental failure.
+      const result = buildCaseResult(
+        verdictOptions({
+          testCase: { id: "skip-case", expect: "skip" },
+          observations: observations({ errorSignal: "Request was aborted." }),
+          runResult: buildCliRunResult({ endedBy }),
+        }),
+      );
+
+      expect(result.environmentalFailure).toBeUndefined();
+      expect(result.skipSignal).toBe(skipSignal);
+    },
+  );
+
   it("trusts stop-when and abort endings without agent activity", () => {
     const result = buildCaseResult(
       verdictOptions({

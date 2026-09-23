@@ -84,7 +84,10 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
 // problem (bad auth, blocked network, sandbox nesting) as a trigger miss. Only checked when no
 // invocation signal was observed, because an observed signal proves the run actually executed.
 // The sandbox_apply marker is an OS-level (macOS Seatbelt) failure that leaves the agent alive but
-// unable to execute any command, so it is checked separately from the dead-run case.
+// unable to execute any command, so it is checked separately from the dead-run case. A runtime
+// error signal is the third case: the agent produced events, but its own runtime reported that the
+// turn failed, so the decision the events show was never settled. Checked before the dead-run case
+// so the report quotes the runtime's text when both apply.
 function detectEnvironmentalFailure(
   runResult: { stderr: string },
   endedBy: string,
@@ -95,6 +98,16 @@ function detectEnvironmentalFailure(
       "sandbox_apply: Operation not permitted — case subprocesses could not apply their OS " +
       "sandbox (macOS refuses to nest Seatbelt sandboxes), so no command ran. Run trigger evals " +
       "from an unsandboxed context."
+    );
+  }
+
+  // Only a run the runtime ended on its own can blame the runtime: when the harness stopped the
+  // run (budget, timeout, abort), some Claude Code versions answer the SIGTERM with an is_error
+  // result, and that reflects the stop, not a failed turn.
+  if (endedBy === "completed" && observations.errorSignal !== undefined) {
+    return (
+      "the agent runtime reported an error, so the run never settled a trigger decision. " +
+      `error: ${observations.errorSignal}`
     );
   }
 
