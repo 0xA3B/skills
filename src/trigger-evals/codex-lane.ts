@@ -1,4 +1,4 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { appendEvalSectionToFile, createCanary } from "./canary.js";
@@ -320,12 +320,25 @@ async function runCodexExec(options: CodexExecOptions): Promise<CliRunResult> {
   return finishCliRun({ result, label: "codex exec", paths, finalMessage });
 }
 
+// A run stopped at the invocation signal or the decision-item budget is killed before codex exec
+// writes its -o file, so the lane writes the last agent message there itself: every case directory
+// then carries the same artifact set, and finalMessagePath always names a file that exists.
 async function readFinalMessage(finalMessagePath: string, stdout: string): Promise<string> {
   try {
     return await readFile(finalMessagePath, "utf8");
-  } catch {
-    return parseLastAgentMessage(stdout);
+  } catch (caught) {
+    const finalMessage = parseLastAgentMessage(stdout);
+    if (isMissingFile(caught)) {
+      await writeFile(finalMessagePath, finalMessage);
+    }
+    return finalMessage;
   }
+}
+
+function isMissingFile(caught: unknown): boolean {
+  return (
+    caught instanceof Error && "code" in caught && (caught as { code?: unknown }).code === "ENOENT"
+  );
 }
 
 function parseLastAgentMessage(stdout: string): string {

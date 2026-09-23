@@ -293,6 +293,31 @@ describe("createCodexLane", () => {
     expect(await exists(path.dirname(laneCase.workspacePath))).toBe(true);
   });
 
+  it("writes final.txt from the last agent message when the CLI wrote none", async () => {
+    const repoRoot = await writeRepoFixture();
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const laneRun = await lane.prepareRun(
+      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill"),
+    );
+    const laneCase = await laneRun.prepareCase({
+      id: "skip-case",
+      prompt: "Do not invoke the skill.",
+      expect: "skip",
+    });
+    const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
+
+    // The faked codex exec never writes its -o file, as a run stopped at the first invocation
+    // signal or the decision-item budget never does.
+    const runResult = await laneCase.execute({ caseDir, timeoutMs: 60_000 });
+
+    expect(runResult.finalMessagePath).toBe(path.join(caseDir, "final.txt"));
+    await expect(readFile(runResult.finalMessagePath, "utf8")).resolves.toBe(
+      "I handled the request.",
+    );
+    expect(runResult.finalMessage).toBe("I handled the request.");
+  });
+
   it("observes staged canaries in agent output, attributing siblings distinctly", async () => {
     const repoRoot = await writeRepoFixture({ siblingSkills: [{ name: "sibling-skill" }] });
     const sourceCodexHome = await makeSourceCodexHome();
