@@ -44,8 +44,10 @@ rely on.
    disposition, or a new item matches a `wait` record on an open issue or in
    `.local/feedback-deferred/`, test the recorded trigger against the evidence since that
    disposition. When the trigger has not fired, add a new item's evidence to the `wait` record as a
-   recurrence and reject the new item as a duplicate of that record by link, and leave the `wait`
-   item out of this pass. Leave an item whose recorded encode is pending out of this pass until its
+   recurrence, reject the new item as a duplicate of that record by link, and leave the `wait` item
+   out of this pass; when the new item is a public issue and the record is private, the issue
+   instead becomes the public `wait` record, carrying the disposition and trigger, and the private
+   record notes the issue. Leave an item whose recorded encode is pending out of this pass until its
    change lands.
 
 ## Reconstruct the feedback
@@ -258,10 +260,12 @@ For private local feedback, preserve the same evidence without publishing it:
 - When one source mixes terminal and deferred items, archive the original and create one focused
   deferred file containing only the unresolved items and their reconsideration triggers.
 - Keep these directories ignored and private. When the user separately authorizes publishing a local
-  record, draft the issue in the `meta:submit-skill-feedback` issue format from the record's current
-  text, carrying every recorded disposition, rationale, reconsideration trigger, and pending commit,
-  with public redaction revalidated; label it `feedback` and `plugin:<plugin>` under the
-  missing-label fallback above; then replace the source's status line with
+  record, run the `meta:submit-skill-feedback` recurrence check and draft the issue, or the
+  recurrence comment on an open match, in that skill's format from the record's current text,
+  carrying every recorded disposition, rationale, reconsideration trigger, and pending or landed
+  commit, with public redaction revalidated; a commit that landed before promotion is named on the
+  issue in place of the reference the encode rule expects; label it `feedback` and `plugin:<plugin>`
+  under the missing-label fallback above; then replace the source's status line with
   `Status: Promoted to <issue-url>` and file the source under `.local/feedback-archive/`. From then
-  on the issue is the primary record and the public lifecycle above governs it, including closure
-  once every item is terminal and landed; the archived file is history.
+  on the resulting issue is the primary record and the public lifecycle above governs it, including
+  closure once every item is terminal and landed; the archived file is history.
