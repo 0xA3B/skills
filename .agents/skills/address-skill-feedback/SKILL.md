@@ -25,7 +25,8 @@ rely on.
 
 1. If the invocation named issues or local files, use those. Otherwise list open issues labeled
    `feedback` and files directly under `.local/feedback/`, optionally narrowed by the plugin the
-   user names. Ignore feedback stored elsewhere under `.local/` unless the user includes it.
+   user names. Leave a file whose status line is `Draft for manual submission` to that submission,
+   and ignore feedback stored elsewhere under `.local/`, unless the user includes it.
 2. Read the source's `Plugin`, `Skill`, version, and previous-name metadata. Use that metadata
    rather than the filename to find renamed skills and aliases.
 3. Split a source containing several independent recommendations into atomic feedback items. One
@@ -238,16 +239,18 @@ unlanded encode keeps it open.
 
 For private local feedback, preserve the same evidence without publishing it:
 
-- Keep untriaged and active sources in `.local/feedback/`.
+- Keep untriaged and active sources in `.local/feedback/`. Write each item's disposition, rationale,
+  owner, and pending commit or change request into the source when the item is decided, the same
+  record a public issue gets.
 - Put a `wait` item in `.local/feedback-deferred/` with the exact recurrence, cost, or cross-context
   evidence that would trigger reconsideration.
 - For a rerouted private item whose owner is a marketplace skill, save a redacted record for that
   skill in `.local/feedback/` before archiving the source. For any other owner, name in the archived
   file the record the user filed with that owner, or the absence of one.
 - After every atomic item in a source reaches a terminal disposition and any encoded change lands,
-  write each item's disposition, rationale, owner, and landed commit into the source and replace its
-  status line, then move it to `.local/feedback-archive/`. Move a `.local/feedback-deferred/` record
-  there once its items reach a terminal disposition.
+  record the landed commit, replace the status line, and move the source to
+  `.local/feedback-archive/`. Move a `.local/feedback-deferred/` record there once its items reach a
+  terminal disposition.
 - When one source mixes terminal and deferred items, archive the original and create one focused
   deferred file containing only the unresolved items and their reconsideration triggers.
 - Keep these directories ignored and private. Do not turn a local artifact into a public issue
