@@ -227,6 +227,11 @@ cases where loaded repository instructions should affect the trigger boundary, s
   checkout's live skills never leak into the trigger signal. On both lanes, staged plugin deployment
   copies and the Codex marketplace catalog are siblings of the case workspace rather than project
   files, matching an installed session and keeping them out of project reconnaissance.
+- Runtime state is removed as the run goes: each case's Codex home once its output is captured, and
+  the staged workspaces and run home when the run ends, whether it completed, failed, timed out, or
+  was canceled. `report.json` and the per-case `events.jsonl`, `final.txt`, and `stderr.log` stay.
+  Pass `--keep-runtime` to retain the homes and workspaces for debugging; a directory the runner
+  could not remove is printed as a warning and never fails the run.
 - Cases with a `workspace` block or `workspace_files` run in a case-specific copy of the staged
   workspace. The runner builds the seeded repository identically on both lanes, with a harness-owned
   git identity and signing disabled, so the machine's git configuration cannot affect a run.

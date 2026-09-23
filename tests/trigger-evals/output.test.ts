@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { formatCaseLine } from "../../src/trigger-evals/output.js";
-import type { TriggerCaseResult } from "../../src/trigger-evals/types.js";
+import { formatCaseLine, printTriggerEvalResult } from "../../src/trigger-evals/output.js";
+import type { TriggerCaseResult, TriggerEvalResult } from "../../src/trigger-evals/types.js";
 
 function caseResult(overrides: Partial<TriggerCaseResult> = {}): TriggerCaseResult {
   return {
@@ -88,5 +88,44 @@ describe("formatCaseLine", () => {
     ).toBe(
       "- FAIL existing-feedback: expected skip with invoke-instead demo:sibling, observed wrong-skill other:skill via stdout-skill-canary (1.5s)",
     );
+  });
+});
+
+describe("printTriggerEvalResult", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    process.exitCode = undefined;
+  });
+
+  it("warns about runtime directories the run could not remove without failing the run", () => {
+    const log = vi.spyOn(console, "log").mockReturnValue(undefined);
+    const warn = vi.spyOn(console, "warn").mockReturnValue(undefined);
+    const result: TriggerEvalResult = {
+      runDir: "/tmp/run",
+      reportPath: "/tmp/run/report.json",
+      target: {
+        kind: "plugin",
+        repoRoot: "/tmp/repo",
+        pluginName: "demo",
+        pluginPath: "/tmp/repo/plugins/demo",
+        skillName: "auto-skill",
+        skillPath: "/tmp/repo/plugins/demo/skills/auto-skill",
+        skillFilePath: "/tmp/repo/plugins/demo/skills/auto-skill/SKILL.md",
+        metadataPath: "/tmp/repo/plugins/demo/skills/auto-skill/agents/openai.yaml",
+        fixturePath: "/tmp/repo/plugins/demo/skills/auto-skill/evals/triggers.yaml",
+      },
+      agent: "codex",
+      durationMs: 10,
+      results: [caseResult({ skipSignal: "completed" })],
+      cleanupFailures: ["/tmp/run/codex-home: EACCES: permission denied"],
+    };
+
+    printTriggerEvalResult(result);
+
+    expect(warn).toHaveBeenCalledWith(
+      "WARNING: runtime cleanup left /tmp/run/codex-home: EACCES: permission denied",
+    );
+    expect(log).toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
   });
 });

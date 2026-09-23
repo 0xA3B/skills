@@ -114,4 +114,6 @@ export type TriggerEvalResult = {
   durationMs: number;
   results: TriggerCaseResult[];
   skippedReason?: string;
+  // Runtime directories the run could not remove, one message each. Reported, never fatal.
+  cleanupFailures?: string[];
 };

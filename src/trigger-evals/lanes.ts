@@ -2,6 +2,7 @@ import { createClaudeLane } from "./claude-lane.js";
 import { createCodexLane } from "./codex-lane.js";
 import type { CliRunResult, StreamingCliOutput } from "./exec.js";
 import type { MarketplacePluginEntry } from "./marketplace.js";
+import type { RuntimeResources } from "./runtime.js";
 import type { RepoLocalSkillEntry } from "./staging.js";
 import type { CaseObservations, SkillTarget, TriggerCase, TriggerEvalAgent } from "./types.js";
 
@@ -20,6 +21,9 @@ export type LaneRunOptions = {
   target: SkillTarget;
   model: string;
   effort: string;
+  // Registry for the runtime directories the lane creates (staged workspace roots, Codex homes).
+  // The lane tracks them, run-scoped or under the case id; the runner releases them.
+  runtime: RuntimeResources;
   // Plugins staged alongside the target's own surface (the default deployment-context staging).
   // Entries matching a plugin target's own plugin are deduplicated.
   extraPlugins?: MarketplacePluginEntry[];

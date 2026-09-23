@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -16,6 +17,10 @@ import { buildCliRunResult, writeRepoFixture, writeRepoLocalSkillFixture } from 
 type FakeLaneOptions = {
   observationsFor?: (testCase: TriggerCase, output: StreamingCliOutput) => CaseObservations;
   executeResult?: (testCase: TriggerCase) => Promise<CliRunResult>;
+  // Runtime directories the fake lane creates and tracks, mirroring a real lane's staged
+  // workspace root (run scope) and per-case Codex home (case scope).
+  runtimeRoot?: string;
+  prepareCaseError?: (testCase: TriggerCase) => Error | undefined;
 };
 
 type FakeLaneState = {
@@ -26,7 +31,20 @@ type FakeLaneState = {
   runCleanups: number;
   activeExecs: number;
   maxActiveExecs: number;
+  runtimeDir: string | undefined;
+  caseRuntimeDirs: Map<string, string>;
+  // Which case runtime directories still existed when each case executed.
+  liveCaseDirsAtExecute: Map<string, string[]>;
 };
+
+async function exists(dirPath: string): Promise<boolean> {
+  try {
+    await stat(dirPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // Orchestration tests exercise the runner through the lane seam with a fake adapter; real lane
 // behavior is covered by the lane and staging tests.
@@ -39,6 +57,9 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
     runCleanups: 0,
     activeExecs: 0,
     maxActiveExecs: 0,
+    runtimeDir: undefined,
+    caseRuntimeDirs: new Map(),
+    liveCaseDirsAtExecute: new Map(),
   };
   const defaultObservations = (testCase: TriggerCase): CaseObservations =>
     testCase.expect === "invoke"
@@ -53,10 +74,25 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
   const lane: AgentLane = {
     async prepareRun(runOptions) {
       state.runOptions = runOptions;
+      if (options.runtimeRoot !== undefined) {
+        state.runtimeDir = path.join(options.runtimeRoot, "run-parent", "run");
+        await mkdir(state.runtimeDir, { recursive: true });
+        runOptions.runtime.track(state.runtimeDir);
+      }
       return {
         stagedSkillLabels: new Set(["demo:auto-skill"]),
         async prepareCase(testCase) {
           state.preparedCaseIds.push(testCase.id);
+          if (options.runtimeRoot !== undefined) {
+            const caseRuntimeDir = path.join(options.runtimeRoot, "cases", testCase.id);
+            await mkdir(caseRuntimeDir, { recursive: true });
+            state.caseRuntimeDirs.set(testCase.id, caseRuntimeDir);
+            runOptions.runtime.track(caseRuntimeDir, testCase.id);
+          }
+          const prepareError = options.prepareCaseError?.(testCase);
+          if (prepareError !== undefined) {
+            throw prepareError;
+          }
           return {
             workspacePath: `/fake/${testCase.id}`,
             observe: (output) =>
@@ -65,6 +101,13 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
               state.executed.push({ testCase, executeOptions });
               state.activeExecs += 1;
               state.maxActiveExecs = Math.max(state.maxActiveExecs, state.activeExecs);
+              const live: string[] = [];
+              for (const [caseId, caseRuntimeDir] of state.caseRuntimeDirs) {
+                if (await exists(caseRuntimeDir)) {
+                  live.push(caseId);
+                }
+              }
+              state.liveCaseDirsAtExecute.set(testCase.id, live);
               try {
                 if (options.executeResult !== undefined) {
                   return await options.executeResult(testCase);
@@ -355,5 +398,152 @@ describe("runTriggerEval", () => {
     expect(state.executed).toStrictEqual([]);
     expect(result.results).toStrictEqual([]);
     expect(state.runCleanups).toBe(1);
+  });
+
+  it("releases each case's runtime state after its output is captured and the run's at the end", async () => {
+    const repoRoot = await writeRepoFixture({
+      marketplace: true,
+      cases: [
+        { id: "case-a", expect: "invoke" },
+        { id: "case-b", expect: "skip" },
+      ],
+    });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    const { lane, state } = createFakeLane({ runtimeRoot });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      concurrency: 1,
+      lane,
+    });
+
+    // Sequential cases: case-a's runtime directory is gone before case-b executes, while the run
+    // directory outlives both.
+    expect(state.liveCaseDirsAtExecute.get("case-a")).toStrictEqual(["case-a"]);
+    expect(state.liveCaseDirsAtExecute.get("case-b")).toStrictEqual(["case-b"]);
+    expect(await exists(state.caseRuntimeDirs.get("case-b") ?? "")).toBe(false);
+    expect(await exists(state.runtimeDir ?? "")).toBe(false);
+    expect(result.cleanupFailures).toBeUndefined();
+    // Durable artifacts survive: the report is still on disk.
+    await expect(stat(result.reportPath)).resolves.toBeDefined();
+  });
+
+  it("keeps a running case's runtime state while a concurrent sibling is released", async () => {
+    const repoRoot = await writeRepoFixture({
+      marketplace: true,
+      cases: [
+        { id: "case-a", expect: "invoke" },
+        { id: "case-b", expect: "skip" },
+        { id: "case-c", expect: "skip" },
+      ],
+    });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    const { lane, state } = createFakeLane({ runtimeRoot });
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      concurrency: 3,
+      lane,
+    });
+
+    // Every case saw its own directory while executing; a sibling's release never removed it.
+    for (const caseId of ["case-a", "case-b", "case-c"]) {
+      expect(state.liveCaseDirsAtExecute.get(caseId)).toContain(caseId);
+      expect(await exists(state.caseRuntimeDirs.get(caseId) ?? "")).toBe(false);
+    }
+    expect(await exists(state.runtimeDir ?? "")).toBe(false);
+  });
+
+  it("retains runtime state when keepRuntime is set", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    const { lane, state } = createFakeLane({ runtimeRoot });
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseIds: ["skip-case"],
+      keepRuntime: true,
+      lane,
+    });
+
+    expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(true);
+    expect(await exists(state.runtimeDir ?? "")).toBe(true);
+  });
+
+  it("releases runtime state and rethrows the original error when execution fails", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    const { lane, state } = createFakeLane({
+      runtimeRoot,
+      executeResult: async () => {
+        throw new Error("exec blew up");
+      },
+    });
+
+    await expect(
+      runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        caseIds: ["skip-case"],
+        lane,
+      }),
+    ).rejects.toThrow("exec blew up");
+    expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
+    expect(await exists(state.runtimeDir ?? "")).toBe(false);
+  });
+
+  it("releases the runtime state a failed case preparation left behind", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    const { lane, state } = createFakeLane({
+      runtimeRoot,
+      prepareCaseError: () => new Error("staging blew up"),
+    });
+
+    await expect(
+      runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        caseIds: ["skip-case"],
+        lane,
+      }),
+    ).rejects.toThrow("staging blew up");
+    expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
+    expect(await exists(state.runtimeDir ?? "")).toBe(false);
+    expect(state.caseCleanups).toBe(0);
+    expect(state.runCleanups).toBe(1);
+  });
+
+  it("records a cleanup failure on the result instead of failing the run", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    const { lane, state } = createFakeLane({ runtimeRoot });
+    // A read-only parent makes the run directory unremovable; case directories stay removable.
+    const runParent = path.join(runtimeRoot, "run-parent");
+    await mkdir(path.join(runParent, "run"), { recursive: true });
+    await chmod(runParent, 0o555);
+
+    try {
+      const result = await runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        caseIds: ["skip-case"],
+        lane,
+      });
+
+      expect(result.results).toHaveLength(1);
+      expect(result.cleanupFailures).toHaveLength(1);
+      expect(result.cleanupFailures?.[0]).toContain(state.runtimeDir ?? "");
+      expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
+      const report = JSON.parse(await readFile(result.reportPath, "utf8")) as {
+        cleanupFailures?: string[];
+      };
+      expect(report.cleanupFailures).toHaveLength(1);
+    } finally {
+      await chmod(runParent, 0o755);
+    }
   });
 });

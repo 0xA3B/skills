@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createClaudeLane, observeClaudeOutput } from "../../src/trigger-evals/claude-lane.js";
 import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
 import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
+import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
 import { resolveSkillTarget } from "../../src/trigger-evals/target.js";
 import { buildCaseResult, shouldStopEarly } from "../../src/trigger-evals/verdict.js";
 import {
@@ -50,6 +51,7 @@ async function makeRunOptions(
     target: resolveSkillTarget(repoRoot, skillPath),
     model: "opus",
     effort: "medium",
+    runtime: createRuntimeResources(),
     ...overrides,
   };
 }
@@ -57,6 +59,25 @@ async function makeRunOptions(
 describe("createClaudeLane", () => {
   beforeEach(() => {
     spawnCalls.length = 0;
+  });
+
+  it("tracks the staged workspace root for release", async () => {
+    const repoRoot = await writeRepoFixture();
+    const lane = createClaudeLane();
+    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+
+    const laneRun = await lane.prepareRun(runOptions);
+    const laneCase = await laneRun.prepareCase({
+      id: "invoke-case",
+      prompt: "Invoke the skill.",
+      expect: "invoke",
+      workspaceFiles: { "notes.md": "hello" },
+    });
+    const workspaceRoot = path.dirname(path.dirname(path.dirname(laneCase.workspacePath)));
+    await expect(stat(workspaceRoot)).resolves.toBeDefined();
+
+    await expect(runOptions.runtime.release()).resolves.toStrictEqual([]);
+    await expect(stat(workspaceRoot)).rejects.toThrow(/ENOENT/);
   });
 
   it("stages only Claude surfaces for plugin targets", async () => {

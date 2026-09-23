@@ -5,6 +5,7 @@ import path from "node:path";
 import { loadTriggerFixture } from "./fixtures.js";
 import { type AgentLane, createLane, DEFAULT_EVAL_EFFORT, DEFAULT_EVAL_MODELS } from "./lanes.js";
 import { listMarketplacePlugins } from "./marketplace.js";
+import { createRuntimeResources } from "./runtime.js";
 import { listRepoLocalSkills } from "./staging.js";
 import { readAllowImplicitInvocation, resolveSkillTarget, skillTargetLabel } from "./target.js";
 import type { TriggerCaseResult, TriggerEvalAgent, TriggerEvalResult } from "./types.js";
@@ -21,6 +22,8 @@ export type RunTriggerEvalOptions = {
   force?: boolean;
   timeoutMs?: number;
   concurrency?: number;
+  // Retain staged workspaces and Codex homes after the run for debugging.
+  keepRuntime?: boolean;
   sourceCodexHome?: string;
   claudeConfigDir?: string;
   abortSignal?: AbortSignal;
@@ -86,11 +89,16 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           (skill) => skill.skillName !== target.skillName,
         )
       : [];
+  // Runtime state is owned here: lanes track what they create, and this runner releases each
+  // case's share once its output is captured and the rest when the run ends, however it ends.
+  const runtime = createRuntimeResources({ keep: options.keepRuntime === true });
+  const cleanupFailures: string[] = [];
   const laneRun = await lane.prepareRun({
     runDir,
     target,
     model,
     effort,
+    runtime,
     extraPlugins: await listMarketplacePlugins(repoRoot, agent),
     ...(extraRepoLocalSkills.length > 0 ? { extraRepoLocalSkills } : {}),
   });
@@ -104,29 +112,37 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
         return;
       }
       const caseDir = path.join(runDir, "cases", testCase.id);
-      const laneCase = await laneRun.prepareCase(testCase);
       try {
-        const caseStartedAt = Date.now();
-        const runResult = await laneCase.execute({
-          caseDir,
-          timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-          stopWhen: (output) => shouldStopEarly(laneCase.observe(output)),
-          ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
-        });
-        results[index] = buildCaseResult({
-          testCase,
-          targetLabel,
-          stagedSkillLabels: laneRun.stagedSkillLabels,
-          observations: laneCase.observe(runResult),
-          runResult,
-          durationMs: Date.now() - caseStartedAt,
-        });
+        const laneCase = await laneRun.prepareCase(testCase);
+        try {
+          const caseStartedAt = Date.now();
+          const runResult = await laneCase.execute({
+            caseDir,
+            timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+            stopWhen: (output) => shouldStopEarly(laneCase.observe(output)),
+            ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
+          });
+          results[index] = buildCaseResult({
+            testCase,
+            targetLabel,
+            stagedSkillLabels: laneRun.stagedSkillLabels,
+            observations: laneCase.observe(runResult),
+            runResult,
+            durationMs: Date.now() - caseStartedAt,
+          });
+        } finally {
+          await laneCase.cleanup();
+        }
       } finally {
-        await laneCase.cleanup();
+        cleanupFailures.push(...(await runtime.release(testCase.id)));
       }
     });
   } finally {
-    await laneRun.cleanup();
+    try {
+      await laneRun.cleanup();
+    } finally {
+      cleanupFailures.push(...(await runtime.release()));
+    }
   }
 
   const reportPath = path.join(runDir, "report.json");
@@ -137,6 +153,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     agent,
     durationMs: Date.now() - runStartedAt,
     results: results.filter(isDefined),
+    ...(cleanupFailures.length === 0 ? {} : { cleanupFailures }),
   };
   await writeFile(reportPath, JSON.stringify(result, null, 2));
   return result;
