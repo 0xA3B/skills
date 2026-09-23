@@ -38,8 +38,10 @@ cases:
 
   - id: update-plugin-metadata
     prompt: >-
-      Which repo workflow should update default prompts for the engineering plugin?
+      Revise the default prompts shown for the engineering plugin so they highlight the review
+      skills.
     expect: skip
+    invoke-instead: update-plugin-metadata
     rationale: Metadata updates belong to update-plugin-metadata.
 
   - id: add-trigger-evals

@@ -1,14 +1,15 @@
 ---
 name: add-skill
-description:
+description: >-
   Adds a new plugin skill to an existing marketplace plugin in this repository. Use when the user
-  asks to add another skill, workflow skill, or reusable capability under an existing plugin in
-  plugins/. This repo-local skill owns this repository's plugin layout, metadata, versioning, and
-  validation conventions for new skills. Do not use for creating new plugins, creating repo-local
-  skills under .agents/skills, editing existing skills, adding trigger evals or tests to existing
-  skills, plugin metadata-only changes, conceptual skill questions, or skill installation. Never use
-  for requests that target repo-local skills, .agents/skills, or trigger fixture maintenance instead
-  of adding a new plugin skill under plugins/.
+  asks to add, create, or scaffold another skill, workflow skill, or reusable capability under an
+  existing plugin in plugins/, or to run this repository's skill-creation workflow. For a new plugin
+  skill here, this is the entry point; it applies writing:agent-instructions to the skill body
+  itself. Do not use for creating new plugins, creating repo-local skills under .agents/skills,
+  editing existing skills, adding trigger evals or tests to existing skills, plugin metadata-only
+  changes, conceptual skill questions, or skill installation. Never use for requests that target
+  repo-local skills, .agents/skills, or trigger fixture maintenance instead of adding a new plugin
+  skill under plugins/.
 license: MIT
 argument-hint: "[skill-name]"
 ---
