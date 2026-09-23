@@ -77,7 +77,9 @@ before staging.
    - Split work into logical units by purpose and rollback boundary
    - Choose type, scope, body, and footer for each unit
 3. Execute commits in dependency order:
-   - Stage and commit one unit at a time
+   - Stage one unit, confirm `git diff --cached --name-only` lists only that unit's files, and
+     commit it. If the list differs, unstage the extra paths before committing. A rejected commit
+     leaves the unit staged; resolve the rejection before staging the next unit.
    - Use elevated sandbox permissions only when the environment or repository policy requires it
    - Repeat until all intended changes are committed
 4. Report every created commit and every file intentionally left uncommitted.
