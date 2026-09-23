@@ -41,10 +41,15 @@ rely on.
 6. When a new issue references closed feedback, read the earlier disposition and change. Determine
    whether the behavior regressed, the earlier remedy missed the new context, or the earlier
    resolution did not address the mechanism. When a selected issue already carries a `wait`
-   disposition, or a new item matches a record in `.local/feedback-deferred/`, test the recorded
-   trigger against the evidence since that disposition; leave the item out of this pass when the
-   trigger has not fired. Leave an item whose recorded encode is pending out of this pass until its
-   change lands.
+   disposition, or a new item matches a `wait` record on an open issue or in
+   `.local/feedback-deferred/`, test the recorded trigger against the evidence since that
+   disposition, add a new item's evidence to the `wait` record as a recurrence, and reject the new
+   item as a duplicate of that record by link. When the trigger has fired, the `wait` item enters
+   this pass; otherwise leave it out. When the new item is a public issue and the record is private,
+   the issue instead becomes the public `wait` record, carrying the disposition and trigger, and the
+   private record takes the `Status: Promoted to <issue-url>` line and moves to
+   `.local/feedback-archive/`. Leave an item whose recorded encode is pending out of this pass until
+   its change lands.
 
 ## Reconstruct the feedback
 
@@ -255,5 +260,13 @@ For private local feedback, preserve the same evidence without publishing it:
   terminal disposition.
 - When one source mixes terminal and deferred items, archive the original and create one focused
   deferred file containing only the unresolved items and their reconsideration triggers.
-- Keep these directories ignored and private. Do not turn a local artifact into a public issue
-  unless the user separately authorizes publication.
+- Keep these directories ignored and private. When the user separately authorizes publishing a
+  record from `.local/feedback/` or `.local/feedback-deferred/`, submit each of its atomic items
+  through the recurrence and submission steps of `meta:submit-skill-feedback`, which own format,
+  labels, and redaction, skipping its qualification gate because the record passed it at capture,
+  and carrying every recorded disposition, rationale, reconsideration trigger, and pending or landed
+  commit; then replace the source's status line with `Status: Promoted to <issue-urls>` and file the
+  source under `.local/feedback-archive/`. From then on the resulting issues are the primary records
+  and the public lifecycle above governs them, including closure once every item is terminal and
+  landed, with a commit that landed before promotion named on the issue in place of the reference
+  the encode rule expects. An archived record is history: it stays local and is not promoted.
