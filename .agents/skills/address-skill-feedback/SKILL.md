@@ -43,7 +43,8 @@ rely on.
    resolution did not address the mechanism. When a selected issue already carries a `wait`
    disposition, or a new item matches a record in `.local/feedback-deferred/`, test the recorded
    trigger against the evidence since that disposition; leave the item out of this pass when the
-   trigger has not fired.
+   trigger has not fired. Leave an item whose recorded encode is pending out of this pass until its
+   change lands.
 
 ## Reconstruct the feedback
 
@@ -221,7 +222,8 @@ For every dispositioned GitHub issue, record each item's disposition as below, t
 only when every item on it is terminal and every encoded change has landed; a `wait` item or an
 unlanded encode keeps it open.
 
-- **encode**: reference the issue in the fix commit and name the landed commit on the issue.
+- **encode**: reference the issue in the fix commit, comment the pending commit or change request
+  when it is created, and name the landed commit on the issue.
 - **reroute**: when the owner is another skill in this marketplace, open a replacement issue labeled
   `feedback` and `plugin:<owning-plugin>` that links the original, and record the link on the
   original; if a label is missing, create the issue without it and name the missing label in the
