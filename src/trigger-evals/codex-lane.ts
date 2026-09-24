@@ -317,10 +317,6 @@ export function observeCodexOutput(
   const canaryInvoked = [...canaryLabels.entries()]
     .filter(([canary]) => messageText.includes(canary))
     .map(([, skillLabel]) => skillLabel);
-  if (canaryInvoked.length > 0) {
-    return { ...base, signal: "stdout-skill-canary", invokedSkills: canaryInvoked };
-  }
-
   // Read order is preserved for reporting and for the verdict's wrong-skill selection; the
   // dependency rule itself is order-free.
   const readInvoked: string[] = [];
@@ -330,6 +326,15 @@ export function observeCodexOutput(
         readInvoked.push(skillLabel);
       }
     }
+  }
+  // The canary is the preferred signal, but a read of another skill in the same run is still an
+  // observed load: dropping it would hide the overlap the eval exists to expose.
+  if (canaryInvoked.length > 0) {
+    const invokedSkills = [
+      ...canaryInvoked,
+      ...readInvoked.filter((skillLabel) => !canaryInvoked.includes(skillLabel)),
+    ];
+    return { ...base, signal: "stdout-skill-canary", invokedSkills };
   }
   if (readInvoked.length > 0) {
     return {

@@ -823,7 +823,7 @@ describe("observeCodexOutput", () => {
     ).toBe("command-skill-read");
   });
 
-  it("prefers the canary signal over a skill-file read", () => {
+  it("keeps a skill-file read of another skill alongside the canary", () => {
     const readPatterns = new Map([
       ["demo:auto-skill-extra", skillFileReadPattern("demo", "auto-skill-extra")],
     ]);
@@ -845,7 +845,8 @@ describe("observeCodexOutput", () => {
     );
 
     expect(observed.signal).toBe("stdout-skill-canary");
-    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill"]);
+    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill", "demo:auto-skill-extra"]);
+    expect(observed.pendingReads).toBeUndefined();
   });
 
   it("prefers the canary signal over stderr telemetry", () => {
