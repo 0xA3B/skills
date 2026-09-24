@@ -189,7 +189,10 @@ repository should care.
 
 Merge only through the repository's normal forge path and merge strategy. Before merging, verify:
 
-- The PR still targets the intended branch and has not changed since inspection.
+- The PR still targets the intended branch, and the merge is bound to the inspected head: when the
+  forge supports an exact-head condition, pass the observed head SHA to the merge command, as
+  `gh pr merge --match-head-commit <sha>` does on GitHub; otherwise re-read the head immediately
+  before merging and merge only when it still equals the inspected head.
 - Required checks and reviews are passing or explicitly not required by repo policy.
 - No linked blocker, migration issue, or release-note finding makes the PR unsafe as-is.
 
@@ -270,18 +273,24 @@ and suggested validation instead of broadening the maintenance PR.
 Before reporting, re-check every open dependency PR. Reclassify any whose head or base changed since
 classification per step 4, and confirm every PR left blocked links to an open, actionable issue.
 
-Always report:
+Write every field below in the report. Write `None` for a field whose step ran and found nothing,
+and `Skipped: <reason>` for a field whose step did not run, whether the user narrowed the scope or a
+precondition such as a dirty worktree blocked it. A missing field reads as an omission, not as an
+empty result. Collapse fields into shared prose only when every fact a field requires stays
+explicit.
 
-- Which repository policy applied, and any point where it overrode a default in this skill.
-- Whether the repository has a written dependency policy and any gap or conflict discovered.
+Report:
 
-When the maintenance pass ran, also report:
-
-- PRs merged and the evidence that made them safe.
-- PRs left open, their classification, labels/comments/issues created, and next action.
-- Release-note findings for major/minor bumps, including breaking changes and concrete useful
+- Policy: which repository policy applied, and any point where it overrode a default in this skill.
+- Policy gaps: whether the repository has a written dependency policy, and any gap or conflict
+  discovered.
+- Merged PRs: each PR merged and the evidence that made it safe.
+- Open PRs: each PR left open, its classification, the labels, comments, and issues created for it,
+  and its next action.
+- Release notes: findings for major and minor bumps, including breaking changes and concrete useful
   features.
-- Local sync and validation results, including commands run and failures.
-- Tooling releases found, sorted as actionable, deferred by time, or routed to manual ownership,
+- Local sync and validation: commands run and failures.
+- Tooling: releases found, sorted as actionable, deferred by time, or routed to manual ownership,
   with any maintenance PRs merged and follow-up issues created.
-- That no unsafe or blocked PRs remain, when that is the case.
+- Security queue: each open vulnerability alert in scope, whether it reached its fixed state, and
+  the PR or blocker holding it open.
