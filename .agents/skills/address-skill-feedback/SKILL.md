@@ -212,8 +212,9 @@ Follow `plugins/AGENTS.md` for plugin versioning and the repository's required v
      marketplace-wide runs to one pass after the last description change; a fresh eval session has
      no prior turns, so give any fixture that corrects earlier work the corrected text inline.
    - Run `pressure-test-skill` on each workflow rule that realistic shortcut pressure can test, and
-     in the report name the rule tested or why no rule in the batch could; treat an edit the
-     pressure test proposes as a step 4 finding.
+     its comparison on each changed skill whose change edits content that shapes an artifact; in the
+     report name the rule or skill tested or why none in the batch could, and treat an edit either
+     run proposes as a step 4 finding.
    - Run the repository's targeted checks, then its full gate before declaring the batch complete.
 6. If validation exposes a harness, fixture, runtime, or repository failure, reroute that failure.
    Do not weaken the skill change merely to make invalid evidence pass.
