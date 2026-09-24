@@ -108,10 +108,11 @@ Use $<plugin-name>:<skill-name> to handle this scenario:
 Do not pass your expected answer, previous analysis, or the wording change you are considering.
 
 For a skill that shapes an artifact, run the comparison instead: one realistic task, run with and
-without the skill on each agent, scored against one rubric. Write the task and a scratch workspace
-under `.local/pressure/`, then write the rubric before reading any output: one item per behavior the
-skill should change, with the evidence that would show it. Run
-[`scripts/compare-skill.sh`](scripts/compare-skill.sh) once per agent and condition:
+without the skill on each agent the skill's plugin targets, or on both agents for a repo-local
+skill, scored against one rubric. Write the task and a scratch workspace under `.local/pressure/`,
+then write the rubric before reading any output: one item per behavior the skill should change, with
+the evidence that would show it. Run [`scripts/compare-skill.sh`](scripts/compare-skill.sh) once per
+agent and condition:
 
 ```text
 .agents/skills/pressure-test-skill/scripts/compare-skill.sh <claude|codex> <skill|noskill> <skill-dir> <workspace-dir> <task-file>
@@ -122,9 +123,10 @@ script stages the skill for the agent, prefixes the task with the skill callout,
 message, event stream, and workspace under `.local/pressure/runs/`, prints whether the skill loaded
 and how many tool calls the agent's permission or sandbox layer denied, and exits non-zero when the
 run is invalid: the agent failed or reported an error, the skill did not load in the skill
-condition, or a tool call was denied. Rerun an invalid run instead of scoring it. When the target
-applies other skills and the agent is Codex, set `EXTRA_SKILLS` to their directories, because Codex
-sees only the staged copies.
+condition, or a tool call was denied. Rerun an invalid run instead of scoring it. The agent sees
+only the staged copies, so when the target applies other skills, set `EXTRA_SKILLS` to their
+directories: a plugin skill brings its whole plugin, and a repo-local skill is copied as a project
+skill.
 
 ### 4. Evaluate manually
 
