@@ -55,6 +55,7 @@ export type SkillTarget = PluginSkillTarget | RepoLocalSkillTarget;
 export type InvocationSignal =
   | "stderr-skill-injected"
   | "stdout-skill-canary"
+  | "command-skill-read"
   | "stream-skill-tool-use"
   | "none";
 
@@ -75,6 +76,10 @@ export type CaseObservations = {
   // The agent runtime's own report that the turn failed (an API error, a dropped stream), quoted
   // from the lane's terminal error event. Such a run never reached a settled trigger decision.
   errorSignal?: string;
+  // True while a skill-file read is the latest signal and no assistant message has completed
+  // since: the agent may still be loading further skills before it speaks, so the invocation set
+  // is not yet attributable. Lanes without a read signal leave it undefined.
+  pendingReads?: boolean;
 };
 
 export type TriggerCaseResult = {
@@ -86,8 +91,12 @@ export type TriggerCaseResult = {
   // True when the target skill was invoked, regardless of whether another staged skill also
   // fired; simultaneous firings are recorded separately in wrongSkill.
   invoked: boolean;
-  // Every distinct staged skill whose invocation was detected, in detection order.
+  // Every distinct staged skill whose invocation was detected, in detection order, minus the
+  // dependency loads below.
   invokedSkills: string[];
+  // Detected skills the verdict attributed to another detected skill's workflow because that
+  // skill's body names them (dropDependencyLoads). Kept for the report; they carry no decision.
+  dependencyLoads?: string[];
   // Label of a non-target staged skill whose invocation was detected. Fails an invoke case even
   // when the target also fired (simultaneous invocation is trigger-contract overlap); surfaced
   // informationally on skip cases.

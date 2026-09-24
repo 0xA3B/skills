@@ -100,6 +100,8 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
       }
       return {
         stagedSkillLabels: new Set(["demo:auto-skill"]),
+        skillDependencies: new Map(),
+        skipDecisionItemBudget: 5,
         async prepareCase(testCase) {
           state.preparedCaseIds.push(testCase.id);
           if (options.runtimeRoot !== undefined) {

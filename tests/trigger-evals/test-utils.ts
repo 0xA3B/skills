@@ -8,6 +8,21 @@ export function agentMessageEvent(text: string): string {
   return `${JSON.stringify({ type: "item.completed", item: { type: "agent_message", text } })}\n`;
 }
 
+export function commandExecutionEvent(
+  command: string,
+  outcome: { status?: string; exitCode?: number } = {},
+): string {
+  return JSON.stringify({
+    type: "item.completed",
+    item: {
+      type: "command_execution",
+      command,
+      ...(outcome.status === undefined ? {} : { status: outcome.status }),
+      ...(outcome.exitCode === undefined ? {} : { exit_code: outcome.exitCode }),
+    },
+  });
+}
+
 export function skillToolUseEvent(...skillLabels: string[]): string {
   return `${JSON.stringify({
     type: "assistant",

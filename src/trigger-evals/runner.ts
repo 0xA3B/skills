@@ -129,13 +129,15 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           const runResult = await laneCase.execute({
             caseDir,
             timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-            stopWhen: (output) => shouldStopEarly(laneCase.observe(output)),
+            stopWhen: (output) =>
+              shouldStopEarly(laneCase.observe(output), preparedRun.skipDecisionItemBudget),
             ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
           });
           results[index] = buildCaseResult({
             testCase,
             targetLabel,
             stagedSkillLabels: preparedRun.stagedSkillLabels,
+            skillDependencies: preparedRun.skillDependencies,
             observations: laneCase.observe(runResult),
             runResult,
             durationMs: Date.now() - caseStartedAt,

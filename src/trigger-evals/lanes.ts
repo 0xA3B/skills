@@ -56,6 +56,11 @@ export type LaneRun = {
   // Every staged skill's label regardless of invocation policy — manual-only skills also surface
   // in loaded-skills observations, so the isolation check must expect them.
   stagedSkillLabels: ReadonlySet<string>;
+  // For each staged skill, the staged skills its body names; see surveySkillDependencies.
+  skillDependencies: ReadonlyMap<string, ReadonlySet<string>>;
+  // Decision items a case may complete without an invocation signal before it is stopped as a
+  // skip; see SKIP_DECISION_ITEM_BUDGET for the default and what a lane counts as an item.
+  skipDecisionItemBudget: number;
   prepareCase(testCase: TriggerCase): Promise<LaneCase>;
   cleanup(): Promise<void>;
 };

@@ -94,12 +94,62 @@ export async function writeClaudeEvalSettings(workspacePath: string): Promise<vo
 // exception here — its canary is injected separately — so every staged plugin skill follows its
 // own policy. Labels cover every staged skill regardless of invocation policy — manual-only
 // skills also surface in loaded-skills observations, so the isolation check must expect them.
+export type StagedSkillFile = {
+  skillLabel: string;
+  // Undefined for a repo-local skill.
+  pluginName?: string;
+  skillName: string;
+  // The committed SKILL.md the staged copy was made from; bodies differ only by the eval section.
+  filePath: string;
+};
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
+// A skill whose body names another staged skill applies that skill inside its own workflow, so a
+// read or load of the named skill in the same run is a dependency load, not a second
+// trigger decision. Bodies name a skill as `plugin:skill` (also `$plugin:skill` in Codex prompt
+// form) or, within the same plugin or among repo-local siblings, as the bare `skill` name.
+export async function surveySkillDependencies(
+  skillFiles: StagedSkillFile[],
+): Promise<Map<string, ReadonlySet<string>>> {
+  const bodies = await Promise.all(
+    skillFiles.map((skillFile) => readFile(skillFile.filePath, "utf8")),
+  );
+  const dependencies = new Map<string, ReadonlySet<string>>();
+  skillFiles.forEach((skillFile, index) => {
+    const body = bodies[index] ?? "";
+    const named = new Set<string>();
+    for (const other of skillFiles) {
+      if (other.skillLabel === skillFile.skillLabel) {
+        continue;
+      }
+      const label = escapeRegExp(other.skillLabel);
+      const forms = [`\`${label}\``, String.raw`\$${label}(?![\w:-])`];
+      if (other.pluginName === skillFile.pluginName) {
+        forms.push(`\`${escapeRegExp(other.skillName)}\``);
+      }
+      if (forms.some((form) => new RegExp(form).test(body))) {
+        named.add(other.skillLabel);
+      }
+    }
+    dependencies.set(skillFile.skillLabel, named);
+  });
+  return dependencies;
+}
+
 export async function surveyStagedSkills(
   target: SkillTarget,
   entries: MarketplacePluginEntry[],
-): Promise<{ skillCanaries: SkillCanary[]; stagedSkillLabels: string[] }> {
+): Promise<{
+  skillCanaries: SkillCanary[];
+  stagedSkillLabels: string[];
+  skillFiles: StagedSkillFile[];
+}> {
   const skillCanaries: SkillCanary[] = [];
   const stagedSkillLabels: string[] = [];
+  const skillFiles: StagedSkillFile[] = [];
   for (const entry of entries) {
     for (const skillName of await listPluginSkillNames(entry.pluginPath)) {
       const skillLabel = `${entry.pluginName}:${skillName}`;
@@ -110,6 +160,12 @@ export async function surveyStagedSkills(
         entry.pluginName === target.pluginName &&
         skillName === target.skillName;
       const skillFilePath = path.join(entry.pluginPath, "skills", skillName, "SKILL.md");
+      skillFiles.push({
+        skillLabel,
+        pluginName: entry.pluginName,
+        skillName,
+        filePath: skillFilePath,
+      });
       if (!isTarget && !(await readSkillFileAllowImplicitInvocation(skillFilePath))) {
         continue;
       }
@@ -123,7 +179,7 @@ export async function surveyStagedSkills(
     }
   }
 
-  return { skillCanaries, stagedSkillLabels };
+  return { skillCanaries, stagedSkillLabels, skillFiles };
 }
 
 export async function appendStagedSkillCanaries(

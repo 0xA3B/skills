@@ -46,7 +46,11 @@ export function formatCaseLine(caseResult: TriggerCaseResult): string {
     caseResult.invokeInstead === undefined
       ? caseResult.expect
       : `${caseResult.expect} with invoke-instead ${caseResult.invokeInstead}`;
-  return `- ${status} ${caseResult.caseId}: expected ${expected}, observed ${formatObserved(caseResult)} (${formatDuration(caseResult.durationMs)})`;
+  const dependencyLoads =
+    caseResult.dependencyLoads === undefined
+      ? ""
+      : `; dependency loads ${caseResult.dependencyLoads.join(", ")}`;
+  return `- ${status} ${caseResult.caseId}: expected ${expected}, observed ${formatObserved(caseResult)}${dependencyLoads} (${formatDuration(caseResult.durationMs)})`;
 }
 
 function formatObserved(caseResult: TriggerCaseResult): string {

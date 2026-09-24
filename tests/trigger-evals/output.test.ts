@@ -27,6 +27,22 @@ describe("formatCaseLine", () => {
     );
   });
 
+  it("lists the dependency loads the verdict dropped", () => {
+    expect(
+      formatCaseLine(
+        caseResult({
+          expect: "invoke",
+          invocationSignal: "command-skill-read",
+          invoked: true,
+          invokedSkills: ["demo:target"],
+          dependencyLoads: ["writing:technical-writing"],
+        }),
+      ),
+    ).toBe(
+      "- PASS existing-feedback: expected invoke, observed invoke via command-skill-read; dependency loads writing:technical-writing (1.5s)",
+    );
+  });
+
   it("names the alternate on a passing routing assertion", () => {
     expect(
       formatCaseLine(

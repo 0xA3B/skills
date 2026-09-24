@@ -5,13 +5,21 @@ import type { CaseObservations, TriggerCaseResult, TriggerExpectation } from "./
 // complete without an invocation signal, the run is stopped and classified as a clean skip instead
 // of waiting for the full workflow or the case timeout. Lanes exclude reasoning and any structured
 // reconnaissance they can identify. Observed invocations surface within about three such items, so
-// five keeps late invocations safe while cutting long skip runs short.
+// five keeps late invocations safe while cutting long skip runs short. A lane whose items include
+// reconnaissance it cannot identify sets its own budget on LaneRun.skipDecisionItemBudget.
 export const SKIP_DECISION_ITEM_BUDGET = 5;
 
-// Any invocation — target or wrong skill — settles the trigger decision, so the run stops.
-export function shouldStopEarly(observations: CaseObservations): boolean {
+// Any invocation — target or wrong skill — settles the trigger decision, so the run stops, except
+// while skill-file reads are still pending: an agent that reads a helper skill before the workflow
+// skill would otherwise be stopped after the first read and misattributed. The decision-item
+// budget still bounds a run whose reads never settle.
+export function shouldStopEarly(
+  observations: CaseObservations,
+  skipDecisionItemBudget: number = SKIP_DECISION_ITEM_BUDGET,
+): boolean {
   return (
-    observations.signal !== "none" || observations.decisionItemCount >= SKIP_DECISION_ITEM_BUDGET
+    (observations.signal !== "none" && observations.pendingReads !== true) ||
+    observations.decisionItemCount >= skipDecisionItemBudget
   );
 }
 
@@ -20,16 +28,42 @@ export type CaseVerdictOptions = {
   targetLabel: string;
   // Every staged skill's label regardless of invocation policy, for the isolation check.
   stagedSkillLabels: ReadonlySet<string>;
+  // For each staged skill, the staged skills its body names (LaneRun.skillDependencies).
+  skillDependencies?: ReadonlyMap<string, ReadonlySet<string>>;
   observations: CaseObservations;
   runResult: CliRunResult;
   durationMs: number;
 };
 
+// Drops every detected skill that another detected skill's body names: the agent loaded it while
+// applying that skill, so it carries no trigger decision of its own. Read order does not decide,
+// because an agent that has announced a workflow may read the helper it names first. Two skills
+// that name each other both keep their decisions, and a longer cycle that would drop every
+// detected skill keeps them all, so an observed invocation never reports no skill at all.
+export function dropDependencyLoads(
+  invokedSkills: readonly string[],
+  skillDependencies: ReadonlyMap<string, ReadonlySet<string>>,
+): string[] {
+  const names = (skillLabel: string, other: string) =>
+    skillDependencies.get(skillLabel)?.has(other) ?? false;
+  const kept = invokedSkills.filter(
+    (skillLabel) =>
+      !invokedSkills.some(
+        (other) => other !== skillLabel && names(other, skillLabel) && !names(skillLabel, other),
+      ),
+  );
+  return kept.length === 0 && invokedSkills.length > 0 ? [...invokedSkills] : kept;
+}
+
 export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult {
   const { observations, runResult, testCase } = options;
   const anyInvocation = observations.signal !== "none";
   // Lanes may report one label per detection event, so the same skill can appear twice.
-  const invokedSkills = [...new Set(observations.invokedSkills)];
+  const detectedSkills = [...new Set(observations.invokedSkills)];
+  const invokedSkills = dropDependencyLoads(detectedSkills, options.skillDependencies ?? new Map());
+  // The dropped loads stay on the result so a report can show that a file was read even though
+  // the verdict attributed the read to another skill's workflow.
+  const dependencyLoads = detectedSkills.filter((label) => !invokedSkills.includes(label));
   const invoked = invokedSkills.includes(options.targetLabel);
   const wrongSkill = invokedSkills.find((label) => label !== options.targetLabel);
   // A wrong-skill invocation fails an invoke case even when the target also fired — simultaneous
@@ -41,8 +75,9 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   // the alternate all fail. The explicit !invoked keeps a label equal to the target from passing.
   // "Only" is bounded by the observation window: the run stops at the first invocation signal,
   // mirroring the staged canary's instruction to stop right after invoking, so a later firing
-  // would require the agent to ignore that instruction. Skills fired in one event are all seen.
-  // Invoke cases carry the same bound for wrong-skill detection.
+  // would require the agent to ignore that instruction. On the Codex read path the window
+  // extends while skill-file reads are pending, until the agent's next message. Skills fired in
+  // one event are all seen. Invoke cases carry the same bound for wrong-skill detection.
   const matchedExpectation =
     testCase.expect === "invoke"
       ? invoked && wrongSkill === undefined
@@ -66,6 +101,7 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
     invocationSignal: observations.signal,
     invoked,
     invokedSkills,
+    ...(dependencyLoads.length === 0 ? {} : { dependencyLoads }),
     ...(wrongSkill === undefined ? {} : { wrongSkill }),
     passed,
     ...(skipSignal === undefined ? {} : { skipSignal }),
