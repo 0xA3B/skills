@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: worktree-add <branch> [<start-point>]
+
+Create a git worktree for <branch> under .local/worktrees/<name>, where <name> is the last path
+segment of the branch, and give it the per-checkout state the main checkout has: a node_modules
+link and a .husky/_ link, so validation binaries and commit hooks work there. An existing local
+branch is checked out; a branch that exists only on origin is checked out tracking it; any other
+branch is created from <start-point> (default: main). The links are excluded through
+.git/info/exclude. Rerunning for a branch whose worktree already exists repairs the links.
+
+Run it from any checkout of the repository, including another worktree. In an agent session run
+it outside the sandbox: the checkout writes files the sandbox denies.
+
+Options:
+  -h, --help   Show this help text
+USAGE
+}
+
+case "${1:-}" in
+  -h | --help) usage; exit 0 ;;
+  "") usage >&2; exit 2 ;;
+esac
+if [ $# -gt 2 ]; then
+  usage >&2
+  exit 2
+fi
+
+branch="$1"
+start_point="${2:-main}"
+name="${branch##*/}"
+common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
+root="$(dirname "$common_dir")"
+dir="$root/.local/worktrees/$name"
+
+# The registered worktree for the branch, if any, from git's own registry.
+registered_dir() {
+  git -C "$root" worktree list --porcelain \
+    | awk -v ref="branch refs/heads/$1" '/^worktree /{dir=substr($0,10)} $0==ref{print dir}'
+}
+
+existing="$(registered_dir "$branch")"
+# A registration whose directory was deleted by hand is stale: unregister it and create afresh.
+if [ -n "$existing" ] && [ ! -d "$existing" ]; then
+  git -C "$root" worktree remove "$existing"
+  existing=""
+fi
+if [ -n "$existing" ] && [ "$existing" != "$dir" ]; then
+  echo "worktree-add: $branch is already checked out at $existing" >&2
+  exit 1
+fi
+if [ -z "$existing" ] && [ -e "$dir" ]; then
+  echo "worktree-add: $dir already exists and is not the worktree for $branch" >&2
+  exit 1
+fi
+if [ -n "$existing" ] && [ ! -f "$dir/.git" ]; then
+  echo "worktree-add: $dir is registered for $branch but is not a checkout; remove it by hand" >&2
+  exit 1
+fi
+
+if [ -z "$existing" ]; then
+  if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
+    git -C "$root" worktree add "$dir" "$branch"
+  elif git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+    git -C "$root" worktree add --track -b "$branch" "$dir" "origin/$branch"
+  else
+    git -C "$root" worktree add -b "$branch" "$dir" "$start_point"
+  fi
+fi
+
+exclude="$common_dir/info/exclude"
+mkdir -p "$(dirname "$exclude")"
+for entry in node_modules .husky/_; do
+  if [ ! -e "$root/$entry" ]; then
+    echo "worktree-add: $root/$entry is missing; run pnpm install in the main checkout first" >&2
+    continue
+  fi
+  mkdir -p "$(dirname "$dir/$entry")"
+  [ -L "$dir/$entry" ] || ln -s "$root/$entry" "$dir/$entry"
+  grep -qxF "$entry" "$exclude" 2>/dev/null || echo "$entry" >>"$exclude"
+done
+
+echo "$dir"
