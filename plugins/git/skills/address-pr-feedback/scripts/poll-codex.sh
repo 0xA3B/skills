@@ -14,8 +14,11 @@
 # counts only while no summary row exists, because the connector does not re-create it for a
 # re-pushed head and may leave a stale one. The clean signal is a 👍 reaction created at or after
 # the summary's Completed timestamp for that head, or, when no summary row exists, a 👍 created
-# after the head commit (a reaction-only clean round). The head is re-read before every terminal
-# exit so a push during the wait exits 3 instead of classifying the old head.
+# after the head was published (a reaction-only clean round): the floor is the latest of the head
+# commit date, the pull request's creation time, and the last force push, so a plain push of an
+# already-created older commit is the one case an earlier 👍 can cover; the terminal line prints
+# both timestamps for that case. The head is re-read after every terminal dump so a push during the
+# wait exits 3 instead of classifying the old head.
 #
 # Exit codes: 0 completed review with no unresolved threads; 1 completed with unresolved threads;
 #             2 the connector reported an error for the head; 3 the head changed; 4 no
@@ -37,15 +40,24 @@ REPO="${REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}" || exit 6
 HEAD="$(gh pr view "$NUM" --repo "$REPO" --json headRefOid -q .headRefOid)" || exit 6
 [ -n "$HEAD" ] || exit 6
 SHORT="${HEAD:0:7}"
-HEAD_AT="$(gh api "repos/$REPO/commits/$HEAD" --jq .commit.committer.date)" || exit 6
-[ -n "$HEAD_AT" ] || exit 6
-echo "pr=$NUM repo=$REPO head=$HEAD committed=$HEAD_AT interval=${INTERVAL}s max=$MAX"
-
 observe() { echo "observation failure: $1"; exit 6; }
+COMMIT_AT="$(gh api "repos/$REPO/commits/$HEAD" --jq .commit.committer.date)" || observe "head commit"
+PR_AT="$(gh pr view "$NUM" --repo "$REPO" --json createdAt -q .createdAt)" || observe "pr createdAt"
+FORCE_AT="$(gh api graphql -F owner="${REPO%/*}" -F name="${REPO#*/}" -F num="$NUM" -f query='
+  query($owner:String!,$name:String!,$num:Int!){ repository(owner:$owner,name:$name){
+    pullRequest(number:$num){ timelineItems(itemTypes:[HEAD_REF_FORCE_PUSHED_EVENT], last:1){
+      nodes{ ... on HeadRefForcePushedEvent { createdAt } } } } } }' \
+  --jq '.data.repository.pullRequest.timelineItems.nodes[-1].createdAt // ""')" || observe "force pushes"
+HEAD_AT="$(printf '%s\n' "$COMMIT_AT" "$PR_AT" "$FORCE_AT" | sort | tail -1)"
+[ -n "$HEAD_AT" ] || observe "head publication time"
+echo "pr=$NUM repo=$REPO head=$HEAD published>=$HEAD_AT interval=${INTERVAL}s max=$MAX"
+
 head_still() { # exit 3 when the head moved since the script started
   local h; h="$(gh pr view "$NUM" --repo "$REPO" --json headRefOid -q .headRefOid)" || observe "head"
+  [ -n "$h" ] || observe "empty head"
   [ "$h" = "$HEAD" ] || { echo "head changed: $h"; exit 3; }
 }
+finish() { head_still; exit "$1"; } # every terminal exit re-reads the head after the dump
 summary_line() { # the summary comment's status line, or empty; fails on a gh error
   gh api --paginate "repos/$REPO/issues/$NUM/comments" \
     --jq ".[] | select(.user.login==\"$BOT\" and (.body|contains(\"$MARK\"))) | .body | split(\"\n\") | map(select(test(\"Running|Completed|Something|Failed\"))) | .[0] // \"\"" \
@@ -102,28 +114,28 @@ for ((i=1; i<=MAX; i++)); do
       done_at="$(completed_at "$summary")"
       [ -n "$done_at" ] || observe "Completed line has no datetime"
       thumbs="$(reaction_count +1 "$done_at")" || observe "reactions"
-      echo "terminal: completed review of $SHORT at $done_at; thumbs=$thumbs"; head_still; dump
-      [ "$OPEN" -gt 0 ] && exit 1
+      echo "terminal: completed review of $SHORT at $done_at; thumbs=$thumbs"; dump
+      [ "$OPEN" -gt 0 ] && finish 1
       # A clean review posts its 👍 shortly after Completed; give the reaction two more polls.
       for ((j=1; j<=2 && thumbs==0; j++)); do
         sleep "$INTERVAL"
         thumbs="$(reaction_count +1 "$done_at")" || observe "reactions"
         echo "thumbs=$thumbs after extra poll $j"
       done
-      head_still; exit 0 ;;
-    *Something*"$SHORT"*|*Failed*"$SHORT"*) echo "terminal: reviewer reported an error for $SHORT"; head_still; dump; exit 2 ;;
+      finish 0 ;;
+    *Something*"$SHORT"*|*Failed*"$SHORT"*) echo "terminal: reviewer reported an error for $SHORT"; dump; finish 2 ;;
     *Running*"$SHORT"*) ack=1 ;;
   esac
   if [ -z "$summary" ]; then
     # Reaction-only clean round: a 👍 created after the head commit with no summary row.
     thumbs="$(reaction_count +1 "$HEAD_AT")" || observe "reactions"
     if [ "$thumbs" -gt 0 ]; then
-      echo "terminal: reaction-only clean signal for $SHORT; thumbs=$thumbs"; head_still; dump
-      [ "$OPEN" -gt 0 ] && exit 1; exit 0
+      echo "terminal: reaction-only clean signal for $SHORT; thumbs=$thumbs created after $HEAD_AT (head commit $COMMIT_AT)"; dump
+      [ "$OPEN" -gt 0 ] && finish 1; finish 0
     fi
     [ "$eyes" -gt 0 ] && ack=1
   fi
-  if [ "$ack" -eq 0 ] && [ "$i" -gt "$ACK_POLLS" ]; then head_still; echo "no acknowledgment of $SHORT within $ACK_POLLS intervals"; exit 4; fi
+  if [ "$ack" -eq 0 ] && [ "$i" -gt "$ACK_POLLS" ]; then echo "no acknowledgment of $SHORT within $ACK_POLLS intervals"; finish 4; fi
   [ "$i" -lt "$MAX" ] && sleep "$INTERVAL"
 done
-echo "max polls reached without a terminal signal"; head_still; dump; exit 5
+echo "max polls reached without a terminal signal"; dump; finish 5

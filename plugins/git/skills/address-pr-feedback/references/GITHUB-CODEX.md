@@ -37,10 +37,10 @@ renames either, and `REPO` to the forge-side base repository when the checkout i
 outcome from its `exit=` line:
 
 - `0`: the review of the head completed with no unresolved threads, or a reaction-only clean round
-  (a 👍 after the head commit with no summary row). A last printed `thumbs` count of one or more is
-  the clean signal; zero after the extra polls is a completed review without it, classified by the
-  round's dispositions. Every terminal exit re-reads the head first, so a push during the wait exits
-  `3` instead.
+  (a 👍 after the head was published, with no summary row). A last printed `thumbs` count of one or
+  more is the clean signal; zero after the extra polls is a completed review without it, classified
+  by the round's dispositions. Every terminal exit re-reads the head after its dump, so a push
+  during the wait exits `3` instead.
 - `1`: the review completed with unresolved threads; the dump holds the round's findings.
 - `2`: the connector reported an error; apply the transient-error rule below.
 - `3`: the head changed during the poll; rerun on the new head.
