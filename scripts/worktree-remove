@@ -64,6 +64,17 @@ fi
 if [ -n "$force" ]; then
   git -C "$root" worktree remove --force "$dir"
 else
+  # git worktree remove deletes ignored files without --force; keep them unless forced. The two
+  # managed links are excluded from the check.
+  if [ -d "$dir" ]; then
+    ignored="$(git -C "$dir" status --porcelain --ignored=matching -z \
+      | tr '\0' '\n' | sed -n 's/^!! //p' | grep -v -x -E 'node_modules/?|\.husky/_/?' || true)"
+    if [ -n "$ignored" ]; then
+      echo "worktree-remove: $dir holds ignored files; pass --force to delete them:" >&2
+      printf '%s\n' "$ignored" | sed 's/^/  /' >&2
+      exit 1
+    fi
+  fi
   git -C "$root" worktree remove "$dir"
 fi
 
