@@ -5,7 +5,8 @@ description: >-
   design or improve a specific module interface, deepen shallow wrappers, compare interface designs,
   choose a seam, reduce caller knowledge, improve testability through an interface, or when another
   workflow or review lane directs applying engineering:codebase-design. Do not use for direct bug
-  fixes, generic code review, implementation-only requests, or conceptual architecture questions.
+  fixes, generic code review, implementation-only requests such as making a decided interface change
+  in code (engineering:tdd), or conceptual architecture questions.
 license: MIT
 metadata:
   original_author: Matt Pocock

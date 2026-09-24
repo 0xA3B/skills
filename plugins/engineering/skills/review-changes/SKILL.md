@@ -10,6 +10,9 @@ description: >-
   authored; for existing reviewer feedback; for first-party bug reports; for implementation
   requests; for architecture or test-suite audits of a whole codebase; for writing documentation; or
   for conceptual questions about review.
+when_to_use: >-
+  Also use when the user asks to review a README, documentation, or other prose they changed in this
+  session; the prose lane applies the writing skills to those changes inside this workflow.
 license: MIT
 metadata:
   original_author: Alex Baker
