@@ -58,12 +58,12 @@ controlled language.
 3. Decide whether the text is a **procedure** (the reader performs steps) or a **description** (the
    reader learns how something works). Their structure and ordering rules differ.
 4. When the target is a README, read [readme.md](references/readme.md) for the content model.
-5. When you create, split, merge, or restructure the pages of a wiki, knowledge base, documentation
-   portal, or other multi-page documentation set, read
+5. When you create, split, merge, restructure, or review the pages of a wiki, knowledge base,
+   documentation portal, or other multi-page documentation set, read
    [knowledge-bases.md](references/knowledge-bases.md) before choosing pages: it governs the page
    set, the publishing representation, executable examples, and the rendered review. For an edit to
-   one existing page in such a set, read only the publishing-representation, executable-examples,
-   and rendered-review sections of that reference.
+   one existing page that keeps the page's role and adds no mutable fact, read only the
+   publishing-representation, executable-examples, and rendered-review sections of that reference.
 6. When writing or revising a pull request or merge request description, read
    [change-descriptions.md](references/change-descriptions.md).
 7. When creating a document or changing its headings, lists, tables, or layout, read

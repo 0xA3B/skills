@@ -26,7 +26,9 @@ by page duplicates facts on the landing page and merges tasks that belong apart.
 5. Give each mutable fact one page that owns it. Every other page links to that page instead of
    restating the fact, with one exception: a procedure step that needs the value to act, such as an
    overlap window or a version floor, states the value and links to the owning page, so the reader
-   acts without leaving the step and the link marks the copy as derived.
+   acts without leaving the step and the link marks the copy as derived. When the platform can
+   include the owner's value by reference, include it instead of copying it; otherwise list each
+   copying page on the owning page and update every listed copy when the value changes.
 
 The map is complete when every task has a page, every fact has an owner, every mutable fact is
 marked, and every mutable fact has one owning page.
@@ -89,7 +91,7 @@ When you cannot render a page, apply the fallback in [formatting.md](formatting.
   named.
 - The gateway routes by task and holds no procedure, no reference table, and no mutable fact another
   page owns.
-- Every example follows the code-sample rules in `formatting.md` and names its actor and request
-  route.
+- Every example follows the code-sample rules in `formatting.md`, names its actor when the reader
+  cannot perform the step, and gives the request route when the step needs someone else.
 - Every page passed the rendered review at both widths after publication, and before publication
   when the platform has a preview, or the review is reported as not done.
