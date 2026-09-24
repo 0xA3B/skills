@@ -27,7 +27,7 @@ evaluated, and improved over time. Preserve these outcomes:
 - Keep generated eval output and local working artifacts under `.local/`, not tracked project state.
 - To work on a branch in parallel with another, create its worktree with
   `pnpm worktree:add <branch>` and remove it with `pnpm worktree:remove <branch>` after the branch
-  merges; the scripts link the per-checkout state a worktree lacks, so hooks and checks run there as
+  merges; the add script installs the branch's dependencies there, so hooks and checks run there as
   in the main checkout.
 
 ## Project conventions
