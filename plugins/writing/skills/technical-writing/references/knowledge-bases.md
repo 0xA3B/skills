@@ -22,7 +22,9 @@ by page duplicates facts on the landing page and merges tasks that belong apart.
    platform decision.
 4. Split pages as [document-modes.md](document-modes.md) directs, by audience, lifecycle, or task,
    and also by fact owner. Do not split a page because it is long: a long reference page whose facts
-   change together stays one page. Merge pages the same reader needs in one sitting.
+   change together stays one page. Merge pages the same reader needs in one sitting. When one task
+   draws on facts from several owners, the task wins: keep the task on one page and link to each
+   owner's page for the facts it owns.
 5. Give each mutable fact one page that owns it. Every other page links to that page instead of
    restating the fact, with one exception: a procedure step that needs the value to act, such as an
    overlap window or a version floor, states the value and links to the owning page, so the reader
@@ -42,7 +44,9 @@ holds the first working result instead of containing it.
 
 ## Define the publishing representation before drafting
 
-Name the target platform before writing, then decide these points and write to them:
+Name the target platform before writing. When neither the user nor the project names it, ask; when
+no answer is available, write only headings, paragraphs, lists, fenced code blocks, and links, and
+report the platform as unknown. Then decide these points and write to them:
 
 - Which source constructs become native platform components: headings, tables, code blocks, notices
   or panels, expandable sections, and cross-page links. Write only in constructs that map to a

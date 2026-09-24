@@ -62,8 +62,9 @@ controlled language.
    documentation portal, or other multi-page documentation set, read
    [knowledge-bases.md](references/knowledge-bases.md) before choosing pages: it governs the page
    set, the publishing representation, executable examples, and the rendered review. For an edit to
-   one existing page that keeps the page's role and adds no mutable fact, read only the
-   publishing-representation, executable-examples, and rendered-review sections of that reference.
+   one existing page that keeps the page's role and adds, changes, removes, or moves no mutable
+   fact, read only the publishing-representation, executable-examples, and rendered-review sections
+   of that reference.
 6. When writing or revising a pull request or merge request description, read
    [change-descriptions.md](references/change-descriptions.md).
 7. When creating a document or changing its headings, lists, tables, or layout, read
