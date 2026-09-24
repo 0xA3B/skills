@@ -206,11 +206,14 @@ cases where loaded repository instructions should affect the trigger boundary, s
    edit one only when the overlap would also misfire in a session without the repo-local skills.
 10. Rerun the same eval after edits. After a description edit, review the description as in step 4,
     then rerun with `--with-dependents` the fixtures of every skill whose description changed and
-    every skill named in `wrong-skill` results:
+    every skill named in `wrong-skill` results. For plugin skills, one marketplace selection covers
+    several:
     `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both --with-dependents`.
-    The flag runs each selected skill's dependent cases under their own fixtures and lanes. After a
-    seed edit, use the same command to rerun every fixture that names the seed; the edit alters the
-    workspace each of those cases runs in.
+    The marketplace selection refuses a repo-local path, so rerun a repo-local target one at a time:
+    `mise exec -- pnpm eval:trigger -- <skill-path> --agent both --with-dependents`. The flag runs
+    each selected skill's dependent cases under their own fixtures and lanes. After a seed edit, use
+    the matching command to rerun every fixture that names the seed; the edit alters the workspace
+    each of those cases runs in.
 11. Run repository validation for changed files:
 
     ```bash

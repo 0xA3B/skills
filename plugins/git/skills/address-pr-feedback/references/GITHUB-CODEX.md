@@ -24,6 +24,33 @@ Treat a transition in its status, commit, or review trigger as adapter activity.
 acknowledgment for the named commit. `Completed` means the review finished; it is not approval
 without the adapter's clean signal.
 
+## Polling script
+
+Run [`scripts/poll-codex.sh`](../scripts/poll-codex.sh) to wait for the terminal signal:
+`<skill-dir>/scripts/poll-codex.sh <pr> [interval-seconds] [max-polls]`, unsandboxed and in the
+foreground, because a background completion does not wake every agent. After exit `0` or `1`, fetch
+the head's Codex review body as Findings and approval directs, because the dump lists only review
+threads. The script prints one line per poll and, on a terminal signal, every unresolved review
+thread with its thread id, comment ids, and full bodies, then the head, merge state, and checks. Its
+defaults are the login and summary marker named above; set `BOT` or `MARK` when the connector
+renames either, and `REPO` to the forge-side base repository when the checkout is a fork. Read the
+outcome from its `exit=` line:
+
+- `0`: the review of the head completed with no unresolved threads, or a reaction-only clean round
+  (a 👍 after the head was published, with no summary row). A last printed `thumbs` count of one or
+  more is the clean signal; zero after the extra polls is a completed review without it, classified
+  by the round's dispositions. Every terminal exit re-reads the head after its dump, so a push
+  during the wait exits `3` instead.
+- `1`: the review completed with unresolved threads; the dump holds the round's findings.
+- `2`: the connector reported an error; apply the transient-error rule below.
+- `3`: the head changed during the poll; rerun on the new head.
+- `4`: no acknowledgment within the acknowledgment window; apply the initial-head or pushed-head
+  outcome from `2. Poll active adapters`.
+- `5`: the poll budget ended without a terminal signal. The default budget is ten minutes, the
+  response timeout; return `timed-out` when the adapter showed no activity across it, and rerun the
+  script when it did.
+- `6`: observation failure; retry once, then return `blocked`.
+
 ## Findings and approval
 
 Inspect:
