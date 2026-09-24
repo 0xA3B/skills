@@ -11,8 +11,9 @@
 #              checkout's remote)
 #
 # Acknowledgment of a head is the summary comment's Running line naming that head; a 👀 reaction
-# counts only while no summary row exists, because the connector does not re-create it for a
-# re-pushed head and may leave a stale one. The clean signal is a 👍 reaction created at or after
+# counts only while no summary row exists and only when created after the head was published,
+# because the connector does not re-create it for a re-pushed head and may leave a stale one. The
+# clean signal is a 👍 reaction created at or after
 # the summary's Completed timestamp for that head, or, when no summary row exists, a 👍 created
 # after the head was published (a reaction-only clean round): the floor is the latest of the head
 # commit date, the pull request's creation time, and the last force push, so a plain push of an
@@ -92,7 +93,9 @@ dump() {
     --jq '{headRefOid,mergeStateStatus,checks:[(.statusCheckRollup // [])[]|{name:(.name//.context),status:(.conclusion//.state)}]}')" \
     || observe "pr state"
   echo "$state"
-  local failing; failing="$(jq -r '[.checks[] | select(.status != "SUCCESS" and .status != "SKIPPED") | .name] | join(", ")' <<<"$state")"
+  local failing
+  failing="$(jq -r '[.checks[] | select(.status != "SUCCESS" and .status != "SKIPPED") | .name] | join(", ")' <<<"$state")" \
+    || observe "check state"
   case "$state" in
     *BLOCKED*)
       [ -n "$failing" ] && echo "note: BLOCKED includes checks not passing: $failing"
@@ -107,7 +110,7 @@ for ((i=1; i<=MAX; i++)); do
   [ -n "$now" ] || observe "empty head"
   if [ "$now" != "$HEAD" ]; then echo "head changed: $now"; exit 3; fi
   summary="$(summary_line)" || observe "comments"
-  eyes="$(reaction_count eyes "")" || observe "reactions"
+  eyes="$(reaction_count eyes "$HEAD_AT")" || observe "reactions"
   echo "$(date -u +%H:%M:%S) poll $i eyes=$eyes summary=[$summary]"
   case "$summary" in
     *Completed*"$SHORT"*)
