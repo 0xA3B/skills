@@ -31,6 +31,9 @@ two conflict on a sentence.
 - Use a table for facts that share the same attributes across rows. Use prose or a list otherwise.
 - Keep cells short. Put explanation in the surrounding prose, not in the cells.
 - Give every table a header row.
+- When a table's shared attributes need more width than the prose column offers and the platform has
+  a wider table layout that does not overlap its controls, use that layout instead of abbreviating
+  cell values. Otherwise keep one table and move long values into prose below it.
 
 ## Links
 
@@ -53,6 +56,13 @@ two conflict on a sentence.
 - Put a note, warning, or caution before the content it affects.
 - Use one notice at a time; do not stack notices.
 - Reserve warnings for damage or data loss; use notes for useful asides.
+
+## Rendered review
+
+- Review the rendered artifact, not the source alone: line wrapping, table width, and code-block
+  overflow differ between the source file and the platform that displays it.
+- When you cannot render the artifact, report the rendered review as not done and list the checks
+  the user must run.
 
 ## Images
 
