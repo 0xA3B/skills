@@ -38,9 +38,10 @@ marked, and every mutable fact has one owning page.
 ## Route through one gateway page
 
 Make the landing page a short gateway: state what the set covers and for whom, then route readers by
-task to the page that owns each answer. A gateway holds no procedure, no reference table, and no
-mutable fact another page owns. Unlike a README, a knowledge-base gateway links to the page that
-holds the first working result instead of containing it.
+task to the page that owns each answer. A gateway holds no procedure and no mutable fact another
+page owns, in prose or in a table; a short table of stable facts, such as who owns what, can stay.
+Unlike a README, a knowledge-base gateway links to the page that holds the first working result
+instead of containing it.
 
 ## Define the publishing representation before drafting
 
@@ -93,8 +94,7 @@ When you cannot render a page, apply the fallback in [formatting.md](formatting.
   mutable fact one owning page.
 - Every externally owned fact was confirmed with its owner or is marked unknown with the owner
   named.
-- The gateway routes by task and holds no procedure, no reference table, and no mutable fact another
-  page owns.
+- The gateway routes by task and holds no procedure and no mutable fact another page owns.
 - Every example follows the code-sample rules in `formatting.md`, names its actor when the reader
   cannot perform the step, and gives the request route when the step needs someone else.
 - Every page passed the rendered review at both widths after publication, and before publication
