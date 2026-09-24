@@ -114,7 +114,8 @@ thread as a user gate unless the invocation already authorized handling unknown 
 ### 2. Poll active adapters
 
 Poll once per minute. Each adapter defines which signals count as acknowledgment, progress,
-findings, and current-head approval.
+findings, and current-head approval; when its reference ships a polling script, run that script as
+the reference directs instead of assembling the poll from separate commands.
 
 Before starting or advancing either timer, prove that the observation channel can fetch a
 known-present change-request field such as the current source head. Treat a command error or an
@@ -175,12 +176,18 @@ current head classifies it `approved` and the rule does not apply. After disposi
 adapter's findings and pushing its permitted fixes, stop its rounds: classify it by the signal its
 last review earned under its adapter reference, `resolved-with-exceptions` when that review gave no
 clean signal, and report the current source head, the earlier head its last review covered, and
-every disposition applied since that review. Before the hand off, apply that adapter's follow-up
-protocol to the current head and report the observation with its status. If a review of a later head
-appears from an adapter that converged or whose classification carried forward, at that final
-observation or while the loop is still polling another adapter, disposition its findings; when that
-review itself fails the convergence rule, the adapter is active again and its rounds continue.
-Continue rounds for adapters that have not converged.
+every disposition applied since that review, with the evidence for each rejection or deferral.
+Before the hand off, apply that adapter's follow-up protocol to the current head and report the
+observation with its status. If a review of a later head appears from an adapter that converged or
+whose classification carried forward, at that final observation or while the loop is still polling
+another adapter, disposition its findings; when that review itself fails the convergence rule, the
+adapter is active again and its rounds continue. Continue rounds for adapters that have not
+converged.
+
+When a finding revises a condition that two earlier rounds already revised, treat the condition as
+settled: reject the finding by reference to the earlier revisions unless it shows an input the
+current condition handles wrongly; when fixing that input would undo an earlier revision, the
+finding is a required user decision.
 
 Stop before the round limit when:
 
@@ -205,5 +212,7 @@ When every active adapter is `approved`, stop and recommend `git:merge-pr` next;
 only when the user's request asked to merge the change request.
 
 For `resolved-with-exceptions`, include every exception and the missing green signal in the same
-hand off. The user decides whether to rerun this skill or continue with `git:merge-pr`. For
-`round-limit`, `timed-out`, or `blocked`, do not suggest that the review gate passed.
+hand off. When every exception is a rejection recorded in the change request, every thread is
+resolved, and required CI passes, recommend `git:merge-pr` with those exceptions; otherwise the user
+decides whether to rerun this skill or continue with `git:merge-pr`. For `round-limit`, `timed-out`,
+or `blocked`, do not suggest that the review gate passed.
