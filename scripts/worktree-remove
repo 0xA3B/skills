@@ -65,10 +65,11 @@ if [ -n "$force" ]; then
   git -C "$root" worktree remove --force "$dir"
 else
   # git worktree remove deletes ignored files without --force; keep them unless forced. The
-  # install output worktree-add generates, node_modules and .husky/_, is disposable and excluded.
+  # install output worktree-add generates, node_modules and .husky/_, is disposable and excluded;
+  # git lists the hook files under .husky/_ one by one, so the match is by prefix.
   if [ -d "$dir" ]; then
     ignored="$(git -C "$dir" status --porcelain --ignored=matching -z \
-      | tr '\0' '\n' | sed -n 's/^!! //p' | grep -v -x -E 'node_modules/?|\.husky/_/?' || true)"
+      | tr '\0' '\n' | sed -n 's/^!! //p' | grep -v -E '^(node_modules|\.husky/_)(/|$)' || true)"
     if [ -n "$ignored" ]; then
       echo "worktree-remove: $dir holds ignored files; pass --force to delete them:" >&2
       printf '%s\n' "$ignored" | sed 's/^/  /' >&2
