@@ -15,8 +15,9 @@ by page duplicates facts on the landing page and merges tasks that belong apart.
 1. List each audience and the tasks each audience arrives with.
 2. Record for each fact its authority: a source you can verify, such as code, configuration, or a
    command you can run, or an owner outside the material, such as a support desk, a service catalog,
-   or a platform team. Get each externally owned fact from its owner before drafting. When the owner
-   is unavailable, write the fact as unknown and name the owner; a plausible value is a defect.
+   or a platform team. Confirm each fact against its authority before drafting: read the source or
+   run the command, and get each externally owned fact from its owner. When the source or owner is
+   unavailable, write the fact as unknown and name the authority; a plausible value is a defect.
 3. Mark each fact that changes on its own schedule, such as a contact, a limit, a version, or a
    maintenance window, as mutable, and note what changes it: a release, a rota, a contract, or a
    platform decision.
