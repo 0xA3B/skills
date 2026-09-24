@@ -30,9 +30,7 @@ by page duplicates facts on the landing page and merges tasks that belong apart.
    restating the fact, with one exception: a procedure step that needs the value to act, such as an
    overlap window or a version floor, states the value and links to the owning page, so the reader
    acts without leaving the step and the link marks the copy as derived. When the platform can
-   include the owner's value by reference, include it instead of copying it; otherwise list each
-   copying page on the owning page, update every listed copy when the value changes, and remove or
-   repoint every listed copy when the fact is retired or moves to another page.
+   include the owner's value by reference, include it instead of copying it.
 
 The map is complete when every task has a page, every fact has an authority, every mutable fact is
 marked, and every mutable fact has one owning page.
