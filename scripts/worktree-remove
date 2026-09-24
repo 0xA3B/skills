@@ -43,7 +43,13 @@ if [ "$branch" = main ]; then
   exit 1
 fi
 
-root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
+root="$(dirname "$common_dir")"
+if [ "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" != "$common_dir" ] \
+  || [ "$(git -C "$root" rev-parse --is-inside-work-tree 2>/dev/null)" != true ]; then
+  echo "worktree-remove: cannot resolve the main checkout from $common_dir" >&2
+  exit 1
+fi
 dir="$(git -C "$root" worktree list --porcelain \
   | awk -v ref="branch refs/heads/$branch" '/^worktree /{dir=substr($0,10)} $0==ref{print dir}')"
 if [ -z "$dir" ]; then
@@ -61,7 +67,8 @@ else
   git -C "$root" worktree remove "$dir"
 fi
 
-if git -C "$root" merge-base --is-ancestor "$branch" main; then
+# Qualified refs: a tag named like the branch would otherwise win the ancestry check.
+if git -C "$root" merge-base --is-ancestor "refs/heads/$branch" refs/heads/main; then
   git -C "$root" branch -D "$branch"
 else
   echo "kept branch $branch: it has commits main does not contain; delete it with git branch -D $branch when intended"

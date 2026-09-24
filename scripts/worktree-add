@@ -34,6 +34,13 @@ start_point="${2:-main}"
 name="${branch##*/}"
 common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
 root="$(dirname "$common_dir")"
+# A checkout whose git directory lives elsewhere (git init --separate-git-dir) has no main
+# checkout path git can report, so refuse it instead of mutating an unrelated directory.
+if [ "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" != "$common_dir" ] \
+  || [ "$(git -C "$root" rev-parse --is-inside-work-tree 2>/dev/null)" != true ]; then
+  echo "worktree-add: cannot resolve the main checkout from $common_dir" >&2
+  exit 1
+fi
 dir="$root/.local/worktrees/$name"
 
 # The registered worktree for the branch, if any, from git's own registry.
