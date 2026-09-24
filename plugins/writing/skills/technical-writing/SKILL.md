@@ -5,7 +5,7 @@ description: >-
   guides, knowledge-base pages, runbooks, migration and upgrade guides, API reference prose,
   architecture and design documents, release notes, long-form docstrings, pull request descriptions,
   or issue and ticket descriptions — including making text clearer for non-native English readers.
-  Do not use to review README or documentation changes the user made in this session;
+  Do not use to review README or documentation files the user changed in this checkout;
   engineering:review-changes owns that review and applies this skill inside. Do not use to assess,
   triage, or decide changes from unresolved review feedback. Once another workflow settles the
   feedback, use for drafting or rewriting technical comments in issue trackers, pull or merge
