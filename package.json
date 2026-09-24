@@ -21,6 +21,8 @@
     "prepare": "husky",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "worktree:add": "./scripts/worktree-add",
+    "worktree:remove": "./scripts/worktree-remove",
     "writing:extract-chat-instructions": "./scripts/extract-chat-instructions",
     "writing:extract-chat-instructions:copy": "./scripts/extract-chat-instructions --copy"
   },

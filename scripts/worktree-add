@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: worktree-add <branch> [<start-point>]
+
+Create a git worktree for <branch> under .local/worktrees/<name>, where <name> is the last path
+segment of the branch, and install the branch's dependencies there with
+pnpm install --frozen-lockfile, so validation binaries resolve the branch's own lockfile and the
+husky prepare script generates the commit hooks. An existing local branch is checked out; a branch
+that exists only on origin is checked out tracking it; any other branch is created from
+<start-point> (default: main). Rerunning for a branch whose worktree already exists reinstalls.
+The last line of output is the worktree path.
+
+Run it from any checkout of the repository, including another worktree. In an agent session run
+it outside the sandbox: the checkout and the install write files the sandbox denies.
+
+Options:
+  -h, --help   Show this help text
+USAGE
+}
+
+case "${1:-}" in
+  -h | --help) usage; exit 0 ;;
+  "") usage >&2; exit 2 ;;
+esac
+if [ $# -gt 2 ]; then
+  usage >&2
+  exit 2
+fi
+
+branch="$1"
+# Qualified refs where the script chooses them: a tag named main or origin/<branch> would
+# otherwise make the operand ambiguous. A user-supplied start point is passed as given.
+start_point="${2:-refs/heads/main}"
+name="${branch##*/}"
+common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
+root="$(dirname "$common_dir")"
+# A checkout whose git directory lives elsewhere (git init --separate-git-dir) has no main
+# checkout path git can report, so refuse it instead of mutating an unrelated directory.
+if [ "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" != "$common_dir" ] \
+  || [ "$(git -C "$root" rev-parse --is-inside-work-tree 2>/dev/null)" != true ]; then
+  echo "worktree-add: cannot resolve the main checkout from $common_dir" >&2
+  exit 1
+fi
+dir="$root/.local/worktrees/$name"
+
+# The registered worktree for the branch, if any, from git's own registry.
+registered_dir() {
+  git -C "$root" worktree list --porcelain \
+    | awk -v ref="branch refs/heads/$1" '/^worktree /{dir=substr($0,10)} $0==ref{print dir}'
+}
+
+existing="$(registered_dir "$branch")"
+# A registration whose directory was deleted by hand is stale: unregister it and create afresh.
+if [ -n "$existing" ] && [ ! -d "$existing" ]; then
+  git -C "$root" worktree remove "$existing"
+  existing=""
+fi
+if [ -n "$existing" ] && [ "$existing" != "$dir" ]; then
+  echo "worktree-add: $branch is already checked out at $existing" >&2
+  exit 1
+fi
+if [ -z "$existing" ] && [ -e "$dir" ]; then
+  echo "worktree-add: $dir already exists and is not the worktree for $branch" >&2
+  exit 1
+fi
+if [ -n "$existing" ] && [ ! -f "$dir/.git" ]; then
+  echo "worktree-add: $dir is registered for $branch but is not a checkout; remove it by hand" >&2
+  exit 1
+fi
+
+if [ -z "$existing" ]; then
+  if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
+    git -C "$root" worktree add "$dir" "$branch"
+  elif git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+    git -C "$root" worktree add --track -b "$branch" "$dir" "refs/remotes/origin/$branch"
+  else
+    git -C "$root" worktree add -b "$branch" "$dir" "$start_point"
+  fi
+fi
+
+# A worktree created before per-worktree installs linked node_modules and .husky/_ to the main
+# checkout; installing through those links would rewrite the main checkout's tree, so drop them.
+for entry in node_modules .husky/_; do
+  if [ -L "$dir/$entry" ]; then
+    rm "$dir/$entry"
+  fi
+done
+pnpm --dir "$dir" install --frozen-lockfile --prefer-offline
+
+echo "$dir"

@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: worktree-remove <branch> [--force]
+
+Remove the worktree registered for <branch> and delete the branch when every commit on it is
+reachable from main. A worktree with uncommitted changes is kept unless --force is given. A
+branch with commits main does not contain is kept and reported; delete it by hand with
+git branch -D when that is intended. A worktree whose directory was deleted by hand is
+unregistered the same way.
+
+Options:
+  --force      Remove the worktree even when it has uncommitted changes
+  -h, --help   Show this help text
+USAGE
+}
+
+force=""
+branch=""
+for arg in "$@"; do
+  case "$arg" in
+    -h | --help) usage; exit 0 ;;
+    --force) force="--force" ;;
+    -*) echo "worktree-remove: unknown option $arg" >&2; usage >&2; exit 2 ;;
+    *)
+      if [ -n "$branch" ]; then
+        echo "worktree-remove: unexpected argument $arg" >&2
+        usage >&2
+        exit 2
+      fi
+      branch="$arg" ;;
+  esac
+done
+if [ -z "$branch" ]; then
+  usage >&2
+  exit 2
+fi
+
+if [ "$branch" = main ]; then
+  echo "worktree-remove: refusing to delete main; remove its worktree with git worktree remove" >&2
+  exit 1
+fi
+
+common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
+root="$(dirname "$common_dir")"
+if [ "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" != "$common_dir" ] \
+  || [ "$(git -C "$root" rev-parse --is-inside-work-tree 2>/dev/null)" != true ]; then
+  echo "worktree-remove: cannot resolve the main checkout from $common_dir" >&2
+  exit 1
+fi
+dir="$(git -C "$root" worktree list --porcelain \
+  | awk -v ref="branch refs/heads/$branch" '/^worktree /{dir=substr($0,10)} $0==ref{print dir}')"
+if [ -z "$dir" ]; then
+  echo "worktree-remove: no worktree is registered for branch $branch" >&2
+  exit 1
+fi
+if [ "$dir" = "$root" ]; then
+  echo "worktree-remove: $branch is checked out in the main checkout, not a worktree" >&2
+  exit 1
+fi
+
+if [ -n "$force" ]; then
+  git -C "$root" worktree remove --force "$dir"
+else
+  # git worktree remove deletes ignored files without --force; keep them unless forced. The
+  # install output worktree-add generates, node_modules and .husky/_, is disposable and excluded.
+  if [ -d "$dir" ]; then
+    ignored="$(git -C "$dir" status --porcelain --ignored=matching -z \
+      | tr '\0' '\n' | sed -n 's/^!! //p' | grep -v -x -E 'node_modules/?|\.husky/_/?' || true)"
+    if [ -n "$ignored" ]; then
+      echo "worktree-remove: $dir holds ignored files; pass --force to delete them:" >&2
+      printf '%s\n' "$ignored" | sed 's/^/  /' >&2
+      exit 1
+    fi
+  fi
+  git -C "$root" worktree remove "$dir"
+fi
+
+# Qualified refs: a tag named like the branch would otherwise win the ancestry check.
+if git -C "$root" merge-base --is-ancestor "refs/heads/$branch" refs/heads/main; then
+  git -C "$root" branch -D "$branch"
+else
+  echo "kept branch $branch: it has commits main does not contain; delete it with git branch -D $branch when intended"
+fi

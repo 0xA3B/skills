@@ -17,8 +17,10 @@ import { writeSeedFixture } from "./test-utils.js";
 
 const execFileAsync = promisify(execFile);
 
+// The assertions run git with the harness environment too: a hook exports an absolute GIT_DIR to
+// the commands it runs, and an inherited one would point every assertion at the parent repository.
 async function git(cwd: string, ...args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, { cwd });
+  const { stdout } = await execFileAsync("git", args, { cwd, env: seedGitEnvironment() });
   return stdout.trimEnd();
 }
 
@@ -93,6 +95,31 @@ describe("stageSeededWorkspace", () => {
     expect(await git(workspacePath, "log", "-1", "--format=%an <%ae>%n%cn <%ce>")).toBe(
       `${identity}\n${identity}`,
     );
+  });
+
+  // The pre-push hook runs the gate with GIT_DIR exported as an absolute path under the caller's
+  // repository, which from a git worktree lives under .git/worktrees/<name>. Seeding and the
+  // assertions must both ignore it, or every seed command targets the caller's repository.
+  it("stages the workspace when the caller's environment carries an absolute GIT_DIR", async () => {
+    const callerRepo = await mkdtemp(path.join(os.tmpdir(), "seed-caller-"));
+    await execFileAsync("git", ["init", "-q", "-b", "main", callerRepo], {
+      env: seedGitEnvironment(),
+    });
+    vi.stubEnv("GIT_DIR", path.join(callerRepo, ".git"));
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "seed-repo-"));
+    await writeSeedFixture(repoRoot, "node-service");
+    const workspacePath = path.join(await mkdtemp(path.join(os.tmpdir(), "seed-ws-")), "workspace");
+
+    await stageSeededWorkspace({
+      repoRoot,
+      workspacePath,
+      workspace: { seed: "node-service", branch: "feature/retry", committed: {}, staged: {} },
+      workspaceFiles: { "src/index.js": "export const seed = false;\n" },
+    });
+
+    expect(await git(workspacePath, "rev-list", "--count", "HEAD")).toBe("1");
+    expect(await git(workspacePath, "status", "--porcelain")).toBe(" M src/index.js");
+    expect(await git(callerRepo, "rev-list", "--all", "--count")).toBe("0");
   });
 
   // A .git gitfile redirects git init to the repository it names, so it is rejected like a

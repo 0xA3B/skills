@@ -620,7 +620,7 @@ describe("createCodexLane", () => {
     const committedSkill = await execFileAsync(
       "git",
       ["show", "HEAD:.agents/skills/auto-skill/SKILL.md"],
-      { cwd: seededCase.workspacePath },
+      { cwd: seededCase.workspacePath, env: seedGitEnvironment() },
     );
     expect(committedSkill.stdout).toMatch(/trigger-eval-canary-[a-z0-9-]+/);
     const status = await execFileAsync("git", ["status", "--porcelain"], {
