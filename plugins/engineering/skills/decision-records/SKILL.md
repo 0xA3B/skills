@@ -43,10 +43,15 @@ where the invoking workflow already puts pending work.
 ## Location
 
 - If the repository has an ADR directory, such as `docs/adr/` or a directory its instructions name,
-  use it. If that directory has a naming scheme, a template, or a status vocabulary, follow them
-  over the rules below.
+  use it. If that directory has a naming scheme, a template, a status vocabulary, or an index,
+  follow them over the rules below.
 - Otherwise create `docs/adr/` when the first record is written.
 - Name each new file `NNNN-slug.md`, taking the highest existing number plus one.
+- Keep `README.md` in the ADR directory as its index: a short paragraph on what the records are and
+  when to read them, then one line per record linking its number and title, followed by the record's
+  `status` when it has one. Create the index with the first record, or from the existing records
+  when the directory has records but no index, and update it in the same change as every record
+  added, retitled, or given a status.
 
 ## Format
 
@@ -73,9 +78,10 @@ authority excludes source edits, list the sites in the report in place of the co
 
 ## Read before proposing
 
-Before proposing a change to an area, list the ADR directory and read every record whose title names
-a module, boundary, or technology in scope, and every record whose title names none, because a rule
-without a named scope may apply anywhere. If the directory is absent, continue without comment.
+Before proposing a change to an area, list the ADR directory and read every record other than its
+index whose title names a module, boundary, or technology in scope, and every record whose title
+names none, because a rule without a named scope may apply anywhere. If the directory is absent,
+continue without comment.
 
 If the proposal contradicts a record, either drop the proposal or present it with the record cited
 and the friction that justifies reopening it. If the user reopens the decision, write a new record
@@ -88,6 +94,6 @@ term. The record names the term; the terminology entry cites the record.
 
 ## Completion
 
-Stop when the record is written in the ADR directory and passes every gate, or when the proposal has
-been checked against every record that Read before proposing selects, and each contradiction is
-cited. Report each record written or superseded by path.
+Stop when the record is written in the ADR directory, passes every gate, and is listed in the index,
+or when the proposal has been checked against every record that Read before proposing selects, and
+each contradiction is cited. Report each record written or superseded by path.
