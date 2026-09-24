@@ -98,6 +98,8 @@ SCRATCH="$(cd "$SCRATCH" && pwd)"
 WS="$SCRATCH/workspace"
 DEPLOY="$SCRATCH/deployment"
 cp -R "$SOURCE_WS" "$WS"
+# A workspace copied from a checkout carries project skills; only staged copies may load.
+rm -rf "$WS/.agents/skills" "$WS/.claude/skills"
 mkdir -p "$DEPLOY/plugins"
 CODEX_HOME_DIR="$RUN/codex-home"
 finish() {
@@ -230,6 +232,8 @@ case "$AGENT" in
         cache="$CODEX_HOME_DIR/plugins/cache/$MARKETPLACE/$(basename "$copy")"
         mkdir -p "$cache"
         cp -R "$copy" "$cache/$version"
+        [ "$KIND" = plugin ] && [ "$copy" = "$DEPLOY/plugins/$(basename "$PLUGIN_DIR")" ] \
+          && TARGET_PATH="$cache/$version/skills/$SKILL_NAME/"
       done
       mkdir -p "$DEPLOY/.agents/plugins"
       node -e '
@@ -251,17 +255,18 @@ case "$AGENT" in
       for staged in "${REPO_LOCAL_STAGED[@]:-}"; do
         [ -n "$staged" ] && stage_copy "$staged" "$WS/.agents/skills"
       done
+      [ "$KIND" = plugin ] || TARGET_PATH="$WS/.agents/skills/$SKILL_NAME/"
     fi
     (cd "$WS" && CODEX_HOME="$CODEX_HOME_DIR" codex -a never -s workspace-write exec --json --ephemeral \
       --skip-git-repo-check --color never -C "$WS" -o "$RUN/final.md" -- "$PROMPT" \
       < /dev/null > "$RUN/events.jsonl" 2> "$RUN/stderr.log") || AGENT_STATUS=$?
     VERDICT="$(node -e '
       const fs = require("fs");
-      const [events, skill, canary, finalPath] = process.argv.slice(1);
-      const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const [events, target, canary, finalPath] = process.argv.slice(1);
       // An explicit $skill callout injects SKILL.md without a read, so the canary is the primary
-      // signal and any read under the skill directory, such as a reference file, the secondary.
-      const pattern = new RegExp(`skills/${escaped}/`);
+      // signal and a read under the staged target directory, such as a reference file, the
+      // secondary; the target path is empty in the noskill condition.
+      const pattern = target ? new RegExp(target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) : null;
       let reads = 0, canaries = 0, denied = 0, failed = [], result = fs.existsSync(finalPath) ? "ok" : "missing";
       for (const line of fs.readFileSync(events, "utf8").split("\n")) {
         let e; try { e = JSON.parse(line); } catch { continue; }
@@ -275,13 +280,13 @@ case "$AGENT" in
           else failed.push(`${String(item.command).split("\n")[0].slice(0, 80)} -> ${output.split("\n")[0].slice(0, 80)}`);
           continue;
         }
-        if (pattern.test(String(item.command))) reads += 1;
+        if (pattern?.test(String(item.command))) reads += 1;
       }
       const loaded = reads > 0 || canaries > 0;
       console.log(`result: ${result}; skill loaded: ${loaded ? "yes" : "no"} (${reads} skill file reads, ${canaries} canary messages); denied tool calls: ${denied}; other failed commands: ${failed.length}`);
       for (const f of failed) console.log(`  failed: ${f}`);
       process.exitCode = result === "ok" && denied === 0 ? 0 : 1;
-    ' "$RUN/events.jsonl" "$SKILL_NAME" "$CANARY" "$RUN/final.md")" || CHECK_STATUS=1
+    ' "$RUN/events.jsonl" "${TARGET_PATH:-}" "$CANARY" "$RUN/final.md")" || CHECK_STATUS=1
     ;;
 esac
 
