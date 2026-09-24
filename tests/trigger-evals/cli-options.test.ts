@@ -55,6 +55,7 @@ describe("parseTriggerEvalCliOptions", () => {
         "/tmp/codex",
         "--claude-config-dir",
         "/tmp/claude-config",
+        "--keep-runtime",
         "--force",
       ]),
     ).toStrictEqual({
@@ -68,8 +69,13 @@ describe("parseTriggerEvalCliOptions", () => {
       concurrency: 4,
       sourceCodexHome: "/tmp/codex",
       claudeConfigDir: "/tmp/claude-config",
+      keepRuntime: true,
       force: true,
     });
+  });
+
+  it("documents --keep-runtime in the usage text", () => {
+    expect(usage()).toContain("--keep-runtime");
   });
 
   it("expands --agent both into codex and claude runs", () => {

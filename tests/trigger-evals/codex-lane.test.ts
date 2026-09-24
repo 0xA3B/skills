@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createCodexLane, observeCodexOutput } from "../../src/trigger-evals/codex-lane.js";
 import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
 import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
+import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
 import { seedGitEnvironment } from "../../src/trigger-evals/seeds.js";
 import { resolveSkillTarget, skillTargetLabel } from "../../src/trigger-evals/target.js";
 import type { SkillTarget } from "../../src/trigger-evals/types.js";
@@ -60,8 +61,18 @@ async function makeRunOptions(
     target: resolveSkillTarget(repoRoot, skillPath),
     model: "gpt-5.6-sol",
     effort: "medium",
+    runtime: createRuntimeResources(),
     ...overrides,
   };
+}
+
+async function exists(dirPath: string): Promise<boolean> {
+  try {
+    await stat(dirPath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // Plugin copies and the eval marketplace catalog live in the deployment directory outside the
@@ -217,6 +228,117 @@ describe("createCodexLane", () => {
         "utf8",
       ),
     ).rejects.toThrow(/ENOENT/);
+    // The half-built case home was tracked under the case scope before the failure, so releasing
+    // that case alone removes it.
+    await runOptions.runtime.release("invoke-case");
+    expect(await exists(path.join(runOptions.runDir, "codex-home", "cases", "invoke-case"))).toBe(
+      false,
+    );
+  });
+
+  it("tracks the workspace root, the run home, and each case home for release", async () => {
+    const repoRoot = await writeRepoFixture();
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+
+    const laneRun = await lane.prepareRun(runOptions);
+    const laneCase = await laneRun.prepareCase({
+      id: "invoke-case",
+      prompt: "Invoke the skill.",
+      expect: "invoke",
+    });
+    await laneCase.execute({
+      caseDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-")),
+      timeoutMs: 60_000,
+    });
+    await laneCase.cleanup();
+    const caseHome = path.join(runOptions.runDir, "codex-home", "cases", "invoke-case");
+    const runHome = path.join(runOptions.runDir, "codex-home");
+    const workspaceRoot = path.dirname(laneCase.workspacePath);
+    expect(await exists(caseHome)).toBe(true);
+
+    // The case scope releases only that case's home; the run scope takes the rest.
+    await expect(runOptions.runtime.release("invoke-case")).resolves.toStrictEqual([]);
+    expect(await exists(caseHome)).toBe(false);
+    expect(await exists(runHome)).toBe(true);
+    expect(await exists(workspaceRoot)).toBe(true);
+
+    await expect(runOptions.runtime.release()).resolves.toStrictEqual([]);
+    expect(await exists(runHome)).toBe(false);
+    expect(await exists(workspaceRoot)).toBe(false);
+  });
+
+  it("retains runtime homes but never the copied auth when release keeps them", async () => {
+    const repoRoot = await writeRepoFixture();
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill", {
+      runtime: createRuntimeResources({ keep: true }),
+    });
+
+    const laneRun = await lane.prepareRun(runOptions);
+    const laneCase = await laneRun.prepareCase({
+      id: "invoke-case",
+      prompt: "Invoke the skill.",
+      expect: "invoke",
+    });
+    await laneCase.cleanup();
+    await laneRun.cleanup();
+    await runOptions.runtime.release("invoke-case");
+    await runOptions.runtime.release();
+
+    const caseHome = path.join(runOptions.runDir, "codex-home", "cases", "invoke-case");
+    expect(await exists(path.join(caseHome, "config.toml"))).toBe(true);
+    expect(await exists(path.join(caseHome, "auth.json"))).toBe(false);
+    expect(await exists(path.dirname(laneCase.workspacePath))).toBe(true);
+  });
+
+  it("writes final.txt from the last agent message when the CLI wrote none", async () => {
+    const repoRoot = await writeRepoFixture();
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const laneRun = await lane.prepareRun(
+      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill"),
+    );
+    const laneCase = await laneRun.prepareCase({
+      id: "skip-case",
+      prompt: "Do not invoke the skill.",
+      expect: "skip",
+    });
+    const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
+
+    // The faked codex exec never writes its -o file, as a run stopped at the first invocation
+    // signal or the decision-item budget never does.
+    const runResult = await laneCase.execute({ caseDir, timeoutMs: 60_000 });
+
+    expect(runResult.finalMessagePath).toBe(path.join(caseDir, "final.txt"));
+    await expect(readFile(runResult.finalMessagePath, "utf8")).resolves.toBe(
+      "I handled the request.",
+    );
+    expect(runResult.finalMessage).toBe("I handled the request.");
+  });
+
+  it("falls back to the parsed last message when final.txt is unreadable for another reason", async () => {
+    const repoRoot = await writeRepoFixture();
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const laneRun = await lane.prepareRun(
+      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill"),
+    );
+    const laneCase = await laneRun.prepareCase({
+      id: "skip-case",
+      prompt: "Do not invoke the skill.",
+      expect: "skip",
+    });
+    const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
+    // A directory at the -o path fails the read with EISDIR, which is not a missing file.
+    await mkdir(path.join(caseDir, "final.txt"));
+
+    const runResult = await laneCase.execute({ caseDir, timeoutMs: 60_000 });
+
+    expect(runResult.finalMessage).toBe("I handled the request.");
+    expect((await stat(path.join(caseDir, "final.txt"))).isDirectory()).toBe(true);
   });
 
   it("observes staged canaries in agent output, attributing siblings distinctly", async () => {

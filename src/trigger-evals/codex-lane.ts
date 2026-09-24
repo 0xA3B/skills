@@ -1,4 +1,4 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { appendEvalSectionToFile, createCanary } from "./canary.js";
@@ -12,6 +12,7 @@ import {
 } from "./exec.js";
 import { isRecord, parseJsonlEvents } from "./json.js";
 import type { AgentLane, CaseExecuteOptions, LaneCase, LaneRun, LaneRunOptions } from "./lanes.js";
+import type { RuntimeResources } from "./runtime.js";
 import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
@@ -43,10 +44,13 @@ type CodexLaneOptions = {
 export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
   return {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
-      const { runDir, target, model, effort } = runOptions;
+      const { runDir, target, model, effort, runtime } = runOptions;
       const { workspaceRoot, workspacePath } = await createStagedWorkspace();
+      runtime.track(workspaceRoot);
       await mkdir(workspacePath, { recursive: true });
-      const runCodexHome = path.join(runDir, "codex-home");
+      // Per-case homes nest under the run home, so tracking the run home covers a case whose
+      // own tracking never happened.
+      const runCodexHome = runtime.track(path.join(runDir, "codex-home"));
       const targetLabel = skillTargetLabel(target);
 
       // Every canaried skill, plugin or repo-local, shares the per-run canary map.
@@ -103,6 +107,7 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
             pluginDeploymentPath,
             model,
             effort,
+            runtime,
             canaryLabels: runCanaryLabels,
             stagedPlugins,
             skillCanaries,
@@ -126,6 +131,7 @@ type CodexCaseContext = {
   pluginDeploymentPath: string;
   model: string;
   effort: string;
+  runtime: RuntimeResources;
   canaryLabels: Map<string, string>;
   stagedPlugins: StagedPlugin[];
   skillCanaries: SkillCanary[];
@@ -144,7 +150,11 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
     });
   }
 
-  const codexHome = path.join(context.runDir, "codex-home", "cases", testCase.id);
+  // Tracked before anything is written so a setup failure still leaves nothing behind.
+  const codexHome = context.runtime.track(
+    path.join(context.runDir, "codex-home", "cases", testCase.id),
+    testCase.id,
+  );
   // The copied auth.json must be removed even when case setup fails after prepareCodexHome, so
   // the rest of the setup runs inside this try/catch; success hands cleanup to the case.
   try {
@@ -310,12 +320,25 @@ async function runCodexExec(options: CodexExecOptions): Promise<CliRunResult> {
   return finishCliRun({ result, label: "codex exec", paths, finalMessage });
 }
 
+// A run stopped at the invocation signal or the decision-item budget is killed before codex exec
+// writes its -o file, so the lane writes the last agent message there itself: every case directory
+// then carries the same artifact set, and finalMessagePath always names a file that exists.
 async function readFinalMessage(finalMessagePath: string, stdout: string): Promise<string> {
   try {
     return await readFile(finalMessagePath, "utf8");
-  } catch {
-    return parseLastAgentMessage(stdout);
+  } catch (caught) {
+    const finalMessage = parseLastAgentMessage(stdout);
+    if (isMissingFile(caught)) {
+      await writeFile(finalMessagePath, finalMessage);
+    }
+    return finalMessage;
   }
+}
+
+function isMissingFile(caught: unknown): boolean {
+  return (
+    caught instanceof Error && "code" in caught && (caught as { code?: unknown }).code === "ENOENT"
+  );
 }
 
 function parseLastAgentMessage(stdout: string): string {

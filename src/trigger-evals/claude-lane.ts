@@ -40,6 +40,7 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
       const { target, model, effort } = runOptions;
       const { workspaceRoot, workspacePath } = await createStagedWorkspace();
+      runOptions.runtime.track(workspaceRoot);
       await writeClaudeEvalSettings(workspacePath);
 
       const entries = pluginsToStage(target, runOptions.extraPlugins ?? []);

@@ -26,6 +26,10 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   }
 
   console.log(`Report written to ${path.relative(process.cwd(), result.reportPath)}.`);
+  // A leftover runtime directory is a disk-hygiene problem, not an eval result: warn, keep going.
+  for (const cleanupFailure of result.cleanupFailures ?? []) {
+    console.warn(`WARNING: runtime cleanup left ${cleanupFailure}`);
+  }
   if (failures.length > 0) {
     process.exitCode = 1;
   }

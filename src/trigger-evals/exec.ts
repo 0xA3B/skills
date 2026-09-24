@@ -83,7 +83,11 @@ export type StreamingCliOptions = {
   label: string;
   stopWhen?: (output: StreamingCliOutput) => boolean;
   abortSignal?: AbortSignal;
+  // How long an aborted child may take to exit on SIGTERM before it is sent SIGKILL.
+  abortGraceMs?: number;
 };
+
+const DEFAULT_ABORT_GRACE_MS = 2_000;
 
 export function spawnStreamingCli(
   command: string,
@@ -139,13 +143,25 @@ export function spawnStreamingCli(
       stderrChunks.push(chunk);
       maybeStopEarly();
     });
+    let abortEscalation: NodeJS.Timeout | undefined;
     child.on("error", (caught) => {
-      const aborted = options.abortSignal?.aborted === true;
-      const error = aborted ? `${options.label} aborted.` : caught.message;
-      resolveResult(null, aborted ? "abort" : "spawn-error", error);
+      // An abort's error event fires as the kill signal is sent; the close event that follows
+      // marks the child gone, so the result waits for it and a release cannot race the exit. A
+      // child that ignores SIGTERM is killed after the grace period so cancellation cannot hang.
+      if (options.abortSignal?.aborted === true) {
+        abortEscalation ??= setTimeout(
+          () => child.kill("SIGKILL"),
+          options.abortGraceMs ?? DEFAULT_ABORT_GRACE_MS,
+        );
+        return;
+      }
+      resolveResult(null, "spawn-error", caught.message);
     });
 
     child.on("close", (exitCode, signal) => {
+      if (abortEscalation !== undefined) {
+        clearTimeout(abortEscalation);
+      }
       const aborted = options.abortSignal?.aborted === true;
       const timedOut = exitCode === null && signal === "SIGTERM" && !aborted && !earlyStopped;
       const endedBy = aborted

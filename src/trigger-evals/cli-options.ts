@@ -58,6 +58,9 @@ export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOption
       "--claude-config-dir",
     );
   }
+  if (parsed.values["keep-runtime"] === true) {
+    options.keepRuntime = true;
+  }
   if (parsed.values.force === true) {
     options.force = true;
   }
@@ -179,6 +182,9 @@ export function usage(): string {
     "  --with-dependents          Also run the dependent cases: skip cases in other fixtures whose",
     "                             invoke-instead names a selected skill, on the lanes their own",
     "                             fixture runs on.",
+    "  --keep-runtime             Keep staged workspaces and Codex homes after the run for",
+    "                             debugging. By default they are removed once each case's output",
+    "                             is captured; reports and case artifacts are always kept.",
     "  --force                    Run even when allow_implicit_invocation is false.",
   ].join("\n");
 }
@@ -201,6 +207,7 @@ function parseTriggerArgs(argv: string[]) {
         "codex-home": { type: "string" },
         "claude-config-dir": { type: "string" },
         "with-dependents": { type: "boolean" },
+        "keep-runtime": { type: "boolean" },
         force: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
