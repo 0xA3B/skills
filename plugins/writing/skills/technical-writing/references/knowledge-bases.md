@@ -23,9 +23,9 @@ by page duplicates facts on the landing page and merges tasks that belong apart.
    platform decision.
 4. Split pages as [document-modes.md](document-modes.md) directs, by audience, lifecycle, or task,
    and also by fact owner. Do not split a page because it is long: a long reference page whose facts
-   change together stays one page. Merge pages the same reader needs in one sitting. When one task
-   draws on facts from several owners, the task wins: keep the task on one page and link to each
-   owner's page for the facts it owns.
+   change together stays one page. Merge pages that serve one task when the same reader needs them
+   in one sitting. When one task draws on facts from several owners, the task wins: keep the task on
+   one page and link to each owner's page for the facts it owns.
 5. Give each mutable fact one page that owns it, and name the fact's authority on that page so a
    later editor knows what to verify or whom to ask. Every other page links to that page instead of
    restating the fact, with one exception: a procedure step that needs the value to act, such as an

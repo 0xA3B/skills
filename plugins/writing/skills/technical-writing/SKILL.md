@@ -67,9 +67,9 @@ controlled language.
    executable-examples, and rendered-review sections of that reference.
 6. When writing or revising a pull request or merge request description, read
    [change-descriptions.md](references/change-descriptions.md).
-7. When creating a document or changing its headings, lists, tables, or layout, read
-   [formatting.md](references/formatting.md). Sentence-level edits to existing prose need only this
-   file.
+7. When creating a document, changing its headings, lists, tables, or layout, or reviewing its
+   layout or rendering, read [formatting.md](references/formatting.md). Sentence-level edits to
+   existing prose need only this file.
 8. When writing or revising a Jira or issue comment, pull request or merge request comment, or a
    reply in a review thread, read [collaborative-comments.md](references/collaborative-comments.md).
 9. When the user or project requires strict controlled language or translation-oriented writing,
