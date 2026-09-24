@@ -13,7 +13,9 @@
 # Acknowledgment of a head is the summary comment's Running line naming that head; a 👀 reaction
 # counts only while no summary row exists, because the connector does not re-create it for a
 # re-pushed head and may leave a stale one. The clean signal is a 👍 reaction created at or after
-# the summary's Completed timestamp for that head.
+# the summary's Completed timestamp for that head, or, when no summary row exists, a 👍 created
+# after the head commit (a reaction-only clean round). The head is re-read before every terminal
+# exit so a push during the wait exits 3 instead of classifying the old head.
 #
 # Exit codes: 0 completed review with no unresolved threads; 1 completed with unresolved threads;
 #             2 the connector reported an error for the head; 3 the head changed; 4 no
@@ -35,9 +37,15 @@ REPO="${REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}" || exit 6
 HEAD="$(gh pr view "$NUM" --repo "$REPO" --json headRefOid -q .headRefOid)" || exit 6
 [ -n "$HEAD" ] || exit 6
 SHORT="${HEAD:0:7}"
-echo "pr=$NUM repo=$REPO head=$HEAD interval=${INTERVAL}s max=$MAX"
+HEAD_AT="$(gh api "repos/$REPO/commits/$HEAD" --jq .commit.committer.date)" || exit 6
+[ -n "$HEAD_AT" ] || exit 6
+echo "pr=$NUM repo=$REPO head=$HEAD committed=$HEAD_AT interval=${INTERVAL}s max=$MAX"
 
 observe() { echo "observation failure: $1"; exit 6; }
+head_still() { # exit 3 when the head moved since the script started
+  local h; h="$(gh pr view "$NUM" --repo "$REPO" --json headRefOid -q .headRefOid)" || observe "head"
+  [ "$h" = "$HEAD" ] || { echo "head changed: $h"; exit 3; }
+}
 summary_line() { # the summary comment's status line, or empty; fails on a gh error
   gh api --paginate "repos/$REPO/issues/$NUM/comments" \
     --jq ".[] | select(.user.login==\"$BOT\" and (.body|contains(\"$MARK\"))) | .body | split(\"\n\") | map(select(test(\"Running|Completed|Something|Failed\"))) | .[0] // \"\"" \
@@ -54,10 +62,12 @@ completed_at() { # ISO timestamp from the Completed line, or empty
 dump() {
   echo "=== unresolved review threads (head $HEAD)"
   local threads
-  threads="$(gh api graphql -F owner="${REPO%/*}" -F name="${REPO#*/}" -F num="$NUM" -f query='
-    query($owner:String!,$name:String!,$num:Int!){ repository(owner:$owner,name:$name){
-      pullRequest(number:$num){ reviewThreads(first:100){ nodes{ id isResolved isOutdated path line
-        comments(first:50){ nodes{ databaseId author{login} createdAt body } } } } } } }' \
+  threads="$(gh api graphql --paginate -F owner="${REPO%/*}" -F name="${REPO#*/}" -F num="$NUM" -f query='
+    query($owner:String!,$name:String!,$num:Int!,$endCursor:String){ repository(owner:$owner,name:$name){
+      pullRequest(number:$num){ reviewThreads(first:100, after:$endCursor){
+        pageInfo{ hasNextPage endCursor }
+        nodes{ id isResolved isOutdated path line
+          comments(first:100){ nodes{ databaseId author{login} createdAt body } } } } } } }' \
     --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved|not)
           | "--- thread \(.id) \(.path):\(.line) outdated=\(.isOutdated)",
             (.comments.nodes[] | "[\(.author.login) \(.createdAt) comment=\(.databaseId)]\n\(.body)\n")')" \
@@ -70,8 +80,11 @@ dump() {
     --jq '{headRefOid,mergeStateStatus,checks:[(.statusCheckRollup // [])[]|{name:(.name//.context),status:(.conclusion//.state)}]}')" \
     || observe "pr state"
   echo "$state"
+  local failing; failing="$(jq -r '[.checks[] | select(.status != "SUCCESS" and .status != "SKIPPED") | .name] | join(", ")' <<<"$state")"
   case "$state" in
-    *BLOCKED*) [ "$open" -gt 0 ] && echo "note: BLOCKED here means unresolved review threads, not CI" ;;
+    *BLOCKED*)
+      [ -n "$failing" ] && echo "note: BLOCKED includes checks not passing: $failing"
+      [ "$open" -gt 0 ] && echo "note: BLOCKED includes $open unresolved review threads" ;;
   esac
   return 0
 }
@@ -89,7 +102,7 @@ for ((i=1; i<=MAX; i++)); do
       done_at="$(completed_at "$summary")"
       [ -n "$done_at" ] || observe "Completed line has no datetime"
       thumbs="$(reaction_count +1 "$done_at")" || observe "reactions"
-      echo "terminal: completed review of $SHORT at $done_at; thumbs=$thumbs"; dump
+      echo "terminal: completed review of $SHORT at $done_at; thumbs=$thumbs"; head_still; dump
       [ "$OPEN" -gt 0 ] && exit 1
       # A clean review posts its 👍 shortly after Completed; give the reaction two more polls.
       for ((j=1; j<=2 && thumbs==0; j++)); do
@@ -97,12 +110,20 @@ for ((i=1; i<=MAX; i++)); do
         thumbs="$(reaction_count +1 "$done_at")" || observe "reactions"
         echo "thumbs=$thumbs after extra poll $j"
       done
-      exit 0 ;;
-    *Something*"$SHORT"*|*Failed*"$SHORT"*) echo "terminal: reviewer reported an error for $SHORT"; dump; exit 2 ;;
+      head_still; exit 0 ;;
+    *Something*"$SHORT"*|*Failed*"$SHORT"*) echo "terminal: reviewer reported an error for $SHORT"; head_still; dump; exit 2 ;;
     *Running*"$SHORT"*) ack=1 ;;
   esac
-  [ -z "$summary" ] && [ "$eyes" -gt 0 ] && ack=1
-  if [ "$ack" -eq 0 ] && [ "$i" -gt "$ACK_POLLS" ]; then echo "no acknowledgment of $SHORT within $ACK_POLLS intervals"; exit 4; fi
+  if [ -z "$summary" ]; then
+    # Reaction-only clean round: a 👍 created after the head commit with no summary row.
+    thumbs="$(reaction_count +1 "$HEAD_AT")" || observe "reactions"
+    if [ "$thumbs" -gt 0 ]; then
+      echo "terminal: reaction-only clean signal for $SHORT; thumbs=$thumbs"; head_still; dump
+      [ "$OPEN" -gt 0 ] && exit 1; exit 0
+    fi
+    [ "$eyes" -gt 0 ] && ack=1
+  fi
+  if [ "$ack" -eq 0 ] && [ "$i" -gt "$ACK_POLLS" ]; then head_still; echo "no acknowledgment of $SHORT within $ACK_POLLS intervals"; exit 4; fi
   [ "$i" -lt "$MAX" ] && sleep "$INTERVAL"
 done
-echo "max polls reached without a terminal signal"; dump; exit 5
+echo "max polls reached without a terminal signal"; head_still; dump; exit 5
