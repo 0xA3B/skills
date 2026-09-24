@@ -3,11 +3,11 @@ name: pressure-test-skill
 description: >-
   Pressure-tests a plugin or repo-local skill by running temporary shortcut-pressure prompts in an
   isolated agent context and manually evaluating whether the loaded skill changes behavior. Use when
-  the user asks to pressure test a skill, validate skill behavior under realistic pressure, or
-  verify that new or tightened skill wording actually stops an agent from skipping or rationalizing
-  around a rule. Do not use for evaluating or tuning when a skill is implicitly invoked or its
-  trigger fixtures (that belongs to optimize-trigger), or for conceptual questions about pressure
-  testing.
+  the user asks to pressure test a skill, validate skill behavior under realistic pressure, verify
+  that new or tightened skill wording actually stops an agent from skipping or rationalizing around
+  a rule, or compare the output an agent produces on one task with and without a skill loaded. Do
+  not use for evaluating or tuning when a skill is implicitly invoked or its trigger fixtures (that
+  belongs to optimize-trigger), or for conceptual questions about pressure testing.
 license: MIT
 argument-hint: "[skill-path]"
 ---
@@ -21,10 +21,12 @@ realistic pressure. This skill is a reusable review workflow, not a validation g
 
 Produce a short evidence-backed assessment of one target skill: what behavior it should protect,
 which temporary pressure prompts were tried, what the isolated agent did, and which wording changes
-were made or recommended.
+were made or recommended. For a skill that shapes an artifact, the assessment is the step 3
+comparison.
 
 Stop when the target skill either survives the pressure prompts, has been tightened for meaningful
-failures, or needs a user decision about its intended behavior.
+failures, or needs a user decision about its intended behavior; for a comparison, stop when every
+run is scored and each rubric item is read per agent.
 
 ## When to use
 
@@ -38,9 +40,13 @@ Examples:
 - Commit, dependency, review, or branch workflows where the agent may want to bypass safety steps.
 - Manual-only skills whose behavior matters after explicit invocation, even though trigger evals do
   not apply.
+- A skill that shapes an artifact, such as a writing skill, where the question is whether the loaded
+  skill changes the output rather than whether the agent refuses a shortcut. A reference is tested
+  through the skill that loads it. Use the step 3 comparison for these.
 
 Skip pressure testing for pure reference skills, metadata-only changes, typo fixes, or skills where
-there is no meaningful rule for the agent to rationalize around.
+there is no meaningful rule for the agent to rationalize around; a skill that shapes an artifact
+still gets the step 3 comparison.
 
 ## Workflow
 
@@ -101,6 +107,25 @@ Use $<plugin-name>:<skill-name> to handle this scenario:
 
 Do not pass your expected answer, previous analysis, or the wording change you are considering.
 
+For a skill that shapes an artifact, run the comparison instead: one realistic task, run with and
+without the skill on each agent, scored against one rubric. Write the task and a scratch workspace
+under `.local/pressure/`, then write the rubric before reading any output: one item per behavior the
+skill should change, with the evidence that would show it. Run
+[`scripts/compare-skill.sh`](scripts/compare-skill.sh) once per agent and condition:
+
+```text
+.agents/skills/pressure-test-skill/scripts/compare-skill.sh <claude|codex> <skill|noskill> <skill-dir> <workspace-dir> <task-file>
+```
+
+Run it unsandboxed; it copies Codex auth and launches the agent CLIs, and a run takes minutes. The
+script stages the skill for the agent, prefixes the task with the skill callout, writes the final
+message, event stream, and workspace under `.local/pressure/runs/`, prints whether the skill loaded
+and how many tool calls the agent's permission or sandbox layer denied, and exits non-zero when the
+run is invalid: the agent failed or reported an error, the skill did not load in the skill
+condition, or a tool call was denied. Rerun an invalid run instead of scoring it. When the target
+applies other skills and the agent is Codex, set `EXTRA_SKILLS` to their directories, because Codex
+sees only the staged copies.
+
 ### 4. Evaluate manually
 
 Treat the output as evidence, not a binary test result.
@@ -124,6 +149,12 @@ Failing behavior:
 Record the exact rationalization when it is useful. The wording of the failure is usually the best
 input for tightening `SKILL.md`.
 
+For a comparison, score each run per rubric item as pass, partial, or fail, in that order from best
+to worst, with the evidence line from the output, and read the result per agent: an item that scores
+better with the skill than without it is the skill working, an item that scores worse with the skill
+is a loophole or a cost the skill introduced, and an item with the same score in both conditions
+says nothing about the skill. Score every run before forming a view of the skill.
+
 ### 5. Tighten the skill
 
 If a failure exposes a real loophole, edit the target skill narrowly:
@@ -141,9 +172,9 @@ Rerun the pressure prompt only when the edit changes the behavior being tested.
 End with:
 
 - target skill and protected behavior
-- pressure prompts used, summarized briefly
+- pressure prompts used, summarized briefly, or the comparison task and rubric
 - isolated context used
-- observed pass/fail behavior and important rationalizations
+- observed pass/fail behavior and important rationalizations, or the per-item scores of every run
 - skill changes made or recommended
 - whether scratch prompts or notes were discarded or saved under `.local/`
 - remaining uncertainty or user decisions
@@ -151,6 +182,7 @@ End with:
 ## Boundaries
 
 - Do not make pressure testing a routine gate for every skill change.
-- Do not add committed fixtures, eval output, or new harness code unless the user explicitly asks.
+- Keep task files, scratch workspaces, rubrics, and run output under `.local/`, and change
+  `scripts/compare-skill.sh` or add harness code only when the user explicitly asks.
 - Do not test trigger behavior here; use `$optimize-trigger` for implicit invocation boundaries.
 - Do not stage or commit changes unless the user asks.

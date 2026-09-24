@@ -20,6 +20,23 @@ cases:
     expect: invoke
     rationale: Checking whether skill wording prevents rationalization is this workflow.
 
+  - id: with-without-comparison
+    prompt: >-
+      Compare the knowledge base an agent writes with and without the technical-writing skill
+      loaded, on both Claude Code and Codex.
+    expect: invoke
+    rationale:
+      Comparing an agent's output with and without a skill loaded is this workflow's comparison.
+
+  - id: trigger-accuracy-comparison
+    prompt: >-
+      Compare how accurately the tdd description triggers on Claude Code versus Codex.
+    expect: skip
+    invoke-instead: optimize-trigger
+    rationale:
+      A comparison of trigger accuracy is trigger evaluation, not a with-and-without-skill output
+      comparison.
+
   - id: trigger-eval-request
     prompt: >-
       Which repo workflow should evaluate when the tdd skill gets implicitly invoked?
