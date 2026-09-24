@@ -249,7 +249,7 @@ describe("runTriggerEval", () => {
       caseIds: ["skip-case"],
       lane: codex.lane,
     });
-    expect(codex.state.runOptions).toMatchObject({ model: "gpt-5.6-sol", effort: "medium" });
+    expect(codex.state.runOptions).toMatchObject({ model: "gpt-6-sol", effort: "medium" });
 
     const claude = createFakeLane();
     await runTriggerEval({

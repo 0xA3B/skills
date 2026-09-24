@@ -12,7 +12,7 @@ import type { CaseObservations, SkillTarget, TriggerCase, TriggerEvalAgent } fro
 // --model/--effort to spot-check other models.
 export const DEFAULT_EVAL_MODELS: Record<TriggerEvalAgent, string> = {
   claude: "opus",
-  codex: "gpt-5.6-sol",
+  codex: "gpt-6-sol",
 };
 export const DEFAULT_EVAL_EFFORT = "medium";
 

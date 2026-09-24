@@ -59,7 +59,7 @@ async function makeRunOptions(
   return {
     runDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-run-")),
     target: resolveSkillTarget(repoRoot, skillPath),
-    model: "gpt-5.6-sol",
+    model: "gpt-6-sol",
     effort: "medium",
     runtime: createRuntimeResources(),
     ...overrides,
@@ -144,7 +144,7 @@ describe("createCodexLane", () => {
     const canary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
     const codexHome = path.join(runOptions.runDir, "codex-home", "cases", "invoke-case");
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
-    expect(config).toContain('model = "gpt-5.6-sol"');
+    expect(config).toContain('model = "gpt-6-sol"');
     expect(config).toContain('model_reasoning_effort = "medium"');
     expect(config).toContain('[plugins."demo@trigger-eval"]');
     const cachedSkill = await readFile(

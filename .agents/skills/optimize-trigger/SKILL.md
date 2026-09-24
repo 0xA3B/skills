@@ -189,7 +189,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
    requested workflow completes.
 
    Evals pin the default models to the ones this repository's skills are used with day to day:
-   `gpt-5.6-sol` for Codex and `opus` for Claude Code, both at `medium` reasoning effort. Trigger
+   `gpt-6-sol` for Codex and `opus` for Claude Code, both at `medium` reasoning effort. Trigger
    boundaries are model-specific, so the defaults measure real invocation behavior instead of a
    smaller-model proxy. Use `--model` and `--effort` to spot-check other models or match a different
    working setup.
