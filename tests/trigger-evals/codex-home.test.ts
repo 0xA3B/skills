@@ -16,7 +16,7 @@ describe("prepareCodexHome", () => {
       codexHome,
       sourceCodexHome,
       workspacePath: "/tmp/workspace",
-      model: "gpt-5.6-luna",
+      model: "gpt-6-luna",
       effort: "medium",
       marketplaceName: "trigger-eval",
       pluginNames: ["demo-plugin", "other-plugin"],
@@ -27,7 +27,7 @@ describe("prepareCodexHome", () => {
     expect(config).toContain('[marketplaces."trigger-eval"]');
     expect(config).toContain('[plugins."demo-plugin@trigger-eval"]');
     expect(config).toContain('[plugins."other-plugin@trigger-eval"]');
-    expect(config).toContain('model = "gpt-5.6-luna"');
+    expect(config).toContain('model = "gpt-6-luna"');
     expect(config).toContain('model_reasoning_effort = "medium"');
   });
 
@@ -54,14 +54,14 @@ describe("prepareCodexHome", () => {
       codexHome,
       sourceCodexHome,
       workspacePath: "/tmp/workspace",
-      model: "gpt-5.6-luna",
+      model: "gpt-6-luna",
       effort: "medium",
       marketplaceName: "trigger-eval",
       pluginNames: ["demo-plugin"],
     });
 
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
-    expect(config).toContain('model = "gpt-5.6-luna"');
+    expect(config).toContain('model = "gpt-6-luna"');
     expect(config).toContain('model_reasoning_effort = "medium"');
     expect(config).not.toContain('model = "gpt-5.5"');
     expect(config).not.toContain('model_reasoning_effort = "xhigh"');
@@ -79,7 +79,7 @@ describe("prepareCodexHome", () => {
       codexHome,
       sourceCodexHome,
       workspacePath: "/tmp/workspace",
-      model: "gpt-5.6-luna",
+      model: "gpt-6-luna",
       effort: "medium",
     });
 

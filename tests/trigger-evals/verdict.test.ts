@@ -4,6 +4,8 @@ import type { CaseObservations } from "../../src/trigger-evals/types.js";
 import {
   buildCaseResult,
   type CaseVerdictOptions,
+  SKIP_DECISION_ITEM_BUDGET,
+  dropDependencyLoads,
   shouldStopEarly,
 } from "../../src/trigger-evals/verdict.js";
 import { buildCliRunResult } from "./test-utils.js";
@@ -39,6 +41,25 @@ function invokedObservations(...invokedSkills: string[]): CaseObservations {
 describe("shouldStopEarly", () => {
   it("stops as soon as any invocation signal appears", () => {
     expect(shouldStopEarly(observations({ signal: "stdout-skill-canary" }))).toBe(true);
+    expect(shouldStopEarly(observations({ signal: "command-skill-read" }))).toBe(true);
+    expect(
+      shouldStopEarly(observations({ signal: "command-skill-read", pendingReads: false })),
+    ).toBe(true);
+  });
+
+  it("keeps streaming while a skill-file read has not settled at an assistant message", () => {
+    expect(
+      shouldStopEarly(observations({ signal: "command-skill-read", pendingReads: true })),
+    ).toBe(false);
+    expect(
+      shouldStopEarly(
+        observations({
+          signal: "command-skill-read",
+          pendingReads: true,
+          decisionItemCount: SKIP_DECISION_ITEM_BUDGET,
+        }),
+      ),
+    ).toBe(true);
     expect(shouldStopEarly(observations({ signal: "stream-skill-tool-use" }))).toBe(true);
     expect(shouldStopEarly(observations({ signal: "stderr-skill-injected" }))).toBe(true);
   });
@@ -46,10 +67,99 @@ describe("shouldStopEarly", () => {
   it("stops at the decision-item budget and not before", () => {
     expect(shouldStopEarly(observations({ decisionItemCount: 4 }))).toBe(false);
     expect(shouldStopEarly(observations({ decisionItemCount: 5 }))).toBe(true);
+    // A lane can raise the budget when its items include reconnaissance it cannot separate.
+    expect(shouldStopEarly(observations({ decisionItemCount: 5 }), 8)).toBe(false);
+    expect(shouldStopEarly(observations({ decisionItemCount: 8 }), 8)).toBe(true);
+  });
+});
+
+describe("dropDependencyLoads", () => {
+  // Recorded 2026-09-24 on gpt-6-sol: "Use Claude Code with sonnet to review these changes" read
+  // adversarial-review, whose body names using-claude-cli for CLI mechanics, and then read
+  // using-claude-cli. Only the first read is a trigger decision.
+  const dependencies = new Map<string, ReadonlySet<string>>([
+    ["claude-in-codex:adversarial-review", new Set(["claude-in-codex:using-claude-cli"])],
+    ["claude-in-codex:using-claude-cli", new Set(["writing:agent-instructions"])],
+    ["writing:agent-instructions", new Set()],
+  ]);
+
+  it("drops a skill loaded after the skill whose body names it", () => {
+    expect(
+      dropDependencyLoads(
+        ["claude-in-codex:adversarial-review", "claude-in-codex:using-claude-cli"],
+        dependencies,
+      ),
+    ).toStrictEqual(["claude-in-codex:adversarial-review"]);
+  });
+
+  it("drops the named skill regardless of read order", () => {
+    // Recorded 2026-09-24 on gpt-6-sol: "refresh the existing PR" announced git:create-pr, then
+    // read technical-writing (which create-pr names for the description) before create-pr itself.
+    expect(
+      dropDependencyLoads(
+        ["claude-in-codex:using-claude-cli", "claude-in-codex:adversarial-review"],
+        dependencies,
+      ),
+    ).toStrictEqual(["claude-in-codex:adversarial-review"]);
+  });
+
+  it("keeps both skills when their bodies name each other", () => {
+    const mutual = new Map<string, ReadonlySet<string>>([
+      ["a", new Set(["b"])],
+      ["b", new Set(["a"])],
+    ]);
+    expect(dropDependencyLoads(["a", "b"], mutual)).toStrictEqual(["a", "b"]);
+  });
+
+  it("follows the chain through a dropped dependency", () => {
+    expect(
+      dropDependencyLoads(
+        [
+          "claude-in-codex:adversarial-review",
+          "claude-in-codex:using-claude-cli",
+          "writing:agent-instructions",
+        ],
+        dependencies,
+      ),
+    ).toStrictEqual(["claude-in-codex:adversarial-review"]);
+  });
+
+  it("keeps every skill when no body names another", () => {
+    expect(dropDependencyLoads(["a", "b"], new Map())).toStrictEqual(["a", "b"]);
+  });
+
+  it("keeps every skill when a cycle would otherwise drop them all", () => {
+    const cycle = new Map<string, ReadonlySet<string>>([
+      ["a", new Set(["b"])],
+      ["b", new Set(["c"])],
+      ["c", new Set(["a"])],
+    ]);
+    expect(dropDependencyLoads(["a", "b", "c"], cycle)).toStrictEqual(["a", "b", "c"]);
   });
 });
 
 describe("buildCaseResult", () => {
+  it("records the loads the dependency rule dropped", () => {
+    const result = buildCaseResult(
+      verdictOptions({
+        observations: invokedObservations("demo:helper-skill", TARGET),
+        skillDependencies: new Map([[TARGET, new Set(["demo:helper-skill"])]]),
+      }),
+    );
+
+    expect(result).toMatchObject({
+      invoked: true,
+      invokedSkills: [TARGET],
+      dependencyLoads: ["demo:helper-skill"],
+      passed: true,
+    });
+    expect(result.wrongSkill).toBeUndefined();
+    expect(
+      buildCaseResult(verdictOptions({ observations: invokedObservations(TARGET) }))
+        .dependencyLoads,
+    ).toBeUndefined();
+  });
+
   it("passes an invoke case when only the target fired", () => {
     const result = buildCaseResult(verdictOptions({ observations: invokedObservations(TARGET) }));
 

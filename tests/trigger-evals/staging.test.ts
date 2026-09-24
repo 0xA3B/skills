@@ -17,6 +17,7 @@ import {
   stagedSkillFilePath,
   stagePluginCopies,
   stageRepoLocalSkill,
+  surveySkillDependencies,
   surveyStagedSkills,
 } from "../../src/trigger-evals/staging.js";
 import { resolveSkillTarget } from "../../src/trigger-evals/target.js";
@@ -225,5 +226,81 @@ describe("stageCaseWorkspace", () => {
     await expect(
       readFile(path.join(caseWorkspacePath, ".agents", "skills", "auto-skill", "SKILL.md"), "utf8"),
     ).resolves.toContain("auto-skill");
+  });
+});
+
+describe("surveySkillDependencies", () => {
+  it("names the staged skills a body references by label or same-plugin bare name", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "skill-deps-"));
+    const write = async (name: string, body: string) => {
+      const file = path.join(dir, `${name}.md`);
+      await writeFile(file, body);
+      return file;
+    };
+    const skillFiles = [
+      {
+        skillLabel: "demo:review",
+        pluginName: "demo",
+        skillName: "review",
+        filePath: await write(
+          "review",
+          "Use the `cli` skill for mechanics and apply `writing:style` to the prompt.",
+        ),
+      },
+      {
+        skillLabel: "demo:cli",
+        pluginName: "demo",
+        skillName: "cli",
+        filePath: await write("cli", "Run the CLI. Mentions $writing:style in the default prompt."),
+      },
+      {
+        skillLabel: "writing:style",
+        pluginName: "writing",
+        skillName: "style",
+        filePath: await write("style", "House style. Mentions the word review and cli in prose."),
+      },
+      {
+        skillLabel: "local-skill",
+        skillName: "local-skill",
+        filePath: await write(
+          "local",
+          "Repo-local: apply `style`? No: cross-plugin needs the label.",
+        ),
+      },
+    ];
+
+    const dependencies = await surveySkillDependencies(skillFiles);
+
+    expect(dependencies.get("demo:review")).toStrictEqual(new Set(["demo:cli", "writing:style"]));
+    expect(dependencies.get("demo:cli")).toStrictEqual(new Set(["writing:style"]));
+    // Bare words in prose are not references; only backticked names count.
+    expect(dependencies.get("writing:style")).toStrictEqual(new Set());
+    // A bare name reaches only same-plugin siblings, so `style` does not resolve cross-plugin.
+    expect(dependencies.get("local-skill")).toStrictEqual(new Set());
+  });
+
+  it("does not credit a label that is only a prefix of the named skill", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "skill-deps-prefix-"));
+    const callerPath = path.join(dir, "caller.md");
+    await writeFile(callerPath, "Prompt form: $writing:prose-style for the body.");
+    const skillFiles = [
+      { skillLabel: "x:caller", pluginName: "x", skillName: "caller", filePath: callerPath },
+      {
+        skillLabel: "writing:prose",
+        pluginName: "writing",
+        skillName: "prose",
+        filePath: callerPath,
+      },
+      {
+        skillLabel: "writing:prose-style",
+        pluginName: "writing",
+        skillName: "prose-style",
+        filePath: callerPath,
+      },
+    ];
+
+    const dependencies = await surveySkillDependencies(skillFiles);
+
+    expect(dependencies.get("x:caller")).toStrictEqual(new Set(["writing:prose-style"]));
   });
 });

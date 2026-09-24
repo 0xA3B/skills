@@ -189,7 +189,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
    requested workflow completes.
 
    Evals pin the default models to the ones this repository's skills are used with day to day:
-   `gpt-5.6-sol` for Codex and `opus` for Claude Code, both at `medium` reasoning effort. Trigger
+   `gpt-6-sol` for Codex and `opus` for Claude Code, both at `medium` reasoning effort. Trigger
    boundaries are model-specific, so the defaults measure real invocation behavior instead of a
    smaller-model proxy. Use `--model` and `--effort` to spot-check other models or match a different
    working setup.
@@ -242,16 +242,26 @@ cases where loaded repository instructions should affect the trigger boundary, s
 - The runner appends eval-only instructions to the staged skill copies telling the model to output a
   canary token and stop immediately after invocation. This keeps positive cases focused on trigger
   classification instead of workflow completion.
-- The runner also stops the agent CLI as soon as it observes the invocation signal, so positive
-  cases do not need to finish the requested workflow.
-- Negative cases stop early too: once five decision-bearing items complete without an invocation
-  signal, the run is stopped and classified as a clean skip. The Claude lane counts text-only
-  assistant turns and non-read tool calls; thinking and `Read`, `Glob`, or `Grep` reconnaissance do
-  not consume the budget. The Codex lane counts non-reasoning completed items because its generic
-  command events do not reliably distinguish read-only reconnaissance.
+- The runner also stops the agent CLI once it observes the invocation signal, except on Codex while
+  a skill-file read is pending until the next assistant message, so positive cases do not need to
+  finish the requested workflow.
+- Negative cases stop early too: once the lane's budget of decision-bearing items completes without
+  an invocation signal, the run is stopped and classified as a clean skip. The Claude lane allows
+  five items and counts text-only assistant turns and non-read tool calls; thinking and `Read`,
+  `Glob`, or `Grep` reconnaissance do not consume the budget. The Codex lane allows eight and counts
+  every non-reasoning completed item, because its generic command events do not reliably distinguish
+  read-only reconnaissance and the model inspects a seeded workspace before it loads a skill.
 - On Codex, the canary section is body-only so the frontmatter description under test stays
-  byte-identical to the committed skill; invocation is classified when the assistant outputs the
-  token. Older Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary signal.
+  byte-identical to the committed skill. Invocation is classified when a command reads a staged
+  skill's `SKILL.md`, or when the assistant outputs the token: Codex loads a skill by reading its
+  file, so the read usually ends the case before any message, and a model that ignores the stop
+  instruction never outputs the token at all. A command that failed does not count as a read. Older
+  Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary signal.
+- A skill loaded in the same run as a skill whose body names it, in backticks as
+  `` `plugin:skill` ``, as `$plugin:skill`, or as a backticked bare `` `skill` `` name from the same
+  plugin or among repo-local siblings, is a dependency of that skill's workflow, not a second
+  trigger decision, and the verdict drops it whatever the read order; two skills that name each
+  other both count. The case line lists the dropped loads after `dependency loads`.
 - Every staged skill keeps its real invocation policy, and each implicitly invokable staged skill
   gets its own canary, so invoking the wrong skill is a distinct, attributable observation. A
   `wrong-skill` result names a plugin skill as `<plugin>:<skill>` and a repo-local sibling by its

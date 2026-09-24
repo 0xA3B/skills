@@ -1,12 +1,17 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createCodexLane, observeCodexOutput } from "../../src/trigger-evals/codex-lane.js";
+import {
+  CODEX_SKIP_DECISION_ITEM_BUDGET,
+  createCodexLane,
+  observeCodexOutput,
+  skillFileReadPattern,
+} from "../../src/trigger-evals/codex-lane.js";
 import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
 import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
 import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
@@ -15,6 +20,7 @@ import { resolveSkillTarget, skillTargetLabel } from "../../src/trigger-evals/ta
 import type { SkillTarget } from "../../src/trigger-evals/types.js";
 import {
   agentMessageEvent,
+  commandExecutionEvent,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
   writeSeedFixture,
@@ -59,7 +65,7 @@ async function makeRunOptions(
   return {
     runDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-run-")),
     target: resolveSkillTarget(repoRoot, skillPath),
-    model: "gpt-5.6-sol",
+    model: "gpt-6-sol",
     effort: "medium",
     runtime: createRuntimeResources(),
     ...overrides,
@@ -101,9 +107,19 @@ async function readStagedCanary(
   return canary ?? "missing-canary";
 }
 
-function observeFor(target: SkillTarget, canaryLabels: ReadonlyMap<string, string>) {
+function observeFor(
+  target: SkillTarget,
+  canaryLabels: ReadonlyMap<string, string>,
+  skillFilePatterns: ReadonlyMap<string, RegExp> = new Map(),
+) {
   return (stdout: string, stderr = "") =>
-    observeCodexOutput({ stdout, stderr }, target, skillTargetLabel(target), canaryLabels);
+    observeCodexOutput(
+      { stdout, stderr },
+      target,
+      skillTargetLabel(target),
+      canaryLabels,
+      skillFilePatterns,
+    );
 }
 
 describe("createCodexLane", () => {
@@ -118,6 +134,7 @@ describe("createCodexLane", () => {
     const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
 
     const laneRun = await lane.prepareRun(runOptions);
+    expect(laneRun.skipDecisionItemBudget).toBe(CODEX_SKIP_DECISION_ITEM_BUDGET);
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
     const laneCase = await laneRun.prepareCase({
       id: "invoke-case",
@@ -144,7 +161,7 @@ describe("createCodexLane", () => {
     const canary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
     const codexHome = path.join(runOptions.runDir, "codex-home", "cases", "invoke-case");
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
-    expect(config).toContain('model = "gpt-5.6-sol"');
+    expect(config).toContain('model = "gpt-6-sol"');
     expect(config).toContain('model_reasoning_effort = "medium"');
     expect(config).toContain('[plugins."demo@trigger-eval"]');
     const cachedSkill = await readFile(
@@ -541,6 +558,14 @@ describe("createCodexLane", () => {
       laneCase.observe({ stdout: agentMessageEvent(siblingCanary ?? ""), stderr: "" })
         .invokedSkills,
     ).toStrictEqual(["sibling-skill"]);
+    // Reading the staged sibling file is the same invocation; the read pattern is wired through
+    // prepareRun for repo-local skills as well as plugins.
+    const siblingRead = laneCase.observe({
+      stdout: commandExecutionEvent("cat .agents/skills/sibling-skill/SKILL.md"),
+      stderr: "",
+    });
+    expect(siblingRead.signal).toBe("command-skill-read");
+    expect(siblingRead.invokedSkills).toStrictEqual(["sibling-skill"]);
 
     // A manual-only sibling keeps its real invocation policy: staged and labeled, but it can only
     // fire on explicit request, so it carries no canary.
@@ -551,6 +576,45 @@ describe("createCodexLane", () => {
     expect(manualBody).toBe(
       await readFile(path.join(repoRoot, ".agents", "skills", "manual-skill", "SKILL.md"), "utf8"),
     );
+    expect(
+      laneCase.observe({
+        stdout: commandExecutionEvent("cat .agents/skills/manual-skill/SKILL.md"),
+        stderr: "",
+      }).signal,
+    ).toBe("none");
+  });
+
+  it("credits a command that reads the per-case plugin cache copy of a plugin skill", async () => {
+    const repoRoot = await writeRepoFixture();
+    const sourceCodexHome = await makeSourceCodexHome();
+    const lane = createCodexLane({ sourceCodexHome });
+    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+
+    const laneRun = await lane.prepareRun(runOptions);
+    const laneCase = await laneRun.prepareCase({
+      id: "read-case",
+      prompt: "Invoke the skill.",
+      expect: "invoke",
+    });
+    const cacheRoot = path.join(
+      runOptions.runDir,
+      "codex-home",
+      "cases",
+      "read-case",
+      "plugins",
+      "cache",
+    );
+    const cachedSkillFile = (await readdir(cacheRoot, { recursive: true }))
+      .map((entry) => path.join(cacheRoot, entry))
+      .find((entry) => entry.endsWith(path.join("skills", "auto-skill", "SKILL.md")));
+    expect(cachedSkillFile).toBeDefined();
+
+    const observed = laneCase.observe({
+      stdout: commandExecutionEvent(`/bin/zsh -lc 'cat ${cachedSkillFile}'`),
+      stderr: "",
+    });
+    expect(observed.signal).toBe("command-skill-read");
+    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill"]);
   });
 
   it("stages repo-local targets under .agents with a per-run body canary", async () => {
@@ -669,6 +733,120 @@ describe("observeCodexOutput", () => {
 
     expect(observed.signal).toBe("stderr-skill-injected");
     expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill"]);
+  });
+
+  it("classifies a command that reads a staged skill file as that skill's invocation", () => {
+    // Recorded 2026-09-24 on gpt-6-sol: the model read the staged SKILL.md through the plugin
+    // cache, then ignored the eval section's stop instruction and never output the canary.
+    const readPatterns = new Map([
+      ["demo:auto-skill", skillFileReadPattern("demo", "auto-skill")],
+      ["demo:auto-skill-extra", skillFileReadPattern("demo", "auto-skill-extra")],
+      ["local-skill", skillFileReadPattern(undefined, "local-skill")],
+    ]);
+    const observeReads = observeFor(repoTarget, canaryLabels, readPatterns);
+    const command = (text: string) =>
+      JSON.stringify({
+        type: "item.completed",
+        item: { type: "command_execution", command: text },
+      });
+
+    const cached = observeReads(
+      command(
+        "/bin/zsh -lc 'cat /run/codex-home/cases/x/plugins/cache/trigger-eval/demo/1.0.0/skills/auto-skill/SKILL.md'",
+      ),
+    );
+    expect(cached.signal).toBe("command-skill-read");
+    expect(cached.invokedSkills).toStrictEqual(["demo:auto-skill"]);
+
+    // The sibling's longer skill name must not credit the target, and vice versa.
+    const sibling = observeReads(
+      command("sed -n 1,80p /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md"),
+    );
+    expect(sibling.invokedSkills).toStrictEqual(["demo:auto-skill-extra"]);
+
+    const repoLocal = observeReads(command("cat .agents/skills/local-skill/SKILL.md"));
+    expect(repoLocal.invokedSkills).toStrictEqual(["local-skill"]);
+
+    const unrelated = observeReads(
+      [
+        command("cat README.md"),
+        command("cat /deploy/plugins/demo/skills/auto-skill/references/notes.md"),
+        command("cat /deploy/plugins/other/skills/auto-skill/SKILL.md"),
+      ].join("\n"),
+    );
+    expect(unrelated.signal).toBe("none");
+    expect(unrelated.decisionItemCount).toBe(3);
+  });
+
+  it("marks a skill-file read pending until an assistant message follows it", () => {
+    const readPatterns = new Map([
+      ["demo:auto-skill", skillFileReadPattern("demo", "auto-skill")],
+      ["demo:auto-skill-extra", skillFileReadPattern("demo", "auto-skill-extra")],
+    ]);
+    const observeReads = observeFor(repoTarget, canaryLabels, readPatterns);
+    const readExtra = commandExecutionEvent(
+      "cat /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md",
+    );
+    const readTarget = commandExecutionEvent("cat /deploy/plugins/demo/skills/auto-skill/SKILL.md");
+
+    // A helper skill read first, then the workflow skill: both are attributed once the reads settle.
+    const pending = observeReads(readExtra);
+    expect(pending.pendingReads).toBe(true);
+    const settled = observeReads(
+      [readExtra, readTarget, agentMessageEvent("Loaded both.")].join("\n"),
+    );
+    expect(settled.pendingReads).toBe(false);
+    // Read order, not staging order: the report and wrong-skill selection preserve it.
+    expect(settled.invokedSkills).toStrictEqual(["demo:auto-skill-extra", "demo:auto-skill"]);
+    // A message before the read does not settle it.
+    expect(observeReads([agentMessageEvent("Looking."), readTarget].join("\n")).pendingReads).toBe(
+      true,
+    );
+  });
+
+  it("does not credit a skill-file read from a command that failed", () => {
+    // Recorded 2026-09-24 on gpt-6-sol: `rg --files -g 'AGENTS.md' ... && cat <cache>/SKILL.md`
+    // exited 1 because rg matched nothing, so the cat never ran and the skill was never loaded.
+    const readPatterns = new Map([["demo:auto-skill", skillFileReadPattern("demo", "auto-skill")]]);
+    const observeReads = observeFor(repoTarget, canaryLabels, readPatterns);
+    const failedRead =
+      "rg --files -g 'AGENTS.md' && cat /deploy/plugins/demo/skills/auto-skill/SKILL.md";
+
+    const failed = observeReads(
+      commandExecutionEvent(failedRead, { status: "failed", exitCode: 1 }),
+    );
+    expect(failed.signal).toBe("none");
+    expect(failed.pendingReads).toBeUndefined();
+    expect(failed.decisionItemCount).toBe(1);
+    expect(
+      observeReads(commandExecutionEvent(failedRead, { status: "completed", exitCode: 0 })).signal,
+    ).toBe("command-skill-read");
+  });
+
+  it("keeps a skill-file read of another skill alongside the canary", () => {
+    const readPatterns = new Map([
+      ["demo:auto-skill-extra", skillFileReadPattern("demo", "auto-skill-extra")],
+    ]);
+    const observed = observeFor(
+      repoTarget,
+      canaryLabels,
+      readPatterns,
+    )(
+      [
+        JSON.stringify({
+          type: "item.completed",
+          item: {
+            type: "command_execution",
+            command: "cat /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md",
+          },
+        }),
+        agentMessageEvent("trigger-eval-canary-target"),
+      ].join("\n"),
+    );
+
+    expect(observed.signal).toBe("stdout-skill-canary");
+    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill", "demo:auto-skill-extra"]);
+    expect(observed.pendingReads).toBeUndefined();
   });
 
   it("prefers the canary signal over stderr telemetry", () => {

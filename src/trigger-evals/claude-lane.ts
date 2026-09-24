@@ -18,10 +18,12 @@ import {
   stageCaseWorkspace,
   stagePluginCopies,
   stageRepoLocalSkill,
+  surveySkillDependencies,
   surveyStagedSkills,
   writeClaudeEvalSettings,
 } from "./staging.js";
 import type { CaseObservations, TriggerCase } from "./types.js";
+import { SKIP_DECISION_ITEM_BUDGET } from "./verdict.js";
 
 // Read-only tool surface: trigger evals only observe whether the Skill tool fires, but the model
 // may need to inspect fixture workspace files before deciding.
@@ -55,13 +57,20 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
       const survey = await surveyStagedSkills(target, entries);
       await appendStagedSkillCanaries(pluginDeploymentPath, survey.skillCanaries);
       const labels = [...survey.stagedSkillLabels];
+      const skillFiles = [...survey.skillFiles];
       if (target.kind === "repo-local") {
         for (const repoLocalSkill of [target, ...(runOptions.extraRepoLocalSkills ?? [])]) {
           await stageRepoLocalSkill(workspacePath, repoLocalSkill, ".claude");
           labels.push(repoLocalSkill.skillName);
+          skillFiles.push({
+            skillLabel: repoLocalSkill.skillName,
+            skillName: repoLocalSkill.skillName,
+            filePath: path.join(repoLocalSkill.skillPath, "SKILL.md"),
+          });
         }
       }
       const stagedSkillLabels: ReadonlySet<string> = new Set(labels);
+      const skillDependencies = await surveySkillDependencies(skillFiles);
 
       const prepareCase = async (testCase: TriggerCase): Promise<LaneCase> => {
         const caseWorkspacePath = needsCaseWorkspace(testCase)
@@ -98,6 +107,8 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
 
       return {
         stagedSkillLabels,
+        skillDependencies,
+        skipDecisionItemBudget: SKIP_DECISION_ITEM_BUDGET,
         prepareCase,
         cleanup: async () => undefined,
       };

@@ -173,7 +173,7 @@ export function usage(): string {
     "  --fixture <path>           Use a fixture file other than evals/triggers.yaml. Requires one",
     "                             target skill.",
     "  --case <id>                Run one trigger fixture case. Requires one target skill.",
-    "  --model <model>            Model override. Defaults: codex gpt-5.6-sol, claude opus.",
+    "  --model <model>            Model override. Defaults: codex gpt-6-sol, claude opus.",
     "  --effort <effort>          Reasoning effort override. Defaults to medium.",
     "  --timeout-ms <ms>          Per-case timeout. Defaults to 60000.",
     "  --concurrency <n>          Number of cases to run in parallel. Defaults to 3.",

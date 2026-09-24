@@ -1,17 +1,18 @@
 ---
 name: technical-writing
 description: >-
-  Use when writing, editing, or reviewing technical artifacts — README files, CONTRIBUTING and setup
-  guides, wiki and knowledge-base pages, runbooks, operational procedures, migration and upgrade
-  guides, API reference prose, architecture and design documents, release notes, long-form
-  docstrings, pull request descriptions, or issue and ticket descriptions — including making
-  existing text clearer or easier for non-native English readers. Do not use to assess, triage, or
-  decide changes from unresolved review feedback. Once another workflow settles the feedback, use
-  for drafting or rewriting technical comments in Jira and other issue trackers, pull request or
-  merge request comments, and reviewer replies. Applies Diátaxis structure, STE-inspired wording,
-  and Google developer style formatting. Do not use for files that instruct agents such as
-  AGENTS.md, CLAUDE.md, or SKILL.md; for chat responses, commit messages, or code comments; or for
-  conceptual questions about writing standards.
+  Use when writing, editing, or reviewing technical artifacts — READMEs, CONTRIBUTING and setup
+  guides, knowledge-base pages, runbooks, migration and upgrade guides, API reference prose,
+  architecture and design documents, release notes, long-form docstrings, pull request descriptions,
+  or issue and ticket descriptions — including making text clearer for non-native English readers.
+  Do not use to review README or documentation files the user changed in this checkout;
+  engineering:review-changes owns that review and applies this skill inside. Do not use to assess,
+  triage, or decide changes from unresolved review feedback. Once another workflow settles the
+  feedback, use for drafting or rewriting technical comments in issue trackers, pull or merge
+  request comments, and reviewer replies. Do not use for decision records
+  (engineering:decision-records); for agent-instruction files such as AGENTS.md or SKILL.md; for
+  chat responses, commit messages, or code comments; or for conceptual questions about writing
+  standards.
 license: MIT
 metadata:
   original_author: Alex Baker
