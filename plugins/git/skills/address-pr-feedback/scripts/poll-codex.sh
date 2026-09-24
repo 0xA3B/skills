@@ -11,7 +11,7 @@
 #              checkout's remote)
 #
 # Acknowledgment of a head is the summary comment's Running line naming that head; a 👀 reaction
-# counts only while no summary row exists and only when created after the head was published,
+# counts only when created after the head was published and no summary row names the head,
 # because the connector does not re-create it for a re-pushed head and may leave a stale one. The
 # clean signal is a 👍 reaction created at or after
 # the summary's Completed timestamp for that head, or, when no summary row exists, a 👍 created
@@ -136,9 +136,10 @@ for ((i=1; i<=MAX; i++)); do
       echo "terminal: reaction-only clean signal for $SHORT; thumbs=$thumbs created after $HEAD_AT (head commit $COMMIT_AT)"; dump
       [ "$OPEN" -gt 0 ] && finish 1; finish 0
     fi
-    [ "$eyes" -gt 0 ] && ack=1
   fi
-  if [ "$ack" -eq 0 ] && [ "$i" -gt "$ACK_POLLS" ]; then echo "no acknowledgment of $SHORT within $ACK_POLLS intervals"; finish 4; fi
+  # A 👀 created after the head was published acknowledges it unless a summary row names the head.
+  case "$summary" in *"$SHORT"*) ;; *) [ "$eyes" -gt 0 ] && ack=1 ;; esac
+  if [ "$ack" -eq 0 ] && [ "$i" -gt "$ACK_POLLS" ]; then echo "no acknowledgment of $SHORT within $ACK_POLLS intervals"; dump; finish 4; fi
   [ "$i" -lt "$MAX" ] && sleep "$INTERVAL"
 done
 echo "max polls reached without a terminal signal"; dump; finish 5
