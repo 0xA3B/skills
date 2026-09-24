@@ -2,15 +2,16 @@
 name: technical-writing
 description: >-
   Use when writing, editing, or reviewing technical artifacts — README files, CONTRIBUTING and setup
-  guides, runbooks, operational procedures, migration and upgrade guides, API reference prose,
-  architecture and design documents, release notes, long-form docstrings, pull request descriptions,
-  or issue and ticket descriptions — including making existing text clearer or easier for non-native
-  English readers. Do not use to assess, triage, or decide changes from unresolved review feedback.
-  Once another workflow settles the feedback, use for drafting or rewriting technical comments in
-  Jira and other issue trackers, pull request or merge request comments, and reviewer replies.
-  Applies Diátaxis structure, STE-inspired wording, and Google developer style formatting. Do not
-  use for files that instruct agents such as AGENTS.md, CLAUDE.md, or SKILL.md; for chat responses,
-  commit messages, or code comments; or for conceptual questions about writing standards.
+  guides, wiki and knowledge-base pages, runbooks, operational procedures, migration and upgrade
+  guides, API reference prose, architecture and design documents, release notes, long-form
+  docstrings, pull request descriptions, or issue and ticket descriptions — including making
+  existing text clearer or easier for non-native English readers. Do not use to assess, triage, or
+  decide changes from unresolved review feedback. Once another workflow settles the feedback, use
+  for drafting or rewriting technical comments in Jira and other issue trackers, pull request or
+  merge request comments, and reviewer replies. Applies Diátaxis structure, STE-inspired wording,
+  and Google developer style formatting. Do not use for files that instruct agents such as
+  AGENTS.md, CLAUDE.md, or SKILL.md; for chat responses, commit messages, or code comments; or for
+  conceptual questions about writing standards.
 license: MIT
 metadata:
   original_author: Alex Baker
@@ -57,14 +58,21 @@ controlled language.
 3. Decide whether the text is a **procedure** (the reader performs steps) or a **description** (the
    reader learns how something works). Their structure and ordering rules differ.
 4. When the target is a README, read [readme.md](references/readme.md) for the content model.
-5. When writing or revising a pull request or merge request description, read
+5. When you create, split, merge, restructure, or review the pages of a wiki, knowledge base,
+   documentation portal, or other multi-page documentation set, read
+   [knowledge-bases.md](references/knowledge-bases.md) before choosing pages: it governs the page
+   set, the publishing representation, executable examples, and the rendered review. For an edit to
+   one existing page other than the gateway that keeps the page's audience and reader task and adds,
+   changes, removes, or moves no mutable fact, read only the publishing-representation,
+   executable-examples, and rendered-review sections of that reference.
+6. When writing or revising a pull request or merge request description, read
    [change-descriptions.md](references/change-descriptions.md).
-6. When creating a document or changing its headings, lists, tables, or layout, read
-   [formatting.md](references/formatting.md). Sentence-level edits to existing prose need only this
-   file.
-7. When writing or revising a Jira or issue comment, pull request or merge request comment, or a
+7. When creating a document, changing its headings, lists, tables, or layout, or reviewing its
+   layout or rendering, read [formatting.md](references/formatting.md). Sentence-level edits to
+   existing prose need only this file.
+8. When writing or revising a Jira or issue comment, pull request or merge request comment, or a
    reply in a review thread, read [collaborative-comments.md](references/collaborative-comments.md).
-8. When the user or project requires strict controlled language or translation-oriented writing,
+9. When the user or project requires strict controlled language or translation-oriented writing,
    read [controlled-language.md](references/controlled-language.md).
 
 ## Rules

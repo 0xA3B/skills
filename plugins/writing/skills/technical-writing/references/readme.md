@@ -2,7 +2,9 @@
 
 A README is a gateway: it orients the reader, gets them to a first working result, and links to
 deeper material. Keep it user-facing and short. Move maintainer detail to CONTRIBUTING, move deep
-reference out of the file, and link to both.
+reference out of the file, and link to both. When the README grows into a set of pages, such as a
+docs directory or a wiki, plan the set with [knowledge-bases.md](knowledge-bases.md); the README
+keeps this model and links to the set's gateway page.
 
 ## Section order
 
