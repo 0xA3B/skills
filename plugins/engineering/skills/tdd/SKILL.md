@@ -8,6 +8,10 @@ description: >-
   to prove, such as configuration, documentation, formatting, or mechanical renames; for disposable
   prototypes or spikes; for a bug whose cause is still unknown, which needs diagnosis first; for
   reviewing existing changes; or for conceptual questions about TDD.
+when_to_use: >-
+  Also use when the user asks to build, add, implement, or ship a feature or its first version
+  without a spec: load this skill before asking for requirements, because the loop starts from one
+  tracer bullet at the outermost stable surface and surfaces open decisions as it goes.
 license: MIT
 metadata:
   original_author: Matt Pocock
