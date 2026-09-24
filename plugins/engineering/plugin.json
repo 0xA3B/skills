@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "engineering",
-  "version": "2.9.2",
+  "version": "2.10.0",
   "description": "Engineering workflow skills for decision mapping, adversarial design review, dependency maintenance, durable terminology, decision records, prototyping, TDD, diagnosis, architecture, code review, and handoffs.",
   "author": {
     "name": "Alex Baker"
