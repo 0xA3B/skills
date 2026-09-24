@@ -102,6 +102,28 @@ cases:
     rationale:
       Revising a settled technical reply is collaborative-comment writing, not feedback disposition.
 
+  - id: readme-diff-review
+    prompt: >-
+      Review the README changes I just made.
+    workspace_files:
+      README.md: |
+        # node-service
+
+        A small HTTP service with no dependencies. It stores items in memory and exposes a
+        paginated list endpoint.
+
+        ## Usage
+
+        ```sh
+        node --test
+        node src/server.js --port 8080
+        ```
+    expect: skip
+    invoke-instead: engineering:review-changes
+    rationale:
+      Reviewing the session's own changes belongs to the review workflow, which applies this skill
+      inside its prose lane.
+
   - id: unresolved-review-feedback
     prompt: >-
       Review these unresolved pull request comments, decide which feedback is valid, and tell me
