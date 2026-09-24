@@ -39,6 +39,8 @@ evaluated, and improved over time. Preserve these outcomes:
 - Use `pnpm run check` as the default full local gate.
 - Use the smallest relevant targeted script when narrowing validation.
 - Keep `check`-suffixed scripts non-mutating.
+- Before changing an area, read the decision records under `docs/adr/` that touch it, and record a
+  choice that is hard to reverse there, following `docs/adr/README.md`.
 - Treat `AGENTS.md` as canonical agent guidance; sibling `CLAUDE.md` files must import `@AGENTS.md`
   and may add Claude-specific guidance only when it doesn't belong in `AGENTS.md`.
 - When using a plugin skill maintained in this repository, follow its working-tree `SKILL.md` as the
