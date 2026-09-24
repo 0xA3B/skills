@@ -31,7 +31,8 @@
 #
 # Exit codes: 0 the run is scoreable; 1 the run is invalid (the agent failed, reported an error,
 #             did not load the skill in the skill condition, loaded it in the noskill condition,
-#             or was denied a tool call); 2 usage.
+#             was denied a tool call, or on Claude Code listed a skill outside the staged set);
+#             2 usage.
 # Claude in print mode denies reads of plugin reference files unless the plugin directory is also
 # passed with --add-dir, and the permission classifier blocks a bypass-permissions launch, so the
 # run uses accept-edits with an explicit tool list. Run unsandboxed: it copies Codex auth and
@@ -79,8 +80,10 @@ fi
 RUN="${6:-$ROOT/.local/pressure/runs/$SKILL_NAME-$AGENT-$CONDITION}"
 mkdir -p "$RUN"
 RUN="$(cd "$RUN" && pwd)"
-case "$SOURCE_WS/" in "$RUN"/*) echo "workspace dir must not be inside the run dir" >&2; exit 2 ;; esac
-case "$TASK_FILE" in "$RUN"/*) echo "task file must not be inside the run dir" >&2; exit 2 ;; esac
+refuse() { rmdir "$RUN" 2>/dev/null; echo "$1" >&2; exit 2; }
+case "$SOURCE_WS/" in "$RUN"/*) refuse "workspace dir must not be inside the run dir" ;; esac
+case "$RUN/" in "$SOURCE_WS"/*) refuse "run dir must not be inside the workspace dir" ;; esac
+case "$TASK_FILE" in "$RUN"/*) refuse "task file must not be inside the run dir" ;; esac
 # Replace only a directory this script created: a wrong run-dir argument must not delete data.
 if [ -n "$(ls -A "$RUN")" ] && [ ! -f "$RUN/$MARKER" ]; then
   echo "run dir is not empty and was not created by this script: $RUN" >&2
@@ -183,17 +186,30 @@ case "$AGENT" in
         [ -n "$staged" ] && stage_copy "$staged" "$WS/.claude/skills"
       done
     fi
+    # Skills the init event may list: every skill of a staged plugin, each staged repo-local skill,
+    # and the bundled skills Claude loads despite disableBundledSkills (doctor, as the trigger
+    # evals exempt). Any other skill means the run was not isolated.
+    ALLOWED=""
+    for copy in "${PLUGIN_COPIES[@]:-}"; do [ -n "$copy" ] && ALLOWED="$ALLOWED $(basename "$copy"):"; done
+    for staged in "${REPO_LOCAL_STAGED[@]:-}"; do [ -n "$staged" ] && ALLOWED="$ALLOWED $(basename "$staged")"; done
     (cd "$WS" && claude "${ARGS[@]}" "$PROMPT" < /dev/null > "$RUN/events.jsonl" 2> "$RUN/stderr.log") || AGENT_STATUS=$?
     VERDICT="$(node -e '
       const fs = require("fs");
-      const [events, skill, canary, finalPath] = process.argv.slice(1);
-      let calls = 0, canaries = 0, denied = 0, errors = 0, result = "missing", finalText = "";
+      const [events, skill, canary, finalPath, allowedList] = process.argv.slice(1);
+      const allowed = allowedList.split(" ").filter(Boolean);
+      const exempt = new Set(["doctor"]);
+      const isAllowed = (name) => exempt.has(name)
+        || allowed.some((a) => a.endsWith(":") ? name.startsWith(a) : name === a);
+      let calls = 0, canaries = 0, denied = 0, errors = 0, result = "missing", finalText = "", unstaged = [];
       for (const line of fs.readFileSync(events, "utf8").split("\n")) {
         let e; try { e = JSON.parse(line); } catch { continue; }
+        if (e.type === "system" && e.subtype === "init") unstaged = (e.skills ?? []).filter((n) => !isAllowed(n));
         if (e.type === "system" && e.subtype === "permission_denied") denied += 1;
         if (e.type === "result") {
           result = e.is_error === true ? `error (${e.subtype})` : "ok";
           if (typeof e.result === "string") finalText = e.result;
+          // The result lists the denied requests; the system event is not emitted for every denial.
+          if (Array.isArray(e.permission_denials)) denied += e.permission_denials.length;
         }
         for (const block of e.message?.content ?? []) {
           if (block.type === "text" && String(block.text).includes(canary)) canaries += 1;
@@ -206,9 +222,9 @@ case "$AGENT" in
       }
       fs.writeFileSync(finalPath, finalText);
       const loaded = calls > 0 || canaries > 0;
-      console.log(`result: ${result}; skill loaded: ${loaded ? "yes" : "no"} (${calls} Skill tool calls, ${canaries} canary messages); denied tool calls: ${denied}; other tool errors: ${errors}`);
-      process.exitCode = result === "ok" && denied === 0 ? 0 : 1;
-    ' "$RUN/events.jsonl" "$CALLOUT" "$CANARY" "$RUN/final.md")" || CHECK_STATUS=1
+      console.log(`result: ${result}; skill loaded: ${loaded ? "yes" : "no"} (${calls} Skill tool calls, ${canaries} canary messages); denied tool calls: ${denied}; other tool errors: ${errors}; unstaged skills: ${unstaged.length === 0 ? "none" : unstaged.join(", ")}`);
+      process.exitCode = result === "ok" && denied === 0 && unstaged.length === 0 ? 0 : 1;
+    ' "$RUN/events.jsonl" "$CALLOUT" "$CANARY" "$RUN/final.md" "$ALLOWED")" || CHECK_STATUS=1
     ;;
   codex)
     MODEL="${MODEL:-gpt-6-sol}"

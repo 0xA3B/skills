@@ -123,10 +123,10 @@ script stages the skill for the agent, prefixes the task with the skill callout,
 message, event stream, and workspace under `.local/pressure/runs/`, prints whether the skill loaded
 and how many tool calls the agent's permission or sandbox layer denied, and exits non-zero when the
 run is invalid: the agent failed or reported an error, the skill did not load in the skill
-condition, or a tool call was denied. Rerun an invalid run instead of scoring it. The agent sees
-only the staged copies, so when the target applies other skills, set `EXTRA_SKILLS` to their
-directories: a plugin skill brings its whole plugin, and a repo-local skill is copied as a project
-skill.
+condition, a tool call was denied, or a skill outside the staged set was available. Rerun an invalid
+run instead of scoring it. The agent sees only the staged copies, so when the target applies other
+skills, set `EXTRA_SKILLS` to their directories: a plugin skill brings its whole plugin, and a
+repo-local skill is copied as a project skill.
 
 ### 4. Evaluate manually
 
