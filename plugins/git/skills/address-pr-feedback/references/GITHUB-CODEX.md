@@ -112,10 +112,13 @@ commits, and push authority.
 ## Follow-up review
 
 The connector's automatic-review configuration decides whether a push starts another Codex review,
-and this adapter requests none beyond the single retry the transient-error rule allows. After a
-push, watch the acknowledgment window for a 👀 reaction or a summary-comment transition naming the
-new commit. When none appears, the adapter keeps the classification its last review earned and the
-report names the head that review covered. When acknowledgment appears, tie a new round to the new
-`headRefOid` and require a current-head terminal response within the response timeout; a review of a
-head pushed after the adapter converged under `4. Stop rounds` is the later-head review the
-convergence rule describes.
+and this adapter requests none beyond the single retry the transient-error rule allows. A summary
+row whose review trigger reads `New commits` means the repository reviews every push: watch for that
+review instead of posting `@codex review`.
+
+After a push, watch the new head with the polling script. A hand-assembled query misses the 👀
+reaction and the `Running` row the connector edits into the summary comment in place. Exit `4`
+applies the pushed-head outcome from `2. Poll active adapters`. Any other exit continues the round
+on the new `headRefOid` under the exit meanings in Polling script, and the round requires a
+current-head terminal response within the response timeout; a review of a head pushed after the
+adapter converged under `4. Stop rounds` is the later-head review the convergence rule describes.
