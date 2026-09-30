@@ -112,10 +112,11 @@ without the skill on each agent the skill's plugin targets, or on both agents fo
 skill, scored against one rubric. Write the task and a scratch workspace under `.local/pressure/`,
 then write the rubric before reading any output: one item per behavior the skill should change, with
 the evidence that would show it. If the task needs git state, make the workspace a repository root
-and express that state as commits on the checked-out branch plus working-tree changes: the agent
-receives a fresh repository holding that branch's history, with every uncommitted change out of the
-index, and no other branches, tags, remotes, or stashes. Run
-[`scripts/compare-skill.sh`](scripts/compare-skill.sh) once per agent and condition:
+without initialized submodules, which the script refuses, and express that state as commits on the
+checked-out branch plus working-tree changes: the agent receives a fresh repository holding that
+branch's history, with every uncommitted change out of the index, and no other branches, tags,
+remotes, or stashes. Run [`scripts/compare-skill.sh`](scripts/compare-skill.sh) once per agent and
+condition:
 
 ```text
 .agents/skills/pressure-test-skill/scripts/compare-skill.sh <claude|codex> <skill|noskill> <skill-dir> <workspace-dir> <task-file>

@@ -92,6 +92,14 @@ refuse() { rmdir "$RUN" 2>/dev/null; echo "$1" >&2; exit 2; }
 case "$SOURCE_WS/" in "$RUN"/*) refuse "workspace dir must not be inside the run dir" ;; esac
 case "$RUN/" in "$SOURCE_WS"/*) refuse "run dir must not be inside the workspace dir" ;; esac
 case "$TASK_FILE" in "$RUN"/*) refuse "task file must not be inside the run dir" ;; esac
+# An initialized submodule's repository lives under the source's .git, which the copy does not
+# carry, so git inside the submodule would act on the copy's outer repository. Submodule
+# workspaces are unsupported until a task needs one; `submodule status` marks uninitialized
+# submodules with a leading -.
+if [ -e "$SOURCE_WS/.git" ] \
+  && [ -n "$(git -C "$SOURCE_WS" submodule status 2>/dev/null | grep -v '^-' || true)" ]; then
+  refuse "workspace dir has initialized submodules, which comparison runs do not support: $SOURCE_WS"
+fi
 # Replace only a directory this script created: a wrong run-dir argument must not delete data.
 if [ -n "$(ls -A "$RUN")" ] && [ ! -f "$RUN/$MARKER" ]; then
   echo "run dir is not empty and was not created by this script: $RUN" >&2
@@ -135,10 +143,16 @@ if [ -e "$SOURCE_WS/.git" ]; then
   branch="$(git -C "$SOURCE_WS" symbolic-ref --quiet --short HEAD || echo main)"
   git init --quiet --initial-branch "$branch" "$WS"
   if git -C "$SOURCE_WS" rev-parse --quiet --verify HEAD > /dev/null; then
-    git -C "$WS" fetch --quiet --no-tags "$SOURCE_WS" HEAD
+    # --update-shallow accepts the history of a shallow source, which git fetch otherwise rejects.
+    git -C "$WS" fetch --quiet --no-tags --update-shallow "$SOURCE_WS" HEAD
     git -C "$WS" update-ref HEAD FETCH_HEAD
     git -C "$WS" reset --quiet
     rm -f "$WS/.git/FETCH_HEAD"
+    # A sparse checkout leaves paths out of the working tree and marks them skip-worktree in the
+    # source index; the same marks keep those paths from showing as deletions in the copy.
+    git -C "$SOURCE_WS" ls-files -z -t | while IFS= read -r -d '' entry; do
+      case "$entry" in "S "*) printf '%s\0' "${entry#S }" ;; esac
+    done | xargs -0 git -C "$WS" update-index --skip-worktree --
   fi
   # The harness removes project skills below and stages skill copies into these paths in the skill
   # condition only; neither may show as a change the agent could review or commit.
