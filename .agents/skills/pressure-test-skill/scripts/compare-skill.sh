@@ -140,12 +140,11 @@ if [ -e "$SOURCE_WS/.git" ]; then
     git -C "$WS" reset --quiet
     rm -f "$WS/.git/FETCH_HEAD"
   fi
-  # The harness removes project skills below and then writes its settings and staged skill copies
-  # into these paths, differently per condition; none of that may show as a change the agent
-  # could review or commit.
+  # The harness removes project skills below and stages skill copies into these paths in the skill
+  # condition only; neither may show as a change the agent could review or commit.
   mkdir -p "$WS/.git/info"
-  printf '/.claude/settings.json\n/.claude/skills/\n/.agents/skills/\n' >> "$WS/.git/info/exclude"
-  git -C "$WS" ls-files -z -- .claude/settings.json .claude/skills .agents/skills \
+  printf '/.claude/skills/\n/.agents/skills/\n' >> "$WS/.git/info/exclude"
+  git -C "$WS" ls-files -z -- .claude/skills .agents/skills \
     | xargs -0 git -C "$WS" update-index --skip-worktree --
 fi
 # A workspace copied from a checkout carries project skills; only staged copies may load.
@@ -204,13 +203,13 @@ case "$AGENT" in
   claude)
     MODEL="${MODEL:-opus}"
     TOOLS="${TOOLS:-Read,Write,Edit,Glob,Grep,Bash,Skill}"
-    mkdir -p "$WS/.claude"
-    printf '{\n  "disableBundledSkills": true\n}\n' > "$WS/.claude/settings.json"
     # --tools, --allowedTools, --plugin-dir, and --add-dir are variadic, so they are passed in =
-    # form to keep them from swallowing the prompt argument.
+    # form to keep them from swallowing the prompt argument. The bundled skills are disabled
+    # through --settings, which --setting-sources does not filter, so the workspace's own
+    # .claude/settings.json stays as the source has it and loads as project settings.
     ARGS=(-p --output-format stream-json --verbose --permission-mode acceptEdits
-      "--tools=$TOOLS" "--allowedTools=$TOOLS" --setting-sources project --strict-mcp-config
-      --model "$MODEL" --effort "$EFFORT")
+      "--tools=$TOOLS" "--allowedTools=$TOOLS" '--settings={"disableBundledSkills":true}'
+      --setting-sources project --strict-mcp-config --model "$MODEL" --effort "$EFFORT")
     if [ "$CONDITION" = skill ]; then
       if [ "$MANUAL_ONLY" = yes ]; then
         PROMPT="/$CALLOUT $TASK"
