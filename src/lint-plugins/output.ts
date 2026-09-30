@@ -15,7 +15,7 @@ export function printDiagnostics(
 
   for (const diagnostic of sortedDiagnostics) {
     write(
-      `- ${diagnostic.severity.toUpperCase()} ${diagnostic.ruleId} ${relativeDisplay(
+      `- ${diagnostic.ruleId} ${relativeDisplay(
         context,
         diagnostic.filePath,
         diagnostic.pointer,

@@ -247,7 +247,7 @@ describe("Agent Skills frontmatter validation", () => {
     });
   });
 
-  it("warns about when_to_use on manual-only skills and oversized listings", async () => {
+  it("reports when_to_use on manual-only skills", async () => {
     await withTempRepo(async (repoRoot) => {
       const skillPath = await writeText(
         repoRoot,
@@ -255,10 +255,10 @@ describe("Agent Skills frontmatter validation", () => {
         validSkillMarkdown({
           body: "# Manual",
           frontmatter: {
-            description: `Use when a test needs a long listing. ${"d".repeat(980)}`,
+            description: "Use when a test needs a hidden when_to_use.",
             "disable-model-invocation": true,
             name: "manual",
-            when_to_use: "w".repeat(600),
+            when_to_use: "Also use when nothing lists the skill.",
           },
         }),
       );
@@ -266,17 +266,60 @@ describe("Agent Skills frontmatter validation", () => {
 
       await validateSkillFrontmatter(context, "manual", skillPath);
 
-      expect(ruleIds(context)).toStrictEqual(
-        expect.arrayContaining(["claude-skill/when-to-use-hidden", "claude-skill/listing-length"]),
-      );
-      expect(diagnosticByRule(context, "claude-skill/when-to-use-hidden")?.severity).toBe(
-        "warning",
-      );
-      expect(diagnosticByRule(context, "claude-skill/listing-length")?.severity).toBe("warning");
+      expect(ruleIds(context)).toStrictEqual(["claude-skill/when-to-use-hidden"]);
     });
   });
 
-  it("warns when a skill declares Claude-only arguments substitution", async () => {
+  // Claude Code truncates the combined description and when_to_use listing at 1,536 characters.
+  it("reports the combined listing length and its limit", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const skillPath = await writeText(
+        repoRoot,
+        "skills/listed/SKILL.md",
+        validSkillMarkdown({
+          body: "# Listed",
+          frontmatter: {
+            description: "d".repeat(1000),
+            name: "listed",
+            when_to_use: "w".repeat(537),
+          },
+        }),
+      );
+      const context = createTestContext(repoRoot);
+
+      await validateSkillFrontmatter(context, "listed", skillPath);
+
+      expect(ruleIds(context)).toStrictEqual(["claude-skill/listing-length"]);
+      expect(diagnosticByRule(context, "claude-skill/listing-length")?.message).toBe(
+        'Combined "description" and "when_to_use" are 1537 characters; the limit is 1536, beyond which Claude Code truncates the skill listing.',
+      );
+    });
+  });
+
+  // The Agent Skills spec only recommends a short license value, so any length passes.
+  it("accepts a long license value", async () => {
+    await withTempRepo(async (repoRoot) => {
+      const skillPath = await writeText(
+        repoRoot,
+        "skills/licensed/SKILL.md",
+        validSkillMarkdown({
+          body: "# Licensed",
+          frontmatter: {
+            description: "Use when a test needs a long license.",
+            license: "l".repeat(201),
+            name: "licensed",
+          },
+        }),
+      );
+      const context = createTestContext(repoRoot);
+
+      await validateSkillFrontmatter(context, "licensed", skillPath);
+
+      expect(context.diagnostics).toStrictEqual([]);
+    });
+  });
+
+  it("reports a skill that declares Claude-only arguments substitution", async () => {
     await withTempRepo(async (repoRoot) => {
       const skillPath = await writeText(
         repoRoot,
@@ -285,7 +328,7 @@ describe("Agent Skills frontmatter validation", () => {
           body: "# Args",
           frontmatter: {
             arguments: "issue branch",
-            description: "Use when a test needs the arguments policy warning.",
+            description: "Use when a test needs the arguments house rule.",
             name: "args",
           },
         }),
@@ -295,7 +338,6 @@ describe("Agent Skills frontmatter validation", () => {
       await validateSkillFrontmatter(context, "args", skillPath);
 
       expect(ruleIds(context)).toStrictEqual(["repo/skill-arguments"]);
-      expect(diagnosticByRule(context, "repo/skill-arguments")?.severity).toBe("warning");
     });
   });
 
@@ -325,35 +367,40 @@ describe("Agent Skills frontmatter validation", () => {
           "agentskills/compatibility-length",
         ]),
       );
-      expect(diagnosticByRule(context, "agentskills/name-format")?.severity).toBe("error");
-      expect(diagnosticByRule(context, "agentskills/description-length")?.severity).toBe("error");
-      expect(diagnosticByRule(context, "agentskills/compatibility-length")?.severity).toBe("error");
+      expect(diagnosticByRule(context, "agentskills/description-length")?.message).toBe(
+        'Frontmatter "description" is 1025 characters; the limit is 1024.',
+      );
+      expect(diagnosticByRule(context, "agentskills/compatibility-length")?.message).toBe(
+        'Frontmatter "compatibility" is 501 characters; the limit is 500.',
+      );
     });
   });
 
-  it("warns for excess lines even when the body stays below the token limit", async () => {
+  it("reports excess lines even when the body stays below the token limit", async () => {
     const context = await lintBody("x\n".repeat(500) + "x"); // 501 lines, 1001 characters.
 
     expect(ruleIds(context)).toStrictEqual(["agentskills/body-lines"]);
-    expect(diagnosticByRule(context, "agentskills/body-lines")?.severity).toBe("warning");
+    expect(diagnosticByRule(context, "agentskills/body-lines")?.message).toBe(
+      "SKILL.md body is 501 lines; the limit is 500. Audit and shorten the instructions, or move detail to references/.",
+    );
   });
 
-  it("warns for excess tokens even when the body stays below the line limit", async () => {
+  it("reports excess tokens even when the body stays below the line limit", async () => {
     const context = await lintBody("x".repeat(20_001)); // One line, one character over 5000 tokens.
 
     expect(ruleIds(context)).toStrictEqual(["agentskills/body-tokens"]);
-    expect(diagnosticByRule(context, "agentskills/body-tokens")?.severity).toBe("warning");
+    expect(diagnosticByRule(context, "agentskills/body-tokens")?.message).toBe(
+      "SKILL.md body is an estimated 5001 tokens at 4 characters per token; the limit is 5000. Audit and shorten the instructions, or move detail to references/.",
+    );
   });
 
-  it("reports both warnings when the body exceeds both limits", async () => {
+  it("reports both body budgets when the body exceeds both limits", async () => {
     const context = await lintBody("x\n".repeat(500) + "x".repeat(19_001)); // 501 lines, 20001 characters.
 
     expect(ruleIds(context)).toStrictEqual(["agentskills/body-lines", "agentskills/body-tokens"]);
-    expect(diagnosticByRule(context, "agentskills/body-lines")?.severity).toBe("warning");
-    expect(diagnosticByRule(context, "agentskills/body-tokens")?.severity).toBe("warning");
   });
 
-  it("does not warn at exactly 500 lines and 5000 estimated tokens", async () => {
+  it("passes at exactly 500 lines and 5000 estimated tokens", async () => {
     const context = await lintBody("x\n".repeat(499) + "x".repeat(19_002)); // 500 lines, 20000 characters.
 
     expect(context.diagnostics).toStrictEqual([]);

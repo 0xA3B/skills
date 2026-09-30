@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import { parseSkillDocument } from "../../skills/document.js";
-import { error, type ValidationContext, warning } from "../diagnostics.js";
+import { error, type ValidationContext } from "../diagnostics.js";
 import {
   getOptionalBoolean,
   getOptionalObject,
@@ -10,6 +10,8 @@ import {
   isObject,
 } from "../schema.js";
 import {
+  AGENT_SKILL_COMPATIBILITY_MAX_LENGTH,
+  AGENT_SKILL_DESCRIPTION_MAX_LENGTH,
   AGENT_SKILL_FRONTMATTER_KEYS,
   CLAUDE_SKILL_CONTEXT_VALUES,
   CLAUDE_SKILL_EFFORT_VALUES,
@@ -19,9 +21,12 @@ import {
 } from "../specs.js";
 import { errorMessage } from "../utils.js";
 
+// Agent Skills recommends keeping SKILL.md under 500 lines and 5,000 tokens. The budgets fail the
+// run with no per-skill opt-out: a skill over budget gets an instruction audit that shortens it.
 const MAX_RECOMMENDED_BODY_LINES = 500;
 const MAX_RECOMMENDED_BODY_TOKENS = 5_000;
 const ESTIMATED_CHARS_PER_TOKEN = 4;
+const BODY_BUDGET_REMEDY = "Audit and shorten the instructions, or move detail to references/.";
 
 export type SkillFrontmatterSummary = {
   disableModelInvocation: boolean | undefined;
@@ -95,13 +100,8 @@ export async function validateSkillFrontmatter(
     skillFilePath,
     "/frontmatter/description",
   );
-  const license = getOptionalString(
-    context,
-    parsed,
-    "license",
-    skillFilePath,
-    "/frontmatter/license",
-  );
+  // The spec only recommends a short license, so no length limit applies (#147).
+  getOptionalString(context, parsed, "license", skillFilePath, "/frontmatter/license");
   const compatibility = getOptionalString(
     context,
     parsed,
@@ -141,32 +141,22 @@ export async function validateSkillFrontmatter(
     );
   }
 
-  if (description !== undefined && description.length > 1024) {
+  if (description !== undefined && description.length > AGENT_SKILL_DESCRIPTION_MAX_LENGTH) {
     error(
       context,
       "agentskills/description-length",
       skillFilePath,
-      'Frontmatter "description" must be 1024 characters or fewer.',
+      `Frontmatter "description" is ${description.length} characters; the limit is ${AGENT_SKILL_DESCRIPTION_MAX_LENGTH}.`,
       "/frontmatter/description",
     );
   }
 
-  if (license !== undefined && license.length > 200) {
-    warning(
-      context,
-      "repo/skill-license-length",
-      skillFilePath,
-      'Frontmatter "license" should be a short license name or file reference.',
-      "/frontmatter/license",
-    );
-  }
-
-  if (compatibility !== undefined && compatibility.length > 500) {
+  if (compatibility !== undefined && compatibility.length > AGENT_SKILL_COMPATIBILITY_MAX_LENGTH) {
     error(
       context,
       "agentskills/compatibility-length",
       skillFilePath,
-      'Frontmatter "compatibility" must be 500 characters or fewer.',
+      `Frontmatter "compatibility" is ${compatibility.length} characters; the limit is ${AGENT_SKILL_COMPATIBILITY_MAX_LENGTH}.`,
       "/frontmatter/compatibility",
     );
   }
@@ -240,12 +230,14 @@ function validateClaudeFrontmatter(
   getOptionalString(context, parsed, "paths", skillFilePath, "/frontmatter/paths");
   getOptionalString(context, parsed, "arguments", skillFilePath, "/frontmatter/arguments");
 
+  // House rule, not a spec rule: "arguments" stays a supported Claude Code key above, but skill
+  // bodies in this repository stay agent-agnostic, so they handle arguments in prose.
   if (parsed["arguments"] !== undefined) {
-    warning(
+    error(
       context,
       "repo/skill-arguments",
       skillFilePath,
-      'Frontmatter "arguments" powers Claude-only $name substitution; skill bodies must stay agent-agnostic, so prefer prose argument handling.',
+      'Frontmatter "arguments" powers Claude-only $name substitution; skill bodies must stay agent-agnostic, so handle arguments in prose.',
       "/frontmatter/arguments",
     );
   }
@@ -288,8 +280,9 @@ function validateClaudeFrontmatter(
     );
   }
 
+  // Dead configuration: the text can never reach the model, so it misleads whoever edits it.
   if (whenToUse !== undefined && disableModelInvocation === true) {
-    warning(
+    error(
       context,
       "claude-skill/when-to-use-hidden",
       skillFilePath,
@@ -298,16 +291,17 @@ function validateClaudeFrontmatter(
     );
   }
 
-  if (
-    whenToUse !== undefined &&
-    description !== undefined &&
-    description.length + whenToUse.length > CLAUDE_SKILL_LISTING_MAX_LENGTH
-  ) {
-    warning(
+  // Truncation silently cuts the trigger contract, so an over-long listing fails the run.
+  const listingLength =
+    whenToUse === undefined || description === undefined
+      ? undefined
+      : description.length + whenToUse.length;
+  if (listingLength !== undefined && listingLength > CLAUDE_SKILL_LISTING_MAX_LENGTH) {
+    error(
       context,
       "claude-skill/listing-length",
       skillFilePath,
-      `Combined "description" and "when_to_use" exceed ${CLAUDE_SKILL_LISTING_MAX_LENGTH} characters; Claude Code truncates the skill listing beyond that.`,
+      `Combined "description" and "when_to_use" are ${listingLength} characters; the limit is ${CLAUDE_SKILL_LISTING_MAX_LENGTH}, beyond which Claude Code truncates the skill listing.`,
       "/frontmatter/when_to_use",
     );
   }
@@ -346,21 +340,21 @@ function validateRecommendedBodySize(
 
   const bodyLineCount = bodyForSize.split(/\r\n|\r|\n/).length;
   if (bodyLineCount > MAX_RECOMMENDED_BODY_LINES) {
-    warning(
+    error(
       context,
       "agentskills/body-lines",
       skillFilePath,
-      `SKILL.md body should stay under ${MAX_RECOMMENDED_BODY_LINES} lines; move detailed material to references/.`,
+      `SKILL.md body is ${bodyLineCount} lines; the limit is ${MAX_RECOMMENDED_BODY_LINES}. ${BODY_BUDGET_REMEDY}`,
     );
   }
 
   const estimatedTokens = Math.ceil(bodyForSize.length / ESTIMATED_CHARS_PER_TOKEN);
   if (estimatedTokens > MAX_RECOMMENDED_BODY_TOKENS) {
-    warning(
+    error(
       context,
       "agentskills/body-tokens",
       skillFilePath,
-      `SKILL.md body should stay under approximately ${MAX_RECOMMENDED_BODY_TOKENS} tokens; estimated ${estimatedTokens} tokens at ${ESTIMATED_CHARS_PER_TOKEN} chars/token.`,
+      `SKILL.md body is an estimated ${estimatedTokens} tokens at ${ESTIMATED_CHARS_PER_TOKEN} characters per token; the limit is ${MAX_RECOMMENDED_BODY_TOKENS}. ${BODY_BUDGET_REMEDY}`,
     );
   }
 }

@@ -30,7 +30,6 @@ describe("marketplace catalog validation", () => {
       expect(context.diagnostics).toStrictEqual([
         expect.objectContaining({
           ruleId: "marketplace/source-type",
-          severity: "error",
           pointer: "/plugins/0/source/source",
           message: 'Only local plugin sources are supported; expected source.source to be "local".',
         }),

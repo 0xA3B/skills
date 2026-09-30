@@ -131,7 +131,6 @@ cases:
       const result = await lintPlugins({ repoRoot });
 
       expect(result.errorCount).toBe(0);
-      expect(result.warningCount).toBe(0);
       expect(result.catalog.localEntries.length).toBe(1);
       expect(result.claudeCatalog.localEntries.length).toBe(1);
       expect(result.pluginCount).toBe(1);
@@ -150,7 +149,6 @@ cases:
       const result = await lintPlugins({ repoRoot });
 
       expect(result.errorCount).toBe(0);
-      expect(result.warningCount).toBe(0);
       expect(result.claudeCatalog.present).toBe(false);
       expect(result.catalog.localEntries.map((entry) => entry.name)).toStrictEqual(["codex-only"]);
     });
@@ -284,7 +282,8 @@ cases:
     });
   });
 
-  it("writes warning-only CLI output to stdout", async () => {
+  // #147: diagnostics are pass or fail, so a rule that used to warn now fails the run.
+  it("fails the CLI run on stderr for any diagnostic", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot, {
         marketplace: validMarketplace({
@@ -305,9 +304,13 @@ cases:
       try {
         await runLintPlugins({ repoRoot });
 
-        expect(error).not.toHaveBeenCalled();
-        expect(log).toHaveBeenCalledWith("Plugin lint completed with 0 error(s) and 1 warning(s):");
-        expect(log).toHaveBeenCalledWith(expect.stringContaining("WARNING alignment/source-path"));
+        expect(log).not.toHaveBeenCalled();
+        expect(error).toHaveBeenCalledWith("Plugin lint failed with 1 error(s):");
+        expect(error).toHaveBeenCalledWith(
+          "- alignment/source-path .agents/plugins/marketplace.json/plugins/0/source: " +
+            'Local source path must be "./plugins/demo-plugin"; found "./plugins/./demo-plugin".',
+        );
+        expect(process.exitCode).toBe(1);
       } finally {
         log.mockRestore();
         error.mockRestore();

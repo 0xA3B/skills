@@ -85,7 +85,7 @@
   YAML lists, so the frontmatter stays portable across Agent Skills consumers.
 - Do not use the `arguments` frontmatter key. It powers Claude-only `$name` substitution in the
   skill body, which breaks agent-agnostic bodies on Codex; handle arguments in prose instead. The
-  linter warns on use (`repo/skill-arguments`).
+  linter rejects the key (`repo/skill-arguments`).
 - When a skill takes meaningful arguments on invocation, add `argument-hint`; skip it for zero-arg
   skills rather than writing filler hints.
 - Use `when_to_use` only when Claude Code needs different trigger tuning than the shared

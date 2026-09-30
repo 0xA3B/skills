@@ -86,14 +86,12 @@ cases:
           message: "expected cases[0].invoke-instead only on expect: skip cases.",
           pointer: "/cases/0/invoke-instead",
           ruleId: "trigger-fixture/schema",
-          severity: "error",
         },
         {
           filePath: fixturePath,
           message: "expected cases[1].workspace.seed to be a kebab-case seed name.",
           pointer: "/cases/1/workspace/seed",
           ruleId: "trigger-fixture/schema",
-          severity: "error",
         },
       ]);
     });
@@ -204,7 +202,6 @@ cases:
             'invoke-instead names "demo-plugin:nope", but plugins/demo-plugin/skills/nope has no SKILL.md.',
           pointer: "/cases/1/invoke-instead",
           ruleId: "trigger-fixture/alternate-missing",
-          severity: "error",
         },
       ]);
     });
@@ -410,7 +407,6 @@ cases:
           message: 'workspace seed "other-seed" has no directory at evals/seeds/other-seed.',
           pointer: "/cases/1/workspace/seed",
           ruleId: "trigger-fixture/seed-missing",
-          severity: "error",
         },
       ]);
     });
