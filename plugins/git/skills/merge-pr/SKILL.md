@@ -67,7 +67,9 @@ Before merging, require:
 - an open, non-draft change request, unless it is already merged;
 - a forge source head matching the local source head and, when the change request or its repository
   shows automated review activity, the reviewed head: the current source head the last
-  `git:address-pr-feedback` invocation reported, which a local review lane does not set;
+  `git:address-pr-feedback` invocation reported with every adapter `approved` or
+  `resolved-with-exceptions`, or with another status the user explicitly accepted for that head
+  after it was reported; a local review lane does not set it;
 - all required CI passing on that head;
 - all required approvals present and no blocking review decision;
 - every review thread resolved, regardless of author;
@@ -151,6 +153,7 @@ Report:
 - forge, change-request URL, exact merged source head, target, and merge method;
 - required checks, approvals, and thread-resolution evidence;
 - the head the last automated review covered, when it differs from the merged source head;
+- any review status the user accepted under the pre-merge gate;
 - terminal merge or queue state;
 - remote branch deletion and fetched target state;
 - ignored SHA references updated or left unresolved;
