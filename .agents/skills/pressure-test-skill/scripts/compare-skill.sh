@@ -19,15 +19,17 @@
 #
 # The agent runs in a copy of the workspace under the system temp directory, outside this
 # checkout, so neither condition sees this repository's instruction files or repo-local skills;
-# the copy moves to <run-dir>/workspace when the run ends. Plugins are copied whole next to the
-# workspace and loaded the way each agent installs them (--plugin-dir on Claude Code, a local
-# marketplace plus a pre-populated plugin cache on Codex), so a skill's plugin-root references
-# resolve. The staged copy of the target skill carries a body-only canary token, as the trigger
-# evals do, so a load leaves a signal even when the agent reads no further file. A manual-only
-# target (frontmatter `disable-model-invocation: true`) is invoked with Claude's slash form,
-# because the model cannot load it from a prose request. The run directory receives final.md,
-# events.jsonl, stderr.log, and workspace/, and the script prints the agent's exit status, whether
-# the skill loaded, and how many tool calls the agent's permission or sandbox layer denied.
+# the copy moves to <run-dir>/workspace when the run ends. A workspace that is a repository root
+# gets a fresh repository in the copy, so the agent's git commands cannot change the source.
+# Plugins are copied whole next to the workspace and loaded the way each agent installs them
+# (--plugin-dir on Claude Code, a local marketplace plus a pre-populated plugin cache on Codex), so
+# a skill's plugin-root references resolve. The staged copy of the target skill carries a
+# body-only canary token, as the trigger evals do, so a load leaves a signal even when the agent
+# reads no further file. A manual-only target (frontmatter `disable-model-invocation: true`) is
+# invoked with Claude's slash form, because the model cannot load it from a prose request. The run
+# directory receives final.md, events.jsonl, stderr.log, and workspace/, and the script prints the
+# agent's exit status, whether the skill loaded, and how many tool calls the agent's permission or
+# sandbox layer denied.
 #
 # Exit codes: 0 the run is scoreable; 1 the run is invalid (the agent failed, reported an error,
 #             did not load the skill in the skill condition, loaded it in the noskill condition,
@@ -50,6 +52,12 @@ TASK_FILE="$(cd "$(dirname "$5")" && pwd)/$(basename "$5")"
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 MARKER=".compare-skill-run"
 MARKETPLACE="compare-skill"
+
+# An inherited GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, or other repository-local variable would
+# redirect the workspace setup and the agent's own git commands to another repository; git lists
+# them itself. Author and committer variables stay; config passed through the environment
+# (GIT_CONFIG_COUNT, GIT_CONFIG_PARAMETERS) goes with the rest.
+unset $(git rev-parse --local-env-vars)
 
 case "$AGENT" in claude | codex) ;; *) echo "agent must be claude or codex" >&2; usage ;; esac
 case "$CONDITION" in skill | noskill) ;; *) echo "condition must be skill or noskill" >&2; usage ;; esac
@@ -100,19 +108,49 @@ SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/compare-skill.XXXXXX")"
 SCRATCH="$(cd "$SCRATCH" && pwd)"
 WS="$SCRATCH/workspace"
 DEPLOY="$SCRATCH/deployment"
-cp -R "$SOURCE_WS" "$WS"
-# A workspace copied from a checkout carries project skills; only staged copies may load.
-rm -rf "$WS/.agents/skills" "$WS/.claude/skills"
-mkdir -p "$DEPLOY/plugins"
 CODEX_HOME_DIR="$RUN/codex-home"
+# The scratch directory holds canary-modified skill copies, so all of it goes once the workspace
+# is out.
 finish() {
   set +e
   rm -f "$CODEX_HOME_DIR/auth.json"
-  if [ -d "$WS" ]; then mv "$WS" "$RUN/workspace" || echo "workspace left at $WS" >&2; fi
-  rm -rf "$DEPLOY"
-  rmdir "$SCRATCH" 2>/dev/null
+  if [ -d "$WS" ] && ! mv "$WS" "$RUN/workspace"; then
+    echo "workspace left at $WS" >&2
+    rm -rf "$DEPLOY" "$SCRATCH/repo-local"
+    return
+  fi
+  rm -rf "$SCRATCH"
 }
 trap finish EXIT
+# A copied .git entry would point git at the source repository: a linked worktree's .git file
+# holds an absolute gitdir, so the agent's commits would land in the source. The copy drops the
+# root .git entry and every nested .git file or symlink; a nested .git directory is a
+# self-contained repository and stays. A source that is a repository root gets a fresh repository holding its
+# HEAD history, with the source's uncommitted and staged changes left as unstaged working-tree
+# changes.
+cp -R "$SOURCE_WS" "$WS"
+rm -rf "$WS/.git"
+find "$WS" -name .git ! -type d -exec rm -f {} +
+if [ -e "$SOURCE_WS/.git" ]; then
+  branch="$(git -C "$SOURCE_WS" symbolic-ref --quiet --short HEAD || echo main)"
+  git init --quiet --initial-branch "$branch" "$WS"
+  if git -C "$SOURCE_WS" rev-parse --quiet --verify HEAD > /dev/null; then
+    git -C "$WS" fetch --quiet --no-tags "$SOURCE_WS" HEAD
+    git -C "$WS" update-ref HEAD FETCH_HEAD
+    git -C "$WS" reset --quiet
+    rm -f "$WS/.git/FETCH_HEAD"
+  fi
+  # The harness removes project skills below and then writes its settings and staged skill copies
+  # into these paths, differently per condition; none of that may show as a change the agent
+  # could review or commit.
+  mkdir -p "$WS/.git/info"
+  printf '/.claude/settings.json\n/.claude/skills/\n/.agents/skills/\n' >> "$WS/.git/info/exclude"
+  git -C "$WS" ls-files -z -- .claude/settings.json .claude/skills .agents/skills \
+    | xargs -0 git -C "$WS" update-index --skip-worktree --
+fi
+# A workspace copied from a checkout carries project skills; only staged copies may load.
+rm -rf "$WS/.agents/skills" "$WS/.claude/skills"
+mkdir -p "$DEPLOY/plugins"
 
 CANARY="compare-skill-canary-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
 append_canary() {
