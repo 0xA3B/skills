@@ -109,6 +109,8 @@ the effective diff, and the decisions that shaped the final solution:
 - Apply `writing:technical-writing` to the description when that skill is available; it owns the
   prose and its change-description reference. Start with why the change exists, then describe the
   overall solution and why it was chosen. Do not inventory commits or files.
+- Write a review bot's name without the `@` prefix in the title and description; a mention can start
+  that bot's task.
 - Name intentional boundaries, reviewer-sensitive risks, migrations, rollout needs, and follow-up
   work when they affect review or use.
 - When the target is the repository's default branch and the change fully resolves an issue, add the
