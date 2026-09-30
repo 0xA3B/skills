@@ -19,15 +19,17 @@
 #
 # The agent runs in a copy of the workspace under the system temp directory, outside this
 # checkout, so neither condition sees this repository's instruction files or repo-local skills;
-# the copy moves to <run-dir>/workspace when the run ends. Plugins are copied whole next to the
-# workspace and loaded the way each agent installs them (--plugin-dir on Claude Code, a local
-# marketplace plus a pre-populated plugin cache on Codex), so a skill's plugin-root references
-# resolve. The staged copy of the target skill carries a body-only canary token, as the trigger
-# evals do, so a load leaves a signal even when the agent reads no further file. A manual-only
-# target (frontmatter `disable-model-invocation: true`) is invoked with Claude's slash form,
-# because the model cannot load it from a prose request. The run directory receives final.md,
-# events.jsonl, stderr.log, and workspace/, and the script prints the agent's exit status, whether
-# the skill loaded, and how many tool calls the agent's permission or sandbox layer denied.
+# the copy moves to <run-dir>/workspace when the run ends. A workspace that is a repository root
+# gets a fresh repository in the copy, so the agent's git commands cannot change the source.
+# Plugins are copied whole next to the workspace and loaded the way each agent installs them
+# (--plugin-dir on Claude Code, a local marketplace plus a pre-populated plugin cache on Codex), so
+# a skill's plugin-root references resolve. The staged copy of the target skill carries a
+# body-only canary token, as the trigger evals do, so a load leaves a signal even when the agent
+# reads no further file. A manual-only target (frontmatter `disable-model-invocation: true`) is
+# invoked with Claude's slash form, because the model cannot load it from a prose request. The run
+# directory receives final.md, events.jsonl, stderr.log, and workspace/, and the script prints the
+# agent's exit status, whether the skill loaded, and how many tool calls the agent's permission or
+# sandbox layer denied.
 #
 # Exit codes: 0 the run is scoreable; 1 the run is invalid (the agent failed, reported an error,
 #             did not load the skill in the skill condition, loaded it in the noskill condition,
@@ -50,6 +52,12 @@ TASK_FILE="$(cd "$(dirname "$5")" && pwd)/$(basename "$5")"
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 MARKER=".compare-skill-run"
 MARKETPLACE="compare-skill"
+
+# An inherited GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, or other repository-local variable would
+# redirect the workspace setup and the agent's own git commands to another repository; git lists
+# them itself. Author and committer variables stay; config passed through the environment
+# (GIT_CONFIG_COUNT, GIT_CONFIG_PARAMETERS) goes with the rest.
+unset $(git rev-parse --local-env-vars)
 
 case "$AGENT" in claude | codex) ;; *) echo "agent must be claude or codex" >&2; usage ;; esac
 case "$CONDITION" in skill | noskill) ;; *) echo "condition must be skill or noskill" >&2; usage ;; esac
@@ -84,6 +92,26 @@ refuse() { rmdir "$RUN" 2>/dev/null; echo "$1" >&2; exit 2; }
 case "$SOURCE_WS/" in "$RUN"/*) refuse "workspace dir must not be inside the run dir" ;; esac
 case "$RUN/" in "$SOURCE_WS"/*) refuse "run dir must not be inside the workspace dir" ;; esac
 case "$TASK_FILE" in "$RUN"/*) refuse "task file must not be inside the run dir" ;; esac
+# A nested .git file or symlink, an initialized submodule or a linked worktree, points at a
+# repository the copy cannot carry: kept, it would reach the source; dropped, git inside the
+# directory would act on the copy's outer repository. Such workspaces are unsupported until a
+# task needs one. A nested .git directory is a self-contained repository and is copied with it.
+nested_git="$(find "$SOURCE_WS" -path "$SOURCE_WS/.git" -prune -o -name .git ! -type d -print -quit)"
+if [ -n "$nested_git" ]; then
+  refuse "workspace dir holds a submodule or linked worktree, which comparison runs do not support: $nested_git"
+fi
+# The fresh repository leaves behind state that the changed-state check below cannot see: a
+# repository-local filter driver changes what git stores once the agent edits a filtered file, and
+# replacement refs or grafts change the history git presents. Such workspaces are unsupported.
+if [ -e "$SOURCE_WS/.git" ]; then
+  local_filters="$(git -C "$SOURCE_WS" config --show-scope --name-only --get-regexp '^filter\.' \
+    | grep -E '^(local|worktree)[[:space:]]' || true)"
+  replace_ref="$(git -C "$SOURCE_WS" for-each-ref --count=1 --format='%(refname)' refs/replace/)"
+  grafts="$(git -C "$SOURCE_WS" rev-parse --path-format=absolute --git-path info/grafts)"
+  if [ -n "$local_filters" ] || [ -n "$replace_ref" ] || [ -f "$grafts" ]; then
+    refuse "workspace dir uses a repository-local filter driver, replacement refs, or grafts, which comparison runs do not support: $SOURCE_WS"
+  fi
+fi
 # Replace only a directory this script created: a wrong run-dir argument must not delete data.
 if [ -n "$(ls -A "$RUN")" ] && [ ! -f "$RUN/$MARKER" ]; then
   echo "run dir is not empty and was not created by this script: $RUN" >&2
@@ -100,19 +128,96 @@ SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/compare-skill.XXXXXX")"
 SCRATCH="$(cd "$SCRATCH" && pwd)"
 WS="$SCRATCH/workspace"
 DEPLOY="$SCRATCH/deployment"
-cp -R "$SOURCE_WS" "$WS"
-# A workspace copied from a checkout carries project skills; only staged copies may load.
-rm -rf "$WS/.agents/skills" "$WS/.claude/skills"
-mkdir -p "$DEPLOY/plugins"
 CODEX_HOME_DIR="$RUN/codex-home"
+# The scratch directory holds canary-modified skill copies, so all of it goes once the workspace
+# is out.
 finish() {
   set +e
   rm -f "$CODEX_HOME_DIR/auth.json"
-  if [ -d "$WS" ]; then mv "$WS" "$RUN/workspace" || echo "workspace left at $WS" >&2; fi
-  rm -rf "$DEPLOY"
-  rmdir "$SCRATCH" 2>/dev/null
+  if [ -d "$WS" ] && ! mv "$WS" "$RUN/workspace"; then
+    echo "workspace left at $WS" >&2
+    rm -rf "$DEPLOY" "$SCRATCH/repo-local"
+    return
+  fi
+  rm -rf "$SCRATCH"
 }
 trap finish EXIT
+# A copied .git entry would point git at the source repository: a linked worktree's .git file
+# holds an absolute gitdir, so the agent's commits would land in the source. The copy drops the
+# root .git entry, and a source that is a repository root gets a fresh repository holding its
+# HEAD history, with the source's uncommitted and staged changes left as unstaged working-tree
+# changes.
+# changed_state <repo>: one line per path whose working-tree state differs from HEAD (from the
+# empty tree before the first commit), plus each untracked path that is not ignored, sorted. A
+# present regular file carries the blob git would store for it after the repository's own filters
+# and line-ending rules, so content that the copy's missing state would change shows up too.
+changed_state() {
+  local base=HEAD path
+  git -C "$1" rev-parse --quiet --verify HEAD > /dev/null \
+    || base="$(git -C "$1" hash-object -t tree /dev/null)"
+  # NUL-delimited paths reach the file test unquoted, whatever characters they hold.
+  { git -C "$1" diff -z --no-ext-diff --no-renames --name-only "$base" --
+    git -C "$1" ls-files -z --others --exclude-standard; } | sort -z | while IFS= read -r -d '' path; do
+    if [ -f "$1/$path" ] && [ ! -L "$1/$path" ]; then
+      echo "$path $(git -C "$1" hash-object --path="$path" -- "$path")"
+    else
+      echo "$path"
+    fi
+  done
+}
+cp -R "$SOURCE_WS" "$WS"
+rm -rf "$WS/.git"
+if [ -e "$SOURCE_WS/.git" ]; then
+  branch="$(git -C "$SOURCE_WS" symbolic-ref --quiet --short HEAD || echo main)"
+  git init --quiet --initial-branch "$branch" "$WS"
+  # git status depends on config and info files a fresh repository does not inherit, so a clean
+  # source would otherwise show fabricated changes in the copy: mode changes under
+  # core.filemode=false, line-ending changes under core.autocrlf, or files the source's
+  # info/exclude ignores. Only these carry over; remotes and hooks stay behind.
+  for key in core.filemode core.autocrlf core.eol core.ignorecase core.symlinks \
+    core.precomposeunicode core.excludesFile core.attributesFile; do
+    value="$(git -C "$SOURCE_WS" config --get "$key" || true)"
+    if [ -n "$value" ]; then git -C "$WS" config "$key" "$value"; fi
+  done
+  mkdir -p "$WS/.git/info"
+  for file in info/exclude info/attributes; do
+    source_file="$(git -C "$SOURCE_WS" rev-parse --path-format=absolute --git-path "$file")"
+    if [ -f "$source_file" ]; then cat "$source_file" >> "$WS/.git/$file"; fi
+  done
+  if git -C "$SOURCE_WS" rev-parse --quiet --verify HEAD > /dev/null; then
+    # --update-shallow accepts the history of a shallow source, which git fetch otherwise rejects.
+    git -C "$WS" fetch --quiet --no-tags --update-shallow "$SOURCE_WS" HEAD
+    git -C "$WS" update-ref HEAD FETCH_HEAD
+    git -C "$WS" reset --quiet
+    rm -f "$WS/.git/FETCH_HEAD"
+    # A sparse checkout leaves paths out of the working tree and marks them skip-worktree in the
+    # source index; the same marks keep those paths from showing as deletions in the copy.
+    git -C "$SOURCE_WS" ls-files -z -t | while IFS= read -r -d '' entry; do
+      case "$entry" in "S "*) printf '%s\0' "${entry#S }" ;; esac
+    done | xargs -0 git -C "$WS" update-index --skip-worktree --
+  fi
+  # Other state git status depends on, such as a filter driver or an excludes file inside the
+  # source's .git, would make the copy show changes the source does not. The source and the copy
+  # must list the same changes; the index is left out, because staged changes arrive unstaged.
+  source_changes="$(changed_state "$SOURCE_WS")"
+  copy_changes="$(changed_state "$WS")"
+  if [ "$source_changes" != "$copy_changes" ]; then
+    rm -rf "$WS"
+    printf 'changes in %s:\n%s\nchanges in its copy:\n%s\n' \
+      "$SOURCE_WS" "$source_changes" "$copy_changes" >&2
+    echo "workspace dir depends on repository state that comparison runs do not reproduce" >&2
+    exit 2
+  fi
+  # The harness removes project skills below and stages skill copies into these paths in the skill
+  # condition only; neither may show as a change the agent could review or commit.
+  # The leading newline ends a copied exclude file that lacks a final one.
+  printf '\n/.claude/skills/\n/.agents/skills/\n' >> "$WS/.git/info/exclude"
+  git -C "$WS" ls-files -z -- .claude/skills .agents/skills \
+    | xargs -0 git -C "$WS" update-index --skip-worktree --
+fi
+# A workspace copied from a checkout carries project skills; only staged copies may load.
+rm -rf "$WS/.agents/skills" "$WS/.claude/skills"
+mkdir -p "$DEPLOY/plugins"
 
 CANARY="compare-skill-canary-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
 append_canary() {
@@ -166,13 +271,13 @@ case "$AGENT" in
   claude)
     MODEL="${MODEL:-opus}"
     TOOLS="${TOOLS:-Read,Write,Edit,Glob,Grep,Bash,Skill}"
-    mkdir -p "$WS/.claude"
-    printf '{\n  "disableBundledSkills": true\n}\n' > "$WS/.claude/settings.json"
     # --tools, --allowedTools, --plugin-dir, and --add-dir are variadic, so they are passed in =
-    # form to keep them from swallowing the prompt argument.
+    # form to keep them from swallowing the prompt argument. The bundled skills are disabled
+    # through --settings, which --setting-sources does not filter, so the workspace's own
+    # .claude/settings.json stays as the source has it and loads as project settings.
     ARGS=(-p --output-format stream-json --verbose --permission-mode acceptEdits
-      "--tools=$TOOLS" "--allowedTools=$TOOLS" --setting-sources project --strict-mcp-config
-      --model "$MODEL" --effort "$EFFORT")
+      "--tools=$TOOLS" "--allowedTools=$TOOLS" '--settings={"disableBundledSkills":true}'
+      --setting-sources project --strict-mcp-config --model "$MODEL" --effort "$EFFORT")
     if [ "$CONDITION" = skill ]; then
       if [ "$MANUAL_ONLY" = yes ]; then
         PROMPT="/$CALLOUT $TASK"
