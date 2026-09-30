@@ -100,6 +100,18 @@ nested_git="$(find "$SOURCE_WS" -path "$SOURCE_WS/.git" -prune -o -name .git ! -
 if [ -n "$nested_git" ]; then
   refuse "workspace dir holds a submodule or linked worktree, which comparison runs do not support: $nested_git"
 fi
+# The fresh repository leaves behind state that the changed-state check below cannot see: a
+# repository-local filter driver changes what git stores once the agent edits a filtered file, and
+# replacement refs or grafts change the history git presents. Such workspaces are unsupported.
+if [ -e "$SOURCE_WS/.git" ]; then
+  local_filters="$(git -C "$SOURCE_WS" config --show-scope --name-only --get-regexp '^filter\.' \
+    | grep -E '^(local|worktree)[[:space:]]' || true)"
+  replace_ref="$(git -C "$SOURCE_WS" for-each-ref --count=1 --format='%(refname)' refs/replace/)"
+  grafts="$(git -C "$SOURCE_WS" rev-parse --path-format=absolute --git-path info/grafts)"
+  if [ -n "$local_filters" ] || [ -n "$replace_ref" ] || [ -f "$grafts" ]; then
+    refuse "workspace dir uses a repository-local filter driver, replacement refs, or grafts, which comparison runs do not support: $SOURCE_WS"
+  fi
+fi
 # Replace only a directory this script created: a wrong run-dir argument must not delete data.
 if [ -n "$(ls -A "$RUN")" ] && [ ! -f "$RUN/$MARKER" ]; then
   echo "run dir is not empty and was not created by this script: $RUN" >&2
@@ -143,8 +155,9 @@ changed_state() {
   local base=HEAD path
   git -C "$1" rev-parse --quiet --verify HEAD > /dev/null \
     || base="$(git -C "$1" hash-object -t tree /dev/null)"
-  { git -C "$1" diff --no-ext-diff --no-renames --name-only "$base" --
-    git -C "$1" ls-files --others --exclude-standard; } | sort | while IFS= read -r path; do
+  # NUL-delimited paths reach the file test unquoted, whatever characters they hold.
+  { git -C "$1" diff -z --no-ext-diff --no-renames --name-only "$base" --
+    git -C "$1" ls-files -z --others --exclude-standard; } | sort -z | while IFS= read -r -d '' path; do
     if [ -f "$1/$path" ] && [ ! -L "$1/$path" ]; then
       echo "$path $(git -C "$1" hash-object --path="$path" -- "$path")"
     else
@@ -197,7 +210,8 @@ if [ -e "$SOURCE_WS/.git" ]; then
   fi
   # The harness removes project skills below and stages skill copies into these paths in the skill
   # condition only; neither may show as a change the agent could review or commit.
-  printf '/.claude/skills/\n/.agents/skills/\n' >> "$WS/.git/info/exclude"
+  # The leading newline ends a copied exclude file that lacks a final one.
+  printf '\n/.claude/skills/\n/.agents/skills/\n' >> "$WS/.git/info/exclude"
   git -C "$WS" ls-files -z -- .claude/skills .agents/skills \
     | xargs -0 git -C "$WS" update-index --skip-worktree --
 fi
