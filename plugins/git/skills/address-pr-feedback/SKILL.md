@@ -181,7 +181,11 @@ Before the hand off, apply that adapter's follow-up protocol to the current head
 observation with its status. If a review of a later head appears from an adapter that converged or
 whose classification carried forward, at that final observation or while the loop is still polling
 another adapter, disposition its findings; when that review itself fails the convergence rule, the
-adapter is active again and its rounds continue. Continue rounds for adapters that have not
+adapter is active again and its rounds continue. Otherwise, fix a finding from that review only when
+it concerns behavior the change request already claims, such as a regression in an input it supports
+or a flaw in an earlier round's fix, and defer the rest, drafting one follow-up issue for them in
+the hand-off report. After one push of such fixes past convergence, defer every below-top-tier
+finding from that adapter's later reviews and hand off. Continue rounds for adapters that have not
 converged.
 
 When a finding revises a condition that two earlier rounds already revised, treat the condition as
