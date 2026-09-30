@@ -95,10 +95,13 @@ case "$TASK_FILE" in "$RUN"/*) refuse "task file must not be inside the run dir"
 # An initialized submodule's repository lives under the source's .git, which the copy does not
 # carry, so git inside the submodule would act on the copy's outer repository. Submodule
 # workspaces are unsupported until a task needs one; `submodule status` marks uninitialized
-# submodules with a leading -.
-if [ -e "$SOURCE_WS/.git" ] \
-  && [ -n "$(git -C "$SOURCE_WS" submodule status 2>/dev/null | grep -v '^-' || true)" ]; then
-  refuse "workspace dir has initialized submodules, which comparison runs do not support: $SOURCE_WS"
+# submodules with a leading -, and a status it cannot read is refused too.
+if [ -e "$SOURCE_WS/.git" ]; then
+  submodules="$(git -C "$SOURCE_WS" submodule status 2>&1)" \
+    || refuse "cannot read the submodules of workspace dir $SOURCE_WS: $submodules"
+  if [ -n "$(grep -v '^-' <<< "$submodules" || true)" ]; then
+    refuse "workspace dir has initialized submodules, which comparison runs do not support: $SOURCE_WS"
+  fi
 fi
 # Replace only a directory this script created: a wrong run-dir argument must not delete data.
 if [ -n "$(ls -A "$RUN")" ] && [ ! -f "$RUN/$MARKER" ]; then
@@ -133,15 +136,29 @@ trap finish EXIT
 # A copied .git entry would point git at the source repository: a linked worktree's .git file
 # holds an absolute gitdir, so the agent's commits would land in the source. The copy drops the
 # root .git entry and every nested .git file or symlink; a nested .git directory is a
-# self-contained repository and stays. A source that is a repository root gets a fresh repository holding its
-# HEAD history, with the source's uncommitted and staged changes left as unstaged working-tree
-# changes.
+# self-contained repository and stays. A source that is a repository root gets a fresh
+# repository holding its HEAD history, with the source's uncommitted and staged changes left as
+# unstaged working-tree changes.
 cp -R "$SOURCE_WS" "$WS"
 rm -rf "$WS/.git"
 find "$WS" -name .git ! -type d -exec rm -f {} +
 if [ -e "$SOURCE_WS/.git" ]; then
   branch="$(git -C "$SOURCE_WS" symbolic-ref --quiet --short HEAD || echo main)"
   git init --quiet --initial-branch "$branch" "$WS"
+  # git status depends on config and info files a fresh repository does not inherit, so a clean
+  # source would otherwise show fabricated changes in the copy: mode changes under
+  # core.filemode=false, line-ending changes under core.autocrlf, or files the source's
+  # info/exclude ignores. Only these carry over; remotes and hooks stay behind.
+  for key in core.filemode core.autocrlf core.eol core.ignorecase core.symlinks \
+    core.precomposeunicode core.excludesFile core.attributesFile; do
+    value="$(git -C "$SOURCE_WS" config --get "$key" || true)"
+    if [ -n "$value" ]; then git -C "$WS" config "$key" "$value"; fi
+  done
+  mkdir -p "$WS/.git/info"
+  for file in info/exclude info/attributes; do
+    source_file="$(git -C "$SOURCE_WS" rev-parse --path-format=absolute --git-path "$file")"
+    if [ -f "$source_file" ]; then cat "$source_file" >> "$WS/.git/$file"; fi
+  done
   if git -C "$SOURCE_WS" rev-parse --quiet --verify HEAD > /dev/null; then
     # --update-shallow accepts the history of a shallow source, which git fetch otherwise rejects.
     git -C "$WS" fetch --quiet --no-tags --update-shallow "$SOURCE_WS" HEAD
@@ -156,7 +173,6 @@ if [ -e "$SOURCE_WS/.git" ]; then
   fi
   # The harness removes project skills below and stages skill copies into these paths in the skill
   # condition only; neither may show as a change the agent could review or commit.
-  mkdir -p "$WS/.git/info"
   printf '/.claude/skills/\n/.agents/skills/\n' >> "$WS/.git/info/exclude"
   git -C "$WS" ls-files -z -- .claude/skills .agents/skills \
     | xargs -0 git -C "$WS" update-index --skip-worktree --
