@@ -37,8 +37,7 @@ is not clearly caused by this change, report the blocker and the safest next act
 - Follow the `writing:agent-instructions` skill for skill-body drafting, instruction quality,
   information hierarchy, and completion criteria.
 - Use existing skills in the target plugin as local style examples.
-- Follow the plugin version policy in `plugins/AGENTS.md`; adding a new skill requires a patch
-  version bump unless the user explicitly asks to test same-version behavior.
+- Follow the plugin version policy in `plugins/AGENTS.md`.
 - Keep runtime instructions in `SKILL.md`.
 - Keep Codex UI metadata and Codex invocation policy in `agents/openai.yaml`; keep Claude Code
   invocation policy in `SKILL.md` frontmatter (`disable-model-invocation`). The linter enforces
@@ -86,7 +85,8 @@ is not clearly caused by this change, report the blocker and the safest next act
 9. When the skill should be visible from plugin-level prompt examples, update Codex plugin default
    prompts. Keep `interface.defaultPrompt` to three prompts or fewer, choose the most useful entry
    points, and include explicit `$plugin-name:skill-name` callouts for manual-only skills.
-10. Bump the patch version in the plugin's portable manifest (`plugin.json`) so every targeted agent
+10. Unless the user explicitly asks to test same-version behavior, bump the version in the plugin's
+    portable manifest (`plugin.json`), sized by the plugin version policy, so every targeted agent
     treats the installed skill set as changed. If the plugin ships a Claude extension
     (`.claude-plugin/plugin.json`), bump its version to match; the linter requires the two to match.
 11. If implicit invocation is enabled, run trigger validation on both agents:
