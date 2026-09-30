@@ -55,12 +55,13 @@ the change request's own surface and tests; such a fix is a permitted fix. Gate 
 An explicit invocation of this skill, or a user request that asks to handle, address, or drive the
 feedback, to resolve its review threads, or to request a follow-up review, authorizes for active
 adapters polling, adapter-defined reactions and replies, thread resolution after disposition,
-permitted edits, relevant validation, applying `git:commit`, normal pushes, and the transient-error
-retry an adapter defines. A request for a follow-up review is answered by each adapter's follow-up
-protocol, which observes the repository's review configuration instead of requesting a review. A
-request that asks only to wait for, poll, or triage a review bot's findings authorizes polling and
-triage: classify each finding, report the dispositions, and return `blocked` on the user's decision
-before any reaction, reply, thread resolution, edit, commit, or push.
+permitted edits, relevant validation, applying `git:commit`, normal pushes, and the review requests
+an adapter defines, such as a transient-error retry. A request for a follow-up review is answered by
+each adapter's follow-up protocol, which observes the repository's review configuration and requests
+a review only where the adapter defines one. A request that asks only to wait for, poll, or triage a
+review bot's findings authorizes polling and triage: classify each finding, report the dispositions,
+and return `blocked` on the user's decision before any reaction, reply, review request, thread
+resolution, edit, commit, or push.
 
 Neither authorization extends to:
 
