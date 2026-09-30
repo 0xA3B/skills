@@ -25,8 +25,9 @@ were made or recommended. For a skill that shapes an artifact, the assessment is
 comparison.
 
 Stop when the target skill either survives the pressure prompts, has been tightened for meaningful
-failures, or needs a user decision about its intended behavior; for a comparison, stop when every
-run is scored and each rubric item is read per agent.
+failures, or needs a user decision about its intended behavior; for a comparison, stop when each
+agent and condition has a scored run and each rubric item is read per agent; a smoke run does not
+count.
 
 ## When to use
 
@@ -128,9 +129,10 @@ message, event stream, and workspace under `.local/pressure/runs/`, prints wheth
 and how many tool calls the agent's permission or sandbox layer denied, and exits non-zero when the
 run is invalid: the agent failed or reported an error, the skill did not load in the skill
 condition, a tool call was denied, or a skill outside the staged set was available. Rerun an invalid
-run instead of scoring it. The agent sees only the staged copies, so when the target applies other
-skills, set `EXTRA_SKILLS` to their directories: a plugin skill brings its whole plugin, and a
-repo-local skill is copied as a project skill.
+run instead of scoring it. A run checked only for `verdict: scoreable` and never scored against the
+rubric is a smoke run: it shows the run worked, not how the skill compares. The agent sees only the
+staged copies, so when the target applies other skills, set `EXTRA_SKILLS` to their directories: a
+plugin skill brings its whole plugin, and a repo-local skill is copied as a project skill.
 
 ### 4. Evaluate manually
 
@@ -180,7 +182,8 @@ End with:
 - target skill and protected behavior
 - pressure prompts used, summarized briefly, or the comparison task and rubric
 - isolated context used
-- observed pass/fail behavior and important rationalizations, or the per-item scores of every run
+- observed pass/fail behavior and important rationalizations, or the per-item scores of every scored
+  run; name each smoke run as a smoke run, never as a comparison result
 - skill changes made or recommended
 - whether scratch prompts or notes were discarded or saved under `.local/`
 - remaining uncertainty or user decisions

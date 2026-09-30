@@ -227,6 +227,16 @@ Before any other change to an issue, including creating one or posting a comment
 approved disposition does not determine, show the exact text and obtain the user's explicit
 confirmation. Read back every public mutation and correct a material publication alteration.
 
+When you report a change request as ready to merge, include:
+
+- for each `wait` item on an open `feedback` issue or in `.local/feedback-deferred/` whose recorded
+  trigger the change request fires: the fired trigger, the proposed disposition, and the exact text
+  to post on or write into its record;
+- each trigger eval or pressure test that step 5 of "Apply and re-evaluate" calls for but that did
+  not run after the last change within its scope, and each skill whose fixtures step 5 calls for but
+  that no run after that change covered, such as a repo-local skill left out of a marketplace
+  selection and not rerun on its own.
+
 For every dispositioned GitHub issue, record each item's disposition as below, then close the issue
 only when every item on it is terminal and every encoded change has landed; a `wait` item or an
 unlanded encode keeps it open.
