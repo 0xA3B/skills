@@ -120,7 +120,8 @@ unavailable, run the strongest local review possible and report that the lanes w
 Provide every lane reviewer:
 
 - the exact review target and diff command;
-- relevant repository guidance and intent sources;
+- relevant repository guidance and intent sources, including the `## Code Review Rules` section of
+  the repository's root `AGENTS.md` and of the `AGENTS.md` nearest each changed file, when present;
 - the assigned lane reference, plus [FOWLER-SMELLS.md](references/FOWLER-SMELLS.md) for the
   simplification and codebase-design lanes;
 - the `engineering:codebase-design` skill body for the codebase-design and API/seam lanes, because
@@ -168,9 +169,9 @@ Apply `engineering:receiving-feedback` to the returned findings: merge findings 
 lanes by its triage rules, verify before accepting, and classify each with its status taxonomy.
 
 The session's authoring context is triage context: judge findings against the decisions and
-constraints from the development session, and triage autonomously instead of replaying findings to
-the user. Report every rejection with its rationale; autonomy covers judging findings, not
-discarding them silently.
+constraints from the development session and the review rules the lanes received, and triage
+autonomously instead of replaying findings to the user. Report every rejection with its rationale;
+autonomy covers judging findings, not discarding them silently.
 
 Automatically apply accepted or auto-accepted behavior-preserving fixes within the changed surface
 or directly adjacent tests and docs. Apply dependent fixes in dependency order and let the affected
