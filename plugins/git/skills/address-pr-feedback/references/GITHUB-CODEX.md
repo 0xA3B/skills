@@ -106,8 +106,11 @@ When a finding exists only in a review body and has no inline comment or thread,
 disposition in a pull-request comment that names the finding. Skip reaction and thread-resolution
 steps that have no target.
 
-Do not use `@codex address that feedback`; the agent driving this workflow owns fixes, validation,
-commits, and push authority.
+In a pull request description, reply, or comment, write the `@codex` mention only in a review
+request this adapter allows or the user asks to have posted, and otherwise name Codex without the
+`@`: Codex treats any mention as a task or review invocation, so a description that quoted a past
+review request started a coding task instead of a review. The agent driving this workflow owns
+fixes, validation, commits, and push authority, so no mention asks Codex to address feedback.
 
 ## Follow-up review
 
