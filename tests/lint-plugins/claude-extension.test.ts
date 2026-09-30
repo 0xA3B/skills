@@ -193,7 +193,6 @@ describe("Claude extension alignment", () => {
       );
 
       expect(ruleIds(context)).toStrictEqual(["alignment/dual-display-name"]);
-      expect(diagnosticByRule(context, "alignment/dual-display-name")?.severity).toBe("error");
     });
   });
 

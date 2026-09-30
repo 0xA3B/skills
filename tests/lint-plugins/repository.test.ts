@@ -88,7 +88,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       const repository = await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(1);
+      expect(context.diagnostics).toHaveLength(1);
       expect(ruleIds(context)).toContain("coverage/codex-extension");
       expect(repository.plugins).toStrictEqual([
         {
@@ -109,7 +109,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(1);
+      expect(context.diagnostics).toHaveLength(1);
       expect(ruleIds(context)).toContain("coverage/manifest-listed");
     });
   });
@@ -124,7 +124,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       const result = await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(1);
+      expect(context.diagnostics).toHaveLength(1);
       expect(ruleIds(context)).toContain("coverage/portable-manifest");
       expect(result.plugins.length).toBe(2);
     });
@@ -144,7 +144,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(1);
+      expect(context.diagnostics).toHaveLength(1);
       expect(ruleIds(context)).toContain("coverage/target-required");
     });
   });
@@ -159,7 +159,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(1);
+      expect(context.diagnostics).toHaveLength(1);
       expect(ruleIds(context)).toContain("coverage/legacy-codex-manifest");
     });
   });
@@ -172,7 +172,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(1);
+      expect(context.diagnostics).toHaveLength(1);
       expect(context.diagnostics.map((diagnostic) => diagnostic.message)).toStrictEqual([
         "Plugin ships a Claude extension but is missing from the Claude marketplace catalog. Add .claude-plugin/marketplace.json to expose Claude plugins.",
       ]);
@@ -188,7 +188,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(1);
+      expect(context.diagnostics).toHaveLength(1);
       expect(context.diagnostics.map((diagnostic) => diagnostic.message)).toStrictEqual([
         "Plugin ships a Claude extension but is missing from the Claude marketplace catalog.",
       ]);
@@ -256,7 +256,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(0);
+      expect(context.diagnostics).toHaveLength(0);
       expect(ruleIds(context)).not.toContain("coverage/manifest-listed");
     });
   });
@@ -272,7 +272,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       const result = await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(0);
+      expect(context.diagnostics).toHaveLength(0);
       expect(result.plugins.length).toBe(0);
     });
   });
@@ -289,7 +289,7 @@ describe("plugin repository validation", () => {
       const context = createTestContext(repoRoot);
       await validatePluginRepository(context);
 
-      expect(context.diagnostics.filter((d) => d.severity === "error")).toHaveLength(1);
+      expect(context.diagnostics).toHaveLength(1);
       expect(ruleIds(context)).toStrictEqual(["parse/json"]);
     });
   });

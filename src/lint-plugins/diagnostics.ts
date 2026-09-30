@@ -1,10 +1,9 @@
-export type Severity = "error" | "warning";
-
+// Every diagnostic fails the lint run: there is no warning severity, so a rule either reports a
+// problem to fix or does not exist (#147).
 export type Diagnostic = {
   filePath: string;
   message: string;
   ruleId: string;
-  severity: Severity;
   pointer?: string;
 };
 
@@ -24,9 +23,8 @@ export function createValidationContext(options: ValidationOptions = {}): Valida
   };
 }
 
-function report(
+export function error(
   context: ValidationContext,
-  severity: Severity,
   ruleId: string,
   filePath: string,
   message: string,
@@ -36,27 +34,6 @@ function report(
     filePath,
     message,
     ruleId,
-    severity,
     ...(pointer === undefined ? {} : { pointer }),
   });
-}
-
-export function error(
-  context: ValidationContext,
-  ruleId: string,
-  filePath: string,
-  message: string,
-  pointer?: string,
-): void {
-  report(context, "error", ruleId, filePath, message, pointer);
-}
-
-export function warning(
-  context: ValidationContext,
-  ruleId: string,
-  filePath: string,
-  message: string,
-  pointer?: string,
-): void {
-  report(context, "warning", ruleId, filePath, message, pointer);
 }

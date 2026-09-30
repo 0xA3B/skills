@@ -19,7 +19,6 @@ export type LintResult = {
   errorCount: number;
   pluginCount: number;
   repoLocalSkillCount: number;
-  warningCount: number;
 };
 
 export async function lintPlugins(options: ValidationOptions = {}): Promise<LintResult> {
@@ -36,19 +35,13 @@ export async function lintPlugins(options: ValidationOptions = {}): Promise<Lint
   }
   const repoLocalSkillCount = await validateRepoLocalSkills(context, repository);
 
-  const errorCount = context.diagnostics.filter(
-    (diagnostic) => diagnostic.severity === "error",
-  ).length;
-  const warningCount = context.diagnostics.length - errorCount;
-
   return {
     catalog,
     claudeCatalog,
     context,
-    errorCount,
+    errorCount: context.diagnostics.length,
     pluginCount: repository.plugins.length,
     repoLocalSkillCount,
-    warningCount,
   };
 }
 
@@ -80,19 +73,11 @@ async function validateRepoLocalSkills(
 }
 
 export async function runLintPlugins(options: ValidationOptions = {}): Promise<void> {
-  const { context, errorCount, pluginCount, repoLocalSkillCount, warningCount } =
-    await lintPlugins(options);
-  if (context.diagnostics.length > 0) {
-    const status = errorCount > 0 ? "failed" : "completed";
-    const summary = `Plugin lint ${status} with ${errorCount} error(s) and ${warningCount} warning(s):`;
-    if (errorCount > 0) {
-      console.error(summary);
-      printDiagnostics(context, console.error);
-    } else {
-      console.log(summary);
-      printDiagnostics(context, console.log);
-    }
-    process.exitCode = errorCount > 0 ? 1 : 0;
+  const { context, errorCount, pluginCount, repoLocalSkillCount } = await lintPlugins(options);
+  if (errorCount > 0) {
+    console.error(`Plugin lint failed with ${errorCount} error(s):`);
+    printDiagnostics(context, console.error);
+    process.exitCode = 1;
     return;
   }
 

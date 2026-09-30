@@ -7,6 +7,10 @@ export const AGENT_SKILL_FRONTMATTER_KEYS = new Set([
   "name",
 ]);
 
+export const AGENT_SKILL_DESCRIPTION_MAX_LENGTH = 1024;
+
+export const AGENT_SKILL_COMPATIBILITY_MAX_LENGTH = 500;
+
 export const CLAUDE_SKILL_FRONTMATTER_KEYS = new Set([
   "agent",
   "argument-hint",

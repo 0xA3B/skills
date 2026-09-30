@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { claudeExtensionPath } from "./claude-extension.js";
 import { CODEX_EXTENSION_FIELD, CODEX_EXTENSION_POINTER } from "./codex-extension.js";
-import { error, type ValidationContext, warning } from "./diagnostics.js";
+import { error, type ValidationContext } from "./diagnostics.js";
 import { isDirectory, isFile } from "./files.js";
 import { portableManifestPath } from "./portable-manifest.js";
 import type { PluginTargets, PluginTargetPresence } from "./types.js";
@@ -104,17 +104,21 @@ type RepositoryAlignmentCatalog = {
   localEntries: ReadonlyArray<{ name: string; sourcePath: string; pointer: string }>;
 };
 
+// Repository decision: AGENTS.md keeps plugin packaging under plugins/, and missingTargets resolves
+// a plugin at plugins/<name>. The name and directory-name rules cannot catch an entry that points
+// outside plugins/, so this rule is the one that enforces the convention.
 export function validateLocalRepositoryAlignment(
   context: ValidationContext,
   catalog: RepositoryAlignmentCatalog,
 ): void {
   for (const entry of catalog.localEntries.values()) {
-    if (entry.sourcePath !== `./plugins/${entry.name}`) {
-      warning(
+    const expected = `./plugins/${entry.name}`;
+    if (entry.sourcePath !== expected) {
+      error(
         context,
         "alignment/source-path",
         catalog.marketplacePath,
-        `Local source path usually matches "./plugins/<name>"; found "${entry.sourcePath}".`,
+        `Local source path must be "${expected}"; found "${entry.sourcePath}".`,
         entry.pointer,
       );
     }

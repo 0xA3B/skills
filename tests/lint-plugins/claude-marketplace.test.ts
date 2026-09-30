@@ -70,7 +70,7 @@ describe("Claude marketplace validation", () => {
     });
   });
 
-  it("warns when a local source path strays from the plugins directory convention", async () => {
+  it("reports a local source path that strays from the plugins directory convention", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeValidPluginRepo(repoRoot);
       const context = createTestContext(repoRoot);
