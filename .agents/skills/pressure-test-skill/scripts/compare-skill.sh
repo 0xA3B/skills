@@ -135,14 +135,22 @@ trap finish EXIT
 # root .git entry, and a source that is a repository root gets a fresh repository holding its
 # HEAD history, with the source's uncommitted and staged changes left as unstaged working-tree
 # changes.
-# changed_paths <repo>: the sorted paths whose working-tree state differs from HEAD (from the empty
-# tree before the first commit), plus untracked paths that are not ignored.
-changed_paths() {
-  local base=HEAD
+# changed_state <repo>: one line per path whose working-tree state differs from HEAD (from the
+# empty tree before the first commit), plus each untracked path that is not ignored, sorted. A
+# present regular file carries the blob git would store for it after the repository's own filters
+# and line-ending rules, so content that the copy's missing state would change shows up too.
+changed_state() {
+  local base=HEAD path
   git -C "$1" rev-parse --quiet --verify HEAD > /dev/null \
     || base="$(git -C "$1" hash-object -t tree /dev/null)"
   { git -C "$1" diff --no-ext-diff --no-renames --name-only "$base" --
-    git -C "$1" ls-files --others --exclude-standard; } | sort
+    git -C "$1" ls-files --others --exclude-standard; } | sort | while IFS= read -r path; do
+    if [ -f "$1/$path" ] && [ ! -L "$1/$path" ]; then
+      echo "$path $(git -C "$1" hash-object --path="$path" -- "$path")"
+    else
+      echo "$path"
+    fi
+  done
 }
 cp -R "$SOURCE_WS" "$WS"
 rm -rf "$WS/.git"
@@ -177,13 +185,12 @@ if [ -e "$SOURCE_WS/.git" ]; then
   fi
   # Other state git status depends on, such as a filter driver or an excludes file inside the
   # source's .git, would make the copy show changes the source does not. The source and the copy
-  # must list the same changed paths; the index is left out, because staged changes arrive
-  # unstaged.
-  source_changes="$(changed_paths "$SOURCE_WS")"
-  copy_changes="$(changed_paths "$WS")"
+  # must list the same changes; the index is left out, because staged changes arrive unstaged.
+  source_changes="$(changed_state "$SOURCE_WS")"
+  copy_changes="$(changed_state "$WS")"
   if [ "$source_changes" != "$copy_changes" ]; then
     rm -rf "$WS"
-    printf 'changed paths in %s:\n%s\nchanged paths in its copy:\n%s\n' \
+    printf 'changes in %s:\n%s\nchanges in its copy:\n%s\n' \
       "$SOURCE_WS" "$source_changes" "$copy_changes" >&2
     echo "workspace dir depends on repository state that comparison runs do not reproduce" >&2
     exit 2
