@@ -65,7 +65,9 @@ SHA, target head, local topic head, and relevant worktrees.
 Before merging, require:
 
 - an open, non-draft change request, unless it is already merged;
-- a forge source head matching the reviewed and local source head;
+- a forge source head matching the local source head and, when the change request or its repository
+  shows automated review activity, the reviewed head: the current source head the last
+  `git:address-pr-feedback` invocation reported, which a local review lane does not set;
 - all required CI passing on that head;
 - all required approvals present and no blocking review decision;
 - every review thread resolved, regardless of author;
@@ -113,7 +115,9 @@ After the forge reports success:
 2. verify the request is merged, not merely closed or queued;
 3. verify the target contains the expected merge result under the selected method;
 4. record the resulting target and merge commit identities;
-5. check whether the remote topic branch still exists;
+5. check whether the remote topic branch still exists with
+   `git ls-remote <remote> refs/heads/<branch>` against the remote that hosts it; a remote-tracking
+   ref can outlive a branch the forge deleted;
 6. if it exists and permissions allow, delete it only after steps 1–4 succeed.
 
 Do not infer success from a CLI exit code alone.
@@ -146,6 +150,7 @@ Report:
 
 - forge, change-request URL, exact merged source head, target, and merge method;
 - required checks, approvals, and thread-resolution evidence;
+- the head the last automated review covered, when it differs from the merged source head;
 - terminal merge or queue state;
 - remote branch deletion and fetched target state;
 - ignored SHA references updated or left unresolved;
