@@ -145,9 +145,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
    - at least one clear positive case
    - at least one clear negative case
    - near-miss cases that exercise the description boundary
-4. Separate diagnostic runs from gate runs. A gate run is a run with `--with-dependents` or a plugin
-   or marketplace selection; every other run is a diagnostic run, allowed while wording changes.
-   Start a gate run only when each condition that applies holds:
+4. Separate diagnostic runs from gate runs. A diagnostic run is a run narrowed to one case with
+   `--case <id>` and without `--with-dependents`, allowed while wording changes; every other run,
+   including the target's full fixture, is a gate run. Start a gate run only when each condition
+   that applies holds:
    - If any skill's `description` or `when_to_use` differs from `main` in more than mechanical or
      incidental wording, the prose lane of `engineering:review-changes` has reviewed the exact
      wording the gate run evaluates, and its accepted fixes are applied. A wording edit after that
@@ -162,9 +163,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
    ```
 
    The `description` is one trigger contract shared by both agents, so skills should pass on both.
-   Use `--agent codex` or `--agent claude` to iterate on one agent at a time. The harness stages
-   repo-local skills under `.agents/skills/` for Codex and `.claude/skills/` for Claude Code,
-   mirroring how the checkout's `.claude/skills` symlink exposes them in live sessions.
+   Use `--agent codex` or `--agent claude` to run one agent at a time; while wording changes,
+   iterate with diagnostic runs. The harness stages repo-local skills under `.agents/skills/` for
+   Codex and `.claude/skills/` for Claude Code, mirroring how the checkout's `.claude/skills`
+   symlink exposes them in live sessions.
 
    Every run stages the target's deployment context by default. A plugin skill competes against
    every plugin in the agent's marketplace catalog, matching an installed session. A repo-local
@@ -210,10 +212,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
 9. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
    direction — fix the repo-local description. Marketplace descriptions serve every installation;
    edit one only when the overlap would also misfire in a session without the repo-local skills.
-10. Rerun the same diagnostic run after edits. When step 4's gate conditions hold, rerun with
-    `--with-dependents` the fixtures of every skill whose `description` or `when_to_use` changed and
-    every skill named in `wrong-skill` results. For plugin skills, one marketplace selection covers
-    several:
+10. After edits, rerun failed cases as diagnostic runs. When step 4's gate conditions hold, rerun
+    with `--with-dependents` the fixtures of every skill whose `description` or `when_to_use`
+    changed and every skill named in `wrong-skill` results. For plugin skills, one marketplace
+    selection covers several:
     `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both --with-dependents`.
     The marketplace selection refuses a repo-local path, so rerun a repo-local target one at a time:
     `mise exec -- pnpm eval:trigger -- <skill-path> --agent both --with-dependents`. The flag runs
