@@ -135,6 +135,15 @@ trap finish EXIT
 # root .git entry, and a source that is a repository root gets a fresh repository holding its
 # HEAD history, with the source's uncommitted and staged changes left as unstaged working-tree
 # changes.
+# changed_paths <repo>: the sorted paths whose working-tree state differs from HEAD (from the empty
+# tree before the first commit), plus untracked paths that are not ignored.
+changed_paths() {
+  local base=HEAD
+  git -C "$1" rev-parse --quiet --verify HEAD > /dev/null \
+    || base="$(git -C "$1" hash-object -t tree /dev/null)"
+  { git -C "$1" diff --no-ext-diff --no-renames --name-only "$base" --
+    git -C "$1" ls-files --others --exclude-standard; } | sort
+}
 cp -R "$SOURCE_WS" "$WS"
 rm -rf "$WS/.git"
 if [ -e "$SOURCE_WS/.git" ]; then
@@ -165,6 +174,19 @@ if [ -e "$SOURCE_WS/.git" ]; then
     git -C "$SOURCE_WS" ls-files -z -t | while IFS= read -r -d '' entry; do
       case "$entry" in "S "*) printf '%s\0' "${entry#S }" ;; esac
     done | xargs -0 git -C "$WS" update-index --skip-worktree --
+  fi
+  # Other state git status depends on, such as a filter driver or an excludes file inside the
+  # source's .git, would make the copy show changes the source does not. The source and the copy
+  # must list the same changed paths; the index is left out, because staged changes arrive
+  # unstaged.
+  source_changes="$(changed_paths "$SOURCE_WS")"
+  copy_changes="$(changed_paths "$WS")"
+  if [ "$source_changes" != "$copy_changes" ]; then
+    rm -rf "$WS"
+    printf 'changed paths in %s:\n%s\nchanged paths in its copy:\n%s\n' \
+      "$SOURCE_WS" "$source_changes" "$copy_changes" >&2
+    echo "workspace dir depends on repository state that comparison runs do not reproduce" >&2
+    exit 2
   fi
   # The harness removes project skills below and stages skill copies into these paths in the skill
   # condition only; neither may show as a change the agent could review or commit.
