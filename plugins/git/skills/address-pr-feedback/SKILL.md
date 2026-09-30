@@ -30,8 +30,9 @@ head:
   clean signal;
 - `round-limit`: all findings from the last permitted review round are dispositioned, but the
   adapter is not `approved`;
-- `timed-out`: the initial head drew no acknowledgment in the acknowledgment window, or an
-  acknowledged head drew no activity through the response timeout;
+- `timed-out`: the initial head, or a pushed head its adapter reference still awaits a review of,
+  drew no acknowledgment in the acknowledgment window, or an acknowledged head drew no activity
+  through the response timeout;
 - `blocked`: missing prerequisites, user decisions, CI state, or unsupported behavior prevent
   continuation.
 
@@ -126,11 +127,11 @@ environment in this workflow.
 Two windows govern the wait. The acknowledgment window is two poll intervals after a head is
 published: when no adapter-defined acknowledgment of that head appears in it, the initial head
 returns `timed-out` with the configuration hint, and a pushed head keeps the classification the
-adapter's last review earned, with the head that review covered named in the report. The response
-timeout is ten minutes without adapter-defined activity after acknowledgment. Reset it only for a
-recognized adapter state transition tied to the current review round or source head; unrelated
-comments, stale reactions, and old approvals do not reset it. A terminal response ends the wait
-immediately.
+adapter's last review earned, with the head that review covered named in the report, unless its
+adapter reference still awaits a review of that head. The response timeout is ten minutes without
+adapter-defined activity after acknowledgment. Reset it only for a recognized adapter state
+transition tied to the current review round or source head; unrelated comments, stale reactions, and
+old approvals do not reset it. A terminal response ends the wait immediately.
 
 CI is observable context, not this skill's repair scope. Report a failed or errored required check
 as a blocker. Allow clearly advancing CI to continue; do not claim merge readiness from review state

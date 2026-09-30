@@ -44,8 +44,8 @@ outcome from its `exit=` line:
 - `1`: the review completed with unresolved threads; the dump holds the round's findings.
 - `2`: the connector reported an error; apply the transient-error rule below.
 - `3`: the head changed during the poll; rerun on the new head.
-- `4`: no acknowledgment within the acknowledgment window; apply the initial-head or pushed-head
-  outcome from `2. Poll active adapters`.
+- `4`: no acknowledgment within the acknowledgment window; apply the initial-head outcome from
+  `2. Poll active adapters`, or for a pushed head, Follow-up review.
 - `5`: the poll budget ended without a terminal signal. The default budget is ten minutes, the
   response timeout; return `timed-out` when the adapter showed no activity across it, and rerun the
   script when it did.
@@ -115,13 +115,23 @@ fixes, validation, commits, and push authority, so no mention asks Codex to addr
 ## Follow-up review
 
 The connector's automatic-review configuration decides whether a push starts another Codex review,
-and this adapter requests none beyond the single retry the transient-error rule allows. A summary
-row whose review trigger reads `New commits` means the repository reviews every push: watch for that
-review instead of posting `@codex review`.
+and this adapter requests none beyond the single retry the transient-error rule allows and the
+late-review request below. A summary row whose review trigger reads `New commits` means the
+repository reviews every push: watch for that review, and post `@codex review` only as the
+late-review request.
 
 After a push, watch the new head with the polling script. A hand-assembled query misses the 👀
-reaction and the `Running` row the connector edits into the summary comment in place. Exit `4`
-applies the pushed-head outcome from `2. Poll active adapters`. Any other exit continues the round
-on the new `headRefOid` under the exit meanings in Polling script, and the round requires a
-current-head terminal response within the response timeout; a review of a head pushed after the
-adapter converged under `4. Stop rounds` is the later-head review the convergence rule describes.
+reaction and the `Running` row the connector edits into the summary comment in place. Any exit other
+than `4` continues the round on the new `headRefOid` under the exit meanings in Polling script, and
+the round requires a current-head terminal response within the response timeout; a review of a head
+pushed after the adapter converged under `4. Stop rounds` is the later-head review the convergence
+rule describes.
+
+When the pushed head exits `4` and the summary row's trigger reads `New commits`, the review is
+late, not absent: Codex has posted a pushed head's review about seven minutes after the push. Keep
+the earlier head's approval off the pushed head, post `@codex review` once as the late-review
+request, and run the polling script on that head again. A second exit `4` returns `timed-out`, which
+replaces the classification the adapter's last review earned, including after convergence. When no
+summary row reads `New commits`, exit `4` applies the pushed-head outcome from
+`2. Poll active adapters`, or the initial-head outcome when no earlier Codex review covers any head
+of the pull request.
