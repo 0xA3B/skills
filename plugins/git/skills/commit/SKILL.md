@@ -25,9 +25,9 @@ argument-hint: "[instructions]"
 ## Context gathering
 
 - Start with the smallest useful git state inspection for the requested scope.
-- Read repository commit rules when the user names them, or when the repository contains a
-  commitlint config, a commit-msg hook, or a CONTRIBUTING, AGENTS, or CLAUDE file that mentions
-  commits.
+- When the user names commit-message rules or the repository defines them (a commit linter config
+  such as commitlint or commitizen, a `commit-msg` hook, or written conventions in a CONTRIBUTING,
+  AGENTS, or CLAUDE file), read them before drafting.
 - When release tooling is present, inspect its config or repository docs enough to know which commit
   types, scopes, and breaking-change markers affect changelogs and version bumps.
 - Stop gathering context at the first defensible commit plan — one where the changed units,
@@ -77,6 +77,10 @@ before staging.
    - Split work into logical units by purpose and rollback boundary
    - Choose type, scope, body, and footer for each unit
 3. Execute commits in dependency order:
+   - Check each drafted message before committing: run the repository's commit linter on the message
+     when the linter accepts one from a file or stdin; otherwise check it against the rules read in
+     Context gathering. Run `git commit` only after the check passes, as its own command rather than
+     chained with staging or another commit.
    - Stage one unit, confirm `git diff --cached --name-only` lists only that unit's files, and
      commit it. If the list differs, unstage the extra paths before committing. A rejected commit
      leaves the unit staged; resolve the rejection before staging the next unit.
