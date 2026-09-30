@@ -189,15 +189,15 @@ holds none of the authoring session's context. When reviewing changed skill text
 
 - After adding or changing portable manifests, target extensions, marketplace entries, skill
   frontmatter, or `agents/openai.yaml`, run `pnpm lint:plugins`.
-- When changing an implicitly invokable skill's `SKILL.md` frontmatter `description`, invocation
-  policy, or trigger fixtures, run trigger evals. The `description` is the trigger contract shared
-  by both agents; use `pnpm eval:trigger -- <skill-path> --agent both` to check that a description
-  change triggers correctly on Codex and Claude Code. Trigger evals are this repository's costly
-  gate: run the prose lane of `engineering:review-changes` on a meaningfully changed `description`
-  or `when_to_use` before each eval run that evaluates wording the lane has not reviewed, except a
-  single-case diagnostic run (`--case <id>` without `--with-dependents`), because a wording edit
-  after a run forces another run. Body-only `SKILL.md` changes affect behavior after invocation and
-  do not require trigger evals.
+- When changing an implicitly invokable skill's `SKILL.md` frontmatter `description` or
+  `when_to_use`, invocation policy, or trigger fixtures, run trigger evals. The `description` is the
+  trigger contract shared by both agents; use `pnpm eval:trigger -- <skill-path> --agent both` to
+  check that a description change triggers correctly on Codex and Claude Code. Trigger evals are
+  this repository's costly gate: run the prose lane of `engineering:review-changes` on a
+  meaningfully changed `description` or `when_to_use` before each eval run that evaluates wording
+  the lane has not reviewed, except a single-case diagnostic run (`--case <id>` without
+  `--with-dependents`), because a wording edit after a run forces another run. Body-only `SKILL.md`
+  changes affect behavior after invocation and do not require trigger evals.
 - Trigger evals stage every marketplace plugin by default, so wrong-skill invocations across plugins
   are reported distinctly. When a description change risks overlapping other skills' trigger
   contracts, widen the selection instead of the staging:

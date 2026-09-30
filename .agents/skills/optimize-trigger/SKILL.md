@@ -149,12 +149,14 @@ cases where loaded repository instructions should affect the trigger boundary, s
    `--case <id>` and without `--with-dependents`, allowed while wording changes; every other run,
    including the target's full fixture, is a gate run. Start a gate run only when each condition
    that applies holds:
-   - If any skill's `description` or `when_to_use` differs from `main` in more than mechanical or
-     incidental wording, the prose lane of `engineering:review-changes` has reviewed the exact
-     wording the gate run evaluates, and its accepted fixes are applied. A wording edit after that
-     review needs another review before the next gate run.
-   - If the branch changes harness code, the code lanes `engineering:review-changes` selects for it
-     have reviewed the harness code the gate run exercises, and their accepted fixes are applied.
+   - If any skill's `description` or `when_to_use` differs from `main`, or from the version this
+     tuning pass started with, in more than mechanical or incidental wording, the prose lane of
+     `engineering:review-changes` has reviewed the exact wording the gate run evaluates, and its
+     accepted fixes are applied. A wording edit after that review needs another review before the
+     next gate run.
+   - If the branch or this tuning pass changes harness code, the code lanes
+     `engineering:review-changes` selects for it have reviewed the harness code the gate run
+     exercises, and their accepted fixes are applied.
 5. Run the target's own fixture:
 
    ```bash
