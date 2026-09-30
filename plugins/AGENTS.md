@@ -146,26 +146,10 @@
   failure is silent, meaning a passing status over a wrong result. Leave recovery from transient
   errors, the ordering of independent steps, and edge paths whose failure is loud and recoverable to
   the model's judgment, stating a default when one exists. A rule derived by enumerating a state
-  matrix, rather than taken from an observed run, earns its place only when its failure is silent or
-  mutates external state; otherwise wait for the observed run. Rules beyond this threshold spend the
-  attention budget on cells a reviewer can trace one at a time.
-
-## Reviewing skill text
-
-A finding on a skill body or reference is judged by the transition rule above, and the reviewer
-holds none of the authoring session's context. When reviewing changed skill text:
-
-- Rate each finding by the consequence of leaving it unfixed, and for a finding below the top tier
-  name the loud signal or the recovery path that bounds it.
-- State whether the path came from an observed run or from enumerating the rule's states. A derived
-  path whose failure is loud and recoverable is a note for the author, not a finding.
-- When one lifecycle cell is reported, enumerate every sibling cell in the same finding: each state,
-  each location a record can live in, and each transition between them, so the set is fixed in one
-  round.
-- Prefer a remedy that deletes a clause, narrows an absolute, or delegates to the skill that owns
-  the mechanism over one that appends a clause to the rule under review.
-- When a finding's only evidence is the previous round's fix, say so and ask for that fix to be
-  reshaped instead of reporting a new cell beside it.
+  matrix, rather than taken from an observed run, earns its place only when it passes the
+  enumerated-path test in the root `AGENTS.md` `## Code Review Rules`; otherwise wait for the
+  observed run. Rules beyond this threshold spend the attention budget on cells a reviewer can trace
+  one at a time.
 
 ## Writing plugin prose output style
 
