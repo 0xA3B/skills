@@ -145,10 +145,16 @@ cases where loaded repository instructions should affect the trigger boundary, s
    - at least one clear positive case
    - at least one clear negative case
    - near-miss cases that exercise the description boundary
-4. When the working tree's `description` differs from the committed one in more than mechanical or
-   incidental wording, run the prose lane of `engineering:review-changes` over that description
-   before the first eval run and apply the lane's accepted fixes.
-5. Run:
+4. Separate diagnostic runs from gate runs. A gate run is a run with `--with-dependents` or a plugin
+   or marketplace selection; every other run is a diagnostic run, allowed while wording changes.
+   Start a gate run only when each condition that applies holds:
+   - If any skill's `description` or `when_to_use` differs from `main` in more than mechanical or
+     incidental wording, the prose lane of `engineering:review-changes` has reviewed the exact
+     wording the gate run evaluates, and its accepted fixes are applied. A wording edit after that
+     review needs another review before the next gate run.
+   - If the branch changes harness code, the code lanes `engineering:review-changes` selects for it
+     have reviewed the harness code the gate run exercises, and their accepted fixes are applied.
+5. Run the target's own fixture:
 
    ```bash
    mise exec -- pnpm eval:trigger -- plugins/<plugin>/skills/<skill> --agent both
@@ -204,8 +210,8 @@ cases where loaded repository instructions should affect the trigger boundary, s
 9. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
    direction — fix the repo-local description. Marketplace descriptions serve every installation;
    edit one only when the overlap would also misfire in a session without the repo-local skills.
-10. Rerun the same eval after edits. After a description edit, review the description as in step 4,
-    then rerun with `--with-dependents` the fixtures of every skill whose description changed and
+10. Rerun the same diagnostic run after edits. When step 4's gate conditions hold, rerun with
+    `--with-dependents` the fixtures of every skill whose `description` or `when_to_use` changed and
     every skill named in `wrong-skill` results. For plugin skills, one marketplace selection covers
     several:
     `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both --with-dependents`.
@@ -294,7 +300,15 @@ cases where loaded repository instructions should affect the trigger boundary, s
 
 ## Boundaries
 
-- Do not change skill behavior or body instructions unless the trigger boundary requires it.
+- Before editing a skill other than the target to fix a `wrong-skill` result, look for that skill's
+  open `feedback` issues with a `wait` disposition and its records in `.local/feedback-deferred/`.
+  If either exists, leave that skill unchanged and report the `wrong-skill` result with the record.
+- Treat a change to how the harness attributes an invocation, such as a verdict or dependency-load
+  rule, as a user decision: present the failing cases and the proposed rule, and implement it only
+  after the user decides.
+- Change skill behavior or body instructions only when the trigger boundary requires it. Add a skill
+  reference to a body only when that body's workflow applies the referenced skill in a step; a
+  reference added so the harness drops a load as a dependency load hides real overlap.
 - Do not make the script edit descriptions automatically.
 - Do not add trigger evals to `mise exec -- pnpm check`; this is a development workflow, not a
   routine gate.
