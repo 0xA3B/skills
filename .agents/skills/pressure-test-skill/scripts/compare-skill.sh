@@ -92,16 +92,13 @@ refuse() { rmdir "$RUN" 2>/dev/null; echo "$1" >&2; exit 2; }
 case "$SOURCE_WS/" in "$RUN"/*) refuse "workspace dir must not be inside the run dir" ;; esac
 case "$RUN/" in "$SOURCE_WS"/*) refuse "run dir must not be inside the workspace dir" ;; esac
 case "$TASK_FILE" in "$RUN"/*) refuse "task file must not be inside the run dir" ;; esac
-# An initialized submodule's repository lives under the source's .git, which the copy does not
-# carry, so git inside the submodule would act on the copy's outer repository. Submodule
-# workspaces are unsupported until a task needs one; `submodule status` marks uninitialized
-# submodules with a leading -, and a status it cannot read is refused too.
-if [ -e "$SOURCE_WS/.git" ]; then
-  submodules="$(git -C "$SOURCE_WS" submodule status 2>&1)" \
-    || refuse "cannot read the submodules of workspace dir $SOURCE_WS: $submodules"
-  if [ -n "$(grep -v '^-' <<< "$submodules" || true)" ]; then
-    refuse "workspace dir has initialized submodules, which comparison runs do not support: $SOURCE_WS"
-  fi
+# A nested .git file or symlink, an initialized submodule or a linked worktree, points at a
+# repository the copy cannot carry: kept, it would reach the source; dropped, git inside the
+# directory would act on the copy's outer repository. Such workspaces are unsupported until a
+# task needs one. A nested .git directory is a self-contained repository and is copied with it.
+nested_git="$(find "$SOURCE_WS" -path "$SOURCE_WS/.git" -prune -o -name .git ! -type d -print -quit)"
+if [ -n "$nested_git" ]; then
+  refuse "workspace dir holds a submodule or linked worktree, which comparison runs do not support: $nested_git"
 fi
 # Replace only a directory this script created: a wrong run-dir argument must not delete data.
 if [ -n "$(ls -A "$RUN")" ] && [ ! -f "$RUN/$MARKER" ]; then
@@ -135,13 +132,11 @@ finish() {
 trap finish EXIT
 # A copied .git entry would point git at the source repository: a linked worktree's .git file
 # holds an absolute gitdir, so the agent's commits would land in the source. The copy drops the
-# root .git entry and every nested .git file or symlink; a nested .git directory is a
-# self-contained repository and stays. A source that is a repository root gets a fresh
-# repository holding its HEAD history, with the source's uncommitted and staged changes left as
-# unstaged working-tree changes.
+# root .git entry, and a source that is a repository root gets a fresh repository holding its
+# HEAD history, with the source's uncommitted and staged changes left as unstaged working-tree
+# changes.
 cp -R "$SOURCE_WS" "$WS"
 rm -rf "$WS/.git"
-find "$WS" -name .git ! -type d -exec rm -f {} +
 if [ -e "$SOURCE_WS/.git" ]; then
   branch="$(git -C "$SOURCE_WS" symbolic-ref --quiet --short HEAD || echo main)"
   git init --quiet --initial-branch "$branch" "$WS"
