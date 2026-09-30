@@ -4,6 +4,7 @@ import {
   cliRunError,
   spawnStreamingCli,
   type StreamingCliOptions,
+  type StreamingCliOutput,
 } from "../../src/trigger-evals/exec.js";
 
 const node = process.execPath;
@@ -15,6 +16,20 @@ function cliOptions(overrides: Partial<StreamingCliOptions> = {}): StreamingCliO
     timeoutMs: 5_000,
     label: "test cli",
     ...overrides,
+  };
+}
+
+// Aborts once the child writes "ready" to stderr, which it does after installing its SIGTERM
+// handler, so the signal cannot reach a child still starting up. The marker must lead stderr:
+// earlier output, such as a startup warning, cannot trigger the abort early. spawnStreamingCli
+// exposes live output only through stopWhen, so this predicate aborts as a side effect and never
+// stops the run.
+function abortWhenReady(controller: AbortController): (output: StreamingCliOutput) => boolean {
+  return (output) => {
+    if (output.stderr.startsWith("ready")) {
+      controller.abort();
+    }
+    return false;
   };
 }
 
@@ -64,7 +79,6 @@ describe("spawnStreamingCli", () => {
 
   it("resolves an aborted run only after the child has exited", async () => {
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 100);
 
     // The child answers SIGTERM by writing a marker before it exits; the marker is in the
     // result only when the result waited for the close event.
@@ -72,9 +86,9 @@ describe("spawnStreamingCli", () => {
       node,
       [
         "-e",
-        "process.on('SIGTERM', () => { process.stdout.write('closing'); process.exit(0); }); setInterval(() => {}, 1000);",
+        "process.on('SIGTERM', () => { process.stdout.write('closing'); process.exit(0); }); process.stderr.write('ready'); setInterval(() => {}, 1000);",
       ],
-      cliOptions({ abortSignal: controller.signal }),
+      cliOptions({ abortSignal: controller.signal, stopWhen: abortWhenReady(controller) }),
     );
 
     expect(result.endedBy).toBe("abort");
@@ -83,12 +97,19 @@ describe("spawnStreamingCli", () => {
 
   it("escalates to SIGKILL when an aborted child ignores SIGTERM", async () => {
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 100);
 
+    // Without the escalation the child outlives the run and the test fails on its timeout.
     const result = await spawnStreamingCli(
       node,
-      ["-e", "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);"],
-      cliOptions({ abortSignal: controller.signal, abortGraceMs: 200 }),
+      [
+        "-e",
+        "process.on('SIGTERM', () => {}); process.stderr.write('ready'); setInterval(() => {}, 1000);",
+      ],
+      cliOptions({
+        abortSignal: controller.signal,
+        abortGraceMs: 200,
+        stopWhen: abortWhenReady(controller),
+      }),
     );
 
     expect(result.endedBy).toBe("abort");
