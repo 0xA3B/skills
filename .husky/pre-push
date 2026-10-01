@@ -1,2 +1,6 @@
 #!/usr/bin/env sh
+# pnpm check validates the checked-out HEAD, including the commit and plugin version ranges since
+# its merge base with origin/main; it does not read the refs a push names on stdin. Push the
+# checked-out branch for the hook to cover what you send. CI's Checks job on each pull request is
+# the gate for every pushed branch.
 pnpm check
