@@ -19,13 +19,13 @@
         "patterns": [
           {
             "group": [
-              "**/skills/*",
+              "**/skills/**",
               "!**/skills/index.js",
-              "**/fixtures/*",
+              "**/fixtures/**",
               "!**/fixtures/index.js",
-              "**/lanes/*",
+              "**/lanes/**",
               "!**/lanes/index.js",
-              "**/selection/*",
+              "**/selection/**",
               "!**/selection/index.js"
             ],
             "message": "Import a sub-package through its index.ts seam; its other modules are private."
