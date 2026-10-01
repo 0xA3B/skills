@@ -61,6 +61,23 @@ describe("stageDeployment", () => {
     ]);
   });
 
+  it("canaries a manual-only plugin target, as a forced run needs", async () => {
+    const repoRoot = await writeRepoFixture({
+      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
+    });
+    const target = resolveSkill(repoRoot, "plugins/demo/skills/auto-skill");
+    await writeFile(
+      target.skillFilePath,
+      "---\nname: auto-skill\ndisable-model-invocation: true\n---\n",
+    );
+
+    const deployment = await stageDeployment(deploymentOptions(target));
+
+    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual([
+      "demo:auto-skill",
+    ]);
+  });
+
   it("appends each canary to the staged body only, leaving committed skills untouched", async () => {
     const repoRoot = await writeRepoFixture({
       siblingSkills: [{ name: "manual-skill", manualOnly: true }],
@@ -164,6 +181,30 @@ describe("stageDeployment", () => {
         "utf8",
       ),
     ).resolves.toContain(targetCanary?.canary);
+  });
+
+  it("canaries a manual-only repo-local target, as a forced run needs", async () => {
+    const repoRoot = await writeRepoLocalSkillFixture({
+      siblingSkills: [{ name: "manual-sibling", manualOnly: true }],
+    });
+    const target = resolveSkill(repoRoot, ".agents/skills/auto-skill");
+    await writeFile(
+      target.skillFilePath,
+      "---\nname: auto-skill\ndisable-model-invocation: true\n---\n",
+    );
+
+    const deployment = await stageDeployment(
+      deploymentOptions(target, {
+        repoLocalSkills: [
+          {
+            skillName: "manual-sibling",
+            skillPath: path.join(repoRoot, ".agents", "skills", "manual-sibling"),
+          },
+        ],
+      }),
+    );
+
+    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual(["auto-skill"]);
   });
 
   it("stages repo-local skills on the lane's surface without canaries when the lane opts out", async () => {
