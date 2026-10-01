@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: lint-commits [--base <ref>]
+
+Lint the messages of the commits on HEAD since its merge base with <ref> (default: origin/main)
+with commitlint. An empty range passes. A missing base, a HEAD that shares no history with it, and
+a shallow clone fail, because each would hide commits from the lint.
+
+Options:
+  --base <ref>   Compare against <ref> instead of origin/main
+  -h, --help     Show this help text
+USAGE
+}
+
+base=origin/main
+
+while (($# > 0)); do
+  case "$1" in
+    --base)
+      if (($# < 2)); then
+        usage >&2
+        exit 2
+      fi
+      base="$2"
+      shift 2
+      ;;
+    --base=*)
+      base="${1#--base=}"
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      ;;
+    *)
+      printf 'Unknown option: %s\n' "$1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+fail() {
+  printf 'Commit lint could not run: %s\n' "$1" >&2
+  exit 1
+}
+
+# A shallow history can cut the range short while every command succeeds.
+if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+  fail "the repository is a shallow clone; run git fetch --unshallow and retry."
+fi
+git rev-parse --verify --quiet --end-of-options "$base^{commit}" >/dev/null \
+  || fail "base ref \"$base\" does not exist; fetch it or pass --base <ref>."
+merge_base="$(git merge-base --end-of-options "$base" HEAD)" \
+  || fail "HEAD shares no history with base ref \"$base\"."
+
+# commitlint rejects a range whose ends are the same commit.
+if [ "$(git rev-list --count "$merge_base..HEAD")" -eq 0 ]; then
+  echo "Commit lint: no commits since the merge base with $base."
+  exit 0
+fi
+
+root="$(git rev-parse --show-toplevel)"
+exec "$root/node_modules/.bin/commitlint" --verbose --from "$merge_base" --to HEAD
