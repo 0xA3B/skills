@@ -14,14 +14,18 @@ import {
 import { buildCliRunResult, writeRepoFixture } from "../test-utils.js";
 
 // A lane whose agent behaves exactly as each case expects: an invoke case fires the target, a
-// routed skip case fires its alternate, and any other skip case fires nothing.
-function createScriptedLane(): AgentLane {
+// routed skip case fires its alternate, and any other skip case fires nothing. A case named in
+// failingCaseIds fires nothing instead, so an invoke case among them fails.
+function createScriptedLane(failingCaseIds: ReadonlySet<string> = new Set()): AgentLane {
   return {
     async prepareRun(runOptions) {
       const targetLabel = formatSkillLabel(runOptions.target);
       const observe = (testCase: TriggerCase): CaseObservations => {
-        const invoked =
-          testCase.expect === "invoke" ? targetLabel : (testCase.invokeInstead ?? undefined);
+        const invoked = failingCaseIds.has(testCase.id)
+          ? undefined
+          : testCase.expect === "invoke"
+            ? targetLabel
+            : (testCase.invokeInstead ?? undefined);
         return invoked === undefined
           ? { signal: "none", invokedSkills: [], hasActivity: true, decisionItemCount: 1 }
           : {
@@ -53,13 +57,17 @@ type Report = { info: string[]; errors: string[]; results: TriggerEvalResult[] }
 
 async function run(
   options: Omit<SelectionRunOptions, "evalOptions" | "reporter">,
+  script: { failingCaseIds?: ReadonlySet<string>; onInfo?: (message: string) => void } = {},
 ): Promise<{ ok: boolean; report: Report }> {
   const report: Report = { info: [], errors: [], results: [] };
   const ok = await runSelection({
     ...options,
-    evalOptions: { lane: createScriptedLane() },
+    evalOptions: { lane: createScriptedLane(script.failingCaseIds) },
     reporter: {
-      info: (message) => report.info.push(message),
+      info: (message) => {
+        report.info.push(message);
+        script.onInfo?.(message);
+      },
       error: (message) => report.errors.push(message),
       result: (result) => report.results.push(result),
     },
@@ -119,6 +127,19 @@ describe("runSelection", () => {
       "Marketplace suite on codex: 1/1 skills passed.",
       "Marketplace suite on claude: 1/1 skills passed.",
     ]);
+    expect(report.errors).toStrictEqual([]);
+  });
+
+  it("cannot end green when a case fails", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+
+    const { ok, report } = await run(
+      { repoRoot, selection: { mode: "plugin", pluginPath: "plugins/demo" }, agents: ["codex"] },
+      { failingCaseIds: new Set(["invoke-case"]) },
+    );
+
+    expect(ok).toBe(false);
+    expect(report.info).toStrictEqual(["Plugin suite on codex: 0/1 skills passed."]);
     expect(report.errors).toStrictEqual([]);
   });
 
@@ -185,7 +206,7 @@ describe("runSelection", () => {
     );
   });
 
-  it("runs nothing and reports no empty suite once the run is aborted", async () => {
+  it("runs nothing once the run is aborted", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     const abortController = new AbortController();
     abortController.abort();
@@ -197,7 +218,39 @@ describe("runSelection", () => {
       abortSignal: abortController.signal,
     });
 
-    expect(ok).toBe(true);
+    expect(ok).toBe(false);
     expect(report).toStrictEqual({ info: [], errors: [], results: [] });
+  });
+
+  it("reports no empty suite when an abort lands before the suite's first skill", async () => {
+    const repoRoot = await writeRepoFixture({
+      marketplace: true,
+      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
+    });
+    const manualEvals = path.join(repoRoot, "plugins", "demo", "skills", "manual-skill", "evals");
+    await mkdir(manualEvals, { recursive: true });
+    await writeFile(
+      path.join(manualEvals, "triggers.yaml"),
+      "version: 1\ncases:\n  - id: manual-invoke\n    prompt: Use it.\n    expect: invoke\n",
+    );
+    const abortController = new AbortController();
+
+    // The manual-only notice is reported after suite selection and before any skill runs.
+    const { ok, report } = await run(
+      {
+        repoRoot,
+        selection: { mode: "plugin", pluginPath: "plugins/demo" },
+        agents: ["codex"],
+        abortSignal: abortController.signal,
+      },
+      { onInfo: () => abortController.abort() },
+    );
+
+    expect(ok).toBe(false);
+    expect(report).toStrictEqual({
+      info: ["Skipping manual-only skills on codex: plugins/demo/skills/manual-skill."],
+      errors: [],
+      results: [],
+    });
   });
 });

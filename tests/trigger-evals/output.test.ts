@@ -111,10 +111,9 @@ describe("formatCaseLine", () => {
 describe("printTriggerEvalResult", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    process.exitCode = undefined;
   });
 
-  it("warns about runtime directories the run could not remove without failing the run", () => {
+  it("warns about runtime directories the run could not remove", () => {
     const log = vi.spyOn(console, "log").mockReturnValue(undefined);
     const warn = vi.spyOn(console, "warn").mockReturnValue(undefined);
     const result: TriggerEvalResult = {
@@ -143,6 +142,5 @@ describe("printTriggerEvalResult", () => {
       "WARNING: runtime cleanup left /tmp/run/codex-home: EACCES: permission denied",
     );
     expect(log).toHaveBeenCalled();
-    expect(process.exitCode).toBeUndefined();
   });
 });

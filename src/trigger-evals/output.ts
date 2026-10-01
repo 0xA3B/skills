@@ -31,9 +31,6 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   for (const cleanupFailure of result.cleanupFailures ?? []) {
     console.warn(`WARNING: runtime cleanup left ${cleanupFailure}`);
   }
-  if (failures.length > 0) {
-    process.exitCode = 1;
-  }
 }
 
 // One result line: status, case id, the fixture's expectation, and what was observed.

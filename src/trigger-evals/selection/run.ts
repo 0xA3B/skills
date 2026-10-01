@@ -37,9 +37,9 @@ export type SelectionRunOptions = {
 };
 
 // Runs the selection's suite on each agent in turn, then the dependent cases that route to it.
-// Returns false when the run cannot end green although no eval threw: a fixture the dependents
-// scan could not read, or a suite in which no skill ran. Failing cases are reported, not returned.
-// An error that ends an eval ends the run and propagates.
+// Returns true only for a green run: false when a case failed, a fixture the dependents scan
+// needed was unreadable, a suite ran no skill, or the run was aborted. An error that ends an eval
+// ends the run and propagates.
 export async function runSelection(options: SelectionRunOptions): Promise<boolean> {
   const { repoRoot, selection, reporter, abortSignal } = options;
   const aborted = () => abortSignal?.aborted === true;
@@ -88,7 +88,7 @@ export async function runSelection(options: SelectionRunOptions): Promise<boolea
         agent,
         ...(abortSignal === undefined ? {} : { abortSignal }),
       });
-      record(reporter, tally, result);
+      ok = record(reporter, tally, result) && ok;
     }
 
     if (selection.mode !== "skill") {
@@ -109,25 +109,27 @@ export async function runSelection(options: SelectionRunOptions): Promise<boolea
     }
 
     if (dependents.length > 0 && !aborted()) {
-      await runDependents(options, dependents, agent);
+      ok = (await runDependents(options, dependents, agent)) && ok;
     }
   }
 
-  return ok;
+  return ok && !aborted();
 }
 
-// Dependent cases run under their owning fixture, on that fixture's own lanes.
+// Dependent cases run under their owning fixture, on that fixture's own lanes. Returns false when
+// a dependent case failed.
 async function runDependents(
   options: SelectionRunOptions,
   dependents: DependentFixture[],
   agent: PluginTarget,
-): Promise<void> {
+): Promise<boolean> {
   const { repoRoot, reporter, abortSignal } = options;
   const { runnable, skipped } = await selectDependentsForAgent(repoRoot, dependents, agent);
   for (const entry of skipped) {
     reporter.info(`Skipping dependent cases in ${entry.label} on ${agent}: ${entry.reason}.`);
   }
   const tally = { ran: 0, passed: 0 };
+  let ok = true;
   for (const dependent of runnable) {
     if (abortSignal?.aborted === true) {
       break;
@@ -141,24 +143,26 @@ async function runDependents(
       agent,
       ...(abortSignal === undefined ? {} : { abortSignal }),
     });
-    record(reporter, tally, result);
+    ok = record(reporter, tally, result) && ok;
   }
   if (tally.ran > 0) {
     reporter.info(`Dependent fixtures on ${agent}: ${tally.passed}/${tally.ran} passed.`);
   }
+  return ok;
 }
 
+// Reports one result and returns false when any of its cases failed. A manual-only skip runs no
+// case, so it does not fail the run, but it does not count as a passed skill either.
 function record(
   reporter: SelectionReporter,
   tally: { ran: number; passed: number },
   result: TriggerEvalResult,
-): void {
+): boolean {
   reporter.result(result);
   tally.ran += 1;
-  if (
-    result.skippedReason === undefined &&
-    result.results.every((caseResult) => caseResult.passed)
-  ) {
+  const casesPassed = result.results.every((caseResult) => caseResult.passed);
+  if (result.skippedReason === undefined && casesPassed) {
     tally.passed += 1;
   }
+  return casesPassed;
 }
