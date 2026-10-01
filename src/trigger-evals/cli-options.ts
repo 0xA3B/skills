@@ -1,11 +1,11 @@
 import { parseArgs } from "node:util";
 
+import type { PluginTarget } from "../skills/index.js";
 import type { RunTriggerEvalOptions } from "./runner.js";
 import type { SelectionEvalOptions, TriggerEvalSelection } from "./selection/index.js";
-import type { TriggerEvalAgent } from "./types.js";
 
 export type TriggerEvalCliOptions = Omit<SelectionEvalOptions, "lane"> & {
-  agents: TriggerEvalAgent[];
+  agents: PluginTarget[];
   selection: TriggerEvalSelection;
   // Also run the dependent cases: routing assertions in other fixtures that name a selected skill.
   withDependents?: true;
@@ -120,7 +120,7 @@ function usageLine(): string {
   return "Usage: pnpm eval:trigger -- <skill-path> [options]";
 }
 
-function parseAgents(value: string | undefined): TriggerEvalAgent[] {
+function parseAgents(value: string | undefined): PluginTarget[] {
   if (value === undefined || value === "codex") {
     return ["codex"];
   }

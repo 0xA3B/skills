@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { formatCaseLine, printTriggerEvalResult } from "../../src/trigger-evals/output.js";
-import type { TriggerCaseResult, TriggerEvalResult } from "../../src/trigger-evals/types.js";
+import type { TriggerEvalResult } from "../../src/trigger-evals/runner.js";
+import type { TriggerCaseResult } from "../../src/trigger-evals/verdict.js";
 
 function caseResult(overrides: Partial<TriggerCaseResult> = {}): TriggerCaseResult {
   return {

@@ -1,9 +1,13 @@
 import { stat } from "node:fs/promises";
 import path from "node:path";
 
-import { listPluginSkills, readAllowImplicitInvocation, resolveSkill } from "../../skills/index.js";
+import {
+  listPluginSkills,
+  type PluginTarget,
+  readAllowImplicitInvocation,
+  resolveSkill,
+} from "../../skills/index.js";
 import { listMarketplacePlugins } from "../marketplace.js";
-import type { TriggerEvalAgent } from "../types.js";
 
 // What a run covers: one skill, one plugin's skills, or the marketplace.
 export type TriggerEvalSelection =
@@ -29,7 +33,7 @@ export type TriggerEvalSuite = {
 export async function selectSuite(
   repoRoot: string,
   selection: TriggerEvalSelection,
-  agent: TriggerEvalAgent,
+  agent: PluginTarget,
 ): Promise<TriggerEvalSuite> {
   if (selection.mode === "skill") {
     return {
@@ -50,7 +54,7 @@ export async function selectSuite(
 export async function selectPluginSuite(
   repoRoot: string,
   pluginPathArgument: string,
-  agent: TriggerEvalAgent,
+  agent: PluginTarget,
 ): Promise<TriggerEvalSuite> {
   const pluginPath = path.resolve(repoRoot, pluginPathArgument);
   const relativeParts = path.relative(repoRoot, pluginPath).split(path.sep);
@@ -74,7 +78,7 @@ export async function selectPluginSuite(
 // every catalog description while only its own fixtures run.
 export async function selectMarketplaceSuite(
   repoRoot: string,
-  agent: TriggerEvalAgent,
+  agent: PluginTarget,
   selectedSkillPaths: string[] = [],
 ): Promise<TriggerEvalSuite> {
   const suite: TriggerEvalSuite = {
@@ -143,7 +147,7 @@ async function filterMarketplaceSuite(
 async function selectSkillsWithFixtures(
   repoRoot: string,
   pluginPath: string,
-  agent: TriggerEvalAgent,
+  agent: PluginTarget,
 ): Promise<TriggerEvalSuite> {
   const suite: TriggerEvalSuite = {
     skillPaths: [],

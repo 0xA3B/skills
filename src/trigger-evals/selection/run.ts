@@ -1,5 +1,5 @@
-import { type RunTriggerEvalOptions, runTriggerEval } from "../runner.js";
-import type { TriggerEvalAgent, TriggerEvalResult } from "../types.js";
+import type { PluginTarget } from "../../skills/index.js";
+import { type RunTriggerEvalOptions, runTriggerEval, type TriggerEvalResult } from "../runner.js";
 import {
   type DependentFixture,
   dependentRunOptions,
@@ -28,7 +28,7 @@ export type SelectionEvalOptions = Omit<
 export type SelectionRunOptions = {
   repoRoot: string;
   selection: TriggerEvalSelection;
-  agents: TriggerEvalAgent[];
+  agents: PluginTarget[];
   // Also run the dependent cases: routing assertions in other fixtures that name a selected skill.
   withDependents?: boolean;
   evalOptions: SelectionEvalOptions;
@@ -120,7 +120,7 @@ export async function runSelection(options: SelectionRunOptions): Promise<boolea
 async function runDependents(
   options: SelectionRunOptions,
   dependents: DependentFixture[],
-  agent: TriggerEvalAgent,
+  agent: PluginTarget,
 ): Promise<void> {
   const { repoRoot, reporter, abortSignal } = options;
   const { runnable, skipped } = await selectDependentsForAgent(repoRoot, dependents, agent);

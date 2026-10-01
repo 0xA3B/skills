@@ -7,6 +7,8 @@ import {
   readAllowImplicitInvocation,
   resolveSkill,
   formatSkillLabel,
+  type PluginTarget,
+  type Skill,
 } from "../skills/index.js";
 import { loadTriggerFixture } from "./fixtures/index.js";
 import {
@@ -18,13 +20,24 @@ import {
 } from "./lanes/index.js";
 import { listMarketplacePlugins } from "./marketplace.js";
 import { createRuntimeResources } from "./runtime.js";
-import type { TriggerCaseResult, TriggerEvalAgent, TriggerEvalResult } from "./types.js";
-import { buildCaseResult, shouldStopEarly } from "./verdict.js";
+import { buildCaseResult, shouldStopEarly, type TriggerCaseResult } from "./verdict.js";
+
+export type TriggerEvalResult = {
+  runDir: string;
+  reportPath: string;
+  target: Skill;
+  agent: PluginTarget;
+  durationMs: number;
+  results: TriggerCaseResult[];
+  skippedReason?: string;
+  // Runtime directories the run could not remove, one message each. Reported, never fatal.
+  cleanupFailures?: string[];
+};
 
 export type RunTriggerEvalOptions = {
   repoRoot?: string;
   skillPath: string;
-  agent?: TriggerEvalAgent;
+  agent?: PluginTarget;
   fixturePath?: string;
   caseIds?: string[];
   model?: string;
@@ -48,7 +61,7 @@ const DEFAULT_CONCURRENCY = 3;
 export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<TriggerEvalResult> {
   const runStartedAt = Date.now();
   const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
-  const agent: TriggerEvalAgent = options.agent ?? "codex";
+  const agent: PluginTarget = options.agent ?? "codex";
   const target = resolveSkill(repoRoot, options.skillPath);
   const model = options.model ?? DEFAULT_EVAL_MODELS[agent];
   const effort = options.effort ?? DEFAULT_EVAL_EFFORT;
@@ -230,7 +243,7 @@ function normalizeConcurrency(value: number): number {
 async function createRunDir(
   repoRoot: string,
   skillName: string,
-  agent: TriggerEvalAgent,
+  agent: PluginTarget,
 ): Promise<string> {
   const timestamp = new Date()
     .toISOString()

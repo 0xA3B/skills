@@ -1,7 +1,8 @@
 import path from "node:path";
 
 import { formatSkillLabel } from "../skills/index.js";
-import type { TriggerCaseResult, TriggerEvalResult } from "./types.js";
+import type { TriggerEvalResult } from "./runner.js";
+import type { TriggerCaseResult } from "./verdict.js";
 
 export function printTriggerEvalResult(result: TriggerEvalResult): void {
   if (result.skippedReason !== undefined) {

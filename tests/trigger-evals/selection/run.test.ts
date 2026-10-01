@@ -6,11 +6,11 @@ import { describe, expect, it } from "vitest";
 import { formatSkillLabel } from "../../../src/skills/index.js";
 import type { TriggerCase } from "../../../src/trigger-evals/fixtures/index.js";
 import type { AgentLane, CaseObservations } from "../../../src/trigger-evals/lanes/index.js";
+import type { TriggerEvalResult } from "../../../src/trigger-evals/runner.js";
 import {
   runSelection,
   type SelectionRunOptions,
 } from "../../../src/trigger-evals/selection/index.js";
-import type { TriggerEvalResult } from "../../../src/trigger-evals/types.js";
 import { buildCliRunResult, writeRepoFixture } from "../test-utils.js";
 
 // A lane whose agent behaves exactly as each case expects: an invoke case fires the target, a

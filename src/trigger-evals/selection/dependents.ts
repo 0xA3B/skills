@@ -7,11 +7,11 @@ import {
   readAllowImplicitInvocation,
   resolveSkill,
   formatSkillLabel,
+  type PluginTarget,
 } from "../../skills/index.js";
 import { parseTriggerFixture } from "../fixtures/index.js";
 import { listMarketplacePlugins } from "../marketplace.js";
 import type { RunTriggerEvalOptions } from "../runner.js";
-import type { TriggerEvalAgent } from "../types.js";
 import type { TriggerEvalSelection } from "./suite.js";
 
 // The dependent cases one fixture holds for a selection: skip cases whose routing assertion names
@@ -144,7 +144,7 @@ export function dependentRunOptions(
 export async function selectDependentsForAgent(
   repoRoot: string,
   dependents: DependentFixture[],
-  agent: TriggerEvalAgent,
+  agent: PluginTarget,
 ): Promise<DependentsForAgent> {
   const catalogPluginPaths = new Set(
     (await listMarketplacePlugins(repoRoot, agent)).map((entry) => path.resolve(entry.pluginPath)),
