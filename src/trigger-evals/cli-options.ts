@@ -1,19 +1,10 @@
 import { parseArgs } from "node:util";
 
 import type { RunTriggerEvalOptions } from "./runner.js";
+import type { SelectionEvalOptions, TriggerEvalSelection } from "./selection/index.js";
 import type { TriggerEvalAgent } from "./types.js";
 
-export type TriggerEvalSelection =
-  | { mode: "skill"; skillPath: string }
-  | { mode: "plugin"; pluginPath: string }
-  // An empty skillPaths runs every marketplace skill; a non-empty list stages the full
-  // marketplace but executes only the named skills' fixtures.
-  | { mode: "marketplace"; skillPaths: string[] };
-
-export type TriggerEvalCliOptions = Omit<
-  RunTriggerEvalOptions,
-  "skillPath" | "agent" | "abortSignal" | "lane"
-> & {
+export type TriggerEvalCliOptions = Omit<SelectionEvalOptions, "lane"> & {
   agents: TriggerEvalAgent[];
   selection: TriggerEvalSelection;
   // Also run the dependent cases: routing assertions in other fixtures that name a selected skill.

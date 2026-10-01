@@ -1,9 +1,17 @@
 import { stat } from "node:fs/promises";
 import path from "node:path";
 
-import { listPluginSkills, readAllowImplicitInvocation, resolveSkill } from "../skills/index.js";
-import { listMarketplacePlugins } from "./marketplace.js";
-import type { TriggerEvalAgent } from "./types.js";
+import { listPluginSkills, readAllowImplicitInvocation, resolveSkill } from "../../skills/index.js";
+import { listMarketplacePlugins } from "../marketplace.js";
+import type { TriggerEvalAgent } from "../types.js";
+
+// What a run covers: one skill, one plugin's skills, or the marketplace.
+export type TriggerEvalSelection =
+  | { mode: "skill"; skillPath: string }
+  | { mode: "plugin"; pluginPath: string }
+  // An empty skillPaths runs every marketplace skill; a non-empty list stages the full
+  // marketplace but executes only the named skills' fixtures.
+  | { mode: "marketplace"; skillPaths: string[] };
 
 export type TriggerEvalSuite = {
   // Repo-relative paths of implicitly invokable skills with trigger fixtures, in run order.
@@ -15,6 +23,27 @@ export type TriggerEvalSuite = {
   // catalog. Only marketplace-mode selections populate this.
   outOfCatalogSkillPaths: string[];
 };
+
+// Suite membership is per agent: invocation policy and the marketplace catalog both differ
+// between Claude and Codex.
+export async function selectSuite(
+  repoRoot: string,
+  selection: TriggerEvalSelection,
+  agent: TriggerEvalAgent,
+): Promise<TriggerEvalSuite> {
+  if (selection.mode === "skill") {
+    return {
+      skillPaths: [selection.skillPath],
+      manualOnlySkillPaths: [],
+      outOfCatalogSkillPaths: [],
+    };
+  }
+  if (selection.mode === "plugin") {
+    return selectPluginSuite(repoRoot, selection.pluginPath, agent);
+  }
+
+  return selectMarketplaceSuite(repoRoot, agent, selection.skillPaths);
+}
 
 // One plugin's suite: every skill in the plugin that ships trigger fixtures, partitioned by the
 // agent's invocation policy so manual-only skills are reported instead of warned about per run.

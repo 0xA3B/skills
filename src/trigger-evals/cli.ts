@@ -1,22 +1,8 @@
 #!/usr/bin/env node
 
-import {
-  HelpRequested,
-  parseTriggerEvalCliOptions,
-  type TriggerEvalSelection,
-  usage,
-} from "./cli-options.js";
-import {
-  type DependentFixture,
-  dependentRunOptions,
-  findDependentFixtures,
-  listSelectedSkillPaths,
-  selectDependentsForAgent,
-} from "./dependents.js";
+import { HelpRequested, parseTriggerEvalCliOptions, usage } from "./cli-options.js";
 import { printTriggerEvalResult } from "./output.js";
-import { type RunTriggerEvalOptions, runTriggerEval } from "./runner.js";
-import { selectMarketplaceSuite, selectPluginSuite, type TriggerEvalSuite } from "./suite.js";
-import type { TriggerEvalAgent } from "./types.js";
+import { runSelection } from "./selection/index.js";
 
 const abortController = new AbortController();
 const handleSignal = (signal: NodeJS.Signals): void => {
@@ -41,82 +27,24 @@ async function main(): Promise<void> {
   }
 
   if (options !== undefined) {
-    const { agents, selection, withDependents, ...runOptions } = options;
+    const { agents, selection, withDependents, ...evalOptions } = options;
     try {
-      const repoRoot = process.cwd();
-      const { dependents, unreadableFixtures } =
-        withDependents === true
-          ? await findDependentFixtures(repoRoot, await listSelectedSkillPaths(repoRoot, selection))
-          : { dependents: [], unreadableFixtures: [] };
-      // A fixture the scan could not read may hold routing cases for the selection, so the run
-      // still executes every discovered case but cannot end green.
-      for (const unreadable of unreadableFixtures) {
-        console.error(
-          `ERROR: could not scan the fixture of ${unreadable.skillPath} for dependent cases, so the dependent set is incomplete: ${unreadable.message}`,
-        );
-        process.exitCode = 1;
-      }
-      if (withDependents === true && dependents.length === 0) {
-        console.log("No dependent cases route to the selected skills.");
-      }
-      for (const agent of agents) {
-        if (abortController.signal.aborted) {
-          break;
-        }
-        const suite = await resolveSuite(selection, agent);
-        if (suite.manualOnlySkillPaths.length > 0) {
-          console.log(
-            `Skipping manual-only skills on ${agent}: ${suite.manualOnlySkillPaths.join(", ")}.`,
-          );
-        }
-        if (suite.outOfCatalogSkillPaths.length > 0) {
-          console.log(
-            `Skipping skills whose plugin is not in the ${agent} marketplace catalog: ${suite.outOfCatalogSkillPaths.join(", ")}.`,
-          );
-        }
-
-        let passedSkills = 0;
-        let ranSkills = 0;
-        for (const skillPath of suite.skillPaths) {
-          if (abortController.signal.aborted) {
-            break;
-          }
-          const result = await runTriggerEval({
-            ...runOptions,
-            skillPath,
-            agent,
-            abortSignal: abortController.signal,
-          });
-          printTriggerEvalResult(result);
-          ranSkills += 1;
-          if (
-            result.skippedReason === undefined &&
-            result.results.every((caseResult) => caseResult.passed)
-          ) {
-            passedSkills += 1;
-          }
-        }
-
-        if (selection.mode !== "skill") {
-          const suiteName = selection.mode === "plugin" ? "Plugin" : "Marketplace";
-          if (ranSkills > 0) {
-            console.log(
-              `${suiteName} suite on ${agent}: ${passedSkills}/${ranSkills} skills passed.`,
-            );
-          } else if (!abortController.signal.aborted) {
-            // Zero runs must not read as a green suite: this happens when every candidate skill
-            // was excluded as manual-only or, for a marketplace selection, outside this agent's
-            // catalog, so no eval actually executed.
-            console.error(
-              `${suiteName} suite on ${agent}: ran 0 skills — every candidate skill is manual-only or outside this agent's marketplace catalog.`,
-            );
-            process.exitCode = 1;
-          }
-        }
-
-        if (dependents.length > 0 && !abortController.signal.aborted) {
-          await runDependents(repoRoot, dependents, agent, runOptions);
-        }
+      const ok = await runSelection({
+        repoRoot: process.cwd(),
+        selection,
+        agents,
+        withDependents: withDependents === true,
+        evalOptions,
+        abortSignal: abortController.signal,
+        reporter: {
+          info: (message) => console.log(message),
+          error: (message) => console.error(message),
+          result: printTriggerEvalResult,
+        },
+      });
+      // An interrupted run keeps the signal's exit code.
+      if (!ok) {
+        process.exitCode ??= 1;
       }
     } catch (caught: unknown) {
       console.error(caught instanceof Error ? caught.message : String(caught));
@@ -135,66 +63,6 @@ function cleanupFailuresOf(caught: unknown): string[] {
   }
   const failures = (caught as { cleanupFailures?: unknown }).cleanupFailures;
   return Array.isArray(failures) ? failures.filter((f): f is string => typeof f === "string") : [];
-}
-
-// Dependent cases run under their owning fixture, on that fixture's own lanes.
-async function runDependents(
-  repoRoot: string,
-  dependents: DependentFixture[],
-  agent: TriggerEvalAgent,
-  runOptions: Omit<RunTriggerEvalOptions, "skillPath" | "agent" | "abortSignal" | "lane">,
-): Promise<void> {
-  const { runnable, skipped } = await selectDependentsForAgent(repoRoot, dependents, agent);
-  for (const entry of skipped) {
-    console.log(`Skipping dependent cases in ${entry.label} on ${agent}: ${entry.reason}.`);
-  }
-  let passedFixtures = 0;
-  let ranFixtures = 0;
-  for (const dependent of runnable) {
-    if (abortController.signal.aborted) {
-      break;
-    }
-    console.log(
-      `Dependent cases in ${dependent.label} routing to ${dependent.routesTo.join(", ")}: ${dependent.caseIds.join(", ")}.`,
-    );
-    const result = await runTriggerEval({
-      ...dependentRunOptions(runOptions, dependent),
-      agent,
-      abortSignal: abortController.signal,
-    });
-    printTriggerEvalResult(result);
-    ranFixtures += 1;
-    if (
-      result.skippedReason === undefined &&
-      result.results.every((caseResult) => caseResult.passed)
-    ) {
-      passedFixtures += 1;
-    }
-  }
-  if (ranFixtures > 0) {
-    console.log(`Dependent fixtures on ${agent}: ${passedFixtures}/${ranFixtures} passed.`);
-  }
-}
-
-// Suite membership is per agent: invocation policy and the marketplace catalog both differ
-// between Claude and Codex.
-async function resolveSuite(
-  selection: TriggerEvalSelection,
-  agent: TriggerEvalAgent,
-): Promise<TriggerEvalSuite> {
-  const repoRoot = process.cwd();
-  if (selection.mode === "skill") {
-    return {
-      skillPaths: [selection.skillPath],
-      manualOnlySkillPaths: [],
-      outOfCatalogSkillPaths: [],
-    };
-  }
-  if (selection.mode === "plugin") {
-    return selectPluginSuite(repoRoot, selection.pluginPath, agent);
-  }
-
-  return selectMarketplaceSuite(repoRoot, agent, selection.skillPaths);
 }
 
 void main();

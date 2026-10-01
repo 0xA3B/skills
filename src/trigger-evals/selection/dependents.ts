@@ -7,12 +7,12 @@ import {
   readAllowImplicitInvocation,
   resolveSkill,
   formatSkillLabel,
-} from "../skills/index.js";
-import type { TriggerEvalSelection } from "./cli-options.js";
-import { parseTriggerFixture } from "./fixtures/index.js";
-import { listMarketplacePlugins } from "./marketplace.js";
-import type { RunTriggerEvalOptions } from "./runner.js";
-import type { TriggerEvalAgent } from "./types.js";
+} from "../../skills/index.js";
+import { parseTriggerFixture } from "../fixtures/index.js";
+import { listMarketplacePlugins } from "../marketplace.js";
+import type { RunTriggerEvalOptions } from "../runner.js";
+import type { TriggerEvalAgent } from "../types.js";
+import type { TriggerEvalSelection } from "./suite.js";
 
 // The dependent cases one fixture holds for a selection: skip cases whose routing assertion names
 // a selected skill. They live in another skill's fixture, so they run and report under that skill.
@@ -131,9 +131,9 @@ export async function findDependentFixtures(
 // The run options a dependent receives: the selection's case and fixture narrowing does not carry
 // over, so a dependent runs exactly its routing cases from its committed fixture.
 export function dependentRunOptions(
-  runOptions: Omit<RunTriggerEvalOptions, "skillPath" | "agent" | "abortSignal" | "lane">,
+  runOptions: Omit<RunTriggerEvalOptions, "skillPath" | "agent" | "abortSignal">,
   dependent: DependentFixture,
-): Omit<RunTriggerEvalOptions, "agent" | "abortSignal" | "lane"> {
+): Omit<RunTriggerEvalOptions, "agent" | "abortSignal"> {
   const { caseIds: _caseIds, fixturePath: _fixturePath, ...inherited } = runOptions;
   return { ...inherited, skillPath: dependent.skillPath, caseIds: dependent.caseIds };
 }

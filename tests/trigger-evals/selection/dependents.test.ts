@@ -9,7 +9,7 @@ import {
   findDependentFixtures,
   listSelectedSkillPaths,
   selectDependentsForAgent,
-} from "../../src/trigger-evals/dependents.js";
+} from "../../../src/trigger-evals/selection/dependents.js";
 
 describe("listSelectedSkillPaths", () => {
   it("expands a plugin selection to every skill directory in the plugin", async () => {
