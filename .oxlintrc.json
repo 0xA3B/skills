@@ -13,11 +13,39 @@
     "method-signature-style": "error",
     "no-await-in-loop": "off",
     "no-duplicate-imports": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "**/skills/*",
+              "!**/skills/index.js",
+              "**/fixtures/*",
+              "!**/fixtures/index.js",
+              "**/lanes/*",
+              "!**/lanes/index.js",
+              "**/selection/*",
+              "!**/selection/index.js"
+            ],
+            "message": "Import a sub-package through its index.ts seam; its other modules are private."
+          }
+        ]
+      }
+    ],
     "prefer-named-capture-group": "error",
     "vitest/prefer-expect-type-of": "error",
     "vitest/prefer-import-in-mock": "error",
     "vitest/prefer-mock-return-shorthand": "error",
     "vitest/prefer-strict-equal": "error"
   },
+  "overrides": [
+    {
+      "files": ["tests/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["dist", "node_modules", ".local", ".cache", "evals/seeds"]
 }
