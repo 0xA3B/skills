@@ -28,8 +28,10 @@ export function nextVersions(version: string): string[] {
   if (groups === undefined) {
     return [];
   }
-  const major = Number(groups["major"]);
-  const minor = Number(groups["minor"]);
-  const patch = Number(groups["patch"]);
-  return [`${major}.${minor}.${patch + 1}`, `${major}.${minor + 1}.0`, `${major + 1}.0.0`];
+  // BigInt keeps the increment exact for components beyond Number.MAX_SAFE_INTEGER, where adding 1
+  // to a number can round back to the same value and pass an unbumped plugin.
+  const major = BigInt(groups["major"] ?? "");
+  const minor = BigInt(groups["minor"] ?? "");
+  const patch = BigInt(groups["patch"] ?? "");
+  return [`${major}.${minor}.${patch + 1n}`, `${major}.${minor + 1n}.0`, `${major + 1n}.0.0`];
 }

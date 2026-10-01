@@ -9,6 +9,15 @@ describe("nextVersions", () => {
     expect(nextVersions("2.10.9")).toStrictEqual(["2.10.10", "2.11.0", "3.0.0"]);
   });
 
+  // 2^53 + 1 is the first integer a JavaScript number cannot represent.
+  it("increments components beyond the safe integer range exactly", () => {
+    expect(nextVersions("9007199254740992.9007199254740992.9007199254740992")).toStrictEqual([
+      "9007199254740992.9007199254740992.9007199254740993",
+      "9007199254740992.9007199254740993.0",
+      "9007199254740993.0.0",
+    ]);
+  });
+
   it.each(["1.0", "1.0.0-rc.1", "01.0.0", "1.0.0 ", "v1.0.0"])(
     "returns no versions for %j, which is not x.y.z",
     (version) => {
