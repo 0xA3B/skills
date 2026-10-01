@@ -186,6 +186,28 @@ describe("runSelection", () => {
     ]);
   });
 
+  it("cannot end green when a dependent case fails", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeOtherFixture(repoRoot, routingFixture);
+
+    const { ok, report } = await run(
+      {
+        repoRoot,
+        selection: { mode: "skill", skillPath: "plugins/demo/skills/auto-skill" },
+        agents: ["codex"],
+        withDependents: true,
+      },
+      { failingCaseIds: new Set(["routes-to-demo"]) },
+    );
+
+    expect(ok).toBe(false);
+    expect(report.info).toStrictEqual([
+      "Dependent cases in other:other-skill routing to demo:auto-skill: routes-to-demo.",
+      "Dependent fixtures on codex: 0/1 passed.",
+    ]);
+    expect(report.errors).toStrictEqual([]);
+  });
+
   it("cannot end green when a fixture the dependents scan needs is unreadable", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     await writeOtherFixture(repoRoot, "version: [unclosed\n");
