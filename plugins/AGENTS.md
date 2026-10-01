@@ -38,23 +38,20 @@
 
 ## Plugin version policy
 
-- Bump at least the patch version for any plugin-directory change that should reach existing
-  installs, including skill instructions, descriptions, prompts, references, README copy, and
-  metadata. Claude Code pins installed plugins to the manifest version and ships updates only when
-  it changes, so an unbumped change never reaches existing Claude Code installs.
-- Development-only files that ship inside the plugin directory but do not affect installed behavior,
-  such as trigger fixtures, do not require a bump on their own.
-- Do not bump the plugin version for adding an agent target to an existing plugin. Installs on the
-  already-targeted agent see no change, and the new agent installs the plugin fresh at the current
-  version. If the same branch also makes a bump-worthy change, apply that bump as usual.
+- Bump at least the patch version for every change to a plugin's shipped content, including skill
+  instructions, descriptions, prompts, references, README copy, and metadata. Claude Code pins
+  installed plugins to the manifest version and ships updates only when it changes, so an unbumped
+  change never reaches existing Claude Code installs. The plugin version check in `pnpm check`
+  enforces the bump; bump size stays the author's call under the test below.
 - Size a bump by one test: does a user, or a skill that names this one, get something new to use,
   need to do anything differently, or see a new side effect? If not, the plugin does what it already
   claims, better: bump the patch version. If so, bump the minor version unless the major rule below
   applies.
 - Patch examples: wording fixes and tightened steps; bug fixes in bundled scripts; new or expanded
   references; README copy and display metadata, such as display names, default prompts, and
-  keywords; description tuning that fixes a misfire a trigger fixture case shows, meaning the skill
-  fired outside the scope it already documents or skipped a request inside it.
+  keywords; adding an agent target to an existing plugin, since existing installs see no change;
+  description tuning that fixes a misfire a trigger fixture case shows, meaning the skill fired
+  outside the scope it already documents or skipped a request inside it.
 - Minor examples: a new skill; a new mode, argument, or report field; a new side effect, such as
   posting comments or writing files; a new required input; a change to invocation policy; a
   deliberate change to the scope a skill documents, so it starts or stops handling a kind of
