@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm lint:plugins && pnpm lint:commits",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm lint:plugins && pnpm lint:plugin-versions && pnpm lint:commits",
     "eval:trigger": "node --import tsx src/trigger-evals/cli.ts",
     "eval:trigger:marketplace": "node --import tsx src/trigger-evals/cli.ts --marketplace",
     "eval:trigger:plugin": "node --import tsx src/trigger-evals/cli.ts --plugin",
@@ -16,6 +16,7 @@
     "lint": "oxlint --deny-warnings --report-unused-disable-directives",
     "lint:commits": "./scripts/lint-commits",
     "lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix",
+    "lint:plugin-versions": "node --import tsx src/plugin-versions/cli.ts",
     "lint:plugins": "node --import tsx src/lint-plugins/cli.ts",
     "lint:staged": "lint-staged",
     "prepare": "husky",

@@ -20,8 +20,8 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
         with:
-          # The commit lint in pnpm check walks history back to the merge base
-          # with origin/main and refuses a shallow clone.
+          # The commit and plugin version checks in pnpm check walk history back to the merge base
+          # with origin/main and refuse a shallow clone.
           fetch-depth: 0
 
       - name: Set up pnpm
