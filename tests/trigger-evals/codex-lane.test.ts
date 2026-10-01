@@ -14,9 +14,9 @@ import {
   skillFileReadPattern,
 } from "../../src/trigger-evals/codex-lane.js";
 import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
+import { seedGitEnvironment } from "../../src/trigger-evals/fixtures/seeds.js";
 import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
 import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
-import { seedGitEnvironment } from "../../src/trigger-evals/seeds.js";
 import {
   agentMessageEvent,
   commandExecutionEvent,

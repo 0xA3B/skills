@@ -5,13 +5,14 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { CliRunResult, StreamingCliOutput } from "../../src/trigger-evals/exec.js";
+import type { TriggerCase } from "../../src/trigger-evals/fixtures/index.js";
 import type {
   AgentLane,
   CaseExecuteOptions,
   LaneRunOptions,
 } from "../../src/trigger-evals/lanes.js";
 import { runTriggerEval } from "../../src/trigger-evals/runner.js";
-import type { CaseObservations, TriggerCase } from "../../src/trigger-evals/types.js";
+import type { CaseObservations } from "../../src/trigger-evals/types.js";
 import { buildCliRunResult, writeRepoFixture, writeRepoLocalSkillFixture } from "./test-utils.js";
 
 type FakeLaneOptions = {

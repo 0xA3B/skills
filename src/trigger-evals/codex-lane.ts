@@ -15,6 +15,7 @@ import {
   spawnStreamingCli,
   type StreamingCliOutput,
 } from "./exec.js";
+import { needsCaseWorkspace, stageCaseWorkspace, type TriggerCase } from "./fixtures/index.js";
 import { isRecord, parseJsonlEvents } from "./json.js";
 import type { AgentLane, CaseExecuteOptions, LaneCase, LaneRun, LaneRunOptions } from "./lanes.js";
 import type { RuntimeResources } from "./runtime.js";
@@ -22,10 +23,8 @@ import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
   EVAL_MARKETPLACE_NAME,
-  needsCaseWorkspace,
   pluginsToStage,
   type SkillCanary,
-  stageCaseWorkspace,
   stageCodexPluginCaches,
   stagePluginCopies,
   stageRepoLocalSkill,
@@ -34,7 +33,7 @@ import {
   surveyStagedSkills,
   writeCodexMarketplaceCatalog,
 } from "./staging.js";
-import type { CaseObservations, TriggerCase } from "./types.js";
+import type { CaseObservations } from "./types.js";
 import { SKIP_DECISION_ITEM_BUDGET } from "./verdict.js";
 
 // The Codex lane counts every non-reasoning item, including the workspace reconnaissance commands

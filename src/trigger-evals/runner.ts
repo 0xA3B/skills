@@ -8,7 +8,7 @@ import {
   resolveSkill,
   formatSkillLabel,
 } from "../skills/index.js";
-import { loadTriggerFixture } from "./fixtures.js";
+import { loadTriggerFixture } from "./fixtures/index.js";
 import {
   type AgentLane,
   createLane,

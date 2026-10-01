@@ -12,8 +12,8 @@ import {
   seedGitEnvironment,
   stageSeededWorkspace,
   writeWorkspaceFiles,
-} from "../../src/trigger-evals/seeds.js";
-import { writeSeedFixture } from "./test-utils.js";
+} from "../../../src/trigger-evals/fixtures/seeds.js";
+import { writeSeedFixture } from "../test-utils.js";
 
 const execFileAsync = promisify(execFile);
 

@@ -8,21 +8,20 @@ import {
   spawnStreamingCli,
   type StreamingCliOutput,
 } from "./exec.js";
+import { needsCaseWorkspace, stageCaseWorkspace, type TriggerCase } from "./fixtures/index.js";
 import { isRecord, parseJsonlEvents } from "./json.js";
 import type { AgentLane, CaseExecuteOptions, LaneCase, LaneRun, LaneRunOptions } from "./lanes.js";
 import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
-  needsCaseWorkspace,
   pluginsToStage,
-  stageCaseWorkspace,
   stagePluginCopies,
   stageRepoLocalSkill,
   surveySkillDependencies,
   surveyStagedSkills,
   writeClaudeEvalSettings,
 } from "./staging.js";
-import type { CaseObservations, TriggerCase } from "./types.js";
+import type { CaseObservations } from "./types.js";
 import { SKIP_DECISION_ITEM_BUDGET } from "./verdict.js";
 
 // Read-only tool surface: trigger evals only observe whether the Skill tool fires, but the model

@@ -2,9 +2,10 @@ import type { Skill, SkillDirectory } from "../skills/index.js";
 import { createClaudeLane } from "./claude-lane.js";
 import { createCodexLane } from "./codex-lane.js";
 import type { CliRunResult, StreamingCliOutput } from "./exec.js";
+import type { TriggerCase } from "./fixtures/index.js";
 import type { MarketplacePluginEntry } from "./marketplace.js";
 import type { RuntimeResources } from "./runtime.js";
-import type { CaseObservations, TriggerCase, TriggerEvalAgent } from "./types.js";
+import type { CaseObservations, TriggerEvalAgent } from "./types.js";
 
 // Trigger evals default to the models this repository's skills are used with day to day, so
 // results predict real invocation behavior. Full-sweep comparisons showed trigger boundaries are

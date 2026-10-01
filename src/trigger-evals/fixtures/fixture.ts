@@ -2,9 +2,39 @@ import { readFile } from "node:fs/promises";
 
 import { parse as parseYaml } from "yaml";
 
-import { isRecord } from "./json.js";
+import { isRecord } from "../json.js";
 import { isSafeWorkspaceFilePath, SEED_NAME_PATTERN } from "./seeds.js";
-import type { TriggerCase, TriggerExpectation, TriggerFixture, WorkspaceSpec } from "./types.js";
+
+export type TriggerExpectation = "invoke" | "skip";
+
+// A seeded git workspace for one case: the named seed plus committed files form the single
+// commit, staged files are added to the index, and the case's workspaceFiles stay unstaged.
+export type WorkspaceSpec = {
+  seed: string;
+  branch: string;
+  committed: Record<string, string>;
+  staged: Record<string, string>;
+};
+
+export type TriggerCase = {
+  id: string;
+  prompt: string;
+  expect: TriggerExpectation;
+  rationale?: string;
+  // Routing assertion, skip cases only: the label of the skill that must be the only one to fire.
+  invokeInstead?: string;
+  // Resolved from the fixture-level default unless the case replaces it or opts out.
+  workspace?: WorkspaceSpec;
+  // Unstaged files written last, fixture-level defaults merged under the case's own per path.
+  workspaceFiles?: Record<string, string>;
+};
+
+export type TriggerFixture = {
+  version: 1;
+  cases: TriggerCase[];
+  // The fixture-level default; a case that inherited it holds this same object.
+  workspace?: WorkspaceSpec;
+};
 
 type FixtureOptions = {
   // Case ids to keep, in any order; the result keeps fixture order.

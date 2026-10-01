@@ -9,8 +9,7 @@ import {
   type Skill,
   formatSkillLabel,
 } from "../../skills/index.js";
-import { parseTriggerFixture } from "../../trigger-evals/fixtures.js";
-import type { TriggerFixture } from "../../trigger-evals/types.js";
+import { parseTriggerFixture, type TriggerFixture } from "../../trigger-evals/fixtures/index.js";
 import { error, type ValidationContext } from "../diagnostics.js";
 import { isDirectory, pathExists } from "../files.js";
 import type { FindMissingPluginTargets } from "../repository.js";

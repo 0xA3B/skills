@@ -9,7 +9,7 @@ import {
   formatSkillLabel,
 } from "../skills/index.js";
 import type { TriggerEvalSelection } from "./cli-options.js";
-import { parseTriggerFixture } from "./fixtures.js";
+import { parseTriggerFixture } from "./fixtures/index.js";
 import { listMarketplacePlugins } from "./marketplace.js";
 import type { RunTriggerEvalOptions } from "./runner.js";
 import type { TriggerEvalAgent } from "./types.js";

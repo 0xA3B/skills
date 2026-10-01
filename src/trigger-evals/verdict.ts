@@ -1,5 +1,6 @@
 import type { CliRunResult } from "./exec.js";
-import type { CaseObservations, TriggerCaseResult, TriggerExpectation } from "./types.js";
+import type { TriggerExpectation } from "./fixtures/index.js";
+import type { CaseObservations, TriggerCaseResult } from "./types.js";
 
 // The trigger decision happens near the front of the turn, so once this many decision-bearing items
 // complete without an invocation signal, the run is stopped and classified as a clean skip instead

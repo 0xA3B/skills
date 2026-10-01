@@ -10,8 +10,6 @@ import {
 } from "../skills/index.js";
 import { appendEvalSectionToFile, createCanary } from "./canary.js";
 import type { MarketplacePluginEntry } from "./marketplace.js";
-import { stageSeededWorkspace, writeWorkspaceFiles } from "./seeds.js";
-import type { TriggerCase } from "./types.js";
 
 export const EVAL_MARKETPLACE_NAME = "trigger-eval";
 
@@ -217,44 +215,6 @@ export async function stageRepoLocalSkill(
   await mkdir(path.dirname(copiedSkillPath), { recursive: true });
   await cp(skill.skillPath, copiedSkillPath, { recursive: true });
   return path.join(copiedSkillPath, "SKILL.md");
-}
-
-// A case needs its own workspace copy when the fixture mutates it: a seeded git repository, or
-// unstaged workspace files. Other cases share the base workspace.
-// An empty workspace_files map declares no files, so it needs no per-case copy.
-export function needsCaseWorkspace(testCase: TriggerCase): boolean {
-  return (
-    testCase.workspace !== undefined ||
-    (testCase.workspaceFiles !== undefined && Object.keys(testCase.workspaceFiles).length > 0)
-  );
-}
-
-// Copies the shared base workspace into a case-isolated one, then layers the fixture's workspace:
-// a seeded git repository when the case declares one (its harness surfaces join the seed commit),
-// and the unstaged workspace files last. Callers that need no per-case mutation should keep using
-// the base workspace instead.
-export async function stageCaseWorkspace(options: {
-  baseWorkspacePath: string;
-  workspaceRoot: string;
-  repoRoot: string;
-  testCase: TriggerCase;
-}): Promise<string> {
-  const { testCase } = options;
-  const workspacePath = path.join(options.workspaceRoot, "cases", testCase.id, "workspace");
-  await cp(options.baseWorkspacePath, workspacePath, { recursive: true });
-
-  if (testCase.workspace === undefined) {
-    await writeWorkspaceFiles(workspacePath, testCase.workspaceFiles ?? {});
-  } else {
-    await stageSeededWorkspace({
-      repoRoot: options.repoRoot,
-      workspacePath,
-      workspace: testCase.workspace,
-      ...(testCase.workspaceFiles === undefined ? {} : { workspaceFiles: testCase.workspaceFiles }),
-    });
-  }
-
-  return workspacePath;
 }
 
 export function stagedSkillFilePath(workspacePath: string, target: Skill): string {
