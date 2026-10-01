@@ -4,26 +4,29 @@ import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resolveSkill } from "../../src/skills/index.js";
-import { createClaudeLane, observeClaudeOutput } from "../../src/trigger-evals/claude-lane.js";
-import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
-import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
-import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
-import { buildCaseResult, shouldStopEarly } from "../../src/trigger-evals/verdict.js";
+import { resolveSkill } from "../../../src/skills/index.js";
+import { createClaudeLane, observeClaudeOutput } from "../../../src/trigger-evals/lanes/claude.js";
+import type {
+  StreamingCliOptions,
+  StreamingCliResult,
+} from "../../../src/trigger-evals/lanes/exec.js";
+import type { LaneRunOptions } from "../../../src/trigger-evals/lanes/index.js";
+import { createRuntimeResources } from "../../../src/trigger-evals/runtime.js";
+import { buildCaseResult, shouldStopEarly } from "../../../src/trigger-evals/verdict.js";
 import {
   buildCliRunResult,
   skillToolUseEvent,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
   writeSeedFixture,
-} from "./test-utils.js";
+} from "../test-utils.js";
 
 const spawnCalls = vi.hoisted(
   () => [] as Array<{ command: string; args: string[]; options: StreamingCliOptions }>,
 );
 
 // The lane is tested against the real filesystem; only the process boundary is faked.
-vi.mock(import("../../src/trigger-evals/exec.js"), async (importOriginal) => {
+vi.mock(import("../../../src/trigger-evals/lanes/exec.js"), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,

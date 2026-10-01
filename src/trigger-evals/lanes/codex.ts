@@ -1,13 +1,18 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { formatSkillLabel, type Skill } from "../../skills/index.js";
+import { needsCaseWorkspace, stageCaseWorkspace, type TriggerCase } from "../fixtures/index.js";
+import { isRecord, parseJsonlEvents } from "../json.js";
+import type { RuntimeResources } from "../runtime.js";
+import { SKIP_DECISION_ITEM_BUDGET } from "../verdict.js";
 import {
-  readSkillFileAllowImplicitInvocation,
-  type Skill,
-  formatSkillLabel,
-} from "../skills/index.js";
-import { appendEvalSectionToFile, createCanary } from "./canary.js";
-import { prepareCodexHome, removeCopiedAuth } from "./codex-home.js";
+  EVAL_MARKETPLACE_NAME,
+  prepareCodexHome,
+  removeCopiedAuth,
+  stageCodexPluginCaches,
+  writeCodexMarketplaceCatalog,
+} from "./codex-home.js";
 import {
   type CliRunResult,
   finishCliRun,
@@ -15,26 +20,15 @@ import {
   spawnStreamingCli,
   type StreamingCliOutput,
 } from "./exec.js";
-import { needsCaseWorkspace, stageCaseWorkspace, type TriggerCase } from "./fixtures/index.js";
-import { isRecord, parseJsonlEvents } from "./json.js";
-import type { AgentLane, CaseExecuteOptions, LaneCase, LaneRun, LaneRunOptions } from "./lanes.js";
-import type { RuntimeResources } from "./runtime.js";
-import {
-  appendStagedSkillCanaries,
-  createStagedWorkspace,
-  EVAL_MARKETPLACE_NAME,
-  pluginsToStage,
-  type SkillCanary,
-  stageCodexPluginCaches,
-  stagePluginCopies,
-  stageRepoLocalSkill,
-  type StagedPlugin,
-  surveySkillDependencies,
-  surveyStagedSkills,
-  writeCodexMarketplaceCatalog,
-} from "./staging.js";
-import type { CaseObservations } from "./types.js";
-import { SKIP_DECISION_ITEM_BUDGET } from "./verdict.js";
+import type {
+  AgentLane,
+  CaseExecuteOptions,
+  CaseObservations,
+  LaneCase,
+  LaneRun,
+  LaneRunOptions,
+} from "./lane.js";
+import { type StagedDeployment, stageDeployment } from "./staging.js";
 
 // The Codex lane counts every non-reasoning item, including the workspace reconnaissance commands
 // its generic command events cannot separate from decisions. Recorded gpt-6-sol runs on seeded
@@ -56,92 +50,49 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
   return {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
       const { runDir, target, model, effort, runtime } = runOptions;
-      const { workspaceRoot, workspacePath } = await createStagedWorkspace();
-      runtime.track(workspaceRoot);
-      await mkdir(workspacePath, { recursive: true });
+      // A repo-local target's siblings get canaries too, so a sibling stealing the invocation is
+      // attributable.
+      const deployment = await stageDeployment({
+        target,
+        plugins: runOptions.extraPlugins ?? [],
+        repoLocalSkills: runOptions.extraRepoLocalSkills ?? [],
+        repoLocalSurface: ".agents",
+        canaryRepoLocalSkills: true,
+        runtime,
+      });
       // Per-case homes nest under the run home, so tracking the run home covers a case whose
       // own tracking never happened.
       const runCodexHome = runtime.track(path.join(runDir, "codex-home"));
-      const targetLabel = formatSkillLabel(target);
-
-      // Every canaried skill, plugin or repo-local, shares the per-run canary map.
-      const entries = pluginsToStage(target, runOptions.extraPlugins ?? []);
-      // Installed plugins are deployment context, not project files. Keep their copies and the
-      // marketplace catalog outside the case cwd so project reconnaissance sees only fixture
-      // workspace files, as it would in a real installed session.
-      const pluginDeploymentPath = path.join(workspaceRoot, "deployment");
-      const stagedPlugins: StagedPlugin[] = await stagePluginCopies(pluginDeploymentPath, entries);
-      if (stagedPlugins.length > 0) {
-        await writeCodexMarketplaceCatalog(pluginDeploymentPath, stagedPlugins);
+      if (deployment.stagedPlugins.length > 0) {
+        await writeCodexMarketplaceCatalog(deployment.deploymentPath, deployment.stagedPlugins);
       }
-      const survey = await surveyStagedSkills(target, entries);
-      await appendStagedSkillCanaries(pluginDeploymentPath, survey.skillCanaries);
-      const skillCanaries: SkillCanary[] = survey.skillCanaries;
-      const runCanaryLabels = new Map(
-        skillCanaries.map((skillCanary) => [skillCanary.canary, skillCanary.skillLabel]),
+      // Every canaried skill, plugin or repo-local, shares the per-run canary and read maps.
+      const canaryLabels = new Map(
+        deployment.canaries.map((skillCanary) => [skillCanary.canary, skillCanary.skillLabel]),
       );
-      const runSkillFilePatterns = new Map(
-        skillCanaries.map((skillCanary) => [
+      const skillFilePatterns = new Map(
+        deployment.canaries.map((skillCanary) => [
           skillCanary.skillLabel,
           skillFileReadPattern(skillCanary.pluginName, skillCanary.skillName),
         ]),
       );
-      const labels = [...survey.stagedSkillLabels];
-      const skillFiles = [...survey.skillFiles];
-      if (target.kind === "repo-local") {
-        // The target always gets a body canary; implicitly invokable siblings get one too, so a
-        // sibling stealing the invocation is attributable. Canaries land in the base workspace
-        // before any case copies it, so a seeded case commits them with the rest of the skill.
-        for (const repoLocalSkill of [target, ...(runOptions.extraRepoLocalSkills ?? [])]) {
-          const stagedSkillFile = await stageRepoLocalSkill(
-            workspacePath,
-            repoLocalSkill,
-            ".agents",
-          );
-          labels.push(repoLocalSkill.skillName);
-          skillFiles.push({
-            skillLabel: repoLocalSkill.skillName,
-            skillName: repoLocalSkill.skillName,
-            filePath: path.join(repoLocalSkill.skillPath, "SKILL.md"),
-          });
-          if (
-            repoLocalSkill.skillName !== target.skillName &&
-            !(await readSkillFileAllowImplicitInvocation(stagedSkillFile))
-          ) {
-            continue;
-          }
-          const canary = createCanary();
-          await appendEvalSectionToFile(stagedSkillFile, canary);
-          runCanaryLabels.set(canary, repoLocalSkill.skillName);
-          runSkillFilePatterns.set(
-            repoLocalSkill.skillName,
-            skillFileReadPattern(undefined, repoLocalSkill.skillName),
-          );
-        }
-      }
-      const stagedSkillLabels: ReadonlySet<string> = new Set(labels);
-      const skillDependencies = await surveySkillDependencies(skillFiles);
 
       return {
-        stagedSkillLabels,
-        skillDependencies,
+        stagedSkillLabels: deployment.stagedSkillLabels,
+        skillDependencies: deployment.skillDependencies,
         skipDecisionItemBudget: CODEX_SKIP_DECISION_ITEM_BUDGET,
         prepareCase: (testCase) =>
           prepareCodexCase({
             testCase,
             target,
-            targetLabel,
+            targetLabel: formatSkillLabel(target),
             runDir,
-            workspaceRoot,
-            workspacePath,
-            pluginDeploymentPath,
+            deployment,
             model,
             effort,
             runtime,
-            canaryLabels: runCanaryLabels,
-            skillFilePatterns: runSkillFilePatterns,
-            stagedPlugins,
-            skillCanaries,
+            canaryLabels,
+            skillFilePatterns,
             ...(options.sourceCodexHome === undefined
               ? {}
               : { sourceCodexHome: options.sourceCodexHome }),
@@ -157,26 +108,22 @@ type CodexCaseContext = {
   target: Skill;
   targetLabel: string;
   runDir: string;
-  workspaceRoot: string;
-  workspacePath: string;
-  pluginDeploymentPath: string;
+  deployment: StagedDeployment;
   model: string;
   effort: string;
   runtime: RuntimeResources;
   canaryLabels: Map<string, string>;
   skillFilePatterns: Map<string, RegExp>;
-  stagedPlugins: StagedPlugin[];
-  skillCanaries: SkillCanary[];
   sourceCodexHome?: string;
 };
 
 async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
-  const { target, testCase } = context;
-  let caseWorkspacePath = context.workspacePath;
+  const { target, testCase, deployment } = context;
+  let caseWorkspacePath = deployment.workspacePath;
   if (target.kind !== "plugin" || needsCaseWorkspace(testCase)) {
     caseWorkspacePath = await stageCaseWorkspace({
-      baseWorkspacePath: context.workspacePath,
-      workspaceRoot: context.workspaceRoot,
+      baseWorkspacePath: deployment.workspacePath,
+      workspaceRoot: deployment.workspaceRoot,
       repoRoot: target.repoRoot,
       testCase,
     });
@@ -195,18 +142,18 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
       workspacePath: caseWorkspacePath,
       model: context.model,
       effort: context.effort,
-      ...(context.stagedPlugins.length > 0
+      ...(deployment.stagedPlugins.length > 0
         ? {
             marketplaceName: EVAL_MARKETPLACE_NAME,
-            marketplaceSourcePath: context.pluginDeploymentPath,
-            pluginNames: context.stagedPlugins.map((stagedPlugin) => stagedPlugin.pluginName),
+            marketplaceSourcePath: deployment.deploymentPath,
+            pluginNames: deployment.stagedPlugins.map((stagedPlugin) => stagedPlugin.pluginName),
           }
         : {}),
       ...(context.sourceCodexHome === undefined
         ? {}
         : { sourceCodexHome: context.sourceCodexHome }),
     });
-    await stageCodexPluginCaches(codexHome, context.stagedPlugins, context.skillCanaries);
+    await stageCodexPluginCaches(codexHome, deployment.stagedPlugins, deployment.canaries);
   } catch (caught) {
     await removeCopiedAuth(codexHome);
     throw caught;

@@ -15,7 +15,7 @@ import {
   DEFAULT_EVAL_EFFORT,
   DEFAULT_EVAL_MODELS,
   type LaneRun,
-} from "./lanes.js";
+} from "./lanes/index.js";
 import { listMarketplacePlugins } from "./marketplace.js";
 import { createRuntimeResources } from "./runtime.js";
 import type { TriggerCaseResult, TriggerEvalAgent, TriggerEvalResult } from "./types.js";

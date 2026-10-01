@@ -6,24 +6,27 @@ import { promisify } from "node:util";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resolveSkill, type Skill, formatSkillLabel } from "../../src/skills/index.js";
+import { resolveSkill, type Skill, formatSkillLabel } from "../../../src/skills/index.js";
+import { seedGitEnvironment } from "../../../src/trigger-evals/fixtures/seeds.js";
 import {
   CODEX_SKIP_DECISION_ITEM_BUDGET,
   createCodexLane,
   observeCodexOutput,
   skillFileReadPattern,
-} from "../../src/trigger-evals/codex-lane.js";
-import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
-import { seedGitEnvironment } from "../../src/trigger-evals/fixtures/seeds.js";
-import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
-import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
+} from "../../../src/trigger-evals/lanes/codex.js";
+import type {
+  StreamingCliOptions,
+  StreamingCliResult,
+} from "../../../src/trigger-evals/lanes/exec.js";
+import type { LaneRunOptions } from "../../../src/trigger-evals/lanes/index.js";
+import { createRuntimeResources } from "../../../src/trigger-evals/runtime.js";
 import {
   agentMessageEvent,
   commandExecutionEvent,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
   writeSeedFixture,
-} from "./test-utils.js";
+} from "../test-utils.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -32,7 +35,7 @@ const spawnCalls = vi.hoisted(
 );
 
 // The lane is tested against the real filesystem; only the process boundary is faked.
-vi.mock(import("../../src/trigger-evals/exec.js"), async (importOriginal) => {
+vi.mock(import("../../../src/trigger-evals/lanes/exec.js"), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,

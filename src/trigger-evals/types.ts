@@ -1,37 +1,8 @@
 import type { PluginTarget, Skill } from "../skills/index.js";
 import type { TriggerExpectation } from "./fixtures/index.js";
+import type { InvocationSignal } from "./lanes/index.js";
 
 export type TriggerEvalAgent = PluginTarget;
-
-export type InvocationSignal =
-  | "stderr-skill-injected"
-  | "stdout-skill-canary"
-  | "command-skill-read"
-  | "stream-skill-tool-use"
-  | "none";
-
-// Normalized observations parsed from one case's raw CLI output. Lanes produce these; verdict
-// classification consumes them without knowing any agent's stream format.
-export type CaseObservations = {
-  signal: InvocationSignal;
-  // Labels of skills whose invocation was detected, in detection order. May name skills other
-  // than the target; attribution to target vs wrong skill happens in the verdict.
-  invokedSkills: string[];
-  hasActivity: boolean;
-  // Lane-specific events that show the agent moved beyond reasoning or typed reconnaissance toward
-  // a response or action. This is not a raw stream-event count.
-  decisionItemCount: number;
-  // Skills the agent reported loading at session start (Claude's init event); undefined when the
-  // lane has no such signal.
-  loadedSkills?: string[];
-  // The agent runtime's own report that the turn failed (an API error, a dropped stream), quoted
-  // from the lane's terminal error event. Such a run never reached a settled trigger decision.
-  errorSignal?: string;
-  // True while a skill-file read is the latest signal and no assistant message has completed
-  // since: the agent may still be loading further skills before it speaks, so the invocation set
-  // is not yet attributable. Lanes without a read signal leave it undefined.
-  pendingReads?: boolean;
-};
 
 export type TriggerCaseResult = {
   caseId: string;

@@ -5,7 +5,7 @@ import {
   spawnStreamingCli,
   type StreamingCliOptions,
   type StreamingCliOutput,
-} from "../../src/trigger-evals/exec.js";
+} from "../../../src/trigger-evals/lanes/exec.js";
 
 const node = process.execPath;
 

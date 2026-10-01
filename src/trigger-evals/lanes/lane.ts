@@ -1,17 +1,14 @@
-import type { Skill, SkillDirectory } from "../skills/index.js";
-import { createClaudeLane } from "./claude-lane.js";
-import { createCodexLane } from "./codex-lane.js";
+import type { PluginTarget, Skill, SkillDirectory } from "../../skills/index.js";
+import type { TriggerCase } from "../fixtures/index.js";
+import type { MarketplacePluginEntry } from "../marketplace.js";
+import type { RuntimeResources } from "../runtime.js";
 import type { CliRunResult, StreamingCliOutput } from "./exec.js";
-import type { TriggerCase } from "./fixtures/index.js";
-import type { MarketplacePluginEntry } from "./marketplace.js";
-import type { RuntimeResources } from "./runtime.js";
-import type { CaseObservations, TriggerEvalAgent } from "./types.js";
 
 // Trigger evals default to the models this repository's skills are used with day to day, so
 // results predict real invocation behavior. Full-sweep comparisons showed trigger boundaries are
 // model-specific, so proxying with smaller models measures the wrong thing. Override with
 // --model/--effort to spot-check other models.
-export const DEFAULT_EVAL_MODELS: Record<TriggerEvalAgent, string> = {
+export const DEFAULT_EVAL_MODELS: Record<PluginTarget, string> = {
   claude: "opus",
   codex: "gpt-6-sol",
 };
@@ -73,19 +70,32 @@ export type AgentLane = {
   prepareRun(options: LaneRunOptions): Promise<LaneRun>;
 };
 
-export type CreateLaneOptions = {
-  sourceCodexHome?: string;
-  claudeConfigDir?: string;
+export type InvocationSignal =
+  | "stderr-skill-injected"
+  | "stdout-skill-canary"
+  | "command-skill-read"
+  | "stream-skill-tool-use"
+  | "none";
+
+// Normalized observations parsed from one case's raw CLI output. Lanes produce these; verdict
+// classification consumes them without knowing any agent's stream format.
+export type CaseObservations = {
+  signal: InvocationSignal;
+  // Labels of skills whose invocation was detected, in detection order. May name skills other
+  // than the target; attribution to target vs wrong skill happens in the verdict.
+  invokedSkills: string[];
+  hasActivity: boolean;
+  // Lane-specific events that show the agent moved beyond reasoning or typed reconnaissance toward
+  // a response or action. This is not a raw stream-event count.
+  decisionItemCount: number;
+  // Skills the agent reported loading at session start (Claude's init event); undefined when the
+  // lane has no such signal.
+  loadedSkills?: string[];
+  // The agent runtime's own report that the turn failed (an API error, a dropped stream), quoted
+  // from the lane's terminal error event. Such a run never reached a settled trigger decision.
+  errorSignal?: string;
+  // True while a skill-file read is the latest signal and no assistant message has completed
+  // since: the agent may still be loading further skills before it speaks, so the invocation set
+  // is not yet attributable. Lanes without a read signal leave it undefined.
+  pendingReads?: boolean;
 };
-
-export function createLane(agent: TriggerEvalAgent, options: CreateLaneOptions = {}): AgentLane {
-  if (agent === "claude") {
-    return createClaudeLane(
-      options.claudeConfigDir === undefined ? {} : { configDir: options.claudeConfigDir },
-    );
-  }
-
-  return createCodexLane(
-    options.sourceCodexHome === undefined ? {} : { sourceCodexHome: options.sourceCodexHome },
-  );
-}

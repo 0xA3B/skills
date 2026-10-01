@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { CaseObservations } from "../../src/trigger-evals/types.js";
+import type { CaseObservations } from "../../src/trigger-evals/lanes/index.js";
 import {
   buildCaseResult,
   type CaseVerdictOptions,
