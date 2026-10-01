@@ -1,16 +1,16 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
 import { describe, expect, it } from "vitest";
 
+import { type PluginSkill, resolveSkill } from "../../src/skills/index.js";
 import { seedGitEnvironment } from "../../src/trigger-evals/seeds.js";
 import {
   appendStagedSkillCanaries,
   createStagedWorkspace,
-  listRepoLocalSkills,
   needsCaseWorkspace,
   pluginsToStage,
   stageCaseWorkspace,
@@ -20,14 +20,12 @@ import {
   surveySkillDependencies,
   surveyStagedSkills,
 } from "../../src/trigger-evals/staging.js";
-import { resolveSkillTarget } from "../../src/trigger-evals/target.js";
-import type { PluginSkillTarget } from "../../src/trigger-evals/types.js";
 import { writeRepoFixture, writeRepoLocalSkillFixture, writeSeedFixture } from "./test-utils.js";
 
 const execFileAsync = promisify(execFile);
 
-async function pluginTarget(repoRoot: string): Promise<PluginSkillTarget> {
-  const target = resolveSkillTarget(repoRoot, "plugins/demo/skills/auto-skill");
+async function pluginTarget(repoRoot: string): Promise<PluginSkill> {
+  const target = resolveSkill(repoRoot, "plugins/demo/skills/auto-skill");
   if (target.kind !== "plugin") {
     throw new Error("expected a plugin target");
   }
@@ -59,7 +57,7 @@ describe("surveyStagedSkills", () => {
       siblingSkills: [{ name: "manual-skill", manualOnly: true }],
     });
     const repoRoot = await writeRepoLocalSkillFixture();
-    const target = resolveSkillTarget(repoRoot, ".agents/skills/auto-skill");
+    const target = resolveSkill(repoRoot, ".agents/skills/auto-skill");
 
     // A repo-local target owns no plugin, so exactly the extra entries stage.
     const entries = pluginsToStage(target, [
@@ -71,30 +69,6 @@ describe("surveyStagedSkills", () => {
     expect(survey.stagedSkillLabels.sort()).toStrictEqual(["demo:auto-skill", "demo:manual-skill"]);
     expect(survey.skillCanaries.map((skillCanary) => skillCanary.skillLabel)).toStrictEqual([
       "demo:auto-skill",
-    ]);
-  });
-});
-
-describe("listRepoLocalSkills", () => {
-  it("returns an empty list when the repo has no repo-local skills directory", async () => {
-    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "staging-test-"));
-
-    await expect(listRepoLocalSkills(repoRoot)).resolves.toStrictEqual([]);
-  });
-
-  it("lists only SKILL.md-bearing directories, sorted by name", async () => {
-    const repoRoot = await writeRepoLocalSkillFixture({
-      siblingSkills: [{ name: "zeta-skill" }, { name: "alpha-skill" }],
-    });
-    await writeFile(path.join(repoRoot, ".agents", "skills", "stray-file"), "not a skill");
-    await mkdir(path.join(repoRoot, ".agents", "skills", "empty-dir"));
-
-    const skills = await listRepoLocalSkills(repoRoot);
-
-    expect(skills.map((skill) => skill.skillName)).toStrictEqual([
-      "alpha-skill",
-      "auto-skill",
-      "zeta-skill",
     ]);
   });
 });
@@ -168,7 +142,7 @@ describe("stageCaseWorkspace", () => {
     const { workspaceRoot, workspacePath } = await createStagedWorkspace();
     const repoRoot = await writeRepoLocalSkillFixture();
     await writeSeedFixture(repoRoot, "demo-seed");
-    const target = resolveSkillTarget(repoRoot, ".agents/skills/auto-skill");
+    const target = resolveSkill(repoRoot, ".agents/skills/auto-skill");
     await stageRepoLocalSkill(workspacePath, target, ".agents");
 
     const caseWorkspacePath = await stageCaseWorkspace({
@@ -204,7 +178,7 @@ describe("stageCaseWorkspace", () => {
   it("copies the base workspace and applies fixture workspace files", async () => {
     const { workspaceRoot, workspacePath } = await createStagedWorkspace();
     const repoRoot = await writeRepoLocalSkillFixture();
-    const target = resolveSkillTarget(repoRoot, ".agents/skills/auto-skill");
+    const target = resolveSkill(repoRoot, ".agents/skills/auto-skill");
     await stageRepoLocalSkill(workspacePath, target, ".agents");
 
     const caseWorkspacePath = await stageCaseWorkspace({

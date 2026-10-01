@@ -4,11 +4,11 @@ import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resolveSkill } from "../../src/skills/index.js";
 import { createClaudeLane, observeClaudeOutput } from "../../src/trigger-evals/claude-lane.js";
 import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
 import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
 import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
-import { resolveSkillTarget } from "../../src/trigger-evals/target.js";
 import { buildCaseResult, shouldStopEarly } from "../../src/trigger-evals/verdict.js";
 import {
   buildCliRunResult,
@@ -48,7 +48,7 @@ async function makeRunOptions(
 ): Promise<LaneRunOptions> {
   return {
     runDir: await mkdtemp(path.join(os.tmpdir(), "claude-lane-run-")),
-    target: resolveSkillTarget(repoRoot, skillPath),
+    target: resolveSkill(repoRoot, skillPath),
     model: "opus",
     effort: "medium",
     runtime: createRuntimeResources(),
@@ -106,7 +106,7 @@ describe("createClaudeLane", () => {
   it("builds claude args with model, effort, and deployment plugin dirs", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     const lane = createClaudeLane({ configDir: "/tmp/claude-config" });
-    const target = resolveSkillTarget(repoRoot, "plugins/demo/skills/auto-skill");
+    const target = resolveSkill(repoRoot, "plugins/demo/skills/auto-skill");
     if (target.kind !== "plugin") {
       throw new Error("expected a plugin target");
     }

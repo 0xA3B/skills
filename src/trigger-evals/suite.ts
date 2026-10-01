@@ -1,8 +1,8 @@
-import { readdir, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import path from "node:path";
 
+import { listPluginSkills, readAllowImplicitInvocation, resolveSkill } from "../skills/index.js";
 import { listMarketplacePlugins } from "./marketplace.js";
-import { readAllowImplicitInvocation, resolveSkillTarget } from "./target.js";
 import type { TriggerEvalAgent } from "./types.js";
 
 export type TriggerEvalSuite = {
@@ -95,7 +95,7 @@ async function filterMarketplaceSuite(
       continue;
     }
 
-    const target = resolveSkillTarget(repoRoot, selectedPath);
+    const target = resolveSkill(repoRoot, selectedPath);
     if (target.kind !== "plugin") {
       throw new Error(`--marketplace runs plugin skills; ${selectedPath} is a repo-local skill.`);
     }
@@ -116,25 +116,12 @@ async function selectSkillsWithFixtures(
   pluginPath: string,
   agent: TriggerEvalAgent,
 ): Promise<TriggerEvalSuite> {
-  const skillsPath = path.join(pluginPath, "skills");
-  let entries;
-  try {
-    entries = await readdir(skillsPath, { withFileTypes: true });
-  } catch {
-    return { skillPaths: [], manualOnlySkillPaths: [], outOfCatalogSkillPaths: [] };
-  }
-
   const suite: TriggerEvalSuite = {
     skillPaths: [],
     manualOnlySkillPaths: [],
     outOfCatalogSkillPaths: [],
   };
-  const skillNames = entries
-    .filter((candidate) => candidate.isDirectory())
-    .map((candidate) => candidate.name)
-    .sort();
-  for (const skillName of skillNames) {
-    const skillPath = path.join(skillsPath, skillName);
+  for (const { skillPath } of await listPluginSkills(pluginPath)) {
     try {
       await stat(path.join(skillPath, "evals", "triggers.yaml"));
     } catch {
@@ -142,7 +129,7 @@ async function selectSkillsWithFixtures(
     }
 
     const relativeSkillPath = path.relative(repoRoot, skillPath);
-    const target = resolveSkillTarget(repoRoot, relativeSkillPath);
+    const target = resolveSkill(repoRoot, relativeSkillPath);
     if (await readAllowImplicitInvocation(target, agent)) {
       suite.skillPaths.push(relativeSkillPath);
     } else {

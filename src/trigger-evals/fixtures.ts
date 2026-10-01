@@ -215,7 +215,7 @@ function validateCase(
   };
 }
 
-// The labels skillTargetLabel emits: kebab-case names, joined by one colon for a plugin skill.
+// The labels formatSkillLabel emits: kebab-case names, joined by one colon for a plugin skill.
 const SKILL_LABEL_PATTERN =
   /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?::[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)?$/;
 

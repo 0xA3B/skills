@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-import { parseSkillDocument } from "../../skills/document.js";
+import { parseSkillDocument } from "../../skills/index.js";
 import { error, type ValidationContext } from "../diagnostics.js";
 import {
   getOptionalBoolean,

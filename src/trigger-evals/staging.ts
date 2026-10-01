@@ -1,12 +1,17 @@
-import { cp, mkdir, mkdtemp, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import {
+  listPluginSkills,
+  readSkillFileAllowImplicitInvocation,
+  type Skill,
+  type SkillDirectory,
+} from "../skills/index.js";
 import { appendEvalSectionToFile, createCanary } from "./canary.js";
 import type { MarketplacePluginEntry } from "./marketplace.js";
 import { stageSeededWorkspace, writeWorkspaceFiles } from "./seeds.js";
-import { readSkillFileAllowImplicitInvocation } from "./target.js";
-import type { SkillTarget, TriggerCase } from "./types.js";
+import type { TriggerCase } from "./types.js";
 
 export const EVAL_MARKETPLACE_NAME = "trigger-eval";
 
@@ -38,7 +43,7 @@ export async function createStagedWorkspace(): Promise<StagedWorkspace> {
 // Dedupe entries matching a plugin target's own plugin so marketplace staging never stages it
 // twice. A repo-local target owns no plugin, so it stages exactly the given entries.
 export function pluginsToStage(
-  target: SkillTarget,
+  target: Skill,
   extraPlugins: MarketplacePluginEntry[],
 ): MarketplacePluginEntry[] {
   if (target.kind !== "plugin") {
@@ -140,7 +145,7 @@ export async function surveySkillDependencies(
 }
 
 export async function surveyStagedSkills(
-  target: SkillTarget,
+  target: Skill,
   entries: MarketplacePluginEntry[],
 ): Promise<{
   skillCanaries: SkillCanary[];
@@ -151,7 +156,7 @@ export async function surveyStagedSkills(
   const stagedSkillLabels: string[] = [];
   const skillFiles: StagedSkillFile[] = [];
   for (const entry of entries) {
-    for (const skillName of await listPluginSkillNames(entry.pluginPath)) {
+    for (const { skillName, skillPath } of await listPluginSkills(entry.pluginPath)) {
       const skillLabel = `${entry.pluginName}:${skillName}`;
       stagedSkillLabels.push(skillLabel);
 
@@ -159,7 +164,7 @@ export async function surveyStagedSkills(
         target.kind === "plugin" &&
         entry.pluginName === target.pluginName &&
         skillName === target.skillName;
-      const skillFilePath = path.join(entry.pluginPath, "skills", skillName, "SKILL.md");
+      const skillFilePath = path.join(skillPath, "SKILL.md");
       skillFiles.push({
         skillLabel,
         pluginName: entry.pluginName,
@@ -201,45 +206,11 @@ export async function appendStagedSkillCanaries(
   }
 }
 
-export type RepoLocalSkillEntry = {
-  skillName: string;
-  skillPath: string;
-};
-
-// Repo-local skills exist only in this checkout, where live sessions load all of them alongside
-// the marketplace plugins; enumerating them lets a repo-local target stage that real deployment
-// context. Plugin targets never stage them — repo-local skills do not exist where plugins install.
-export async function listRepoLocalSkills(repoRoot: string): Promise<RepoLocalSkillEntry[]> {
-  const skillsPath = path.join(repoRoot, ".agents", "skills");
-  let entries;
-  try {
-    entries = await readdir(skillsPath, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-
-  const skills: RepoLocalSkillEntry[] = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
-    const skillPath = path.join(skillsPath, entry.name);
-    try {
-      await stat(path.join(skillPath, "SKILL.md"));
-    } catch {
-      continue;
-    }
-    skills.push({ skillName: entry.name, skillPath });
-  }
-
-  return skills.sort((first, second) => first.skillName.localeCompare(second.skillName));
-}
-
 // Codex discovers repo-local skills under .agents/skills; Claude Code discovers them as project
 // skills under .claude/skills. Returns the staged SKILL.md path.
 export async function stageRepoLocalSkill(
   workspacePath: string,
-  skill: RepoLocalSkillEntry,
+  skill: SkillDirectory,
   surface: ".agents" | ".claude",
 ): Promise<string> {
   const copiedSkillPath = path.join(workspacePath, surface, "skills", skill.skillName);
@@ -286,7 +257,7 @@ export async function stageCaseWorkspace(options: {
   return workspacePath;
 }
 
-export function stagedSkillFilePath(workspacePath: string, target: SkillTarget): string {
+export function stagedSkillFilePath(workspacePath: string, target: Skill): string {
   if (target.kind === "plugin") {
     return path.join(
       workspacePath,
@@ -329,31 +300,6 @@ export async function stageCodexPluginCaches(
       );
     }
   }
-}
-
-async function listPluginSkillNames(pluginPath: string): Promise<string[]> {
-  const skillsPath = path.join(pluginPath, "skills");
-  let entries;
-  try {
-    entries = await readdir(skillsPath, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-
-  const skillNames: string[] = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
-    try {
-      await stat(path.join(skillsPath, entry.name, "SKILL.md"));
-      skillNames.push(entry.name);
-    } catch {
-      // Not a skill directory.
-    }
-  }
-
-  return skillNames.sort();
 }
 
 function buildMarketplace(stagedPlugins: StagedPlugin[]): unknown {

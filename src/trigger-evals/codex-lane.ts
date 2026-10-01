@@ -1,6 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import {
+  readSkillFileAllowImplicitInvocation,
+  type Skill,
+  formatSkillLabel,
+} from "../skills/index.js";
 import { appendEvalSectionToFile, createCanary } from "./canary.js";
 import { prepareCodexHome, removeCopiedAuth } from "./codex-home.js";
 import {
@@ -29,8 +34,7 @@ import {
   surveyStagedSkills,
   writeCodexMarketplaceCatalog,
 } from "./staging.js";
-import { readSkillFileAllowImplicitInvocation, skillTargetLabel } from "./target.js";
-import type { CaseObservations, SkillTarget, TriggerCase } from "./types.js";
+import type { CaseObservations, TriggerCase } from "./types.js";
 import { SKIP_DECISION_ITEM_BUDGET } from "./verdict.js";
 
 // The Codex lane counts every non-reasoning item, including the workspace reconnaissance commands
@@ -59,7 +63,7 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
       // Per-case homes nest under the run home, so tracking the run home covers a case whose
       // own tracking never happened.
       const runCodexHome = runtime.track(path.join(runDir, "codex-home"));
-      const targetLabel = skillTargetLabel(target);
+      const targetLabel = formatSkillLabel(target);
 
       // Every canaried skill, plugin or repo-local, shares the per-run canary map.
       const entries = pluginsToStage(target, runOptions.extraPlugins ?? []);
@@ -151,7 +155,7 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
 
 type CodexCaseContext = {
   testCase: TriggerCase;
-  target: SkillTarget;
+  target: Skill;
   targetLabel: string;
   runDir: string;
   workspaceRoot: string;
@@ -256,7 +260,7 @@ export function skillFileReadPattern(pluginName: string | undefined, skillName: 
 // collected text, in that precedence when one observation carries several.
 export function observeCodexOutput(
   output: StreamingCliOutput,
-  target: SkillTarget,
+  target: Skill,
   targetLabel: string,
   canaryLabels: ReadonlyMap<string, string>,
   skillFilePatterns: ReadonlyMap<string, RegExp>,

@@ -1,6 +1,8 @@
+import type { PluginTarget, Skill } from "../skills/index.js";
+
 export type TriggerExpectation = "invoke" | "skip";
 
-export type TriggerEvalAgent = "claude" | "codex";
+export type TriggerEvalAgent = PluginTarget;
 
 // A seeded git workspace for one case: the named seed plus committed files form the single
 // commit, staged files are added to the index, and the case's workspaceFiles stay unstaged.
@@ -30,27 +32,6 @@ export type TriggerFixture = {
   // The fixture-level default; a case that inherited it holds this same object.
   workspace?: WorkspaceSpec;
 };
-
-type SkillTargetBase = {
-  repoRoot: string;
-  skillName: string;
-  skillPath: string;
-  skillFilePath: string;
-  metadataPath: string;
-  fixturePath: string;
-};
-
-export type PluginSkillTarget = SkillTargetBase & {
-  kind: "plugin";
-  pluginName: string;
-  pluginPath: string;
-};
-
-export type RepoLocalSkillTarget = SkillTargetBase & {
-  kind: "repo-local";
-};
-
-export type SkillTarget = PluginSkillTarget | RepoLocalSkillTarget;
 
 export type InvocationSignal =
   | "stderr-skill-injected"
@@ -118,7 +99,7 @@ export type TriggerCaseResult = {
 export type TriggerEvalResult = {
   runDir: string;
   reportPath: string;
-  target: SkillTarget;
+  target: Skill;
   agent: TriggerEvalAgent;
   durationMs: number;
   results: TriggerCaseResult[];

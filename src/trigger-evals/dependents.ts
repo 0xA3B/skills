@@ -1,12 +1,17 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import {
+  listPluginSkills,
+  listRepoLocalSkills,
+  readAllowImplicitInvocation,
+  resolveSkill,
+  formatSkillLabel,
+} from "../skills/index.js";
 import type { TriggerEvalSelection } from "./cli-options.js";
 import { parseTriggerFixture } from "./fixtures.js";
 import { listMarketplacePlugins } from "./marketplace.js";
 import type { RunTriggerEvalOptions } from "./runner.js";
-import { listRepoLocalSkills } from "./staging.js";
-import { readAllowImplicitInvocation, resolveSkillTarget, skillTargetLabel } from "./target.js";
 import type { TriggerEvalAgent } from "./types.js";
 
 // The dependent cases one fixture holds for a selection: skip cases whose routing assertion names
@@ -65,7 +70,7 @@ export async function findDependentFixtures(
 ): Promise<DependentScan> {
   const selected = new Set(selectedSkillPaths.map((skillPath) => relativeTo(repoRoot, skillPath)));
   const selectedLabels = new Set(
-    [...selected].map((skillPath) => skillTargetLabel(resolveSkillTarget(repoRoot, skillPath))),
+    [...selected].map((skillPath) => formatSkillLabel(resolveSkill(repoRoot, skillPath))),
   );
 
   const candidateSkillPaths: string[] = [];
@@ -81,7 +86,7 @@ export async function findDependentFixtures(
     if (selected.has(skillPath)) {
       continue;
     }
-    const target = resolveSkillTarget(repoRoot, skillPath);
+    const target = resolveSkill(repoRoot, skillPath);
     let content: string;
     try {
       content = await readFile(target.fixturePath, "utf8");
@@ -116,7 +121,7 @@ export async function findDependentFixtures(
       }
     }
     if (caseIds.length > 0) {
-      scan.dependents.push({ skillPath, label: skillTargetLabel(target), caseIds, routesTo });
+      scan.dependents.push({ skillPath, label: formatSkillLabel(target), caseIds, routesTo });
     }
   }
 
@@ -146,7 +151,7 @@ export async function selectDependentsForAgent(
   );
   const selected: DependentsForAgent = { runnable: [], skipped: [] };
   for (const dependent of dependents) {
-    const target = resolveSkillTarget(repoRoot, dependent.skillPath);
+    const target = resolveSkill(repoRoot, dependent.skillPath);
     if (target.kind === "plugin" && !catalogPluginPaths.has(path.resolve(target.pluginPath))) {
       selected.skipped.push({
         label: dependent.label,
@@ -180,16 +185,7 @@ async function listCatalogPlugins(repoRoot: string): Promise<string[]> {
 }
 
 async function listPluginSkillPaths(repoRoot: string, pluginPath: string): Promise<string[]> {
-  let entries;
-  try {
-    entries = await readdir(path.join(pluginPath, "skills"), { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  return entries
-    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
-    .map((entry) => relativeTo(repoRoot, path.join(pluginPath, "skills", entry.name)))
-    .sort();
+  return (await listPluginSkills(pluginPath)).map((skill) => relativeTo(repoRoot, skill.skillPath));
 }
 
 function relativeTo(repoRoot: string, skillPath: string): string {

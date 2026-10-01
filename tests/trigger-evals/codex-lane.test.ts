@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resolveSkill, type Skill, formatSkillLabel } from "../../src/skills/index.js";
 import {
   CODEX_SKIP_DECISION_ITEM_BUDGET,
   createCodexLane,
@@ -16,8 +17,6 @@ import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-
 import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
 import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
 import { seedGitEnvironment } from "../../src/trigger-evals/seeds.js";
-import { resolveSkillTarget, skillTargetLabel } from "../../src/trigger-evals/target.js";
-import type { SkillTarget } from "../../src/trigger-evals/types.js";
 import {
   agentMessageEvent,
   commandExecutionEvent,
@@ -64,7 +63,7 @@ async function makeRunOptions(
 ): Promise<LaneRunOptions> {
   return {
     runDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-run-")),
-    target: resolveSkillTarget(repoRoot, skillPath),
+    target: resolveSkill(repoRoot, skillPath),
     model: "gpt-6-sol",
     effort: "medium",
     runtime: createRuntimeResources(),
@@ -108,7 +107,7 @@ async function readStagedCanary(
 }
 
 function observeFor(
-  target: SkillTarget,
+  target: Skill,
   canaryLabels: ReadonlyMap<string, string>,
   skillFilePatterns: ReadonlyMap<string, RegExp> = new Map(),
 ) {
@@ -116,7 +115,7 @@ function observeFor(
     observeCodexOutput(
       { stdout, stderr },
       target,
-      skillTargetLabel(target),
+      formatSkillLabel(target),
       canaryLabels,
       skillFilePatterns,
     );
@@ -696,7 +695,7 @@ describe("createCodexLane", () => {
 });
 
 describe("observeCodexOutput", () => {
-  const repoTarget: SkillTarget = {
+  const repoTarget: Skill = {
     kind: "plugin",
     repoRoot: "/repo",
     pluginName: "demo",
