@@ -1,14 +1,15 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { parseTriggerFixture } from "../../trigger-evals/fixtures.js";
 import {
   parseSkillLabel,
   readSkillFileAllowImplicitInvocation,
-  resolveSkillTarget,
-  skillTargetLabel,
-} from "../../trigger-evals/target.js";
-import type { SkillTarget, TriggerFixture } from "../../trigger-evals/types.js";
+  resolveSkill,
+  resolveSkillLabel,
+  type Skill,
+  formatSkillLabel,
+} from "../../skills/index.js";
+import { parseTriggerFixture, type TriggerFixture } from "../../trigger-evals/fixtures/index.js";
 import { error, type ValidationContext } from "../diagnostics.js";
 import { isDirectory, pathExists } from "../files.js";
 import type { FindMissingPluginTargets } from "../repository.js";
@@ -17,7 +18,7 @@ import type { PluginTargets } from "../types.js";
 // The two skill layouts a fixture can live in. Alternates named by invoke-instead are resolved
 // against the same layouts, so a plugin fixture names <plugin>:<skill> and a repo-local fixture
 // names a bare skill name.
-type FixtureKind = SkillTarget["kind"];
+type FixtureKind = Skill["kind"];
 
 // Lints evals/triggers.yaml when a skill ships one: every loader finding becomes a
 // trigger-fixture/schema diagnostic, and a fixture that parses cleanly is cross-checked against
@@ -59,7 +60,7 @@ export async function validateTriggerFixture(
         fixturePath,
         kind: ownTarget.kind,
         targets,
-        ownLabel: skillTargetLabel(ownTarget),
+        ownLabel: formatSkillLabel(ownTarget),
         label: testCase.invokeInstead,
         caseIndex: index,
       },
@@ -87,7 +88,7 @@ async function validateAlternate(
 ): Promise<void> {
   const { fixturePath, kind, targets, ownLabel, label, caseIndex } = check;
   const pointer = `/cases/${caseIndex}/invoke-instead`;
-  const { pluginName, skillName } = parseSkillLabel(label);
+  const { pluginName } = parseSkillLabel(label);
   if (kind === "plugin" && pluginName === undefined) {
     error(
       context,
@@ -122,17 +123,13 @@ async function validateAlternate(
     return;
   }
 
-  const relativeSkillPath =
-    pluginName === undefined
-      ? path.join(".agents", "skills", skillName)
-      : path.join("plugins", pluginName, "skills", skillName);
-  const skillFilePath = path.join(context.repoRoot, relativeSkillPath, "SKILL.md");
+  const { skillPath, skillFilePath } = resolveSkillLabel(context.repoRoot, label);
   if (!(await pathExists(skillFilePath))) {
     error(
       context,
       "trigger-fixture/alternate-missing",
       fixturePath,
-      `invoke-instead names "${label}", but ${toPosix(relativeSkillPath)} has no SKILL.md.`,
+      `invoke-instead names "${label}", but ${toPosix(path.relative(context.repoRoot, skillPath))} has no SKILL.md.`,
       pointer,
     );
     return;
@@ -205,9 +202,9 @@ async function validateSeeds(
 
 // Standalone skill validation also accepts directories outside the repository layouts. Such
 // fixtures still receive schema and seed checks, but have no repository identity for routing.
-function fixtureTarget(repoRoot: string, skillPath: string): SkillTarget | undefined {
+function fixtureTarget(repoRoot: string, skillPath: string): Skill | undefined {
   try {
-    return resolveSkillTarget(repoRoot, skillPath);
+    return resolveSkill(repoRoot, skillPath);
   } catch {
     return undefined;
   }

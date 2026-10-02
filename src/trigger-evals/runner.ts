@@ -2,25 +2,42 @@ import crypto from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { loadTriggerFixture } from "./fixtures.js";
+import {
+  listRepoLocalSkills,
+  readAllowImplicitInvocation,
+  resolveSkill,
+  formatSkillLabel,
+  type Agent,
+  type Skill,
+} from "../skills/index.js";
+import { loadTriggerFixture } from "./fixtures/index.js";
 import {
   type AgentLane,
   createLane,
   DEFAULT_EVAL_EFFORT,
   DEFAULT_EVAL_MODELS,
   type LaneRun,
-} from "./lanes.js";
+} from "./lanes/index.js";
 import { listMarketplacePlugins } from "./marketplace.js";
 import { createRuntimeResources } from "./runtime.js";
-import { listRepoLocalSkills } from "./staging.js";
-import { readAllowImplicitInvocation, resolveSkillTarget, skillTargetLabel } from "./target.js";
-import type { TriggerCaseResult, TriggerEvalAgent, TriggerEvalResult } from "./types.js";
-import { buildCaseResult, shouldStopEarly } from "./verdict.js";
+import { buildCaseResult, shouldStopEarly, type TriggerCaseResult } from "./verdict.js";
+
+export type TriggerEvalResult = {
+  runDir: string;
+  reportPath: string;
+  target: Skill;
+  agent: Agent;
+  durationMs: number;
+  results: TriggerCaseResult[];
+  skippedReason?: string;
+  // Runtime directories the run could not remove, one message each. Reported, never fatal.
+  cleanupFailures?: string[];
+};
 
 export type RunTriggerEvalOptions = {
   repoRoot?: string;
   skillPath: string;
-  agent?: TriggerEvalAgent;
+  agent?: Agent;
   fixturePath?: string;
   caseIds?: string[];
   model?: string;
@@ -44,8 +61,8 @@ const DEFAULT_CONCURRENCY = 3;
 export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<TriggerEvalResult> {
   const runStartedAt = Date.now();
   const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
-  const agent: TriggerEvalAgent = options.agent ?? "codex";
-  const target = resolveSkillTarget(repoRoot, options.skillPath);
+  const agent: Agent = options.agent ?? "codex";
+  const target = resolveSkill(repoRoot, options.skillPath);
   const model = options.model ?? DEFAULT_EVAL_MODELS[agent];
   const effort = options.effort ?? DEFAULT_EVAL_EFFORT;
   const allowImplicitInvocation = await readAllowImplicitInvocation(target, agent);
@@ -56,7 +73,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
       agent === "claude"
         ? '"disable-model-invocation: true" in SKILL.md frontmatter'
         : "policy.allow_implicit_invocation: false in agents/openai.yaml";
-    const skippedReason = `${skillTargetLabel(target)} is manual-only (${manualOnlySource}). Trigger optimization is intended for implicitly invokable skills.`;
+    const skippedReason = `${formatSkillLabel(target)} is manual-only (${manualOnlySource}). Trigger optimization is intended for implicitly invokable skills.`;
     const reportPath = path.join(runDir, "report.json");
     const result = {
       runDir,
@@ -99,7 +116,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   // case's share once its output is captured and the rest when the run ends, however it ends.
   const runtime = createRuntimeResources({ keep: options.keepRuntime === true });
   const cleanupFailures: string[] = [];
-  const targetLabel = skillTargetLabel(target);
+  const targetLabel = formatSkillLabel(target);
   const results: Array<TriggerCaseResult | undefined> = new Array(fixture.cases.length);
   // Run preparation tracks the staged workspace before its fallible staging steps, so it sits
   // inside the same try whose finally releases the runtime.
@@ -223,11 +240,7 @@ function normalizeConcurrency(value: number): number {
   return value;
 }
 
-async function createRunDir(
-  repoRoot: string,
-  skillName: string,
-  agent: TriggerEvalAgent,
-): Promise<string> {
+async function createRunDir(repoRoot: string, skillName: string, agent: Agent): Promise<string> {
   const timestamp = new Date()
     .toISOString()
     .replaceAll(":", "-")

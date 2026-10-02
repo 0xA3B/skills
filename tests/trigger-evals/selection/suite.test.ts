@@ -1,10 +1,14 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { selectMarketplaceSuite, selectPluginSuite } from "../../src/trigger-evals/suite.js";
+import {
+  selectMarketplaceSuite,
+  selectPluginSuite,
+} from "../../../src/trigger-evals/selection/suite.js";
+import { triggerFixtureYaml, writeMarketplaceCatalogs, writeSkillFiles } from "../test-utils.js";
 
 describe("selectPluginSuite", () => {
   it("partitions fixture-bearing skills by the agent's invocation policy", async () => {
@@ -131,71 +135,19 @@ describe("selectMarketplaceSuite", () => {
 // and an implicit skill without a fixture; plugin "claude-only" listed only in the Claude catalog.
 async function writeSuiteFixture(): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-suite-"));
+  const demoSkills = path.join(repoRoot, "plugins", "demo", "skills");
 
-  await writeSkill(repoRoot, "demo", "auto-skill", { fixture: true });
-  await writeSkill(repoRoot, "demo", "extra-skill", { fixture: true });
-  await writeSkill(repoRoot, "demo", "manual-skill", { fixture: true, manualOnly: true });
-  await writeSkill(repoRoot, "demo", "no-fixture-skill", { fixture: false });
-  await writeSkill(repoRoot, "claude-only", "claude-skill", { fixture: true });
-
-  await mkdir(path.join(repoRoot, ".agents", "plugins"), { recursive: true });
-  await writeFile(
-    path.join(repoRoot, ".agents", "plugins", "marketplace.json"),
-    JSON.stringify({
-      name: "fixture-marketplace",
-      plugins: [{ name: "demo", source: { source: "local", path: "./plugins/demo" } }],
-    }),
-  );
-  await mkdir(path.join(repoRoot, ".claude-plugin"), { recursive: true });
-  await writeFile(
-    path.join(repoRoot, ".claude-plugin", "marketplace.json"),
-    JSON.stringify({
-      name: "fixture-marketplace",
-      plugins: [
-        { name: "demo", source: "./plugins/demo" },
-        { name: "claude-only", source: "./plugins/claude-only" },
-      ],
-    }),
-  );
+  await writeSkillFiles(path.join(demoSkills, "auto-skill"), { fixture: triggerFixtureYaml() });
+  await writeSkillFiles(path.join(demoSkills, "extra-skill"), { fixture: triggerFixtureYaml() });
+  await writeSkillFiles(path.join(demoSkills, "manual-skill"), {
+    fixture: triggerFixtureYaml(),
+    manualOnly: true,
+  });
+  await writeSkillFiles(path.join(demoSkills, "no-fixture-skill"));
+  await writeSkillFiles(path.join(repoRoot, "plugins", "claude-only", "skills", "claude-skill"), {
+    fixture: triggerFixtureYaml(),
+  });
+  await writeMarketplaceCatalogs(repoRoot, { codex: ["demo"], claude: ["demo", "claude-only"] });
 
   return repoRoot;
-}
-
-async function writeSkill(
-  repoRoot: string,
-  pluginName: string,
-  skillName: string,
-  options: { fixture: boolean; manualOnly?: boolean },
-): Promise<void> {
-  const skillPath = path.join(repoRoot, "plugins", pluginName, "skills", skillName);
-  await mkdir(path.join(skillPath, "agents"), { recursive: true });
-  await writeFile(
-    path.join(skillPath, "SKILL.md"),
-    [
-      "---",
-      `name: ${skillName}`,
-      `description: Use when the user asks for ${skillName}.`,
-      ...(options.manualOnly === true ? ["disable-model-invocation: true"] : []),
-      "---",
-      "",
-    ].join("\n"),
-  );
-  await writeFile(
-    path.join(skillPath, "agents", "openai.yaml"),
-    `version: 1\npolicy:\n  allow_implicit_invocation: ${options.manualOnly === true ? "false" : "true"}\n`,
-  );
-  if (options.fixture) {
-    await mkdir(path.join(skillPath, "evals"), { recursive: true });
-    await writeFile(
-      path.join(skillPath, "evals", "triggers.yaml"),
-      [
-        "version: 1",
-        "cases:",
-        "  - id: case-a",
-        "    prompt: Invoke.",
-        "    expect: invoke",
-        "",
-      ].join("\n"),
-    );
-  }
 }

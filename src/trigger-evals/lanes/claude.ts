@@ -1,6 +1,9 @@
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { needsCaseWorkspace, stageCaseWorkspace, type TriggerCase } from "../fixtures/index.js";
+import { isRecord, parseJsonlEvents } from "../json.js";
+import { SKIP_DECISION_ITEM_BUDGET } from "../verdict.js";
 import {
   type CliRunResult,
   finishCliRun,
@@ -8,22 +11,15 @@ import {
   spawnStreamingCli,
   type StreamingCliOutput,
 } from "./exec.js";
-import { isRecord, parseJsonlEvents } from "./json.js";
-import type { AgentLane, CaseExecuteOptions, LaneCase, LaneRun, LaneRunOptions } from "./lanes.js";
-import {
-  appendStagedSkillCanaries,
-  createStagedWorkspace,
-  needsCaseWorkspace,
-  pluginsToStage,
-  stageCaseWorkspace,
-  stagePluginCopies,
-  stageRepoLocalSkill,
-  surveySkillDependencies,
-  surveyStagedSkills,
-  writeClaudeEvalSettings,
-} from "./staging.js";
-import type { CaseObservations, TriggerCase } from "./types.js";
-import { SKIP_DECISION_ITEM_BUDGET } from "./verdict.js";
+import type {
+  AgentLane,
+  CaseExecuteOptions,
+  CaseObservations,
+  LaneCase,
+  LaneRun,
+  LaneRunOptions,
+} from "./lane.js";
+import { stageDeployment } from "./staging.js";
 
 // Read-only tool surface: trigger evals only observe whether the Skill tool fires, but the model
 // may need to inspect fixture workspace files before deciding.
@@ -41,52 +37,34 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
   return {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
       const { target, model, effort } = runOptions;
-      const { workspaceRoot, workspacePath } = await createStagedWorkspace();
-      runOptions.runtime.track(workspaceRoot);
-      await writeClaudeEvalSettings(workspacePath);
-
-      const entries = pluginsToStage(target, runOptions.extraPlugins ?? []);
-      // Installed plugins are deployment context, not project files. Keep their copies outside the
-      // case cwd so project reconnaissance sees only fixture workspace files, as it would in a real
-      // installed session.
-      const pluginDeploymentPath = path.join(workspaceRoot, "deployment");
-      const stagedPlugins = await stagePluginCopies(pluginDeploymentPath, entries);
-      const stagedPluginNames = stagedPlugins.map((stagedPlugin) => stagedPlugin.pluginName);
-      // The canaries are inert on this lane (detection uses Skill tool events), but their
-      // stop-immediately instruction still cuts invoked runs short.
-      const survey = await surveyStagedSkills(target, entries);
-      await appendStagedSkillCanaries(pluginDeploymentPath, survey.skillCanaries);
-      const labels = [...survey.stagedSkillLabels];
-      const skillFiles = [...survey.skillFiles];
-      if (target.kind === "repo-local") {
-        for (const repoLocalSkill of [target, ...(runOptions.extraRepoLocalSkills ?? [])]) {
-          await stageRepoLocalSkill(workspacePath, repoLocalSkill, ".claude");
-          labels.push(repoLocalSkill.skillName);
-          skillFiles.push({
-            skillLabel: repoLocalSkill.skillName,
-            skillName: repoLocalSkill.skillName,
-            filePath: path.join(repoLocalSkill.skillPath, "SKILL.md"),
-          });
-        }
-      }
-      const stagedSkillLabels: ReadonlySet<string> = new Set(labels);
-      const skillDependencies = await surveySkillDependencies(skillFiles);
+      // Plugin skill canaries are inert on this lane (detection uses Skill tool events), but their
+      // stop-immediately instruction still cuts invoked runs short. Repo-local skills stay
+      // canary-free.
+      const deployment = await stageDeployment({
+        target,
+        plugins: runOptions.extraPlugins ?? [],
+        repoLocalSkills: runOptions.extraRepoLocalSkills ?? [],
+        repoLocalSurface: ".claude",
+        canaryRepoLocalSkills: false,
+        runtime: runOptions.runtime,
+      });
+      await writeClaudeEvalSettings(deployment.workspacePath);
+      const pluginDirs =
+        deployment.stagedPlugins.length > 0
+          ? deployment.stagedPlugins.map((stagedPlugin) =>
+              path.join(deployment.deploymentPath, "plugins", stagedPlugin.pluginName),
+            )
+          : undefined;
 
       const prepareCase = async (testCase: TriggerCase): Promise<LaneCase> => {
         const caseWorkspacePath = needsCaseWorkspace(testCase)
           ? await stageCaseWorkspace({
-              baseWorkspacePath: workspacePath,
-              workspaceRoot,
+              baseWorkspacePath: deployment.workspacePath,
+              workspaceRoot: deployment.workspaceRoot,
               repoRoot: target.repoRoot,
               testCase,
             })
-          : workspacePath;
-        const pluginDirs =
-          stagedPluginNames.length > 0
-            ? stagedPluginNames.map((pluginName) =>
-                path.join(pluginDeploymentPath, "plugins", pluginName),
-              )
-            : undefined;
+          : deployment.workspacePath;
 
         return {
           workspacePath: caseWorkspacePath,
@@ -106,14 +84,22 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
       };
 
       return {
-        stagedSkillLabels,
-        skillDependencies,
+        stagedSkillLabels: deployment.stagedSkillLabels,
+        skillDependencies: deployment.skillDependencies,
         skipDecisionItemBudget: SKIP_DECISION_ITEM_BUDGET,
         prepareCase,
         cleanup: async () => undefined,
       };
     },
   };
+}
+
+// Bundled skills would compete with the staged ones, so the workspace's project settings turn
+// them off; the verdict's isolation check reports any that load anyway.
+async function writeClaudeEvalSettings(workspacePath: string): Promise<void> {
+  const settingsPath = path.join(workspacePath, ".claude", "settings.json");
+  await mkdir(path.dirname(settingsPath), { recursive: true });
+  await writeFile(settingsPath, `${JSON.stringify({ disableBundledSkills: true }, null, 2)}\n`);
 }
 
 // Single pass over the stream-json events: Skill tool_use targets, the init event's loaded-skills

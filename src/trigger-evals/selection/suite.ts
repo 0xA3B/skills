@@ -1,9 +1,21 @@
-import { readdir, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import path from "node:path";
 
-import { listMarketplacePlugins } from "./marketplace.js";
-import { readAllowImplicitInvocation, resolveSkillTarget } from "./target.js";
-import type { TriggerEvalAgent } from "./types.js";
+import {
+  listPluginSkills,
+  type Agent,
+  readAllowImplicitInvocation,
+  resolveSkill,
+} from "../../skills/index.js";
+import { listMarketplacePlugins } from "../marketplace.js";
+
+// What a run covers: one skill, one plugin's skills, or the marketplace.
+export type TriggerEvalSelection =
+  | { mode: "skill"; skillPath: string }
+  | { mode: "plugin"; pluginPath: string }
+  // An empty skillPaths runs every marketplace skill; a non-empty list stages the full
+  // marketplace but executes only the named skills' fixtures.
+  | { mode: "marketplace"; skillPaths: string[] };
 
 export type TriggerEvalSuite = {
   // Repo-relative paths of implicitly invokable skills with trigger fixtures, in run order.
@@ -16,12 +28,33 @@ export type TriggerEvalSuite = {
   outOfCatalogSkillPaths: string[];
 };
 
+// Suite membership is per agent: invocation policy and the marketplace catalog both differ
+// between Claude and Codex.
+export async function selectSuite(
+  repoRoot: string,
+  selection: TriggerEvalSelection,
+  agent: Agent,
+): Promise<TriggerEvalSuite> {
+  if (selection.mode === "skill") {
+    return {
+      skillPaths: [selection.skillPath],
+      manualOnlySkillPaths: [],
+      outOfCatalogSkillPaths: [],
+    };
+  }
+  if (selection.mode === "plugin") {
+    return selectPluginSuite(repoRoot, selection.pluginPath, agent);
+  }
+
+  return selectMarketplaceSuite(repoRoot, agent, selection.skillPaths);
+}
+
 // One plugin's suite: every skill in the plugin that ships trigger fixtures, partitioned by the
 // agent's invocation policy so manual-only skills are reported instead of warned about per run.
 export async function selectPluginSuite(
   repoRoot: string,
   pluginPathArgument: string,
-  agent: TriggerEvalAgent,
+  agent: Agent,
 ): Promise<TriggerEvalSuite> {
   const pluginPath = path.resolve(repoRoot, pluginPathArgument);
   const relativeParts = path.relative(repoRoot, pluginPath).split(path.sep);
@@ -45,7 +78,7 @@ export async function selectPluginSuite(
 // every catalog description while only its own fixtures run.
 export async function selectMarketplaceSuite(
   repoRoot: string,
-  agent: TriggerEvalAgent,
+  agent: Agent,
   selectedSkillPaths: string[] = [],
 ): Promise<TriggerEvalSuite> {
   const suite: TriggerEvalSuite = {
@@ -95,7 +128,7 @@ async function filterMarketplaceSuite(
       continue;
     }
 
-    const target = resolveSkillTarget(repoRoot, selectedPath);
+    const target = resolveSkill(repoRoot, selectedPath);
     if (target.kind !== "plugin") {
       throw new Error(`--marketplace runs plugin skills; ${selectedPath} is a repo-local skill.`);
     }
@@ -114,27 +147,14 @@ async function filterMarketplaceSuite(
 async function selectSkillsWithFixtures(
   repoRoot: string,
   pluginPath: string,
-  agent: TriggerEvalAgent,
+  agent: Agent,
 ): Promise<TriggerEvalSuite> {
-  const skillsPath = path.join(pluginPath, "skills");
-  let entries;
-  try {
-    entries = await readdir(skillsPath, { withFileTypes: true });
-  } catch {
-    return { skillPaths: [], manualOnlySkillPaths: [], outOfCatalogSkillPaths: [] };
-  }
-
   const suite: TriggerEvalSuite = {
     skillPaths: [],
     manualOnlySkillPaths: [],
     outOfCatalogSkillPaths: [],
   };
-  const skillNames = entries
-    .filter((candidate) => candidate.isDirectory())
-    .map((candidate) => candidate.name)
-    .sort();
-  for (const skillName of skillNames) {
-    const skillPath = path.join(skillsPath, skillName);
+  for (const { skillPath } of await listPluginSkills(pluginPath)) {
     try {
       await stat(path.join(skillPath, "evals", "triggers.yaml"));
     } catch {
@@ -142,7 +162,7 @@ async function selectSkillsWithFixtures(
     }
 
     const relativeSkillPath = path.relative(repoRoot, skillPath);
-    const target = resolveSkillTarget(repoRoot, relativeSkillPath);
+    const target = resolveSkill(repoRoot, relativeSkillPath);
     if (await readAllowImplicitInvocation(target, agent)) {
       suite.skillPaths.push(relativeSkillPath);
     } else {

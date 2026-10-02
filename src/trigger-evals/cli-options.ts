@@ -1,20 +1,11 @@
 import { parseArgs } from "node:util";
 
+import type { Agent } from "../skills/index.js";
 import type { RunTriggerEvalOptions } from "./runner.js";
-import type { TriggerEvalAgent } from "./types.js";
+import type { SelectionEvalOptions, TriggerEvalSelection } from "./selection/index.js";
 
-export type TriggerEvalSelection =
-  | { mode: "skill"; skillPath: string }
-  | { mode: "plugin"; pluginPath: string }
-  // An empty skillPaths runs every marketplace skill; a non-empty list stages the full
-  // marketplace but executes only the named skills' fixtures.
-  | { mode: "marketplace"; skillPaths: string[] };
-
-export type TriggerEvalCliOptions = Omit<
-  RunTriggerEvalOptions,
-  "skillPath" | "agent" | "abortSignal" | "lane"
-> & {
-  agents: TriggerEvalAgent[];
+export type TriggerEvalCliOptions = Omit<SelectionEvalOptions, "lane"> & {
+  agents: Agent[];
   selection: TriggerEvalSelection;
   // Also run the dependent cases: routing assertions in other fixtures that name a selected skill.
   withDependents?: true;
@@ -129,7 +120,7 @@ function usageLine(): string {
   return "Usage: pnpm eval:trigger -- <skill-path> [options]";
 }
 
-function parseAgents(value: string | undefined): TriggerEvalAgent[] {
+function parseAgents(value: string | undefined): Agent[] {
   if (value === undefined || value === "codex") {
     return ["codex"];
   }
@@ -163,7 +154,7 @@ export function usage(): string {
     "Staging:",
     "  Every run stages the target's deployment context by default: every plugin in the agent's",
     "  marketplace catalog, plus every repo-local skill when the target is repo-local. Repo-local",
-    "  skills are never staged for plugin targets.",
+    "  skills are never staged for plugin-skill targets.",
     "",
     "Options:",
     "  --agent <agent>            Agent(s) to evaluate: codex, claude, or both. Defaults to codex.",

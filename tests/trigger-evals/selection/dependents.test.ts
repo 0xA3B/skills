@@ -9,7 +9,13 @@ import {
   findDependentFixtures,
   listSelectedSkillPaths,
   selectDependentsForAgent,
-} from "../../src/trigger-evals/dependents.js";
+} from "../../../src/trigger-evals/selection/dependents.js";
+import {
+  type FixtureCase,
+  triggerFixtureYaml,
+  writeMarketplaceCatalogs,
+  writeSkillFiles,
+} from "../test-utils.js";
 
 describe("listSelectedSkillPaths", () => {
   it("expands a plugin selection to every skill directory in the plugin", async () => {
@@ -112,47 +118,41 @@ describe("findDependentFixtures", () => {
     ).resolves.toStrictEqual({ dependents: [], unreadableFixtures: [] });
   });
 
-  it("reports an unreadable fixture instead of aborting the scan", async () => {
-    const repoRoot = await writeDependentsFixture();
-    await writeFile(
-      path.join(repoRoot, "plugins", "other", "skills", "other-skill", "evals", "triggers.yaml"),
-      "version: 1\ncases: [\n",
-    );
+  // A fixture that fails to read or to parse may hold routing cases, so the scan reports it and
+  // keeps going.
+  it.each([
+    {
+      failure: "invalid YAML",
+      breakFixture: (fixturePath: string) => writeFile(fixturePath, "version: 1\ncases: [\n"),
+      message: /^invalid YAML: /,
+    },
+    {
+      failure: "a directory at the fixture path",
+      breakFixture: async (fixturePath: string) => {
+        await rm(fixturePath);
+        await mkdir(fixturePath);
+      },
+      message: /EISDIR/,
+    },
+  ])(
+    "reports an unreadable fixture instead of aborting the scan: $failure",
+    async ({ breakFixture, message }) => {
+      const repoRoot = await writeDependentsFixture();
+      await breakFixture(
+        path.join(repoRoot, "plugins", "other", "skills", "other-skill", "evals", "triggers.yaml"),
+      );
 
-    const scan = await findDependentFixtures(repoRoot, ["plugins/demo/skills/target-skill"]);
+      const scan = await findDependentFixtures(repoRoot, ["plugins/demo/skills/target-skill"]);
 
-    expect(scan.dependents.map((dependent) => dependent.label)).toStrictEqual(["demo:auto-skill"]);
-    expect(scan.unreadableFixtures).toHaveLength(1);
-    expect(scan.unreadableFixtures[0]).toMatchObject({
-      skillPath: path.join("plugins", "other", "skills", "other-skill"),
-    });
-    expect(scan.unreadableFixtures[0]?.message).toMatch(/^invalid YAML: /);
-  });
-});
-
-describe("findDependentFixtures read failures", () => {
-  it("reports a fixture path that exists but cannot be read as a file", async () => {
-    const repoRoot = await writeDependentsFixture();
-    const fixturePath = path.join(
-      repoRoot,
-      "plugins",
-      "other",
-      "skills",
-      "other-skill",
-      "evals",
-      "triggers.yaml",
-    );
-    await rm(fixturePath);
-    await mkdir(fixturePath);
-
-    const scan = await findDependentFixtures(repoRoot, ["plugins/demo/skills/target-skill"]);
-
-    expect(scan.dependents.map((dependent) => dependent.label)).toStrictEqual(["demo:auto-skill"]);
-    expect(scan.unreadableFixtures.map((entry) => entry.skillPath)).toStrictEqual([
-      path.join("plugins", "other", "skills", "other-skill"),
-    ]);
-    expect(scan.unreadableFixtures[0]?.message).toMatch(/EISDIR/);
-  });
+      expect(scan.dependents.map((dependent) => dependent.label)).toStrictEqual([
+        "demo:auto-skill",
+      ]);
+      expect(scan.unreadableFixtures.map((entry) => entry.skillPath)).toStrictEqual([
+        path.join("plugins", "other", "skills", "other-skill"),
+      ]);
+      expect(scan.unreadableFixtures[0]?.message).toMatch(message);
+    },
+  );
 });
 
 describe("dependentRunOptions", () => {
@@ -226,49 +226,32 @@ describe("selectDependentsForAgent", () => {
 
 type FixtureOptions = { manualOnlyLocalA?: boolean };
 
+// Plugin "demo" is in both catalogs and plugin "other" only in the Codex catalog. Every skill but
+// local-b owns a fixture; the routing cases in them are what the scan looks for.
 async function writeDependentsFixture(options: FixtureOptions = {}): Promise<string> {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "trigger-dependents-"));
+  const demoSkills = path.join(repoRoot, "plugins", "demo", "skills");
+  const localSkills = path.join(repoRoot, ".agents", "skills");
 
   await writePlugin(repoRoot, "demo", { claude: true, codex: true });
   await writePlugin(repoRoot, "other", { claude: false, codex: true });
-  await writeSkill(repoRoot, "plugins/demo/skills/target-skill", "target-skill", {
-    fixture: routingFixture([]),
-  });
-  await writeSkill(repoRoot, "plugins/demo/skills/auto-skill", "auto-skill", {
+  await writeSkillFiles(path.join(demoSkills, "target-skill"), { fixture: routingFixture([]) });
+  await writeSkillFiles(path.join(demoSkills, "auto-skill"), {
     fixture: routingFixture([{ id: "route-to-target", to: "demo:target-skill" }]),
   });
-  await writeSkill(repoRoot, "plugins/other/skills/other-skill", "other-skill", {
+  await writeSkillFiles(path.join(repoRoot, "plugins", "other", "skills", "other-skill"), {
     fixture: routingFixture([
       { id: "first-route", to: "demo:target-skill" },
       { id: "unrelated-route", to: "demo:auto-skill" },
       { id: "second-route", to: "demo:target-skill" },
     ]),
   });
-  await writeSkill(repoRoot, ".agents/skills/local-a", "local-a", {
+  await writeSkillFiles(path.join(localSkills, "local-a"), {
     fixture: routingFixture([{ id: "route-to-local-b", to: "local-b" }]),
-    ...(options.manualOnlyLocalA === true ? { manualOnly: true } : {}),
+    manualOnly: options.manualOnlyLocalA === true,
   });
-  await writeSkill(repoRoot, ".agents/skills/local-b", "local-b", {});
-
-  await mkdir(path.join(repoRoot, ".agents", "plugins"), { recursive: true });
-  await writeFile(
-    path.join(repoRoot, ".agents", "plugins", "marketplace.json"),
-    JSON.stringify({
-      name: "fixture-marketplace",
-      plugins: ["demo", "other"].map((pluginName) => ({
-        name: pluginName,
-        source: { source: "local", path: `./plugins/${pluginName}` },
-      })),
-    }),
-  );
-  await mkdir(path.join(repoRoot, ".claude-plugin"), { recursive: true });
-  await writeFile(
-    path.join(repoRoot, ".claude-plugin", "marketplace.json"),
-    JSON.stringify({
-      name: "fixture-marketplace",
-      plugins: [{ name: "demo", source: "./plugins/demo" }],
-    }),
-  );
+  await writeSkillFiles(path.join(localSkills, "local-b"));
+  await writeMarketplaceCatalogs(repoRoot, { codex: ["demo", "other"], claude: ["demo"] });
 
   return repoRoot;
 }
@@ -298,51 +281,16 @@ async function writePlugin(
   );
 }
 
-async function writeSkill(
-  repoRoot: string,
-  skillPath: string,
-  skillName: string,
-  options: { fixture?: string; manualOnly?: boolean },
-): Promise<void> {
-  const absoluteSkillPath = path.join(repoRoot, skillPath);
-  await mkdir(path.join(absoluteSkillPath, "agents"), { recursive: true });
-  await writeFile(
-    path.join(absoluteSkillPath, "SKILL.md"),
-    [
-      "---",
-      `name: ${skillName}`,
-      `description: Use when the user asks for ${skillName}.`,
-      ...(options.manualOnly === true ? ["disable-model-invocation: true"] : []),
-      "---",
-      "",
-    ].join("\n"),
-  );
-  await writeFile(
-    path.join(absoluteSkillPath, "agents", "openai.yaml"),
-    `version: 1\npolicy:\n  allow_implicit_invocation: ${options.manualOnly === true ? "false" : "true"}\n`,
-  );
-  if (options.fixture !== undefined) {
-    await mkdir(path.join(absoluteSkillPath, "evals"), { recursive: true });
-    await writeFile(path.join(absoluteSkillPath, "evals", "triggers.yaml"), options.fixture);
-  }
-}
-
+// A fixture with one plain invoke case, one plain skip case, and a skip case per route.
 function routingFixture(routes: Array<{ id: string; to: string }>): string {
-  return [
-    "version: 1",
-    "cases:",
-    "  - id: invoke-case",
-    "    prompt: Invoke the skill.",
-    "    expect: invoke",
-    "  - id: plain-skip",
-    "    prompt: Do not invoke the skill.",
-    "    expect: skip",
-    ...routes.flatMap((route) => [
-      `  - id: ${route.id}`,
-      `    prompt: Route to ${route.to}.`,
-      "    expect: skip",
-      `    invoke-instead: ${route.to}`,
-    ]),
-    "",
-  ].join("\n");
+  return triggerFixtureYaml([
+    { id: "invoke-case", expect: "invoke" },
+    { id: "plain-skip", expect: "skip" },
+    ...routes.map((route): FixtureCase => ({
+      id: route.id,
+      expect: "skip",
+      prompt: `Route to ${route.to}.`,
+      invokeInstead: route.to,
+    })),
+  ]);
 }

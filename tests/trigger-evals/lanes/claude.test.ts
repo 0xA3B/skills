@@ -1,29 +1,29 @@
-import { mkdtemp, readFile, stat } from "node:fs/promises";
+import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createClaudeLane, observeClaudeOutput } from "../../src/trigger-evals/claude-lane.js";
-import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
-import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
-import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
-import { resolveSkillTarget } from "../../src/trigger-evals/target.js";
-import { buildCaseResult, shouldStopEarly } from "../../src/trigger-evals/verdict.js";
+import { createClaudeLane, observeClaudeOutput } from "../../../src/trigger-evals/lanes/claude.js";
+import type {
+  StreamingCliOptions,
+  StreamingCliResult,
+} from "../../../src/trigger-evals/lanes/exec.js";
 import {
-  buildCliRunResult,
+  makeLaneRunOptions,
   skillToolUseEvent,
+  triggerCase,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
   writeSeedFixture,
-} from "./test-utils.js";
+} from "../test-utils.js";
 
 const spawnCalls = vi.hoisted(
   () => [] as Array<{ command: string; args: string[]; options: StreamingCliOptions }>,
 );
 
 // The lane is tested against the real filesystem; only the process boundary is faked.
-vi.mock(import("../../src/trigger-evals/exec.js"), async (importOriginal) => {
+vi.mock(import("../../../src/trigger-evals/lanes/exec.js"), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
@@ -33,7 +33,10 @@ vi.mock(import("../../src/trigger-evals/exec.js"), async (importOriginal) => {
       spawnCalls.push({ command, args, options });
       return {
         exitCode: 0,
-        stdout: skillToolUseEvent("demo:auto-skill"),
+        stdout: [
+          skillToolUseEvent("demo:auto-skill").trim(),
+          JSON.stringify({ type: "result", subtype: "success", result: "Loaded the skill." }),
+        ].join("\n"),
         stderr: "",
         endedBy: "completed",
       };
@@ -41,19 +44,13 @@ vi.mock(import("../../src/trigger-evals/exec.js"), async (importOriginal) => {
   };
 });
 
-async function makeRunOptions(
-  repoRoot: string,
-  skillPath: string,
-  overrides: Partial<LaneRunOptions> = {},
-): Promise<LaneRunOptions> {
-  return {
-    runDir: await mkdtemp(path.join(os.tmpdir(), "claude-lane-run-")),
-    target: resolveSkillTarget(repoRoot, skillPath),
-    model: "opus",
-    effort: "medium",
-    runtime: createRuntimeResources(),
-    ...overrides,
-  };
+// Every value passed after a flag, in argument order.
+function flagValues(args: string[] | undefined, flag: string): string[] {
+  return (args ?? []).flatMap((arg, index) => (args?.[index - 1] === flag ? [arg] : []));
+}
+
+function assistantEvent(content: Array<Record<string, unknown>>): string {
+  return JSON.stringify({ type: "assistant", message: { content } });
 }
 
 describe("createClaudeLane", () => {
@@ -64,15 +61,16 @@ describe("createClaudeLane", () => {
   it("tracks the staged workspace root for release", async () => {
     const repoRoot = await writeRepoFixture();
     const lane = createClaudeLane();
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    const runOptions = await makeLaneRunOptions(
+      "claude",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase({
-      id: "invoke-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-      workspaceFiles: { "notes.md": "hello" },
-    });
+    const laneCase = await laneRun.prepareCase(
+      triggerCase("invoke-case", "invoke", { workspaceFiles: { "notes.md": "hello" } }),
+    );
     await expect(stat(laneCase.workspacePath)).resolves.toBeDefined();
 
     // Releasing the tracked root takes the case workspace beneath it along.
@@ -85,13 +83,9 @@ describe("createClaudeLane", () => {
     const lane = createClaudeLane();
 
     const laneRun = await lane.prepareRun(
-      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill"),
+      await makeLaneRunOptions("claude", repoRoot, "plugins/demo/skills/auto-skill"),
     );
-    const laneCase = await laneRun.prepareCase({
-      id: "invoke-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(new Set(["demo:auto-skill"]));
     const settings = JSON.parse(
@@ -103,43 +97,54 @@ describe("createClaudeLane", () => {
     ).rejects.toThrow(/ENOENT/);
   });
 
+  it("passes the staged skills' dependencies to the run", async () => {
+    const repoRoot = await writeRepoFixture({ siblingSkills: [{ name: "helper-skill" }] });
+    const runOptions = await makeLaneRunOptions(
+      "claude",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
+    await writeFile(
+      runOptions.target.skillFilePath,
+      "---\nname: auto-skill\n---\nUse `helper-skill`.\n",
+    );
+
+    const laneRun = await createClaudeLane().prepareRun(runOptions);
+
+    expect(laneRun.skillDependencies.get("demo:auto-skill")).toStrictEqual(
+      new Set(["demo:helper-skill"]),
+    );
+  });
+
   it("builds claude args with model, effort, and deployment plugin dirs", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     const lane = createClaudeLane({ configDir: "/tmp/claude-config" });
-    const target = resolveSkillTarget(repoRoot, "plugins/demo/skills/auto-skill");
-    if (target.kind !== "plugin") {
-      throw new Error("expected a plugin target");
-    }
 
     const laneRun = await lane.prepareRun(
-      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill", {
+      await makeLaneRunOptions("claude", repoRoot, "plugins/demo/skills/auto-skill", {
         extraPlugins: [
           { pluginName: "other", pluginPath: path.join(repoRoot, "plugins", "other") },
         ],
       }),
     );
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "claude-lane-case-"));
-    const laneCase = await laneRun.prepareCase({
-      id: "invoke-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
     const runResult = await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
     const call = spawnCalls[0];
     expect(call?.command).toBe("claude");
-    expect(call?.args).toContain("--model");
-    expect(call?.args).toContain("opus");
-    expect(call?.args).toContain("--effort");
+    expect(flagValues(call?.args, "--model")).toStrictEqual(["opus"]);
+    expect(flagValues(call?.args, "--effort")).toStrictEqual(["medium"]);
+    // Only the workspace's project settings load, and the model gets the read-only tool surface.
+    expect(flagValues(call?.args, "--setting-sources")).toStrictEqual(["project"]);
+    expect(flagValues(call?.args, "--tools")).toStrictEqual(["Skill,Read,Glob,Grep"]);
     expect(call?.args?.at(-1)).toBe("Invoke the skill.");
-    const pluginDirs = call?.args?.flatMap((arg, index) =>
-      call.args[index - 1] === "--plugin-dir" ? [arg] : [],
-    );
-    expect(pluginDirs?.map((pluginDir) => path.basename(pluginDir))).toStrictEqual([
+    const pluginDirs = flagValues(call?.args, "--plugin-dir");
+    expect(pluginDirs.map((pluginDir) => path.basename(pluginDir))).toStrictEqual([
       "demo",
       "other",
     ]);
-    for (const pluginDir of pluginDirs ?? []) {
+    for (const pluginDir of pluginDirs) {
       expect(pluginDir.startsWith(`${laneCase.workspacePath}${path.sep}`)).toBe(false);
     }
     await expect(stat(path.join(laneCase.workspacePath, "plugins"))).rejects.toThrow(/ENOENT/);
@@ -147,6 +152,9 @@ describe("createClaudeLane", () => {
     expect(call?.options.env["CLAUDE_CONFIG_DIR"]).toBe("/tmp/claude-config");
     expect(runResult.stdoutPath).toBe(path.join(caseDir, "events.jsonl"));
     await expect(readFile(runResult.stdoutPath, "utf8")).resolves.toContain("demo:auto-skill");
+    // The final message is the result event's text.
+    expect(runResult.finalMessage).toBe("Loaded the skill.");
+    await expect(readFile(runResult.finalMessagePath, "utf8")).resolves.toBe("Loaded the skill.");
   });
 
   it("stages repo-local targets as pristine project skills without Codex surfaces", async () => {
@@ -154,13 +162,9 @@ describe("createClaudeLane", () => {
     const lane = createClaudeLane();
 
     const laneRun = await lane.prepareRun(
-      await makeRunOptions(repoRoot, ".agents/skills/auto-skill"),
+      await makeLaneRunOptions("claude", repoRoot, ".agents/skills/auto-skill"),
     );
-    const laneCase = await laneRun.prepareCase({
-      id: "repo-local-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"));
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(new Set(["auto-skill"]));
     const stagedProjectSkill = await readFile(
@@ -187,7 +191,7 @@ describe("createClaudeLane", () => {
     const lane = createClaudeLane();
 
     const laneRun = await lane.prepareRun(
-      await makeRunOptions(repoRoot, ".agents/skills/auto-skill", {
+      await makeLaneRunOptions("claude", repoRoot, ".agents/skills/auto-skill", {
         extraPlugins: [
           { pluginName: "other", pluginPath: path.join(repoRoot, "plugins", "other") },
         ],
@@ -200,11 +204,7 @@ describe("createClaudeLane", () => {
       }),
     );
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "claude-lane-case-"));
-    const laneCase = await laneRun.prepareCase({
-      id: "repo-local-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"));
     await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(
@@ -212,11 +212,7 @@ describe("createClaudeLane", () => {
     );
     // Plain repo-local cases share the base workspace like plain plugin cases do; a per-case copy
     // is reserved for workspace_files mutations.
-    const secondPlainCase = await laneRun.prepareCase({
-      id: "other-repo-local-case",
-      prompt: "Do not invoke the skill.",
-      expect: "skip",
-    });
+    const secondPlainCase = await laneRun.prepareCase(triggerCase("other-repo-local-case", "skip"));
     expect(secondPlainCase.workspacePath).toBe(laneCase.workspacePath);
     expect(laneCase.workspacePath).not.toContain(`cases${path.sep}`);
     // Both repo-local skills stage as pristine project skills; the staged plugin competes through
@@ -228,12 +224,9 @@ describe("createClaudeLane", () => {
       );
       expect(stagedProjectSkill).not.toContain("Trigger Eval Instructions");
     }
-    const call = spawnCalls[0];
-    const pluginDirs = call?.args?.flatMap((arg, index) =>
-      call.args[index - 1] === "--plugin-dir" ? [arg] : [],
-    );
-    expect(pluginDirs?.map((pluginDir) => path.basename(pluginDir))).toStrictEqual(["other"]);
-    const stagedPluginDir = pluginDirs?.[0];
+    const pluginDirs = flagValues(spawnCalls[0]?.args, "--plugin-dir");
+    expect(pluginDirs.map((pluginDir) => path.basename(pluginDir))).toStrictEqual(["other"]);
+    const stagedPluginDir = pluginDirs[0];
     if (stagedPluginDir === undefined) {
       throw new Error("expected a staged plugin directory");
     }
@@ -250,24 +243,13 @@ describe("createClaudeLane", () => {
     const lane = createClaudeLane();
 
     const laneRun = await lane.prepareRun(
-      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill"),
+      await makeLaneRunOptions("claude", repoRoot, "plugins/demo/skills/auto-skill"),
     );
-    const plainCase = await laneRun.prepareCase({
-      id: "plain-case",
-      prompt: "Do not invoke the skill.",
-      expect: "skip",
-    });
-    const secondPlainCase = await laneRun.prepareCase({
-      id: "other-plain-case",
-      prompt: "Do not invoke the skill.",
-      expect: "skip",
-    });
-    const workspaceFilesCase = await laneRun.prepareCase({
-      id: "agents-case",
-      prompt: "Do not invoke the skill.",
-      expect: "skip",
-      workspaceFiles: { "AGENTS.md": "Use Gitmoji.\n" },
-    });
+    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"));
+    const secondPlainCase = await laneRun.prepareCase(triggerCase("other-plain-case", "skip"));
+    const workspaceFilesCase = await laneRun.prepareCase(
+      triggerCase("agents-case", "skip", { workspaceFiles: { "AGENTS.md": "Use Gitmoji.\n" } }),
+    );
 
     // Plain plugin cases share the base workspace; a case that mutates workspace files gets an
     // isolated copy so concurrent cases cannot clobber each other.
@@ -288,26 +270,19 @@ describe("createClaudeLane", () => {
     const repoRoot = await writeRepoFixture();
     await writeSeedFixture(repoRoot, "demo-seed");
     const lane = createClaudeLane();
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
 
-    const laneRun = await lane.prepareRun(runOptions);
-    const seededCase = await laneRun.prepareCase({
-      id: "seeded-case",
-      prompt: "Review the staged changes.",
-      expect: "invoke",
-      workspace: {
-        seed: "demo-seed",
-        branch: "main",
-        committed: {},
-        staged: { "src/retry.js": "export {};\n" },
-      },
-    });
+    const laneRun = await lane.prepareRun(
+      await makeLaneRunOptions("claude", repoRoot, "plugins/demo/skills/auto-skill"),
+    );
+    const seededCase = await laneRun.prepareCase(
+      triggerCase("seeded-case", "invoke", {
+        workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
+      }),
+    );
 
-    expect(seededCase.workspacePath).toContain(path.join("cases", "seeded-case", "workspace"));
-    await expect(stat(path.join(seededCase.workspacePath, ".git"))).resolves.toBeDefined();
-    await expect(
-      readFile(path.join(seededCase.workspacePath, "src", "retry.js"), "utf8"),
-    ).resolves.toBe("export {};\n");
+    // A seeded case gets its own copy instead of the base workspace plain cases share.
+    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"));
+    expect(seededCase.workspacePath).not.toBe(plainCase.workspacePath);
     // Harness surfaces still accompany the seeded project.
     await expect(
       readFile(path.join(seededCase.workspacePath, ".claude", "settings.json"), "utf8"),
@@ -319,7 +294,7 @@ describe("createClaudeLane", () => {
     const lane = createClaudeLane();
 
     const laneRun = await lane.prepareRun(
-      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill"),
+      await makeLaneRunOptions("claude", repoRoot, "plugins/demo/skills/auto-skill"),
     );
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(new Set(["demo:auto-skill"]));
@@ -352,39 +327,28 @@ describe("observeClaudeOutput", () => {
     expect(observations.signal).toBe("none");
     expect(observations.errorSignal).toBe(errorText);
     expect(observations.hasActivity).toBe(true);
-    const result = buildCaseResult({
-      testCase: { id: "conceptual-adr", expect: "skip" },
-      targetLabel: "demo:auto-skill",
-      stagedSkillLabels: new Set(["demo:auto-skill"]),
-      observations,
-      runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
-      durationMs: 10,
-    });
-    expect(result.passed).toBe(false);
-    expect(result.environmentalFailure).toContain(errorText);
   });
 
-  it("quotes a fallback when an is_error result carries no text", () => {
-    const stdout = JSON.stringify({
-      type: "result",
-      subtype: "error_during_execution",
-      is_error: true,
-      terminal_reason: "aborted_tools",
-      result: "",
-    });
+  it.each([
+    [
+      "quotes a fallback when an is_error result carries no text",
+      {
+        subtype: "error_during_execution",
+        is_error: true,
+        terminal_reason: "aborted_tools",
+        result: "",
+      },
+      "result reported an error",
+    ],
+    [
+      "reports no error signal for a completed result",
+      { subtype: "success", is_error: false, result: "done" },
+      undefined,
+    ],
+  ])("%s", (_label, result, errorSignal) => {
+    const stdout = JSON.stringify({ type: "result", ...result });
 
-    expect(observeClaudeOutput(stdout).errorSignal).toBe("result reported an error");
-  });
-
-  it("reports no error signal for a completed result", () => {
-    const stdout = JSON.stringify({
-      type: "result",
-      subtype: "success",
-      is_error: false,
-      result: "done",
-    });
-
-    expect(observeClaudeOutput(stdout).errorSignal).toBeUndefined();
+    expect(observeClaudeOutput(stdout).errorSignal).toBe(errorSignal);
   });
 
   it("collects Skill tool_use targets from the command key", () => {
@@ -402,32 +366,51 @@ describe("observeClaudeOutput", () => {
   });
 
   it("accepts the skill key as a fallback shape", () => {
-    const stdout = JSON.stringify({
-      type: "assistant",
-      message: {
-        content: [{ type: "tool_use", name: "Skill", input: { skill: "demo:auto-skill" } }],
-      },
-    });
+    const stdout = assistantEvent([
+      { type: "tool_use", name: "Skill", input: { skill: "demo:auto-skill" } },
+    ]);
 
     expect(observeClaudeOutput(stdout).invokedSkills).toStrictEqual(["demo:auto-skill"]);
   });
 
-  it("ignores reconnaissance paired with narration and text mentioning a label", () => {
-    const stdout = JSON.stringify({
-      type: "assistant",
-      message: {
-        content: [
+  it.each([
+    [
+      "reconnaissance paired with narration and text mentioning a label",
+      0,
+      [
+        [
           { type: "text", text: "I could use demo:auto-skill here." },
           { type: "tool_use", name: "Read", input: { file_path: "demo:auto-skill" } },
         ],
-      },
-    });
+      ],
+    ],
+    [
+      "thinking and read-only reconnaissance",
+      0,
+      [
+        [{ type: "thinking", thinking: "inspect first" }],
+        [{ type: "tool_use", name: "Read", input: {} }],
+        [{ type: "tool_use", name: "Glob", input: {} }],
+        [{ type: "tool_use", name: "Grep", input: {} }],
+      ],
+    ],
+    [
+      "assistant text messages",
+      3,
+      [
+        [{ type: "text", text: "step" }],
+        [{ type: "text", text: "step" }],
+        [{ type: "text", text: "step" }],
+      ],
+    ],
+    ["a non-read tool call", 1, [[{ type: "tool_use", name: "Bash", input: { command: "pwd" } }]]],
+  ])("gives %s a decision count of %i", (_label, decisionItemCount, messages) => {
+    const observations = observeClaudeOutput(messages.map(assistantEvent).join("\n"));
 
-    const observations = observeClaudeOutput(stdout);
-
+    expect(observations.decisionItemCount).toBe(decisionItemCount);
+    // Neither text naming a label nor a read of it is a Skill tool call.
     expect(observations.signal).toBe("none");
     expect(observations.invokedSkills).toStrictEqual([]);
-    expect(observations.decisionItemCount).toBe(0);
   });
 
   it("reads loaded skills from the first init event only", () => {
@@ -452,43 +435,8 @@ describe("observeClaudeOutput", () => {
     expect(observations.decisionItemCount).toBe(0);
   });
 
-  it("counts assistant messages as decision items", () => {
-    const assistantText = JSON.stringify({
-      type: "assistant",
-      message: { content: [{ type: "text", text: "step" }] },
-    });
-    const stdout = [assistantText, assistantText, assistantText].join("\n");
-
-    expect(observeClaudeOutput(stdout).decisionItemCount).toBe(3);
-  });
-
-  it("excludes thinking and read-only reconnaissance from the decision count", () => {
-    const assistantEvent = (content: Array<Record<string, unknown>>) =>
-      JSON.stringify({ type: "assistant", message: { content } });
-    const stdout = [
-      assistantEvent([{ type: "thinking", thinking: "inspect first" }]),
-      assistantEvent([{ type: "tool_use", name: "Read", input: {} }]),
-      assistantEvent([{ type: "tool_use", name: "Glob", input: {} }]),
-      assistantEvent([{ type: "tool_use", name: "Grep", input: {} }]),
-    ].join("\n");
-
-    expect(observeClaudeOutput(stdout).decisionItemCount).toBe(0);
-  });
-
-  it("counts non-read tool calls as decision items", () => {
-    const stdout = JSON.stringify({
-      type: "assistant",
-      message: { content: [{ type: "tool_use", name: "Bash", input: { command: "pwd" } }] },
-    });
-
-    expect(observeClaudeOutput(stdout).decisionItemCount).toBe(1);
-  });
-
   it("preserves a skill invocation at the decision-item budget", () => {
-    const assistantText = JSON.stringify({
-      type: "assistant",
-      message: { content: [{ type: "text", text: "step" }] },
-    });
+    const assistantText = assistantEvent([{ type: "text", text: "step" }]);
     const stdout = [
       assistantText,
       assistantText,
@@ -501,16 +449,5 @@ describe("observeClaudeOutput", () => {
 
     expect(observations.decisionItemCount).toBe(5);
     expect(observations.invokedSkills).toStrictEqual(["demo:auto-skill"]);
-    expect(shouldStopEarly(observations)).toBe(true);
-    const result = buildCaseResult({
-      testCase: { id: "invoke-case", expect: "invoke" },
-      targetLabel: "demo:auto-skill",
-      stagedSkillLabels: new Set(["demo:auto-skill"]),
-      observations,
-      runResult: buildCliRunResult({ endedBy: "stop-when" }),
-      durationMs: 10,
-    });
-    expect(result).toMatchObject({ invoked: true, passed: true });
-    expect(result.skipSignal).toBeUndefined();
   });
 });

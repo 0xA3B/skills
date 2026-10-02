@@ -22,10 +22,6 @@ describe("parseTriggerEvalCliOptions", () => {
     );
   });
 
-  it("documents --with-dependents in the usage text", () => {
-    expect(usage()).toContain("--with-dependents");
-  });
-
   it("accepts just a skill path", () => {
     expect(parseTriggerEvalCliOptions(["plugins/foo/skills/bar"])).toStrictEqual({
       agents: ["codex"],
@@ -72,10 +68,6 @@ describe("parseTriggerEvalCliOptions", () => {
       keepRuntime: true,
       force: true,
     });
-  });
-
-  it("documents --keep-runtime in the usage text", () => {
-    expect(usage()).toContain("--keep-runtime");
   });
 
   it("expands --agent both into codex and claude runs", () => {
@@ -177,13 +169,14 @@ describe("parseTriggerEvalCliOptions", () => {
     });
   });
 
-  it("rejects --force in every suite mode", () => {
-    expect(() => parseTriggerEvalCliOptions(["--marketplace", "--force"])).toThrow(
+  it.each([
+    ["a plugin", ["--plugin", "plugins/foo"]],
+    ["the whole marketplace", ["--marketplace"]],
+    ["a one-skill marketplace selection", ["--marketplace", "plugins/foo/skills/bar"]],
+  ])("rejects --force for %s", (_selection, argv) => {
+    expect(() => parseTriggerEvalCliOptions([...argv, "--force"])).toThrow(
       "--force applies to single-skill runs, not --plugin or --marketplace.",
     );
-    expect(() =>
-      parseTriggerEvalCliOptions(["--marketplace", "plugins/foo/skills/bar", "--force"]),
-    ).toThrow("--force applies to single-skill runs, not --plugin or --marketplace.");
   });
 
   it("rejects unknown agents", () => {
@@ -208,34 +201,19 @@ describe("parseTriggerEvalCliOptions", () => {
     );
   });
 
-  it("rejects non-positive timeouts", () => {
-    expect(() =>
-      parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--timeout-ms", "0"]),
-    ).toThrow("--timeout-ms must be a positive integer.");
-  });
-
-  it("rejects non-numeric timeouts", () => {
-    expect(() =>
-      parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--timeout-ms", "abc"]),
-    ).toThrow("--timeout-ms must be a positive integer.");
-  });
-
-  it("rejects partially numeric timeouts", () => {
-    expect(() =>
-      parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--timeout-ms", "100ms"]),
-    ).toThrow("--timeout-ms must be a positive integer.");
-    expect(() =>
-      parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--timeout-ms", "1.5"]),
-    ).toThrow("--timeout-ms must be a positive integer.");
-  });
-
-  it("rejects invalid concurrency values", () => {
-    expect(() =>
-      parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--concurrency", "0"]),
-    ).toThrow("--concurrency must be a positive integer.");
-    expect(() =>
-      parseTriggerEvalCliOptions(["plugins/foo/skills/bar", "--concurrency", "abc"]),
-    ).toThrow("--concurrency must be a positive integer.");
+  it.each([
+    ["--timeout-ms", "0"],
+    ["--timeout-ms", "abc"],
+    ["--timeout-ms", "100ms"],
+    ["--timeout-ms", "1.5"],
+    // Past Number.MAX_SAFE_INTEGER, so the digits would not survive the conversion.
+    ["--timeout-ms", "9007199254740993"],
+    ["--concurrency", "0"],
+    ["--concurrency", "abc"],
+  ])("rejects %s %s as not a positive integer", (flag, value) => {
+    expect(() => parseTriggerEvalCliOptions(["plugins/foo/skills/bar", flag, value])).toThrow(
+      `${flag} must be a positive integer.`,
+    );
   });
 
   it("rejects unknown options", () => {
@@ -254,5 +232,28 @@ describe("parseTriggerEvalCliOptions", () => {
   it("signals help requests via HelpRequested", () => {
     expect(() => parseTriggerEvalCliOptions(["--help"])).toThrow(HelpRequested);
     expect(() => parseTriggerEvalCliOptions(["-h"])).toThrow(HelpRequested);
+  });
+});
+
+describe("usage", () => {
+  // Every long flag the parser accepts except --help, which asks for this text. The parser keeps
+  // its option table private, so the list is repeated here.
+  it.each([
+    "--agent",
+    "--plugin",
+    "--marketplace",
+    "--fixture",
+    "--case",
+    "--model",
+    "--effort",
+    "--timeout-ms",
+    "--concurrency",
+    "--codex-home",
+    "--claude-config-dir",
+    "--with-dependents",
+    "--keep-runtime",
+    "--force",
+  ])("documents %s in the options list", (flag) => {
+    expect(usage()).toMatch(new RegExp(`^  ${flag}\\b`, "m"));
   });
 });

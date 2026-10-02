@@ -3,8 +3,12 @@ import os from "node:os";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+import { stringify as stringifyYaml } from "yaml";
 
-import { loadTriggerFixture, parseTriggerFixture } from "../../src/trigger-evals/fixtures.js";
+import {
+  loadTriggerFixture,
+  parseTriggerFixture,
+} from "../../../src/trigger-evals/fixtures/fixture.js";
 
 describe("loadTriggerFixture", () => {
   it("loads trigger fixtures with positive and negative cases", async () => {
@@ -90,114 +94,6 @@ cases:
     ]);
   });
 
-  it("rejects workspace: none at the fixture level", async () => {
-    const fixturePath = await writeFixture(`
-version: 1
-workspace: none
-cases:
-  - id: commit-message
-    prompt: Draft a Conventional Commit message.
-    expect: invoke
-  - id: general-question
-    prompt: What is a commit?
-    expect: skip
-`);
-
-    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
-      "expected workspace to be an object",
-    );
-  });
-
-  // The names git check-ref-format --branch rejects must fail at load time, not during staging.
-  it.each([
-    "feature branch",
-    "release..candidate",
-    ".",
-    "feature/",
-    "/feature",
-    "a//b",
-    ".hidden",
-    "topic/.hidden",
-    "index.lock",
-    "-flag",
-    "trailing.",
-    "HEAD",
-  ])("rejects the workspace branch %s that git would refuse", async (branch) => {
-    const fixturePath = await writeFixture(`
-version: 1
-cases:
-  - id: bad-branch
-    prompt: Review the staged changes.
-    expect: invoke
-    workspace:
-      seed: node-service
-      branch: ${JSON.stringify(branch)}
-  - id: general-question
-    prompt: What is a commit?
-    expect: skip
-`);
-
-    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
-      "expected cases[0].workspace.branch to be a git branch name",
-    );
-  });
-
-  it.each(["main", "feature/retry", "session/retry-policy", "v1.2", "fix-date_parse"])(
-    "accepts the workspace branch %s",
-    async (branch) => {
-      const fixturePath = await writeFixture(`
-version: 1
-cases:
-  - id: good-branch
-    prompt: Review the staged changes.
-    expect: invoke
-    workspace:
-      seed: node-service
-      branch: ${JSON.stringify(branch)}
-  - id: general-question
-    prompt: What is a commit?
-    expect: skip
-`);
-
-      const fixture = await loadTriggerFixture(fixturePath);
-      expect(fixture.cases[0]?.workspace?.branch).toBe(branch);
-    },
-  );
-
-  // Git matches .git case-insensitively at any depth, so the guard must too; a leading "./"
-  // normalizes away when the file is written. The lane owns .agents and .claude in the workspace;
-  // a backslash would become a literal filename on POSIX; a trailing "/" names a directory.
-  it.each([
-    ".git/hooks/pre-commit",
-    "./.git/config",
-    ".GIT/hooks/pre-commit",
-    "lib/.git/config",
-    ".claude/settings.json",
-    ".agents/skills/other/SKILL.md",
-    "src\\\\retry.js",
-    "docs/",
-    "bad\u0000name",
-  ])("rejects the workspace file path %s as unsafe or harness-owned", async (filePath) => {
-    const fixturePath = await writeFixture(`
-version: 1
-cases:
-  - id: hook
-    prompt: Review the staged changes.
-    expect: invoke
-    workspace:
-      seed: node-service
-      committed:
-        ${JSON.stringify(filePath)}: "exit 0"
-  - id: general-question
-    prompt: What is a commit?
-    expect: skip
-`);
-
-    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
-      `workspace.committed path "${filePath}" to be a safe relative path`,
-    );
-  });
-
   it("keeps a __proto__ filename as an own entry of the file map", async () => {
     const fixturePath = await writeFixture(`
 version: 1
@@ -246,79 +142,6 @@ cases:
     ]);
   });
 
-  it("rejects a workspace block whose seed is not a kebab-case name", async () => {
-    const fixturePath = await writeFixture(`
-version: 1
-cases:
-  - id: bad-seed
-    prompt: Review the staged changes.
-    expect: invoke
-    workspace:
-      seed: ../escape
-  - id: general-question
-    prompt: What is a commit?
-    expect: skip
-`);
-
-    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
-      "expected cases[0].workspace.seed to be a kebab-case seed name",
-    );
-  });
-
-  it("rejects unsafe paths in committed and staged workspace files", async () => {
-    const fixturePath = await writeFixture(`
-version: 1
-workspace:
-  seed: node-service
-  staged:
-    /etc/passwd: Invalid.
-cases:
-  - id: commit-message
-    prompt: Draft a Conventional Commit message.
-    expect: invoke
-  - id: general-question
-    prompt: What is a commit?
-    expect: skip
-`);
-
-    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
-      'workspace.staged path "/etc/passwd" to be a safe relative path',
-    );
-  });
-
-  it("requires at least one skip case", async () => {
-    const fixturePath = await writeFixture(`
-version: 1
-cases:
-  - id: commit-message
-    prompt: Draft a Conventional Commit message.
-    expect: invoke
-`);
-
-    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
-      "expected at least one case with expect: skip",
-    );
-  });
-
-  it("rejects unsafe workspace file paths", async () => {
-    const fixturePath = await writeFixture(`
-version: 1
-cases:
-  - id: commit-message
-    prompt: Draft a Conventional Commit message.
-    expect: invoke
-    workspace_files:
-      ../AGENTS.md: Invalid.
-  - id: general-question
-    prompt: What is a commit?
-    expect: skip
-`);
-
-    await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(
-      'workspace_files path "../AGENTS.md" to be a safe relative path',
-    );
-  });
-
   // Spec: "invoke-instead: <label> is valid only on expect: skip cases."
   it("reads invoke-instead on skip cases", async () => {
     const fixturePath = await writeFixture(`
@@ -341,38 +164,6 @@ cases:
       invokeInstead: "engineering:receiving-feedback",
     });
     expect(fixture.cases[0]).not.toHaveProperty("invokeInstead");
-  });
-
-  it("rejects invoke-instead on invoke cases and empty labels", async () => {
-    const onInvoke = await writeFixture(`
-version: 1
-cases:
-  - id: commit-message
-    prompt: Draft a Conventional Commit message.
-    expect: invoke
-    invoke-instead: engineering:tdd
-  - id: general-question
-    prompt: What is a commit?
-    expect: skip
-`);
-    await expect(loadTriggerFixture(onInvoke)).rejects.toThrow(
-      "expected cases[0].invoke-instead only on expect: skip cases.",
-    );
-
-    const empty = await writeFixture(`
-version: 1
-cases:
-  - id: commit-message
-    prompt: Draft a Conventional Commit message.
-    expect: invoke
-  - id: general-question
-    prompt: What is a commit?
-    expect: skip
-    invoke-instead: ""
-`);
-    await expect(loadTriggerFixture(empty)).rejects.toThrow(
-      "expected cases[1].invoke-instead to be a skill label: <plugin>:<skill> or a bare repo-local skill name.",
-    );
   });
 
   // Spec: "fixtures.ts owns the schema and collects every finding ... instead of throwing at the
@@ -440,6 +231,31 @@ async function writeFixture(content: string): Promise<string> {
   return fixturePath;
 }
 
+// A valid fixture of one invoke case and one skip case. Each part's keys are spread over the
+// fixture root or its case, so a row states only what it changes.
+function fixtureYaml(
+  parts: {
+    top?: Record<string, unknown>;
+    firstCase?: Record<string, unknown>;
+    secondCase?: Record<string, unknown>;
+  } = {},
+): string {
+  return stringifyYaml({
+    version: 1,
+    ...parts.top,
+    cases: [
+      { id: "invoke-case", prompt: "Do the thing.", expect: "invoke", ...parts.firstCase },
+      { id: "skip-case", prompt: "Do something else.", expect: "skip", ...parts.secondCase },
+    ],
+  });
+}
+
+const notASkillLabel = {
+  pointer: "cases[1].invoke-instead",
+  message:
+    "expected cases[1].invoke-instead to be a skill label: <plugin>:<skill> or a bare repo-local skill name.",
+};
+
 describe("loadTriggerFixture case selection", () => {
   it("keeps only the requested cases in fixture order", async () => {
     const fixturePath = await writeFixture(`
@@ -480,28 +296,190 @@ cases:
 });
 
 describe("parseTriggerFixture details", () => {
-  it("rejects invoke-instead labels that are not skill labels", () => {
-    const parsed = parseTriggerFixture(`
-version: 1
-cases:
-  - id: invoke-case
-    prompt: Do the thing.
-    expect: invoke
-  - id: traversal
-    prompt: Route somewhere odd.
-    expect: skip
-    invoke-instead: "git:../../../.agents/skills/x"
-  - id: spaced
-    prompt: Route somewhere odd.
-    expect: skip
-    invoke-instead: "Git:Commit extra"
-`);
+  // The names git check-ref-format --branch rejects must fail at load time, not during staging.
+  it.each([
+    "feature branch",
+    "release..candidate",
+    ".",
+    "feature/",
+    "/feature",
+    "a//b",
+    ".hidden",
+    "topic/.hidden",
+    "index.lock",
+    "-flag",
+    "trailing.",
+    "HEAD",
+  ])("rejects the workspace branch %s that git would refuse", (branch) => {
+    expect(
+      parseTriggerFixture(
+        fixtureYaml({ firstCase: { workspace: { seed: "node-service", branch } } }),
+      ),
+    ).toStrictEqual({
+      fixture: undefined,
+      findings: [
+        {
+          pointer: "cases[0].workspace.branch",
+          message: "expected cases[0].workspace.branch to be a git branch name.",
+        },
+      ],
+    });
+  });
 
-    expect(parsed.fixture).toBeUndefined();
-    expect(parsed.findings.map((finding) => finding.pointer)).toStrictEqual([
-      "cases[1].invoke-instead",
-      "cases[2].invoke-instead",
-    ]);
+  it.each(["main", "feature/retry", "session/retry-policy", "v1.2", "fix-date_parse"])(
+    "accepts the workspace branch %s",
+    (branch) => {
+      const { fixture } = parseTriggerFixture(
+        fixtureYaml({ firstCase: { workspace: { seed: "node-service", branch } } }),
+      );
+
+      expect(fixture?.cases[0]?.workspace?.branch).toBe(branch);
+    },
+  );
+
+  // Git matches .git case-insensitively at any depth, so the guard must too; a leading "./"
+  // normalizes away when the file is written. The lane owns .agents and .claude in the workspace;
+  // a backslash would become a literal filename on POSIX; a trailing "/" names a directory.
+  it.each([
+    ".git/hooks/pre-commit",
+    "./.git/config",
+    ".GIT/hooks/pre-commit",
+    "lib/.git/config",
+    ".claude/settings.json",
+    ".agents/skills/other/SKILL.md",
+    "src\\retry.js",
+    "docs/",
+    "bad\u0000name",
+  ])("rejects the workspace file path %s as unsafe or harness-owned", (filePath) => {
+    expect(
+      parseTriggerFixture(
+        fixtureYaml({
+          firstCase: { workspace: { seed: "node-service", committed: { [filePath]: "exit 0" } } },
+        }),
+      ),
+    ).toStrictEqual({
+      fixture: undefined,
+      findings: [
+        {
+          pointer: `cases[0].workspace.committed[${JSON.stringify(filePath)}]`,
+          message: `expected cases[0].workspace.committed path "${filePath}" to be a safe relative path outside .git, .agents, and .claude.`,
+        },
+      ],
+    });
+  });
+
+  it.each([
+    [
+      "a version other than 1",
+      fixtureYaml({ top: { version: 2 } }),
+      [{ pointer: "version", message: "expected version: 1." }],
+    ],
+    [
+      "workspace: none at the fixture level",
+      fixtureYaml({ top: { workspace: "none" } }),
+      [{ pointer: "workspace", message: "expected workspace to be an object." }],
+    ],
+    [
+      "a fixture without a skip case",
+      fixtureYaml({ secondCase: { expect: "invoke" } }),
+      [{ pointer: "cases", message: "expected at least one case with expect: skip." }],
+    ],
+    // A case without a readable prompt is dropped, so it no longer counts as the skip case.
+    [
+      "an empty prompt",
+      fixtureYaml({ secondCase: { prompt: "" } }),
+      [
+        {
+          pointer: "cases[1].prompt",
+          message: "expected cases[1].prompt to be a non-empty string.",
+        },
+        { pointer: "cases", message: "expected at least one case with expect: skip." },
+      ],
+    ],
+    [
+      "an empty rationale",
+      fixtureYaml({ firstCase: { rationale: "" } }),
+      [
+        {
+          pointer: "cases[0].rationale",
+          message: "expected cases[0].rationale to be a non-empty string when provided.",
+        },
+      ],
+    ],
+    [
+      "a workspace seed that is not a kebab-case name",
+      fixtureYaml({ firstCase: { workspace: { seed: "../escape" } } }),
+      [
+        {
+          pointer: "cases[0].workspace.seed",
+          message: "expected cases[0].workspace.seed to be a kebab-case seed name.",
+        },
+      ],
+    ],
+    [
+      "an unsafe committed path in the fixture-level workspace",
+      fixtureYaml({
+        top: { workspace: { seed: "node-service", committed: { "/etc/passwd": "Invalid." } } },
+      }),
+      [
+        {
+          pointer: 'workspace.committed["/etc/passwd"]',
+          message:
+            'expected workspace.committed path "/etc/passwd" to be a safe relative path outside .git, .agents, and .claude.',
+        },
+      ],
+    ],
+    [
+      "an unsafe staged path in the fixture-level workspace",
+      fixtureYaml({
+        top: { workspace: { seed: "node-service", staged: { "/etc/passwd": "Invalid." } } },
+      }),
+      [
+        {
+          pointer: 'workspace.staged["/etc/passwd"]',
+          message:
+            'expected workspace.staged path "/etc/passwd" to be a safe relative path outside .git, .agents, and .claude.',
+        },
+      ],
+    ],
+    [
+      "an unsafe path in a case's workspace_files",
+      fixtureYaml({ firstCase: { workspace_files: { "../AGENTS.md": "Invalid." } } }),
+      [
+        {
+          pointer: 'cases[0].workspace_files["../AGENTS.md"]',
+          message:
+            'expected cases[0].workspace_files path "../AGENTS.md" to be a safe relative path outside .git, .agents, and .claude.',
+        },
+      ],
+    ],
+    [
+      "invoke-instead on an invoke case",
+      fixtureYaml({ firstCase: { "invoke-instead": "engineering:tdd" } }),
+      [
+        {
+          pointer: "cases[0].invoke-instead",
+          message: "expected cases[0].invoke-instead only on expect: skip cases.",
+        },
+      ],
+    ],
+    [
+      "an empty invoke-instead label",
+      fixtureYaml({ secondCase: { "invoke-instead": "" } }),
+      [notASkillLabel],
+    ],
+    [
+      "an invoke-instead label that climbs out of the skills tree",
+      fixtureYaml({ secondCase: { "invoke-instead": "git:../../../.agents/skills/x" } }),
+      [notASkillLabel],
+    ],
+    [
+      "an invoke-instead label with capitals and a space",
+      fixtureYaml({ secondCase: { "invoke-instead": "Git:Commit extra" } }),
+      [notASkillLabel],
+    ],
+  ])("rejects %s", (_name, yaml, findings) => {
+    expect(parseTriggerFixture(yaml)).toStrictEqual({ fixture: undefined, findings });
   });
 
   it("reports duplicate case ids at the repeated case and keeps parsing", () => {

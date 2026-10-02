@@ -1,6 +1,11 @@
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
+import { appendEvalSectionToFile } from "./canary.js";
+import type { SkillCanary, StagedPlugin } from "./staging.js";
+
+export const EVAL_MARKETPLACE_NAME = "trigger-eval";
 
 type CodexHomeOptions = {
   codexHome: string;
@@ -152,6 +157,70 @@ function tomlString(value: string): string {
   // plugin/marketplace identifiers. JSON.stringify is used as a deliberate simplification; values
   // containing \b, \f, or non-BMP unicode would need proper TOML escaping.
   return JSON.stringify(value);
+}
+
+// Codex installs plugins from a local marketplace catalog; the eval writes one listing every
+// staged plugin beside the staged copies.
+export async function writeCodexMarketplaceCatalog(
+  deploymentPath: string,
+  stagedPlugins: StagedPlugin[],
+): Promise<void> {
+  await mkdir(path.join(deploymentPath, ".agents", "plugins"), { recursive: true });
+  await writeFile(
+    path.join(deploymentPath, ".agents", "plugins", "marketplace.json"),
+    JSON.stringify(buildMarketplace(stagedPlugins), null, 2),
+  );
+}
+
+// Codex reads skill bodies from the plugin cache, so staged plugins are copied there per case and
+// the canaries must be present in the cached copies too.
+export async function stageCodexPluginCaches(
+  codexHome: string,
+  stagedPlugins: StagedPlugin[],
+  canaries: SkillCanary[],
+): Promise<void> {
+  for (const stagedPlugin of stagedPlugins) {
+    const cachedPluginPath = path.join(
+      codexHome,
+      "plugins",
+      "cache",
+      EVAL_MARKETPLACE_NAME,
+      stagedPlugin.pluginName,
+      stagedPlugin.version,
+    );
+    await mkdir(path.dirname(cachedPluginPath), { recursive: true });
+    await cp(stagedPlugin.sourcePath, cachedPluginPath, { recursive: true });
+    for (const skillCanary of canaries) {
+      if (skillCanary.pluginName !== stagedPlugin.pluginName) {
+        continue;
+      }
+      await appendEvalSectionToFile(
+        path.join(cachedPluginPath, "skills", skillCanary.skillName, "SKILL.md"),
+        skillCanary.canary,
+      );
+    }
+  }
+}
+
+function buildMarketplace(stagedPlugins: StagedPlugin[]): unknown {
+  return {
+    name: EVAL_MARKETPLACE_NAME,
+    interface: {
+      displayName: "Trigger Eval Marketplace",
+    },
+    plugins: stagedPlugins.map((stagedPlugin) => ({
+      name: stagedPlugin.pluginName,
+      source: {
+        source: "local",
+        path: `./plugins/${stagedPlugin.pluginName}`,
+      },
+      policy: {
+        installation: "AVAILABLE",
+        authentication: "ON_INSTALL",
+      },
+      category: "Productivity",
+    })),
+  };
 }
 
 function errorMessage(caught: unknown): string {

@@ -1,7 +1,8 @@
 import path from "node:path";
 
-import { skillTargetLabel } from "./target.js";
-import type { TriggerCaseResult, TriggerEvalResult } from "./types.js";
+import { formatSkillLabel } from "../skills/index.js";
+import type { TriggerEvalResult } from "./runner.js";
+import type { TriggerCaseResult } from "./verdict.js";
 
 export function printTriggerEvalResult(result: TriggerEvalResult): void {
   if (result.skippedReason !== undefined) {
@@ -12,7 +13,7 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
 
   const failures = result.results.filter((caseResult) => !caseResult.passed);
   console.log(
-    `Trigger eval completed for ${skillTargetLabel(result.target)} on ${result.agent}: ${result.results.length - failures.length}/${result.results.length} passed in ${formatDuration(result.durationMs)}.`,
+    `Trigger eval completed for ${formatSkillLabel(result.target)} on ${result.agent}: ${result.results.length - failures.length}/${result.results.length} passed in ${formatDuration(result.durationMs)}.`,
   );
 
   for (const caseResult of result.results) {
@@ -29,9 +30,6 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   // A leftover runtime directory is a disk-hygiene problem, not an eval result: warn, keep going.
   for (const cleanupFailure of result.cleanupFailures ?? []) {
     console.warn(`WARNING: runtime cleanup left ${cleanupFailure}`);
-  }
-  if (failures.length > 0) {
-    process.exitCode = 1;
   }
 }
 

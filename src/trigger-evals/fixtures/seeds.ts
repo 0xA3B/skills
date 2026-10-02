@@ -3,7 +3,7 @@ import { cp, lstat, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises
 import path from "node:path";
 import { promisify } from "node:util";
 
-import type { WorkspaceSpec } from "./types.js";
+import type { WorkspaceSpec } from "./fixture.js";
 
 const execFileAsync = promisify(execFile);
 

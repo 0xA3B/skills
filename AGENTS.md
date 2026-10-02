@@ -35,6 +35,11 @@ evaluated, and improved over time. Preserve these outcomes:
 - Use Conventional Commits.
 - Keep repository tests under `tests/`, grouped by subsystem; workspace seed tests stay with their
   seeds.
+- Group modules under `src/` into a sub-package directory only when the group has callers outside it
+  and a smaller public seam than its parts. The sub-package's `index.ts` only re-exports; its
+  sibling modules import each other directly and are private to production code outside the
+  directory. Register each sub-package in the `no-restricted-imports` patterns in `.oxlintrc.json`;
+  tests may import private modules.
 - `.node-version` is the canonical Node version; `package.json#packageManager` is the canonical pnpm
   version.
 - When a command relies on a runtime tool managed by mise, run it with `mise exec --` in

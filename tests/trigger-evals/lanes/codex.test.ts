@@ -1,39 +1,38 @@
-import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { type Skill, formatSkillLabel } from "../../../src/skills/index.js";
 import {
   CODEX_SKIP_DECISION_ITEM_BUDGET,
   createCodexLane,
   observeCodexOutput,
   skillFileReadPattern,
-} from "../../src/trigger-evals/codex-lane.js";
-import type { StreamingCliOptions, StreamingCliResult } from "../../src/trigger-evals/exec.js";
-import type { LaneRunOptions } from "../../src/trigger-evals/lanes.js";
-import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
-import { seedGitEnvironment } from "../../src/trigger-evals/seeds.js";
-import { resolveSkillTarget, skillTargetLabel } from "../../src/trigger-evals/target.js";
-import type { SkillTarget } from "../../src/trigger-evals/types.js";
+} from "../../../src/trigger-evals/lanes/codex.js";
+import type {
+  StreamingCliOptions,
+  StreamingCliResult,
+} from "../../../src/trigger-evals/lanes/exec.js";
+import { createRuntimeResources } from "../../../src/trigger-evals/runtime.js";
 import {
   agentMessageEvent,
   commandExecutionEvent,
+  exists,
+  makeLaneRunOptions,
+  triggerCase,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
   writeSeedFixture,
-} from "./test-utils.js";
-
-const execFileAsync = promisify(execFile);
+} from "../test-utils.js";
 
 const spawnCalls = vi.hoisted(
   () => [] as Array<{ command: string; args: string[]; options: StreamingCliOptions }>,
 );
 
 // The lane is tested against the real filesystem; only the process boundary is faked.
-vi.mock(import("../../src/trigger-evals/exec.js"), async (importOriginal) => {
+vi.mock(import("../../../src/trigger-evals/lanes/exec.js"), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
@@ -57,37 +56,35 @@ async function makeSourceCodexHome(): Promise<string> {
   return sourceCodexHome;
 }
 
-async function makeRunOptions(
-  repoRoot: string,
-  skillPath: string,
-  overrides: Partial<LaneRunOptions> = {},
-): Promise<LaneRunOptions> {
-  return {
-    runDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-run-")),
-    target: resolveSkillTarget(repoRoot, skillPath),
-    model: "gpt-6-sol",
-    effort: "medium",
-    runtime: createRuntimeResources(),
-    ...overrides,
-  };
+// The CODEX_HOME the lane builds for one case.
+function caseCodexHome(runDir: string, caseId: string): string {
+  return path.join(runDir, "codex-home", "cases", caseId);
 }
 
-async function exists(dirPath: string): Promise<boolean> {
-  try {
-    await stat(dirPath);
-    return true;
-  } catch {
-    return false;
-  }
+// A skill file in a case home's plugin cache, the copy Codex actually loads.
+function cachedSkillFile(
+  codexHome: string,
+  pluginName: string,
+  version: string,
+  skillName: string,
+): string {
+  return path.join(
+    codexHome,
+    "plugins",
+    "cache",
+    "trigger-eval",
+    pluginName,
+    version,
+    "skills",
+    skillName,
+    "SKILL.md",
+  );
 }
 
 // Plugin copies and the eval marketplace catalog live in the deployment directory outside the
 // case cwd, which the generated config names as the local marketplace source.
 async function readDeploymentPath(runDir: string, caseId: string): Promise<string> {
-  const config = await readFile(
-    path.join(runDir, "codex-home", "cases", caseId, "config.toml"),
-    "utf8",
-  );
+  const config = await readFile(path.join(caseCodexHome(runDir, caseId), "config.toml"), "utf8");
   const source = config.match(/^source = (?<source>".*")$/m)?.groups?.["source"];
   expect(source).toBeDefined();
   return JSON.parse(source ?? '""') as string;
@@ -108,7 +105,7 @@ async function readStagedCanary(
 }
 
 function observeFor(
-  target: SkillTarget,
+  target: Skill,
   canaryLabels: ReadonlyMap<string, string>,
   skillFilePatterns: ReadonlyMap<string, RegExp> = new Map(),
 ) {
@@ -116,7 +113,7 @@ function observeFor(
     observeCodexOutput(
       { stdout, stderr },
       target,
-      skillTargetLabel(target),
+      formatSkillLabel(target),
       canaryLabels,
       skillFilePatterns,
     );
@@ -127,20 +124,41 @@ describe("createCodexLane", () => {
     spawnCalls.length = 0;
   });
 
+  it("passes the staged skills' dependencies to the run", async () => {
+    const repoRoot = await writeRepoFixture({ siblingSkills: [{ name: "helper-skill" }] });
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
+    await writeFile(
+      runOptions.target.skillFilePath,
+      "---\nname: auto-skill\n---\nUse `helper-skill`.\n",
+    );
+
+    const laneRun = await createCodexLane({
+      sourceCodexHome: await makeSourceCodexHome(),
+    }).prepareRun(runOptions);
+
+    expect(laneRun.skillDependencies.get("demo:auto-skill")).toStrictEqual(
+      new Set(["demo:helper-skill"]),
+    );
+  });
+
   it("stages Codex surfaces, plugin caches, and canaries for plugin targets", async () => {
     const repoRoot = await writeRepoFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
     expect(laneRun.skipDecisionItemBudget).toBe(CODEX_SKIP_DECISION_ITEM_BUDGET);
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
-    const laneCase = await laneRun.prepareCase({
-      id: "invoke-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
     await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
     // Codex-only surfaces: the eval marketplace catalog, no Claude settings. Both live in the
@@ -159,26 +177,14 @@ describe("createCodexLane", () => {
     ).rejects.toThrow(/ENOENT/);
 
     const canary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
-    const codexHome = path.join(runOptions.runDir, "codex-home", "cases", "invoke-case");
+    const codexHome = caseCodexHome(runOptions.runDir, "invoke-case");
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
     expect(config).toContain('model = "gpt-6-sol"');
     expect(config).toContain('model_reasoning_effort = "medium"');
     expect(config).toContain('[plugins."demo@trigger-eval"]');
-    const cachedSkill = await readFile(
-      path.join(
-        codexHome,
-        "plugins",
-        "cache",
-        "trigger-eval",
-        "demo",
-        "1.0.0",
-        "skills",
-        "auto-skill",
-        "SKILL.md",
-      ),
-      "utf8",
-    );
-    expect(cachedSkill).toContain(canary);
+    await expect(
+      readFile(cachedSkillFile(codexHome, "demo", "1.0.0", "auto-skill"), "utf8"),
+    ).resolves.toContain(canary);
 
     const call = spawnCalls[0];
     expect(call?.command).toBe("codex");
@@ -196,19 +202,15 @@ describe("createCodexLane", () => {
     const repoRoot = await writeRepoFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const invokeCase = await laneRun.prepareCase({
-      id: "invoke-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
-    const skipCase = await laneRun.prepareCase({
-      id: "skip-case",
-      prompt: "Do not invoke the skill.",
-      expect: "skip",
-    });
+    const invokeCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
+    const skipCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"));
     await invokeCase.execute({
       caseDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-")),
       timeoutMs: 60_000,
@@ -229,48 +231,46 @@ describe("createCodexLane", () => {
     const repoRoot = await writeRepoFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
     // Deleting the committed plugin directory makes the plugin-cache staging step throw after
     // prepareCodexHome has already copied the user's auth.json into the per-case home.
     await rm(path.join(repoRoot, "plugins", "demo"), { recursive: true, force: true });
 
-    await expect(
-      laneRun.prepareCase({ id: "invoke-case", prompt: "Invoke the skill.", expect: "invoke" }),
-    ).rejects.toThrow(/ENOENT/);
-    await expect(
-      readFile(
-        path.join(runOptions.runDir, "codex-home", "cases", "invoke-case", "auth.json"),
-        "utf8",
-      ),
-    ).rejects.toThrow(/ENOENT/);
+    await expect(laneRun.prepareCase(triggerCase("invoke-case", "invoke"))).rejects.toThrow(
+      /ENOENT/,
+    );
+    const codexHome = caseCodexHome(runOptions.runDir, "invoke-case");
+    await expect(readFile(path.join(codexHome, "auth.json"), "utf8")).rejects.toThrow(/ENOENT/);
     // The half-built case home was tracked under the case scope before the failure, so releasing
     // that case alone removes it.
     await runOptions.runtime.release("invoke-case");
-    expect(await exists(path.join(runOptions.runDir, "codex-home", "cases", "invoke-case"))).toBe(
-      false,
-    );
+    expect(await exists(codexHome)).toBe(false);
   });
 
   it("tracks the workspace root, the run home, and each case home for release", async () => {
     const repoRoot = await writeRepoFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase({
-      id: "invoke-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
     await laneCase.execute({
       caseDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-")),
       timeoutMs: 60_000,
     });
     await laneCase.cleanup();
-    const caseHome = path.join(runOptions.runDir, "codex-home", "cases", "invoke-case");
+    const caseHome = caseCodexHome(runOptions.runDir, "invoke-case");
     const runHome = path.join(runOptions.runDir, "codex-home");
     const workspaceRoot = path.dirname(laneCase.workspacePath);
     expect(await exists(caseHome)).toBe(true);
@@ -290,22 +290,23 @@ describe("createCodexLane", () => {
     const repoRoot = await writeRepoFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill", {
-      runtime: createRuntimeResources({ keep: true }),
-    });
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+      {
+        runtime: createRuntimeResources({ keep: true }),
+      },
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase({
-      id: "invoke-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
     await laneCase.cleanup();
     await laneRun.cleanup();
     await runOptions.runtime.release("invoke-case");
     await runOptions.runtime.release();
 
-    const caseHome = path.join(runOptions.runDir, "codex-home", "cases", "invoke-case");
+    const caseHome = caseCodexHome(runOptions.runDir, "invoke-case");
     expect(await exists(path.join(caseHome, "config.toml"))).toBe(true);
     expect(await exists(path.join(caseHome, "auth.json"))).toBe(false);
     expect(await exists(path.dirname(laneCase.workspacePath))).toBe(true);
@@ -316,13 +317,9 @@ describe("createCodexLane", () => {
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
     const laneRun = await lane.prepareRun(
-      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill"),
+      await makeLaneRunOptions("codex", repoRoot, "plugins/demo/skills/auto-skill"),
     );
-    const laneCase = await laneRun.prepareCase({
-      id: "skip-case",
-      prompt: "Do not invoke the skill.",
-      expect: "skip",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"));
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
 
     // The faked codex exec never writes its -o file, as a run stopped at the first invocation
@@ -341,13 +338,9 @@ describe("createCodexLane", () => {
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
     const laneRun = await lane.prepareRun(
-      await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill"),
+      await makeLaneRunOptions("codex", repoRoot, "plugins/demo/skills/auto-skill"),
     );
-    const laneCase = await laneRun.prepareCase({
-      id: "skip-case",
-      prompt: "Do not invoke the skill.",
-      expect: "skip",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"));
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
     // A directory at the -o path fails the read with EISDIR, which is not a missing file.
     await mkdir(path.join(caseDir, "final.txt"));
@@ -362,14 +355,14 @@ describe("createCodexLane", () => {
     const repoRoot = await writeRepoFixture({ siblingSkills: [{ name: "sibling-skill" }] });
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase({
-      id: "invoke-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
     const deploymentPath = await readDeploymentPath(runOptions.runDir, "invoke-case");
     const targetCanary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
     const siblingCanary = await readStagedCanary(deploymentPath, "demo", "sibling-skill");
@@ -396,16 +389,19 @@ describe("createCodexLane", () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill", {
-      extraPlugins: [{ pluginName: "other", pluginPath: path.join(repoRoot, "plugins", "other") }],
-    });
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+      {
+        extraPlugins: [
+          { pluginName: "other", pluginPath: path.join(repoRoot, "plugins", "other") },
+        ],
+      },
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase({
-      id: "skip-case",
-      prompt: "Do not invoke the skill.",
-      expect: "skip",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"));
 
     const deploymentPath = await readDeploymentPath(runOptions.runDir, "skip-case");
     const catalog = JSON.parse(
@@ -418,22 +414,10 @@ describe("createCodexLane", () => {
     const observed = laneCase.observe({ stdout: agentMessageEvent(otherCanary), stderr: "" });
     expect(observed.invokedSkills).toStrictEqual(["other:other-skill"]);
 
-    const codexHome = path.join(runOptions.runDir, "codex-home", "cases", "skip-case");
-    const cachedOtherSkill = await readFile(
-      path.join(
-        codexHome,
-        "plugins",
-        "cache",
-        "trigger-eval",
-        "other",
-        "2.0.0",
-        "skills",
-        "other-skill",
-        "SKILL.md",
-      ),
-      "utf8",
-    );
-    expect(cachedOtherSkill).toContain(otherCanary);
+    const codexHome = caseCodexHome(runOptions.runDir, "skip-case");
+    await expect(
+      readFile(cachedSkillFile(codexHome, "other", "2.0.0", "other-skill"), "utf8"),
+    ).resolves.toContain(otherCanary);
   });
 
   it("stages a seeded git workspace for plugin cases with a workspace block", async () => {
@@ -441,24 +425,25 @@ describe("createCodexLane", () => {
     await writeSeedFixture(repoRoot, "demo-seed");
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const seededCase = await laneRun.prepareCase({
-      id: "seeded-case",
-      prompt: "Review the staged changes.",
-      expect: "invoke",
-      workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
-    });
+    const seededCase = await laneRun.prepareCase(
+      triggerCase("seeded-case", "invoke", {
+        workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
+      }),
+    );
 
-    expect(seededCase.workspacePath).toContain(path.join("cases", "seeded-case", "workspace"));
-    await expect(stat(path.join(seededCase.workspacePath, ".git"))).resolves.toBeDefined();
-    await expect(
-      readFile(path.join(seededCase.workspacePath, "src", "index.js"), "utf8"),
-    ).resolves.toContain("seed");
+    // A seeded case gets its own copy instead of the base workspace plain cases share.
+    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"));
+    expect(seededCase.workspacePath).not.toBe(plainCase.workspacePath);
     // The seeded cwd is trusted in the case config, and plugins stay outside it.
     const config = await readFile(
-      path.join(runOptions.runDir, "codex-home", "cases", "seeded-case", "config.toml"),
+      path.join(caseCodexHome(runOptions.runDir, "seeded-case"), "config.toml"),
       "utf8",
     );
     expect(config).toContain(`[projects.${JSON.stringify(seededCase.workspacePath)}]`);
@@ -472,7 +457,7 @@ describe("createCodexLane", () => {
     });
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, ".agents/skills/auto-skill", {
+    const runOptions = await makeLaneRunOptions("codex", repoRoot, ".agents/skills/auto-skill", {
       extraPlugins: [{ pluginName: "other", pluginPath: path.join(repoRoot, "plugins", "other") }],
       extraRepoLocalSkills: [
         {
@@ -487,11 +472,7 @@ describe("createCodexLane", () => {
     });
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase({
-      id: "repo-local-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"));
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(
       new Set(["other:other-skill", "auto-skill", "sibling-skill", "manual-skill"]),
@@ -501,21 +482,25 @@ describe("createCodexLane", () => {
       await readFile(path.join(deploymentPath, ".agents", "plugins", "marketplace.json"), "utf8"),
     ) as { plugins: Array<{ name: string }> };
     expect(catalog.plugins.map((plugin) => plugin.name)).toStrictEqual(["other"]);
-    const codexHome = path.join(runOptions.runDir, "codex-home", "cases", "repo-local-case");
+    const codexHome = caseCodexHome(runOptions.runDir, "repo-local-case");
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
     expect(config).toContain('[plugins."other@trigger-eval"]');
 
     // The per-case target canary merges with the per-run plugin canaries, so a plugin skill
     // stealing the invocation stays attributable alongside the target's own signal.
-    const targetSkillBody = await readFile(
-      path.join(laneCase.workspacePath, ".agents", "skills", "auto-skill", "SKILL.md"),
-      "utf8",
-    );
-    const targetCanary = targetSkillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-    expect(targetCanary).toBeDefined();
+    const stagedCanary = async (skillName: string) => {
+      const skillBody = await readFile(
+        path.join(laneCase.workspacePath, ".agents", "skills", skillName, "SKILL.md"),
+        "utf8",
+      );
+      const canary = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
+      expect(canary).toBeDefined();
+      return canary ?? "missing-canary";
+    };
+    const targetCanary = await stagedCanary("auto-skill");
     const otherCanary = await readStagedCanary(deploymentPath, "other", "other-skill");
     expect(
-      laneCase.observe({ stdout: agentMessageEvent(targetCanary ?? ""), stderr: "" }).invokedSkills,
+      laneCase.observe({ stdout: agentMessageEvent(targetCanary), stderr: "" }).invokedSkills,
     ).toStrictEqual(["auto-skill"]);
     expect(
       laneCase.observe({ stdout: agentMessageEvent(otherCanary), stderr: "" }).invokedSkills,
@@ -523,40 +508,15 @@ describe("createCodexLane", () => {
 
     // The Codex plugin cache is what actually makes the staged plugin loadable; repo-local
     // targets must stage it too, with the canary present in the cached copy.
-    const cachedOtherSkill = await readFile(
-      path.join(
-        codexHome,
-        "plugins",
-        "cache",
-        "trigger-eval",
-        "other",
-        "2.0.0",
-        "skills",
-        "other-skill",
-        "SKILL.md",
-      ),
-      "utf8",
-    );
-    expect(cachedOtherSkill).toContain(otherCanary);
+    await expect(
+      readFile(cachedSkillFile(codexHome, "other", "2.0.0", "other-skill"), "utf8"),
+    ).resolves.toContain(otherCanary);
 
-    // Implicitly invokable sibling repo-local skills carry their own body-only canary, so a
-    // sibling stealing the invocation is attributable; the committed skill stays a byte-identical
-    // prefix of the staged copy.
-    const committedSibling = await readFile(
-      path.join(repoRoot, ".agents", "skills", "sibling-skill", "SKILL.md"),
-      "utf8",
-    );
-    const siblingBody = await readFile(
-      path.join(laneCase.workspacePath, ".agents", "skills", "sibling-skill", "SKILL.md"),
-      "utf8",
-    );
-    expect(siblingBody.startsWith(committedSibling)).toBe(true);
-    expect(siblingBody).toContain("Trigger Eval Instructions");
-    const siblingCanary = siblingBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-    expect(siblingCanary).toBeDefined();
+    // Implicitly invokable sibling repo-local skills carry their own canary, so a sibling
+    // stealing the invocation is attributable.
+    const siblingCanary = await stagedCanary("sibling-skill");
     expect(
-      laneCase.observe({ stdout: agentMessageEvent(siblingCanary ?? ""), stderr: "" })
-        .invokedSkills,
+      laneCase.observe({ stdout: agentMessageEvent(siblingCanary), stderr: "" }).invokedSkills,
     ).toStrictEqual(["sibling-skill"]);
     // Reading the staged sibling file is the same invocation; the read pattern is wired through
     // prepareRun for repo-local skills as well as plugins.
@@ -568,14 +528,7 @@ describe("createCodexLane", () => {
     expect(siblingRead.invokedSkills).toStrictEqual(["sibling-skill"]);
 
     // A manual-only sibling keeps its real invocation policy: staged and labeled, but it can only
-    // fire on explicit request, so it carries no canary.
-    const manualBody = await readFile(
-      path.join(laneCase.workspacePath, ".agents", "skills", "manual-skill", "SKILL.md"),
-      "utf8",
-    );
-    expect(manualBody).toBe(
-      await readFile(path.join(repoRoot, ".agents", "skills", "manual-skill", "SKILL.md"), "utf8"),
-    );
+    // fire on explicit request, so reading it is not an implicit invocation.
     expect(
       laneCase.observe({
         stdout: commandExecutionEvent("cat .agents/skills/manual-skill/SKILL.md"),
@@ -588,29 +541,24 @@ describe("createCodexLane", () => {
     const repoRoot = await writeRepoFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase({
-      id: "read-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
-    const cacheRoot = path.join(
-      runOptions.runDir,
-      "codex-home",
-      "cases",
-      "read-case",
-      "plugins",
-      "cache",
+    const laneCase = await laneRun.prepareCase(triggerCase("read-case", "invoke"));
+    const cachedFile = cachedSkillFile(
+      caseCodexHome(runOptions.runDir, "read-case"),
+      "demo",
+      "1.0.0",
+      "auto-skill",
     );
-    const cachedSkillFile = (await readdir(cacheRoot, { recursive: true }))
-      .map((entry) => path.join(cacheRoot, entry))
-      .find((entry) => entry.endsWith(path.join("skills", "auto-skill", "SKILL.md")));
-    expect(cachedSkillFile).toBeDefined();
+    expect(await exists(cachedFile)).toBe(true);
 
     const observed = laneCase.observe({
-      stdout: commandExecutionEvent(`/bin/zsh -lc 'cat ${cachedSkillFile}'`),
+      stdout: commandExecutionEvent(`/bin/zsh -lc 'cat ${cachedFile}'`),
       stderr: "",
     });
     expect(observed.signal).toBe("command-skill-read");
@@ -621,15 +569,11 @@ describe("createCodexLane", () => {
     const repoRoot = await writeRepoLocalSkillFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, ".agents/skills/auto-skill");
+    const runOptions = await makeLaneRunOptions("codex", repoRoot, ".agents/skills/auto-skill");
 
     const laneRun = await lane.prepareRun(runOptions);
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
-    const laneCase = await laneRun.prepareCase({
-      id: "repo-local-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-    });
+    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"));
     await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
     const skillBody = await readFile(
@@ -653,8 +597,12 @@ describe("createCodexLane", () => {
       ),
     ).rejects.toThrow(/ENOENT/);
 
-    // Repo-local runs must be able to write in the workspace under test.
-    expect(spawnCalls[0]?.args).toContain("workspace-write");
+    // Repo-local cases run read-only like plugin cases, so plain cases share the base workspace; a
+    // per-case copy is reserved for cases with their own workspace content.
+    const args = spawnCalls[0]?.args ?? [];
+    expect(args[args.indexOf("-s") + 1]).toBe("read-only");
+    const secondPlainCase = await laneRun.prepareCase(triggerCase("other-repo-local-case", "skip"));
+    expect(secondPlainCase.workspacePath).toBe(laneCase.workspacePath);
 
     const observed = laneCase.observe({
       stdout: agentMessageEvent(canary ?? "missing-canary"),
@@ -663,40 +611,10 @@ describe("createCodexLane", () => {
     expect(observed.signal).toBe("stdout-skill-canary");
     expect(observed.invokedSkills).toStrictEqual(["auto-skill"]);
   });
-
-  it("commits the repo-local canary into a seeded workspace", async () => {
-    const repoRoot = await writeRepoLocalSkillFixture();
-    await writeSeedFixture(repoRoot, "demo-seed");
-    const sourceCodexHome = await makeSourceCodexHome();
-    const lane = createCodexLane({ sourceCodexHome });
-    const runOptions = await makeRunOptions(repoRoot, ".agents/skills/auto-skill");
-
-    const laneRun = await lane.prepareRun(runOptions);
-    const seededCase = await laneRun.prepareCase({
-      id: "seeded-repo-local-case",
-      prompt: "Invoke the skill.",
-      expect: "invoke",
-      workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
-    });
-
-    // The canary is appended per run, before the seed commit, so the staged skill is part of the
-    // committed tree and the agent sees a clean worktree.
-    const committedSkill = await execFileAsync(
-      "git",
-      ["show", "HEAD:.agents/skills/auto-skill/SKILL.md"],
-      { cwd: seededCase.workspacePath, env: seedGitEnvironment() },
-    );
-    expect(committedSkill.stdout).toMatch(/trigger-eval-canary-[a-z0-9-]+/);
-    const status = await execFileAsync("git", ["status", "--porcelain"], {
-      cwd: seededCase.workspacePath,
-      env: seedGitEnvironment(),
-    });
-    expect(status.stdout).toBe("");
-  });
 });
 
 describe("observeCodexOutput", () => {
-  const repoTarget: SkillTarget = {
+  const repoTarget: Skill = {
     kind: "plugin",
     repoRoot: "/repo",
     pluginName: "demo",
@@ -713,26 +631,20 @@ describe("observeCodexOutput", () => {
   ]);
   const observe = observeFor(repoTarget, canaryLabels);
 
-  it("boundary-matches labels in legacy stderr telemetry", () => {
-    // The telemetry names the sibling demo:auto-skill-extra; the target demo:auto-skill must not
-    // be credited from inside the longer label.
-    const observed = observe(
-      agentMessageEvent("I handled the request."),
+  // The second row names the sibling demo:auto-skill-extra; the target demo:auto-skill must not be
+  // credited from inside the longer label.
+  it.each([
+    ["the target", "codex.skill.injected demo:auto-skill", ["demo:auto-skill"]],
+    [
+      "a sibling whose label extends the target's",
       "codex.skill.injected demo:auto-skill-extra",
-    );
+      ["demo:auto-skill-extra"],
+    ],
+  ])("credits %s from legacy stderr telemetry", (_label, stderr, invokedSkills) => {
+    const observed = observe(agentMessageEvent("I handled the request."), stderr);
 
     expect(observed.signal).toBe("stderr-skill-injected");
-    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill-extra"]);
-  });
-
-  it("classifies target invocations from legacy stderr telemetry", () => {
-    const observed = observe(
-      agentMessageEvent("I handled the request."),
-      "codex.skill.injected demo:auto-skill",
-    );
-
-    expect(observed.signal).toBe("stderr-skill-injected");
-    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill"]);
+    expect(observed.invokedSkills).toStrictEqual(invokedSkills);
   });
 
   it("classifies a command that reads a staged skill file as that skill's invocation", () => {
@@ -744,14 +656,9 @@ describe("observeCodexOutput", () => {
       ["local-skill", skillFileReadPattern(undefined, "local-skill")],
     ]);
     const observeReads = observeFor(repoTarget, canaryLabels, readPatterns);
-    const command = (text: string) =>
-      JSON.stringify({
-        type: "item.completed",
-        item: { type: "command_execution", command: text },
-      });
 
     const cached = observeReads(
-      command(
+      commandExecutionEvent(
         "/bin/zsh -lc 'cat /run/codex-home/cases/x/plugins/cache/trigger-eval/demo/1.0.0/skills/auto-skill/SKILL.md'",
       ),
     );
@@ -760,18 +667,20 @@ describe("observeCodexOutput", () => {
 
     // The sibling's longer skill name must not credit the target, and vice versa.
     const sibling = observeReads(
-      command("sed -n 1,80p /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md"),
+      commandExecutionEvent("sed -n 1,80p /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md"),
     );
     expect(sibling.invokedSkills).toStrictEqual(["demo:auto-skill-extra"]);
 
-    const repoLocal = observeReads(command("cat .agents/skills/local-skill/SKILL.md"));
+    const repoLocal = observeReads(
+      commandExecutionEvent("cat .agents/skills/local-skill/SKILL.md"),
+    );
     expect(repoLocal.invokedSkills).toStrictEqual(["local-skill"]);
 
     const unrelated = observeReads(
       [
-        command("cat README.md"),
-        command("cat /deploy/plugins/demo/skills/auto-skill/references/notes.md"),
-        command("cat /deploy/plugins/other/skills/auto-skill/SKILL.md"),
+        commandExecutionEvent("cat README.md"),
+        commandExecutionEvent("cat /deploy/plugins/demo/skills/auto-skill/references/notes.md"),
+        commandExecutionEvent("cat /deploy/plugins/other/skills/auto-skill/SKILL.md"),
       ].join("\n"),
     );
     expect(unrelated.signal).toBe("none");
@@ -833,13 +742,7 @@ describe("observeCodexOutput", () => {
       readPatterns,
     )(
       [
-        JSON.stringify({
-          type: "item.completed",
-          item: {
-            type: "command_execution",
-            command: "cat /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md",
-          },
-        }),
+        commandExecutionEvent("cat /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md"),
         agentMessageEvent("trigger-eval-canary-target"),
       ].join("\n"),
     );
@@ -864,13 +767,11 @@ describe("observeCodexOutput", () => {
       type: "item.completed",
       item: { type: "reasoning", text: "thinking" },
     });
-    const commandEvent = JSON.stringify({
-      type: "item.completed",
-      item: { type: "command_execution", command: "ls" },
-    });
     const turnEvent = JSON.stringify({ type: "turn.completed" });
 
-    const observed = observe([reasoningEvent, reasoningEvent, commandEvent, turnEvent].join("\n"));
+    const observed = observe(
+      [reasoningEvent, reasoningEvent, commandExecutionEvent("ls"), turnEvent].join("\n"),
+    );
 
     expect(observed.decisionItemCount).toBe(1);
     expect(observed.hasActivity).toBe(true);

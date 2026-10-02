@@ -1,8 +1,56 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import type { CliRunResult } from "../../src/trigger-evals/exec.js";
+import { type Agent, resolveSkill } from "../../src/skills/index.js";
+import type { TriggerCase } from "../../src/trigger-evals/fixtures/index.js";
+import {
+  type CliRunResult,
+  DEFAULT_EVAL_EFFORT,
+  DEFAULT_EVAL_MODELS,
+  type LaneRunOptions,
+} from "../../src/trigger-evals/lanes/index.js";
+import { createRuntimeResources } from "../../src/trigger-evals/runtime.js";
+
+export async function exists(filePath: string): Promise<boolean> {
+  try {
+    await stat(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// A trigger case whose prompt follows its expectation, as writeRepoFixture's cases do.
+export function triggerCase(
+  id: string,
+  expect: TriggerCase["expect"],
+  extra: Partial<TriggerCase> = {},
+): TriggerCase {
+  return {
+    id,
+    prompt: expect === "invoke" ? "Invoke the skill." : "Do not invoke the skill.",
+    expect,
+    ...extra,
+  };
+}
+
+// The options the runner hands a lane's prepareRun, with the agent's default model and effort.
+export async function makeLaneRunOptions(
+  agent: Agent,
+  repoRoot: string,
+  skillPath: string,
+  overrides: Partial<LaneRunOptions> = {},
+): Promise<LaneRunOptions> {
+  return {
+    runDir: await mkdtemp(path.join(os.tmpdir(), `${agent}-lane-run-`)),
+    target: resolveSkill(repoRoot, skillPath),
+    model: DEFAULT_EVAL_MODELS[agent],
+    effort: DEFAULT_EVAL_EFFORT,
+    runtime: createRuntimeResources(),
+    ...overrides,
+  };
+}
 
 export function agentMessageEvent(text: string): string {
   return `${JSON.stringify({ type: "item.completed", item: { type: "agent_message", text } })}\n`;
@@ -50,13 +98,18 @@ export function buildCliRunResult(overrides: Partial<CliRunResult> = {}): CliRun
   };
 }
 
+// One case of a trigger fixture written by triggerFixtureYaml. The prompt defaults to one that
+// follows the expectation.
+export type FixtureCase = {
+  id: string;
+  expect: "invoke" | "skip";
+  prompt?: string;
+  invokeInstead?: string;
+  workspaceFiles?: Record<string, string>;
+};
+
 export type RepoFixtureOptions = {
-  cases?: Array<{
-    id: string;
-    expect: "invoke" | "skip";
-    prompt?: string;
-    workspaceFiles?: Record<string, string>;
-  }>;
+  cases?: FixtureCase[];
   claudeOnly?: boolean;
   portableVersion?: string;
   siblingSkills?: Array<{ name: string; manualOnly?: boolean }>;
@@ -70,27 +123,17 @@ export async function writeRepoFixture(options: RepoFixtureOptions = {}): Promis
 
   if (options.marketplace === true) {
     await writeOtherPlugin(repoRoot);
-    await writeMarketplaceCatalogs(repoRoot, ["demo", "other"]);
+    await writeMarketplaceCatalogs(repoRoot, {
+      codex: ["demo", "other"],
+      claude: ["demo", "other"],
+    });
   }
 
   for (const sibling of options.siblingSkills ?? []) {
-    const siblingPath = path.join(pluginPath, "skills", sibling.name);
-    await mkdir(path.join(siblingPath, "agents"), { recursive: true });
-    await writeFile(
-      path.join(siblingPath, "SKILL.md"),
-      [
-        "---",
-        `name: ${sibling.name}`,
-        "description: Use when the user asks for the sibling skill.",
-        ...(sibling.manualOnly === true ? ["disable-model-invocation: true"] : []),
-        "---",
-        "",
-      ].join("\n"),
-    );
-    await writeFile(
-      path.join(siblingPath, "agents", "openai.yaml"),
-      `version: 1\npolicy:\n  allow_implicit_invocation: ${sibling.manualOnly === true ? "false" : "true"}\n`,
-    );
+    await writeSkillFiles(path.join(pluginPath, "skills", sibling.name), {
+      description: "Use when the user asks for the sibling skill.",
+      manualOnly: sibling.manualOnly === true,
+    });
   }
 
   await mkdir(path.join(skillPath, "evals"), { recursive: true });
@@ -124,17 +167,7 @@ export async function writeRepoFixture(options: RepoFixtureOptions = {}): Promis
   await writeFile(path.join(skillPath, "SKILL.md"), "---\nname: auto-skill\n---\n");
   await writeFile(
     path.join(skillPath, "evals", "triggers.yaml"),
-    [
-      "version: 1",
-      "cases:",
-      ...fixtureCaseLines(
-        options.cases ?? [
-          { id: "invoke-case", expect: "invoke" },
-          { id: "skip-case", expect: "skip" },
-        ],
-      ),
-      "",
-    ].join("\n"),
+    triggerFixtureYaml(options.cases),
   );
 
   return repoRoot;
@@ -165,67 +198,31 @@ export async function writeRepoLocalSkillFixture(
 
   if (options.marketplace === true) {
     await writeOtherPlugin(repoRoot);
-    await writeMarketplaceCatalogs(repoRoot, ["other"]);
+    await writeMarketplaceCatalogs(repoRoot, { codex: ["other"], claude: ["other"] });
   }
   for (const sibling of options.siblingSkills ?? []) {
-    const siblingPath = path.join(repoRoot, ".agents", "skills", sibling.name);
-    await mkdir(path.join(siblingPath, "agents"), { recursive: true });
-    await writeFile(
-      path.join(siblingPath, "SKILL.md"),
-      [
-        "---",
-        `name: ${sibling.name}`,
-        "description: Use when the user asks for the sibling repo-local skill.",
-        ...(sibling.manualOnly === true ? ["disable-model-invocation: true"] : []),
-        "---",
-        "",
-      ].join("\n"),
-    );
-    await writeFile(
-      path.join(siblingPath, "agents", "openai.yaml"),
-      `version: 1\npolicy:\n  allow_implicit_invocation: ${sibling.manualOnly === true ? "false" : "true"}\n`,
-    );
+    await writeSkillFiles(path.join(repoRoot, ".agents", "skills", sibling.name), {
+      description: "Use when the user asks for the sibling repo-local skill.",
+      manualOnly: sibling.manualOnly === true,
+    });
   }
 
-  await mkdir(path.join(skillPath, "agents"), { recursive: true });
-  await mkdir(path.join(skillPath, "evals"), { recursive: true });
-  await writeFile(
-    path.join(skillPath, "SKILL.md"),
-    [
-      "---",
-      "name: auto-skill",
-      "description: Use when the user asks to invoke this repo-local skill.",
-      "---",
-      "",
-    ].join("\n"),
-  );
-  await writeFile(
-    path.join(skillPath, "agents", "openai.yaml"),
-    "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
-  );
-  await writeFile(
-    path.join(skillPath, "evals", "triggers.yaml"),
-    [
-      "version: 1",
-      "cases:",
-      "  - id: repo-local-case",
-      "    prompt: Invoke the skill.",
-      "    expect: invoke",
-      "  - id: skip-case",
-      "    prompt: Do not invoke the skill.",
-      "    expect: skip",
-      "",
-    ].join("\n"),
-  );
+  await writeSkillFiles(skillPath, {
+    description: "Use when the user asks to invoke this repo-local skill.",
+    fixture: triggerFixtureYaml([
+      { id: "repo-local-case", expect: "invoke" },
+      { id: "skip-case", expect: "skip" },
+    ]),
+  });
 
   return repoRoot;
 }
 
 async function writeOtherPlugin(repoRoot: string): Promise<void> {
-  const otherSkillPath = path.join(repoRoot, "plugins", "other", "skills", "other-skill");
-  await mkdir(path.join(otherSkillPath, "agents"), { recursive: true });
+  const pluginPath = path.join(repoRoot, "plugins", "other");
+  await mkdir(pluginPath, { recursive: true });
   await writeFile(
-    path.join(repoRoot, "plugins", "other", "plugin.json"),
+    path.join(pluginPath, "plugin.json"),
     JSON.stringify({
       $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
       name: "other",
@@ -233,29 +230,61 @@ async function writeOtherPlugin(repoRoot: string): Promise<void> {
       extensions: { "com.openai": {} },
     }),
   );
+  await writeSkillFiles(path.join(pluginPath, "skills", "other-skill"), {
+    description: "Use when the user asks for the other plugin's skill.",
+  });
+}
+
+export type SkillFilesOptions = {
+  // Defaults to one naming the skill.
+  description?: string;
+  // Declares the skill manual-only on both agents: disable-model-invocation in SKILL.md and
+  // allow_implicit_invocation: false in agents/openai.yaml.
+  manualOnly?: boolean;
+  // The evals/triggers.yaml content; the skill has no trigger fixture when omitted.
+  fixture?: string;
+};
+
+// A skill directory named after the skill: SKILL.md, agents/openai.yaml, and an optional trigger
+// fixture. Rewriting an existing skill replaces its SKILL.md and policy and keeps its fixture.
+export async function writeSkillFiles(
+  skillPath: string,
+  options: SkillFilesOptions = {},
+): Promise<void> {
+  const name = path.basename(skillPath);
+  await mkdir(path.join(skillPath, "agents"), { recursive: true });
   await writeFile(
-    path.join(otherSkillPath, "SKILL.md"),
+    path.join(skillPath, "SKILL.md"),
     [
       "---",
-      "name: other-skill",
-      "description: Use when the user asks for the other plugin's skill.",
+      `name: ${name}`,
+      `description: ${options.description ?? `Use when the user asks for ${name}.`}`,
+      ...(options.manualOnly === true ? ["disable-model-invocation: true"] : []),
       "---",
       "",
     ].join("\n"),
   );
   await writeFile(
-    path.join(otherSkillPath, "agents", "openai.yaml"),
-    "version: 1\npolicy:\n  allow_implicit_invocation: true\n",
+    path.join(skillPath, "agents", "openai.yaml"),
+    `version: 1\npolicy:\n  allow_implicit_invocation: ${options.manualOnly === true ? "false" : "true"}\n`,
   );
+  if (options.fixture !== undefined) {
+    await mkdir(path.join(skillPath, "evals"), { recursive: true });
+    await writeFile(path.join(skillPath, "evals", "triggers.yaml"), options.fixture);
+  }
 }
 
-async function writeMarketplaceCatalogs(repoRoot: string, pluginNames: string[]): Promise<void> {
+// Both marketplace catalogs, each listing its own plugins from plugins/<name>.
+export async function writeMarketplaceCatalogs(
+  repoRoot: string,
+  catalogs: { codex: string[]; claude: string[] },
+): Promise<void> {
   await mkdir(path.join(repoRoot, ".agents", "plugins"), { recursive: true });
   await writeFile(
     path.join(repoRoot, ".agents", "plugins", "marketplace.json"),
     JSON.stringify({
       name: "fixture-marketplace",
-      plugins: pluginNames.map((pluginName) => ({
+      plugins: catalogs.codex.map((pluginName) => ({
         name: pluginName,
         source: { source: "local", path: `./plugins/${pluginName}` },
       })),
@@ -266,7 +295,7 @@ async function writeMarketplaceCatalogs(repoRoot: string, pluginNames: string[])
     path.join(repoRoot, ".claude-plugin", "marketplace.json"),
     JSON.stringify({
       name: "fixture-marketplace",
-      plugins: pluginNames.map((pluginName) => ({
+      plugins: catalogs.claude.map((pluginName) => ({
         name: pluginName,
         source: `./plugins/${pluginName}`,
       })),
@@ -274,29 +303,32 @@ async function writeMarketplaceCatalogs(repoRoot: string, pluginNames: string[])
   );
 }
 
-function fixtureCaseLines(
-  cases: Array<{
-    id: string;
-    expect: "invoke" | "skip";
-    prompt?: string;
-    workspaceFiles?: Record<string, string>;
-  }>,
-): string[] {
-  return cases.flatMap((testCase) => {
+// A schema-valid trigger fixture; the default holds one invoke case and one skip case.
+export function triggerFixtureYaml(
+  cases: FixtureCase[] = [
+    { id: "invoke-case", expect: "invoke" },
+    { id: "skip-case", expect: "skip" },
+  ],
+): string {
+  const lines = cases.flatMap((testCase) => {
     const prompt =
       testCase.prompt ?? `${testCase.expect === "invoke" ? "Invoke" : "Do not invoke"} the skill.`;
-    const lines = [
+    const caseLines = [
       `  - id: ${testCase.id}`,
       `    prompt: ${prompt}`,
       `    expect: ${testCase.expect}`,
     ];
+    if (testCase.invokeInstead !== undefined) {
+      caseLines.push(`    invoke-instead: ${testCase.invokeInstead}`);
+    }
     if (testCase.workspaceFiles !== undefined) {
-      lines.push("    workspace_files:");
+      caseLines.push("    workspace_files:");
       for (const [filePath, content] of Object.entries(testCase.workspaceFiles)) {
-        lines.push(`      ${filePath}: |`);
-        lines.push(...content.split("\n").map((line) => `        ${line}`));
+        caseLines.push(`      ${filePath}: |`);
+        caseLines.push(...content.split("\n").map((line) => `        ${line}`));
       }
     }
-    return lines;
+    return caseLines;
   });
+  return ["version: 1", "cases:", ...lines, ""].join("\n");
 }

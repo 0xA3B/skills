@@ -5,7 +5,8 @@ import {
   spawnStreamingCli,
   type StreamingCliOptions,
   type StreamingCliOutput,
-} from "../../src/trigger-evals/exec.js";
+  type StreamingCliResult,
+} from "../../../src/trigger-evals/lanes/exec.js";
 
 const node = process.execPath;
 
@@ -39,6 +40,7 @@ describe("spawnStreamingCli", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("done");
+    expect(result.endedBy).toBe("completed");
     expect(result.error).toBeUndefined();
   });
 
@@ -50,6 +52,7 @@ describe("spawnStreamingCli", () => {
     );
 
     expect(result.exitCode).toBe(0);
+    expect(result.endedBy).toBe("stop-when");
     expect(result.error).toBeUndefined();
   });
 
@@ -61,20 +64,16 @@ describe("spawnStreamingCli", () => {
     );
 
     expect(result.exitCode).toBeNull();
+    expect(result.endedBy).toBe("timeout");
     expect(result.error).toBe("test cli timed out after 300ms.");
   });
 
-  it("reports an abort when the signal fires mid-run", async () => {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 100);
+  it("reports a spawn error when the command cannot start", async () => {
+    const result = await spawnStreamingCli("./no-such-command", [], cliOptions());
 
-    const result = await spawnStreamingCli(
-      node,
-      ["-e", "setInterval(() => {}, 1000);"],
-      cliOptions({ abortSignal: controller.signal }),
-    );
-
-    expect(result.error).toBe("test cli aborted.");
+    expect(result.exitCode).toBeNull();
+    expect(result.endedBy).toBe("spawn-error");
+    expect(result.error).toContain("ENOENT");
   });
 
   it("resolves an aborted run only after the child has exited", async () => {
@@ -118,24 +117,19 @@ describe("spawnStreamingCli", () => {
 });
 
 describe("cliRunError", () => {
-  it("returns undefined for a clean zero exit", () => {
-    expect(
-      cliRunError({ exitCode: 0, stdout: "", stderr: "", endedBy: "completed" }, "test cli"),
-    ).toBeUndefined();
-  });
-
-  it("describes a nonzero exit", () => {
-    expect(
-      cliRunError({ exitCode: 3, stdout: "", stderr: "", endedBy: "completed" }, "test cli"),
-    ).toBe("test cli exited with code 3.");
-  });
-
-  it("prefers the underlying execution error message", () => {
-    expect(
-      cliRunError(
-        { exitCode: null, stdout: "", stderr: "", endedBy: "spawn-error", error: "boom" },
-        "test cli",
-      ),
-    ).toBe("boom");
+  it.each<[string, Omit<StreamingCliResult, "stdout" | "stderr">, string | undefined]>([
+    ["returns undefined for a clean zero exit", { exitCode: 0, endedBy: "completed" }, undefined],
+    [
+      "describes a nonzero exit",
+      { exitCode: 3, endedBy: "completed" },
+      "test cli exited with code 3.",
+    ],
+    [
+      "prefers the underlying execution error message",
+      { exitCode: null, endedBy: "spawn-error", error: "boom" },
+      "boom",
+    ],
+  ])("%s", (_name, result, expected) => {
+    expect(cliRunError({ stdout: "", stderr: "", ...result }, "test cli")).toBe(expected);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { CaseObservations } from "../../src/trigger-evals/types.js";
+import type { CaseObservations, CliRunResult } from "../../src/trigger-evals/lanes/index.js";
 import {
   buildCaseResult,
   type CaseVerdictOptions,
@@ -39,37 +39,40 @@ function invokedObservations(...invokedSkills: string[]): CaseObservations {
 }
 
 describe("shouldStopEarly", () => {
-  it("stops as soon as any invocation signal appears", () => {
-    expect(shouldStopEarly(observations({ signal: "stdout-skill-canary" }))).toBe(true);
-    expect(shouldStopEarly(observations({ signal: "command-skill-read" }))).toBe(true);
-    expect(
-      shouldStopEarly(observations({ signal: "command-skill-read", pendingReads: false })),
-    ).toBe(true);
-  });
-
-  it("keeps streaming while a skill-file read has not settled at an assistant message", () => {
-    expect(
-      shouldStopEarly(observations({ signal: "command-skill-read", pendingReads: true })),
-    ).toBe(false);
-    expect(
-      shouldStopEarly(
-        observations({
-          signal: "command-skill-read",
-          pendingReads: true,
-          decisionItemCount: SKIP_DECISION_ITEM_BUDGET,
-        }),
-      ),
-    ).toBe(true);
-    expect(shouldStopEarly(observations({ signal: "stream-skill-tool-use" }))).toBe(true);
-    expect(shouldStopEarly(observations({ signal: "stderr-skill-injected" }))).toBe(true);
-  });
-
-  it("stops at the decision-item budget and not before", () => {
-    expect(shouldStopEarly(observations({ decisionItemCount: 4 }))).toBe(false);
-    expect(shouldStopEarly(observations({ decisionItemCount: 5 }))).toBe(true);
+  it.each<[string, Partial<CaseObservations>, number | undefined, boolean]>([
+    ["stops on a canary signal", { signal: "stdout-skill-canary" }, undefined, true],
+    ["stops on a skill tool use", { signal: "stream-skill-tool-use" }, undefined, true],
+    ["stops on a skill injection", { signal: "stderr-skill-injected" }, undefined, true],
+    ["stops on a skill-file read", { signal: "command-skill-read" }, undefined, true],
+    [
+      "stops on a settled skill-file read",
+      { signal: "command-skill-read", pendingReads: false },
+      undefined,
+      true,
+    ],
+    [
+      "keeps streaming while a skill-file read has not settled at an assistant message",
+      { signal: "command-skill-read", pendingReads: true },
+      undefined,
+      false,
+    ],
+    [
+      "stops an unsettled skill-file read at the decision-item budget",
+      {
+        signal: "command-skill-read",
+        pendingReads: true,
+        decisionItemCount: SKIP_DECISION_ITEM_BUDGET,
+      },
+      undefined,
+      true,
+    ],
+    ["keeps streaming below the decision-item budget", { decisionItemCount: 4 }, undefined, false],
+    ["stops at the decision-item budget", { decisionItemCount: 5 }, undefined, true],
     // A lane can raise the budget when its items include reconnaissance it cannot separate.
-    expect(shouldStopEarly(observations({ decisionItemCount: 5 }), 8)).toBe(false);
-    expect(shouldStopEarly(observations({ decisionItemCount: 8 }), 8)).toBe(true);
+    ["keeps streaming below a lane-raised budget", { decisionItemCount: 5 }, 8, false],
+    ["stops at a lane-raised budget", { decisionItemCount: 8 }, 8, true],
+  ])("%s", (_name, caseObservations, budget, expected) => {
+    expect(shouldStopEarly(observations(caseObservations), budget)).toBe(expected);
   });
 });
 
@@ -82,59 +85,57 @@ describe("dropDependencyLoads", () => {
     ["claude-in-codex:using-claude-cli", new Set(["writing:agent-instructions"])],
     ["writing:agent-instructions", new Set()],
   ]);
+  const mutual = new Map<string, ReadonlySet<string>>([
+    ["a", new Set(["b"])],
+    ["b", new Set(["a"])],
+  ]);
+  const cycle = new Map<string, ReadonlySet<string>>([
+    ["a", new Set(["b"])],
+    ["b", new Set(["c"])],
+    ["c", new Set(["a"])],
+  ]);
 
-  it("drops a skill loaded after the skill whose body names it", () => {
-    expect(
-      dropDependencyLoads(
-        ["claude-in-codex:adversarial-review", "claude-in-codex:using-claude-cli"],
-        dependencies,
-      ),
-    ).toStrictEqual(["claude-in-codex:adversarial-review"]);
-  });
-
-  it("drops the named skill regardless of read order", () => {
-    // Recorded 2026-09-24 on gpt-6-sol: "refresh the existing PR" announced git:create-pr, then
-    // read technical-writing (which create-pr names for the description) before create-pr itself.
-    expect(
-      dropDependencyLoads(
-        ["claude-in-codex:using-claude-cli", "claude-in-codex:adversarial-review"],
-        dependencies,
-      ),
-    ).toStrictEqual(["claude-in-codex:adversarial-review"]);
-  });
-
-  it("keeps both skills when their bodies name each other", () => {
-    const mutual = new Map<string, ReadonlySet<string>>([
-      ["a", new Set(["b"])],
-      ["b", new Set(["a"])],
-    ]);
-    expect(dropDependencyLoads(["a", "b"], mutual)).toStrictEqual(["a", "b"]);
-  });
-
-  it("follows the chain through a dropped dependency", () => {
-    expect(
-      dropDependencyLoads(
-        [
-          "claude-in-codex:adversarial-review",
-          "claude-in-codex:using-claude-cli",
-          "writing:agent-instructions",
-        ],
-        dependencies,
-      ),
-    ).toStrictEqual(["claude-in-codex:adversarial-review"]);
-  });
-
-  it("keeps every skill when no body names another", () => {
-    expect(dropDependencyLoads(["a", "b"], new Map())).toStrictEqual(["a", "b"]);
-  });
-
-  it("keeps every skill when a cycle would otherwise drop them all", () => {
-    const cycle = new Map<string, ReadonlySet<string>>([
-      ["a", new Set(["b"])],
-      ["b", new Set(["c"])],
-      ["c", new Set(["a"])],
-    ]);
-    expect(dropDependencyLoads(["a", "b", "c"], cycle)).toStrictEqual(["a", "b", "c"]);
+  it.each<[string, string[], ReadonlyMap<string, ReadonlySet<string>>, string[]]>([
+    [
+      "drops a skill loaded after the skill whose body names it",
+      ["claude-in-codex:adversarial-review", "claude-in-codex:using-claude-cli"],
+      dependencies,
+      ["claude-in-codex:adversarial-review"],
+    ],
+    [
+      // An agent that announced a workflow may read the helper it names first: recorded
+      // 2026-09-24 on gpt-6-sol, where git:create-pr read technical-writing before itself.
+      "drops the named skill regardless of read order",
+      ["claude-in-codex:using-claude-cli", "claude-in-codex:adversarial-review"],
+      dependencies,
+      ["claude-in-codex:adversarial-review"],
+    ],
+    [
+      "follows the chain through a dropped dependency",
+      [
+        "claude-in-codex:adversarial-review",
+        "claude-in-codex:using-claude-cli",
+        "writing:agent-instructions",
+      ],
+      dependencies,
+      ["claude-in-codex:adversarial-review"],
+    ],
+    [
+      // The unrelated c keeps the cycle fallback from restoring a and b on its own.
+      "keeps both skills when their bodies name each other",
+      ["a", "b", "c"],
+      mutual,
+      ["a", "b", "c"],
+    ],
+    ["keeps every skill when no body names another", ["a", "b"], new Map(), ["a", "b"]],
+    [
+      "keeps every skill when a cycle would otherwise drop them all",
+      ["a", "b", "c"],
+      cycle,
+      ["a", "b", "c"],
+    ],
+  ])("%s", (_name, detected, skillDependencies, expected) => {
+    expect(dropDependencyLoads(detected, skillDependencies)).toStrictEqual(expected);
   });
 });
 
@@ -161,17 +162,22 @@ describe("buildCaseResult", () => {
   });
 
   it("passes an invoke case when only the target fired", () => {
+    // No loaded-skills observation, so the isolation check is skipped.
     const result = buildCaseResult(verdictOptions({ observations: invokedObservations(TARGET) }));
 
-    expect(result).toMatchObject({
+    expect(result).toStrictEqual({
       caseId: "case-1",
       expect: "invoke",
       invocationSignal: "stdout-skill-canary",
       invoked: true,
+      invokedSkills: [TARGET],
       passed: true,
+      durationMs: 10,
+      exitCode: 0,
+      finalMessagePath: "/tmp/final.txt",
+      stdoutPath: "/tmp/stdout.jsonl",
+      stderrPath: "/tmp/stderr.log",
     });
-    expect(result.wrongSkill).toBeUndefined();
-    expect(result.skipSignal).toBeUndefined();
   });
 
   it("passes a skip case even when the CLI reported an error", () => {
@@ -336,62 +342,59 @@ describe("buildCaseResult", () => {
     expect(byEnd("abort").skipSignal).toBeUndefined();
   });
 
-  it("reports an environmental failure instead of a skip when sandbox_apply is refused", () => {
+  const noActivity = { hasActivity: false, decisionItemCount: 0 };
+  const apiError = "API Error: 500 Internal server error.";
+
+  it.each<[string, "invoke" | "skip", Partial<CaseObservations>, Partial<CliRunResult>, string]>([
+    [
+      "reports sandbox_apply refusal instead of a skip",
+      "skip",
+      noActivity,
+      { exitCode: 1, stderr: "sandbox-exec: sandbox_apply: Operation not permitted" },
+      // The no-output message would quote the same stderr line, so match past it.
+      "sandbox_apply: Operation not permitted — case subprocesses could not apply their OS sandbox",
+    ],
+    [
+      "reports a run that produced no agent output, quoting its stderr",
+      "skip",
+      noActivity,
+      { exitCode: 1, stderr: "codex: unable to authenticate" },
+      "no agent output, so the case cannot be classified as a skip. stderr: codex: unable to authenticate",
+    ],
+    [
+      // The API-error transcript from #168: the error arrives as an assistant text event plus an
+      // is_error result, so activity and decision counts look like a normal run.
+      "reports a runtime error on a skip case with no invocation",
+      "skip",
+      { errorSignal: apiError },
+      { exitCode: 1, error: "claude -p exited with code 1." },
+      apiError,
+    ],
+    [
+      "marks an invoke case as environmental, not a trigger miss, on a runtime error",
+      "invoke",
+      { errorSignal: apiError },
+      { exitCode: 1, error: "claude -p exited with code 1." },
+      apiError,
+    ],
+    [
+      "quotes the runtime error over the no-output message when a run had no activity",
+      "skip",
+      { ...noActivity, errorSignal: "stream disconnected" },
+      { exitCode: 1, error: "codex exec exited with code 1." },
+      "error: stream disconnected",
+    ],
+  ])("environmental failure: %s", (_name, expectation, caseObservations, runResult, message) => {
     const result = buildCaseResult(
       verdictOptions({
-        testCase: { id: "skip-case", expect: "skip" },
-        observations: observations({ hasActivity: false, decisionItemCount: 0 }),
-        runResult: buildCliRunResult({
-          exitCode: 1,
-          stderr: "sandbox-exec: sandbox_apply: Operation not permitted",
-        }),
+        testCase: { id: "case-1", expect: expectation },
+        observations: observations(caseObservations),
+        runResult: buildCliRunResult(runResult),
       }),
     );
 
     expect(result.passed).toBe(false);
-    expect(result.environmentalFailure).toContain("sandbox_apply: Operation not permitted");
-  });
-
-  it("reports an environmental failure when a run produced no agent output", () => {
-    const result = buildCaseResult(
-      verdictOptions({
-        testCase: { id: "skip-case", expect: "skip" },
-        observations: observations({ hasActivity: false, decisionItemCount: 0 }),
-        runResult: buildCliRunResult({ exitCode: 1, stderr: "codex: unable to authenticate" }),
-      }),
-    );
-
-    expect(result.passed).toBe(false);
-    expect(result.environmentalFailure).toContain("no agent output");
-    expect(result.environmentalFailure).toContain("codex: unable to authenticate");
-  });
-
-  it("reports an environmental failure when the lane observed a runtime error and no invocation", () => {
-    // The API-error transcript from #168: the error arrives as an assistant text event plus an
-    // is_error result, so activity and decision counts look like a normal run.
-    const result = buildCaseResult(
-      verdictOptions({
-        testCase: { id: "skip-case", expect: "skip" },
-        observations: observations({ errorSignal: "API Error: 500 Internal server error." }),
-        runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
-      }),
-    );
-
-    expect(result.passed).toBe(false);
-    expect(result.environmentalFailure).toContain("API Error: 500 Internal server error.");
-    expect(result.error).toBe("claude -p exited with code 1.");
-  });
-
-  it("marks an invoke case as environmental, not a trigger miss, on a runtime error", () => {
-    const result = buildCaseResult(
-      verdictOptions({
-        observations: observations({ errorSignal: "API Error: 500 Internal server error." }),
-        runResult: buildCliRunResult({ exitCode: 1, error: "claude -p exited with code 1." }),
-      }),
-    );
-
-    expect(result.passed).toBe(false);
-    expect(result.environmentalFailure).toContain("API Error: 500 Internal server error.");
+    expect(result.environmentalFailure).toContain(message);
   });
 
   it("keeps an observed invocation over a later runtime error", () => {
@@ -404,23 +407,6 @@ describe("buildCaseResult", () => {
 
     expect(result.passed).toBe(true);
     expect(result.environmentalFailure).toBeUndefined();
-  });
-
-  it("quotes the runtime error over the no-output message when a run had no activity", () => {
-    const result = buildCaseResult(
-      verdictOptions({
-        testCase: { id: "skip-case", expect: "skip" },
-        observations: observations({
-          hasActivity: false,
-          decisionItemCount: 0,
-          errorSignal: "stream disconnected",
-        }),
-        runResult: buildCliRunResult({ exitCode: 1, error: "codex exec exited with code 1." }),
-      }),
-    );
-
-    expect(result.passed).toBe(false);
-    expect(result.environmentalFailure).toContain("stream disconnected");
   });
 
   it.each([
@@ -446,18 +432,21 @@ describe("buildCaseResult", () => {
     },
   );
 
-  it("trusts stop-when and abort endings without agent activity", () => {
-    const result = buildCaseResult(
-      verdictOptions({
-        testCase: { id: "skip-case", expect: "skip" },
-        observations: observations({ hasActivity: false, decisionItemCount: 0 }),
-        runResult: buildCliRunResult({ endedBy: "stop-when" }),
-      }),
-    );
+  it.each(["stop-when", "abort"] as const)(
+    "trusts a run ended by %s without agent activity",
+    (endedBy) => {
+      const result = buildCaseResult(
+        verdictOptions({
+          testCase: { id: "skip-case", expect: "skip" },
+          observations: observations(noActivity),
+          runResult: buildCliRunResult({ endedBy }),
+        }),
+      );
 
-    expect(result.passed).toBe(true);
-    expect(result.environmentalFailure).toBeUndefined();
-  });
+      expect(result.passed).toBe(true);
+      expect(result.environmentalFailure).toBeUndefined();
+    },
+  );
 
   it("accepts staged skills and the exempt set in the loaded-skills observation", () => {
     const result = buildCaseResult(
@@ -489,11 +478,5 @@ describe("buildCaseResult", () => {
     expect(result.passed).toBe(false);
     expect(result.environmentalFailure).toContain("code-review");
     expect(result.environmentalFailure).toContain("disableBundledSkills");
-  });
-
-  it("skips the isolation check when no loaded-skills observation exists", () => {
-    const result = buildCaseResult(verdictOptions({ observations: invokedObservations(TARGET) }));
-
-    expect(result.passed).toBe(true);
   });
 });

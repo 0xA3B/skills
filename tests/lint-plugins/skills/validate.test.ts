@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { validatePluginRepository } from "../../../src/lint-plugins/repository.js";
-import { validateSkills } from "../../../src/lint-plugins/skills/index.js";
+import { validateSkills } from "../../../src/lint-plugins/skills/validate.js";
 import { createTestContext, ruleIds, withTempRepo, writeValidPluginRepo } from "../test-utils.js";
 
 const bothTargets = { claude: true, codex: true };
