@@ -186,6 +186,21 @@ describe("runSelection", () => {
     ]);
   });
 
+  it("says so when no dependent case routes to the selected skill", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: { mode: "skill", skillPath: "plugins/demo/skills/auto-skill" },
+      agents: ["codex"],
+      withDependents: true,
+    });
+
+    expect(ok).toBe(true);
+    expect(report.results).toHaveLength(1);
+    expect(report.info).toStrictEqual(["No dependent cases route to the selected skills."]);
+  });
+
   it("cannot end green when a dependent case fails", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     await writeOtherFixture(repoRoot, routingFixture);
