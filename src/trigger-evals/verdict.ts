@@ -191,9 +191,10 @@ function detectEnvironmentalFailure(
   return undefined;
 }
 
-// Bundled skills Claude Code loads even when disableBundledSkills is honored (observed on
-// 2.1.210). Extend when a new Claude version exempts more skills from the setting.
-const DISABLE_BUNDLED_SKILLS_EXEMPT = new Set(["doctor"]);
+// Bundled skills Claude Code loads even when disableBundledSkills is honored: doctor (observed on
+// 2.1.210) and plugin-authoring (added in 2.1.286). Extend when a new Claude version exempts more
+// skills from the setting. An exempt skill that fires is still reported as a wrong skill.
+const DISABLE_BUNDLED_SKILLS_EXEMPT = new Set(["doctor", "plugin-authoring"]);
 
 // The loaded-skills observation lists every skill the agent reported loading: plugin skills as
 // <plugin>:<skill>, project and bundled skills as bare names. With staging honored, only staged

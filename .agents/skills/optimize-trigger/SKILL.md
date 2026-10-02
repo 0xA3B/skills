@@ -285,8 +285,9 @@ cases where loaded repository instructions should affect the trigger boundary, s
 - Claude workspaces stage project-only `.claude/settings.json` with `disableBundledSkills: true` so
   bundled skills such as `code-review` do not compete with the target. The runner verifies the
   isolation at runtime: each Claude case checks the init event's `skills` list against the staged
-  set (plus the exempt `doctor` skill) and reports an environmental failure when unstaged skills
-  leak in, because a leaked skill can steal or provoke an invocation in either direction.
+  set (plus the exempt `doctor` and `plugin-authoring` skills) and reports an environmental failure
+  when unstaged skills leak in, because a leaked skill can steal or provoke an invocation in either
+  direction.
 - Staging is lane-specific: only the evaluated agent's config surfaces are written into the
   workspace (`.claude/` for Claude, `.agents/` for Codex), so the other agent's files never pollute
   the workspace under test.
