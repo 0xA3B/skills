@@ -59,6 +59,9 @@ export type LaneRun = {
   // Decision items a case may complete without an invocation signal before it is stopped as a
   // skip; see SKIP_DECISION_ITEM_BUDGET for the default and what a lane counts as an item.
   skipDecisionItemBudget: number;
+  // The agent CLI version, when the lane reads it once for the run rather than from each case's
+  // output.
+  agentVersion?: string;
   // Stages one attempt of a case. Everything the lane creates for it is keyed by caseAttemptKey,
   // so attempts of one case never share or release each other's state.
   prepareCase(testCase: TriggerCase, attempt: number): Promise<LaneCase>;
@@ -93,6 +96,10 @@ export type CaseObservations = {
   // Skills the agent reported loading at session start (Claude's init event); undefined when the
   // lane has no such signal.
   loadedSkills?: string[];
+  // The model the requested model resolved to, and the agent CLI version, as the agent reported
+  // them at session start (Claude's init event); undefined when the lane has no such signal.
+  resolvedModel?: string;
+  agentVersion?: string;
   // The agent runtime's own report that the turn failed (an API error, a dropped stream), quoted
   // from the lane's terminal error event. Such a run never reached a settled trigger decision.
   errorSignal?: string;

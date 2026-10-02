@@ -433,6 +433,22 @@ describe("observeClaudeOutput", () => {
     expect(observations.decisionItemCount).toBe(0);
   });
 
+  it("reads the resolved model and Claude Code version from the init event", () => {
+    // Recorded 2026-10-02: the opus alias as Claude Code 2.1.286 reports it.
+    const stdout = JSON.stringify({
+      type: "system",
+      subtype: "init",
+      model: "claude-opus-5-5",
+      claude_code_version: "2.1.286",
+      skills: [],
+    });
+
+    const observations = observeClaudeOutput(stdout);
+
+    expect(observations.resolvedModel).toBe("claude-opus-5-5");
+    expect(observations.agentVersion).toBe("Claude Code 2.1.286");
+  });
+
   it("reports no loaded skills or activity for an empty run", () => {
     const observations = observeClaudeOutput("");
 

@@ -22,6 +22,7 @@ import {
   type CliRunResult,
   finishCliRun,
   prepareCaseArtifacts,
+  readCliVersion,
   spawnStreamingCli,
   type StreamingCliOutput,
 } from "./exec.js";
@@ -55,6 +56,9 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
   return {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
       const { runDir, target, model, effort, runtime } = runOptions;
+      // Codex's event stream names neither its version nor the model, so the version is read once
+      // here, before anything is staged; the requested model stands as the model.
+      const agentVersion = await readCliVersion("codex");
       // A repo-local target's siblings get canaries too, so a sibling stealing the invocation is
       // attributable.
       const deployment = await stageDeployment({
@@ -86,6 +90,7 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
         stagedSkillLabels: deployment.stagedSkillLabels,
         skillDependencies: deployment.skillDependencies,
         skipDecisionItemBudget: CODEX_SKIP_DECISION_ITEM_BUDGET,
+        agentVersion,
         prepareCase: (testCase, attempt) =>
           prepareCodexCase({
             testCase,

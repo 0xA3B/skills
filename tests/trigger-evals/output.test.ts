@@ -206,6 +206,8 @@ describe("printTriggerEvalResult", () => {
         fixturePath: "/tmp/repo/plugins/demo/skills/auto-skill/evals/triggers.yaml",
       },
       agent: "codex",
+      model: "gpt-6-sol",
+      effort: "medium",
       durationMs: 10,
       results: [],
       ...overrides,
@@ -228,6 +230,7 @@ describe("printTriggerEvalResult", () => {
 
     printTriggerEvalResult(
       evalResult({
+        agentVersion: "codex-cli 0.159.3",
         results: [
           caseResult({ caseId: "skip-case", skipSignal: "completed" }),
           caseResult({
@@ -249,6 +252,7 @@ describe("printTriggerEvalResult", () => {
 
     expect(log.mock.calls.flat()).toStrictEqual([
       "Trigger eval completed for demo:auto-skill on codex: 1/3 passed in 10ms.",
+      "Agent: codex-cli 0.159.3, model gpt-6-sol, effort medium.",
       "- PASS skip-case: 1/1 passed, expected skip",
       "  attempt 1 PASS: observed skip (1.5s)",
       "- FAIL invoke-case: 0/1 passed, expected invoke",
@@ -262,6 +266,30 @@ describe("printTriggerEvalResult", () => {
     expect(warn.mock.calls.flat()).toStrictEqual([
       "WARNING: runtime cleanup left /tmp/run/codex-home: EACCES: permission denied",
     ]);
+  });
+
+  it.each<[string, Partial<TriggerEvalResult>, string]>([
+    [
+      "names the model an alias resolved to",
+      {
+        agent: "claude",
+        model: "opus",
+        agentVersion: "Claude Code 2.1.286",
+        resolvedModel: "claude-opus-5-5",
+      },
+      "Agent: Claude Code 2.1.286, model opus resolved to claude-opus-5-5, effort medium.",
+    ],
+    [
+      "names the agent when no case reported its version",
+      { agent: "claude", model: "opus" },
+      "Agent: claude, model opus, effort medium.",
+    ],
+  ])("%s", (_name, overrides, expected) => {
+    const { log } = captureConsole();
+
+    printTriggerEvalResult(evalResult(overrides));
+
+    expect(log.mock.calls.flat()[1]).toBe(expected);
   });
 
   it("warns with the skip reason instead of a summary when the run was skipped", () => {

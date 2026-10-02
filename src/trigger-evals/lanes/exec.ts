@@ -1,6 +1,15 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
+
+// The agent CLI's own version line, such as "codex-cli 0.159.3".
+export async function readCliVersion(command: string): Promise<string> {
+  const { stdout } = await execFileAsync(command, ["--version"], { timeout: 10_000 });
+  return stdout.trim();
+}
 
 export type StreamingCliOutput = {
   stdout: string;

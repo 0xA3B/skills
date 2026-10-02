@@ -1,4 +1,5 @@
 import type { Agent } from "../../skills/index.js";
+import { formatCheckout } from "../checkout.js";
 import { type RunTriggerEvalOptions, runTriggerEval, type TriggerEvalResult } from "../runner.js";
 import {
   type DependentFixture,
@@ -44,6 +45,9 @@ export async function runSelection(options: SelectionRunOptions): Promise<boolea
   const { repoRoot, selection, reporter, abortSignal } = options;
   const aborted = () => abortSignal?.aborted === true;
   let ok = true;
+  if (options.evalOptions.checkout !== undefined) {
+    reporter.info(formatCheckout(options.evalOptions.checkout));
+  }
   const { dependents, unreadableFixtures } =
     options.withDependents === true
       ? await findDependentFixtures(repoRoot, await listSelectedSkillPaths(repoRoot, selection))

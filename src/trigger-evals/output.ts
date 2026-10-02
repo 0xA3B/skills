@@ -16,6 +16,13 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   console.log(
     `Trigger eval completed for ${formatSkillLabel(result.target)} on ${result.agent}: ${passedCases.length}/${cases.length} passed in ${formatDuration(result.durationMs)}.`,
   );
+  const model =
+    result.resolvedModel === undefined
+      ? result.model
+      : `${result.model} resolved to ${result.resolvedModel}`;
+  console.log(
+    `Agent: ${result.agentVersion ?? result.agent}, model ${model}, effort ${result.effort}.`,
+  );
 
   for (const attempts of cases) {
     for (const line of formatCaseLines(attempts)) {

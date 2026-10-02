@@ -37,6 +37,9 @@ vi.mock(import("../../../src/trigger-evals/lanes/exec.js"), async (importOrigina
   const actual = await importOriginal();
   return {
     ...actual,
+    readCliVersion: vi.fn<(command: string) => Promise<string>>(async (command) =>
+      command === "codex" ? "codex-cli 0.159.3" : `unexpected ${command}`,
+    ),
     spawnStreamingCli: vi.fn<
       (command: string, args: string[], options: StreamingCliOptions) => Promise<StreamingCliResult>
     >(async (command, args, options) => {
@@ -198,6 +201,22 @@ describe("createCodexLane", () => {
     await expect(readFile(path.join(codexHome, "auth.json"), "utf8")).resolves.toBe("{}");
     await laneCase.cleanup();
     await expect(readFile(path.join(codexHome, "auth.json"), "utf8")).rejects.toThrow(/ENOENT/);
+  });
+
+  it("reports the Codex CLI version for the run", async () => {
+    const repoRoot = await writeRepoFixture();
+    const lane = createCodexLane({ sourceCodexHome: await makeSourceCodexHome() });
+    const runOptions = await makeLaneRunOptions(
+      "codex",
+      repoRoot,
+      "plugins/demo/skills/auto-skill",
+    );
+
+    const laneRun = await lane.prepareRun(runOptions);
+
+    expect(laneRun.agentVersion).toBe("codex-cli 0.159.3");
+    await laneRun.cleanup();
+    await runOptions.runtime.release();
   });
 
   it("isolates each concurrent case in its own CODEX_HOME", async () => {

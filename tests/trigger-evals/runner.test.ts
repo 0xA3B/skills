@@ -38,6 +38,8 @@ type FakeLaneOptions = {
   // been released, so a test can observe what a sibling's release did to a case still running.
   holdUntilReleased?: (testCase: TriggerCase) => string | undefined;
   skillDependencies?: ReadonlyMap<string, ReadonlySet<string>>;
+  // The agent CLI version the lane reports for the whole run, as the Codex lane does.
+  agentVersion?: string;
 };
 
 type FakeLaneState = {
@@ -123,6 +125,7 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
         stagedSkillLabels: new Set(["demo:auto-skill"]),
         skillDependencies: options.skillDependencies ?? new Map(),
         skipDecisionItemBudget: FAKE_SKIP_DECISION_ITEM_BUDGET,
+        ...(options.agentVersion === undefined ? {} : { agentVersion: options.agentVersion }),
         async prepareCase(testCase, attempt) {
           state.preparedCaseIds.push(testCase.id);
           const key = caseAttemptKey(testCase.id, attempt);
@@ -346,6 +349,56 @@ describe("runTriggerEval", () => {
       runTriggerEval({ repoRoot, skillPath: "plugins/demo/skills/auto-skill", repeat, lane }),
     ).rejects.toThrow("repeat must be a positive integer.");
     expect(state.preparedCaseIds).toStrictEqual([]);
+  });
+
+  it("records the checkout, requested model, agent version, and resolved model in the report", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    // Claude reports its version and resolved model in each case's own event stream.
+    const { lane } = createFakeLane({
+      observationsFor: () => ({
+        signal: "none",
+        invokedSkills: [],
+        hasActivity: true,
+        decisionItemCount: 1,
+        agentVersion: "Claude Code 2.1.286",
+        resolvedModel: "claude-opus-5-5",
+      }),
+    });
+    const checkout = { root: repoRoot, branch: "main", head: "abc1234", uncommittedFiles: 2 };
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+      caseIds: ["skip-case"],
+      checkout,
+      lane,
+    });
+
+    const report = JSON.parse(await readFile(result.reportPath, "utf8")) as Record<string, unknown>;
+    expect(report).toMatchObject({
+      checkout,
+      model: "opus",
+      effort: "medium",
+      agentVersion: "Claude Code 2.1.286",
+      resolvedModel: "claude-opus-5-5",
+      results: [{ caseId: "skip-case", resolvedModel: "claude-opus-5-5" }],
+    });
+  });
+
+  it("records the agent version a lane reports for the whole run", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const { lane } = createFakeLane({ agentVersion: "codex-cli 0.159.3" });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseIds: ["skip-case"],
+      lane,
+    });
+
+    expect(result).toMatchObject({ model: "gpt-6-sol", agentVersion: "codex-cli 0.159.3" });
+    expect(result.resolvedModel).toBeUndefined();
   });
 
   it("resolves per-agent default models before handing the run to the lane", async () => {

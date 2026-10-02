@@ -10,6 +10,7 @@ import {
   type Agent,
   type Skill,
 } from "../skills/index.js";
+import type { Checkout } from "./checkout.js";
 import { caseAttemptKey, loadTriggerFixture } from "./fixtures/index.js";
 import {
   type AgentLane,
@@ -27,6 +28,15 @@ export type TriggerEvalResult = {
   reportPath: string;
   target: Skill;
   agent: Agent;
+  // The checkout that supplied the staged skills, when the caller read it.
+  checkout?: Checkout;
+  // The requested model and effort.
+  model: string;
+  effort: string;
+  // The agent CLI version and the model the requested one resolved to, as the lane reported them:
+  // for the whole run, or from the first attempt that reported them.
+  agentVersion?: string;
+  resolvedModel?: string;
   durationMs: number;
   results: TriggerCaseResult[];
   skippedReason?: string;
@@ -51,6 +61,8 @@ export type RunTriggerEvalOptions = {
   keepRuntime?: boolean;
   sourceCodexHome?: string;
   claudeConfigDir?: string;
+  // Copied into the report so it names the code the run measured.
+  checkout?: Checkout;
   abortSignal?: AbortSignal;
   // Lane override for the agent seam; defaults to the agent's real lane. Primarily an
   // orchestration test seam.
@@ -69,6 +81,13 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   const target = resolveSkill(repoRoot, options.skillPath);
   const model = options.model ?? DEFAULT_EVAL_MODELS[agent];
   const effort = options.effort ?? DEFAULT_EVAL_EFFORT;
+  const runIdentity = {
+    target,
+    agent,
+    ...(options.checkout === undefined ? {} : { checkout: options.checkout }),
+    model,
+    effort,
+  };
   const allowImplicitInvocation = await readAllowImplicitInvocation(target, agent);
 
   if (!allowImplicitInvocation && options.force !== true) {
@@ -82,8 +101,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     const result = {
       runDir,
       reportPath,
-      target,
-      agent,
+      ...runIdentity,
       durationMs: Date.now() - runStartedAt,
       results: [],
       skippedReason,
@@ -126,6 +144,8 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     Array.from({ length: repeat }, (_, index) => ({ testCase, attempt: index + 1 })),
   );
   const results: Array<TriggerCaseResult | undefined> = new Array(attempts.length);
+  // The agent version each attempt reported, by attempt index, for lanes that report it per case.
+  const reportedAgentVersions: Array<string | undefined> = new Array(attempts.length);
   // Run preparation tracks the staged workspace before its fallible staging steps, so it sits
   // inside the same try whose finally releases the runtime.
   let laneRun: LaneRun | undefined;
@@ -162,13 +182,15 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
               shouldStopEarly(laneCase.observe(output), preparedRun.skipDecisionItemBudget),
             ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
           });
+          const observations = laneCase.observe(runResult);
+          reportedAgentVersions[index] = observations.agentVersion;
           results[index] = buildCaseResult({
             testCase,
             attempt,
             targetLabel,
             stagedSkillLabels: preparedRun.stagedSkillLabels,
             skillDependencies: preparedRun.skillDependencies,
-            observations: laneCase.observe(runResult),
+            observations,
             runResult,
             durationMs: Date.now() - caseStartedAt,
           });
@@ -198,13 +220,17 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   }
 
   const reportPath = path.join(runDir, "report.json");
+  const caseResults = results.filter(isDefined);
+  const agentVersion = laneRun?.agentVersion ?? reportedAgentVersions.find(isDefined);
+  const resolvedModel = caseResults.map((caseResult) => caseResult.resolvedModel).find(isDefined);
   const result = {
     runDir,
     reportPath,
-    target,
-    agent,
+    ...runIdentity,
+    ...(agentVersion === undefined ? {} : { agentVersion }),
+    ...(resolvedModel === undefined ? {} : { resolvedModel }),
     durationMs: Date.now() - runStartedAt,
-    results: results.filter(isDefined),
+    results: caseResults,
     ...(cleanupFailures.length === 0 ? {} : { cleanupFailures }),
   };
   await writeFile(reportPath, JSON.stringify(result, null, 2));

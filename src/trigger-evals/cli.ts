@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { readCheckout } from "./checkout.js";
 import { HelpRequested, parseTriggerEvalCliOptions, usage } from "./cli-options.js";
 import { printTriggerEvalResult } from "./output.js";
 import { runSelection } from "./selection/index.js";
@@ -29,12 +30,13 @@ async function main(): Promise<void> {
   if (options !== undefined) {
     const { agents, selection, withDependents, ...evalOptions } = options;
     try {
+      const repoRoot = process.cwd();
       const ok = await runSelection({
-        repoRoot: process.cwd(),
+        repoRoot,
         selection,
         agents,
         withDependents: withDependents === true,
-        evalOptions,
+        evalOptions: { ...evalOptions, checkout: await readCheckout(repoRoot) },
         abortSignal: abortController.signal,
         reporter: {
           info: (message) => console.log(message),

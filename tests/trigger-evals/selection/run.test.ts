@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { formatSkillLabel } from "../../../src/skills/index.js";
+import type { Checkout } from "../../../src/trigger-evals/checkout.js";
 import type { TriggerCase } from "../../../src/trigger-evals/fixtures/index.js";
 import type { AgentLane, CaseObservations } from "../../../src/trigger-evals/lanes/index.js";
 import type { TriggerEvalResult } from "../../../src/trigger-evals/runner.js";
@@ -62,12 +63,19 @@ type Report = { info: string[]; errors: string[]; results: TriggerEvalResult[] }
 
 async function run(
   options: Omit<SelectionRunOptions, "evalOptions" | "reporter">,
-  script: { failingCaseIds?: ReadonlySet<string>; onInfo?: (message: string) => void } = {},
+  script: {
+    failingCaseIds?: ReadonlySet<string>;
+    onInfo?: (message: string) => void;
+    checkout?: Checkout;
+  } = {},
 ): Promise<{ ok: boolean; report: Report }> {
   const report: Report = { info: [], errors: [], results: [] };
   const ok = await runSelection({
     ...options,
-    evalOptions: { lane: createScriptedLane(script.failingCaseIds) },
+    evalOptions: {
+      lane: createScriptedLane(script.failingCaseIds),
+      ...(script.checkout === undefined ? {} : { checkout: script.checkout }),
+    },
     reporter: {
       info: (message) => {
         report.info.push(message);
@@ -119,6 +127,32 @@ describe("runSelection", () => {
     ]);
     expect(report.errors).toStrictEqual([]);
   });
+
+  it.each<[string, Checkout, string]>([
+    [
+      "a branch",
+      { root: "/repo", branch: "main", head: "abc1234", uncommittedFiles: 2 },
+      "Checkout: /repo on main at abc1234, 2 uncommitted files.",
+    ],
+    [
+      "a detached HEAD",
+      { root: "/repo", head: "abc1234", uncommittedFiles: 1 },
+      "Checkout: /repo at abc1234 (detached HEAD), 1 uncommitted file.",
+    ],
+  ])(
+    "names the checkout on %s first and records it on each result",
+    async (_name, checkout, expected) => {
+      const repoRoot = await writeRepoFixture({ marketplace: true });
+
+      const { report } = await run(
+        { repoRoot, selection: { mode: "plugin", pluginPath: "plugins/demo" }, agents: ["codex"] },
+        { checkout },
+      );
+
+      expect(report.info[0]).toBe(expected);
+      expect(report.results[0]?.checkout).toStrictEqual(checkout);
+    },
+  );
 
   it("cannot end green when a case fails", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });

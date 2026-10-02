@@ -204,7 +204,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
    smaller-model proxy. Use `--model` and `--effort` to spot-check other models or match a different
    working setup.
 
-6. Read the report and failed case outputs under `.local/skill-evals/trigger/`.
+6. Read the report and failed case outputs under `.local/skill-evals/trigger/`. Before treating a
+   FAIL as a regression, confirm that the `Checkout:` line names the checkout and branch under test
+   and that each skill's `Agent:` line names the expected agent version and model; `report.json`
+   records the same fields.
 7. For false negatives, make the description more explicit about the missing user intent.
 8. For false positives, narrow the description with clearer ownership boundaries or exclusions. When
    only Claude Code needs different tuning, prefer adding or adjusting the Claude-only `when_to_use`
