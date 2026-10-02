@@ -6,5 +6,6 @@ export default defineConfig({
     // Workspace seeds carry their own node --test suites; they are staged into trigger-eval
     // workspaces, never run here.
     exclude: ["**/node_modules/**", "**/.git/**", "**/.local/**", "**/evals/seeds/**"],
+    setupFiles: ["tests/temp-root.ts"],
   },
 });

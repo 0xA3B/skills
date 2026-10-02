@@ -2,7 +2,7 @@ import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it, onTestFinished } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { resolveSkill, type Skill } from "../../../src/skills/index.js";
 import {
@@ -23,18 +23,9 @@ function deploymentOptions(
     repoLocalSkills: [],
     repoLocalSurface: ".agents",
     canaryRepoLocalSkills: true,
-    runtime: releasedAfterTest(),
+    runtime: createRuntimeResources(),
     ...overrides,
   };
-}
-
-// A runtime whose staged directories are removed when the test ends.
-function releasedAfterTest(): ReturnType<typeof createRuntimeResources> {
-  const runtime = createRuntimeResources();
-  onTestFinished(async () => {
-    await runtime.release();
-  });
-  return runtime;
 }
 
 function stagedPluginSkill(deploymentPath: string, pluginName: string, skillName: string): string {

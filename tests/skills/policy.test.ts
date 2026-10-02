@@ -1,8 +1,8 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it, onTestFinished } from "vitest";
+import { describe, expect, it } from "vitest";
 import { YAMLParseError } from "yaml";
 
 import { readAllowImplicitInvocation, resolveSkill, type Skill } from "../../src/skills/index.js";
@@ -13,7 +13,6 @@ describe("readAllowImplicitInvocation", () => {
     openAiYaml?: string;
   }): Promise<Skill> {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "skills-policy-"));
-    onTestFinished(() => rm(repoRoot, { force: true, recursive: true }));
     const skillPath = path.join(repoRoot, "plugins", "demo", "skills", "auto-skill");
     await mkdir(skillPath, { recursive: true });
     await writeFile(

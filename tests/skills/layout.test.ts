@@ -1,8 +1,8 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it, onTestFinished } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   listPluginSkills,
@@ -14,9 +14,7 @@ import {
 } from "../../src/skills/index.js";
 
 async function tempRepo(): Promise<string> {
-  const repoRoot = await mkdtemp(path.join(os.tmpdir(), "skills-layout-"));
-  onTestFinished(() => rm(repoRoot, { force: true, recursive: true }));
-  return repoRoot;
+  return mkdtemp(path.join(os.tmpdir(), "skills-layout-"));
 }
 
 async function writeSkill(skillPath: string): Promise<void> {
