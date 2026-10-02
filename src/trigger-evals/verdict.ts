@@ -29,8 +29,10 @@ export type TriggerCaseResult = {
   // later). Absent on invoked cases and on runs that ended by abort or spawn failure.
   skipSignal?: "completed" | "item-budget" | "timeout";
   environmentalFailure?: string;
-  // The model the agent reported answering with, when its lane reports one (Claude).
+  // The model the agent reported answering with and the agent CLI version, when the lane reads
+  // them from each case's output (Claude).
   resolvedModel?: string;
+  agentVersion?: string;
   durationMs: number;
   exitCode: number | null;
   finalMessagePath: string;
@@ -149,6 +151,7 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
     ...(observations.resolvedModel === undefined
       ? {}
       : { resolvedModel: observations.resolvedModel }),
+    ...(observations.agentVersion === undefined ? {} : { agentVersion: observations.agentVersion }),
     durationMs: options.durationMs,
     exitCode: runResult.exitCode,
     finalMessagePath: runResult.finalMessagePath,

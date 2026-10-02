@@ -382,7 +382,13 @@ describe("runTriggerEval", () => {
       effort: "medium",
       agentVersion: "Claude Code 2.1.286",
       resolvedModel: "claude-opus-5-5",
-      results: [{ caseId: "skip-case", resolvedModel: "claude-opus-5-5" }],
+      results: [
+        {
+          caseId: "skip-case",
+          resolvedModel: "claude-opus-5-5",
+          agentVersion: "Claude Code 2.1.286",
+        },
+      ],
     });
   });
 

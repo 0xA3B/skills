@@ -60,7 +60,6 @@ async function makeSourceCodexHome(): Promise<string> {
   return sourceCodexHome;
 }
 
-// The CODEX_HOME the lane builds for one case.
 // The Codex home of a case's first attempt.
 function caseCodexHome(runDir: string, caseId: string): string {
   return path.join(runDir, "codex-home", "cases", caseId, "attempt-1");
@@ -457,16 +456,19 @@ describe("createCodexLane", () => {
     );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const seededCase = await laneRun.prepareCase(
-      triggerCase("seeded-case", "invoke", {
-        workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
-      }),
-      1,
-    );
+    const seeded = triggerCase("seeded-case", "invoke", {
+      workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
+    });
+    const seededCase = await laneRun.prepareCase(seeded, 1);
+    const secondAttempt = await laneRun.prepareCase(seeded, 2);
 
-    // A seeded case gets its own copy instead of the base workspace plain cases share.
+    // A seeded case gets its own copy per attempt instead of the base workspace plain cases share.
     const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"), 1);
     expect(seededCase.workspacePath).not.toBe(plainCase.workspacePath);
+    expect(seededCase.workspacePath).toContain(path.join("seeded-case", "attempt-1", "workspace"));
+    expect(secondAttempt.workspacePath).toContain(
+      path.join("seeded-case", "attempt-2", "workspace"),
+    );
     // The seeded cwd is trusted in the case config, and plugins stay outside it.
     const config = await readFile(
       path.join(caseCodexHome(runOptions.runDir, "seeded-case"), "config.toml"),

@@ -251,17 +251,21 @@ describe("createClaudeLane", () => {
     );
     const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"), 1);
     const secondPlainCase = await laneRun.prepareCase(triggerCase("other-plain-case", "skip"), 1);
-    const workspaceFilesCase = await laneRun.prepareCase(
-      triggerCase("agents-case", "skip", { workspaceFiles: { "AGENTS.md": "Use Gitmoji.\n" } }),
-      1,
-    );
+    const agentsCase = triggerCase("agents-case", "skip", {
+      workspaceFiles: { "AGENTS.md": "Use Gitmoji.\n" },
+    });
+    const workspaceFilesCase = await laneRun.prepareCase(agentsCase, 1);
+    const secondAttempt = await laneRun.prepareCase(agentsCase, 2);
 
     // Plain plugin cases share the base workspace; a case that mutates workspace files gets an
-    // isolated copy so concurrent cases cannot clobber each other.
+    // isolated copy per attempt so concurrent attempts cannot clobber each other.
     expect(plainCase.workspacePath).toBe(secondPlainCase.workspacePath);
     expect(plainCase.workspacePath).not.toContain(`cases${path.sep}`);
     expect(workspaceFilesCase.workspacePath).toContain(
       path.join("cases", "agents-case", "attempt-1", "workspace"),
+    );
+    expect(secondAttempt.workspacePath).toContain(
+      path.join("cases", "agents-case", "attempt-2", "workspace"),
     );
     await expect(
       readFile(path.join(workspaceFilesCase.workspacePath, "AGENTS.md"), "utf8"),

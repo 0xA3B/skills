@@ -22,7 +22,9 @@ export async function readCheckout(root: string): Promise<Checkout> {
     const [branch, head, status] = await Promise.all([
       git(root, "branch", "--show-current"),
       git(root, "rev-parse", "--short", "HEAD"),
-      git(root, "status", "--porcelain", "--untracked-files=all"),
+      // A read-only probe: without --no-optional-locks, status may take index.lock to refresh the
+      // index and fail a git command running concurrently in the same checkout.
+      git(root, "--no-optional-locks", "status", "--porcelain", "--untracked-files=all"),
     ]);
     const uncommittedFiles = status.split("\n").filter((line) => line.length > 0).length;
     return { root, ...(branch === "" ? {} : { branch }), head, uncommittedFiles };
@@ -43,7 +45,12 @@ export function formatCheckout(checkout: Checkout): string {
   return `Checkout: ${checkout.root} ${ref}, ${files}.`;
 }
 
+// A git hook exports GIT_DIR and friends to the commands it runs; an inherited one would read that
+// repository instead of the checkout at cwd, so every GIT_ variable is dropped.
 async function git(cwd: string, ...args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, { cwd });
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_")),
+  );
+  const { stdout } = await execFileAsync("git", args, { cwd, env });
   return stdout.trimEnd();
 }

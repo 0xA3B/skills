@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { readCheckout } from "../../src/trigger-evals/checkout.js";
 import { seedGitEnvironment } from "../../src/trigger-evals/fixtures/seeds.js";
@@ -29,17 +29,30 @@ async function writeRepository(): Promise<string> {
 describe("readCheckout", () => {
   it("names the root, branch, short HEAD, and uncommitted files of the checkout", async () => {
     const root = await writeRepository();
-    // One modified tracked file and one untracked file inside a new directory.
+    // One modified tracked file and two untracked files inside a new directory, each counted.
     await writeFile(path.join(root, "tracked.md"), "two\n");
     await mkdir(path.join(root, "notes"));
     await writeFile(path.join(root, "notes", "draft.md"), "draft\n");
+    await writeFile(path.join(root, "notes", "todo.md"), "todo\n");
 
     expect(await readCheckout(root)).toStrictEqual({
       root,
       branch: "feature/x",
       head: await git(root, "rev-parse", "--short", "HEAD"),
-      uncommittedFiles: 2,
+      uncommittedFiles: 3,
     });
+  });
+
+  it("reads the checkout at root even under a hook's inherited GIT_DIR", async () => {
+    const root = await writeRepository();
+    const other = await writeRepository();
+    await git(other, "checkout", "--quiet", "-b", "other-branch");
+    vi.stubEnv("GIT_DIR", path.join(other, ".git"));
+    try {
+      expect((await readCheckout(root)).branch).toBe("feature/x");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("leaves the branch out on a detached HEAD", async () => {

@@ -34,7 +34,8 @@ export type TriggerEvalResult = {
   model: string;
   effort: string;
   // The agent CLI version and the model the requested one resolved to, as the lane reported them:
-  // for the whole run, or from the first attempt that reported them.
+  // for the whole run, or from the first attempt that reported them. Each attempt's own values
+  // stay on its result.
   agentVersion?: string;
   resolvedModel?: string;
   durationMs: number;
@@ -61,7 +62,9 @@ export type RunTriggerEvalOptions = {
   keepRuntime?: boolean;
   sourceCodexHome?: string;
   claudeConfigDir?: string;
-  // Copied into the report so it names the code the run measured.
+  // Copied into the report so it names the code the run measured. The CLI reads it once, before
+  // any case of the invocation runs, and prints it once; a tree edited during a long selection
+  // is not re-read for later skills.
   checkout?: Checkout;
   abortSignal?: AbortSignal;
   // Lane override for the agent seam; defaults to the agent's real lane. Primarily an
@@ -144,8 +147,6 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
     Array.from({ length: repeat }, (_, index) => ({ testCase, attempt: index + 1 })),
   );
   const results: Array<TriggerCaseResult | undefined> = new Array(attempts.length);
-  // The agent version each attempt reported, by attempt index, for lanes that report it per case.
-  const reportedAgentVersions: Array<string | undefined> = new Array(attempts.length);
   // Run preparation tracks the staged workspace before its fallible staging steps, so it sits
   // inside the same try whose finally releases the runtime.
   let laneRun: LaneRun | undefined;
@@ -182,15 +183,13 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
               shouldStopEarly(laneCase.observe(output), preparedRun.skipDecisionItemBudget),
             ...(options.abortSignal === undefined ? {} : { abortSignal: options.abortSignal }),
           });
-          const observations = laneCase.observe(runResult);
-          reportedAgentVersions[index] = observations.agentVersion;
           results[index] = buildCaseResult({
             testCase,
             attempt,
             targetLabel,
             stagedSkillLabels: preparedRun.stagedSkillLabels,
             skillDependencies: preparedRun.skillDependencies,
-            observations,
+            observations: laneCase.observe(runResult),
             runResult,
             durationMs: Date.now() - caseStartedAt,
           });
@@ -221,7 +220,9 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
 
   const reportPath = path.join(runDir, "report.json");
   const caseResults = results.filter(isDefined);
-  const agentVersion = laneRun?.agentVersion ?? reportedAgentVersions.find(isDefined);
+  const agentVersion =
+    laneRun?.agentVersion ??
+    caseResults.map((caseResult) => caseResult.agentVersion).find(isDefined);
   const resolvedModel = caseResults.map((caseResult) => caseResult.resolvedModel).find(isDefined);
   const result = {
     runDir,

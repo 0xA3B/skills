@@ -268,6 +268,34 @@ describe("printTriggerEvalResult", () => {
     ]);
   });
 
+  it("counts a case as passed only when every attempt passed", () => {
+    const { log } = captureConsole();
+
+    printTriggerEvalResult(
+      evalResult({
+        agentVersion: "codex-cli 0.159.3",
+        results: [
+          caseResult({ caseId: "flaky-case", attempt: 1 }),
+          caseResult({ caseId: "flaky-case", attempt: 2, passed: false }),
+          caseResult({ caseId: "steady-case", attempt: 1 }),
+          caseResult({ caseId: "steady-case", attempt: 2 }),
+        ],
+      }),
+    );
+
+    expect(log.mock.calls.flat()).toStrictEqual([
+      "Trigger eval completed for demo:auto-skill on codex: 1/2 passed in 10ms.",
+      "Agent: codex-cli 0.159.3, model gpt-6-sol, effort medium.",
+      "- FAIL flaky-case: 1/2 passed, expected skip",
+      "  attempt 1 PASS: observed skip (1.5s)",
+      "  attempt 2 FAIL: observed skip (1.5s)",
+      "- PASS steady-case: 2/2 passed, expected skip",
+      "  attempt 1 PASS: observed skip (1.5s)",
+      "  attempt 2 PASS: observed skip (1.5s)",
+      "Report written to run/report.json.",
+    ]);
+  });
+
   it.each<[string, Partial<TriggerEvalResult>, string]>([
     [
       "names the model an alias resolved to",

@@ -147,8 +147,9 @@ cases where loaded repository instructions should affect the trigger boundary, s
    - near-miss cases that exercise the description boundary
 4. Separate diagnostic runs from gate runs. A diagnostic run is a run narrowed to one case with
    `--case <id>` and without `--with-dependents`, allowed while wording changes; every other run,
-   including the target's full fixture, is a gate run. Start a gate run only when each condition
-   that applies holds:
+   including the target's full fixture, is a gate run. Run gate runs without `--repeat`: repeated
+   attempts multiply eval time, so repetition belongs to diagnostic runs. Start a gate run only when
+   each condition that applies holds:
    - If any skill's `description` or `when_to_use` differs from `main`, or from the version this
      tuning pass started with, in more than mechanical or incidental wording, the prose lane of
      `engineering:review-changes` has reviewed the exact wording the gate run evaluates, and its
@@ -204,10 +205,12 @@ cases where loaded repository instructions should affect the trigger boundary, s
    smaller-model proxy. Use `--model` and `--effort` to spot-check other models or match a different
    working setup.
 
-6. Read the report and failed case outputs under `.local/skill-evals/trigger/`. Before treating a
-   FAIL as a regression, confirm that the `Checkout:` line names the checkout and branch under test
-   and that each skill's `Agent:` line names the expected agent version and model; `report.json`
-   records the same fields.
+6. Read the report and failed case outputs under `.local/skill-evals/trigger/`. Before you edit a
+   description for a FAIL, confirm that the `Checkout:` line names the checkout and branch under
+   test, and that each `Agent:` line names the model you selected (the step 5 default or `--model`)
+   and the same agent version as any run you compare against. If a line does not match, rerun from
+   the correct checkout or agent before you interpret the results. `report.json` records the same
+   fields.
 7. For false negatives, make the description more explicit about the missing user intent.
 8. For false positives, narrow the description with clearer ownership boundaries or exclusions. When
    only Claude Code needs different tuning, prefer adding or adjusting the Claude-only `when_to_use`
@@ -217,13 +220,15 @@ cases where loaded repository instructions should affect the trigger boundary, s
 9. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
    direction — fix the repo-local description. Marketplace descriptions serve every installation;
    edit one only when the overlap would also misfire in a session without the repo-local skills.
-10. After edits, rerun each failed case as a diagnostic run with `--case <id> --repeat 5`. Count the
-    case fixed only at `5/5 passed`; a lower tally means the case is flaky, and a flaky case stays a
-    failure. Fix the case or the description; skipping a flaky case is a user decision. Gate runs
-    keep the default single attempt. When step 4's gate conditions hold, rerun with
-    `--with-dependents` the fixtures of every skill whose `description` or `when_to_use` changed and
-    every skill named in `wrong-skill` results. For plugin skills, one marketplace selection covers
-    several:
+10. After edits, rerun as a diagnostic run with `--case <id> --repeat 5` each case that failed in
+    any run of this tuning pass, even when it passed since, and each case the user or an open issue
+    names as flaky. Count the case fixed only at `5/5 passed`; any lower tally keeps the case a
+    failure, including a flaky one. If an attempt prints ERROR, fix the environment and rerun before
+    you judge the case. Otherwise fix the case or the description; deleting a flaky case, changing
+    its expectation, or leaving it out of the gate run is a user decision. When step 4's gate
+    conditions hold, rerun with `--with-dependents` the fixtures of every skill whose `description`
+    or `when_to_use` changed and every skill named in `wrong-skill` results. For plugin skills, one
+    marketplace selection covers several:
     `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both --with-dependents`.
     The marketplace selection refuses a repo-local path, so rerun a repo-local target one at a time:
     `mise exec -- pnpm eval:trigger -- <skill-path> --agent both --with-dependents`. The flag runs
@@ -246,13 +251,13 @@ cases where loaded repository instructions should affect the trigger boundary, s
   checkout's live skills never leak into the trigger signal. On both lanes, staged plugin deployment
   copies and the Codex marketplace catalog are siblings of the case workspace rather than project
   files, matching an installed session and keeping them out of project reconnaissance.
-- Runtime state is removed as the run goes: each case's Codex home once its output is captured, and
-  the staged workspaces and run home when the run ends, whether it completed, failed, timed out, or
-  was canceled. `report.json` and each attempt's `events.jsonl`, `final.txt`, and `stderr.log` under
-  `cases/<case-id>/attempt-<n>/` stay. Pass `--keep-runtime` to retain the homes and workspaces for
-  debugging; a directory the runner could not remove is printed as a warning and never fails the
-  run.
-- Cases with a `workspace` block or `workspace_files` run in a case-specific copy of the staged
+- Runtime state is removed as the run goes: each attempt's Codex home once its output is captured,
+  and the staged workspaces and run home when the run ends, whether it completed, failed, timed out,
+  or was canceled. `report.json` and each attempt's `events.jsonl`, `final.txt`, and `stderr.log`
+  under `cases/<case-id>/attempt-<n>/` stay. Pass `--keep-runtime` to retain the homes and
+  workspaces for debugging; a directory the runner could not remove is printed as a warning and
+  never fails the run.
+- Cases with a `workspace` block or `workspace_files` run in an attempt-specific copy of the staged
   workspace. The runner builds the seeded repository identically on both lanes, with a harness-owned
   git identity and signing disabled, so the machine's git configuration cannot affect a run.
 - The committed `description` remains the trigger surface under test.
