@@ -20,7 +20,7 @@ export type LaneRunOptions = {
   model: string;
   effort: string;
   // Registry for the runtime directories the lane creates (staged workspace roots, Codex homes).
-  // The lane tracks them, run-scoped or under the case id; the runner releases them.
+  // The lane tracks them, run-scoped or under the attempt key; the runner releases them.
   runtime: RuntimeResources;
   // Plugins staged alongside the target's own surface (the default deployment-context staging).
   // Entries matching a plugin-skill target's own plugin are deduplicated.
@@ -59,7 +59,9 @@ export type LaneRun = {
   // Decision items a case may complete without an invocation signal before it is stopped as a
   // skip; see SKIP_DECISION_ITEM_BUDGET for the default and what a lane counts as an item.
   skipDecisionItemBudget: number;
-  prepareCase(testCase: TriggerCase): Promise<LaneCase>;
+  // Stages one attempt of a case. Everything the lane creates for it is keyed by caseAttemptKey,
+  // so attempts of one case never share or release each other's state.
+  prepareCase(testCase: TriggerCase, attempt: number): Promise<LaneCase>;
   cleanup(): Promise<void>;
 };
 

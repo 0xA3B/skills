@@ -1,8 +1,11 @@
 import type { TriggerExpectation } from "./fixtures/index.js";
 import type { CaseObservations, CliRunResult, InvocationSignal } from "./lanes/index.js";
 
+// The verdict on one attempt of a case.
 export type TriggerCaseResult = {
   caseId: string;
+  // Which attempt of the case this is, from 1.
+  attempt: number;
   expect: TriggerExpectation;
   // The case's routing assertion, copied from the fixture so reports can show the expectation.
   invokeInstead?: string;
@@ -58,6 +61,7 @@ export function shouldStopEarly(
 
 export type CaseVerdictOptions = {
   testCase: { id: string; expect: TriggerExpectation; invokeInstead?: string };
+  attempt: number;
   targetLabel: string;
   // Every staged skill's label regardless of invocation policy, for the isolation check.
   stagedSkillLabels: ReadonlySet<string>;
@@ -129,6 +133,7 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   const passed = environmentalFailure === undefined && matchedExpectation;
   return {
     caseId: testCase.id,
+    attempt: options.attempt,
     expect: testCase.expect,
     ...(testCase.invokeInstead === undefined ? {} : { invokeInstead: testCase.invokeInstead }),
     invocationSignal: observations.signal,

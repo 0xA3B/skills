@@ -10,7 +10,7 @@ import {
   type Agent,
   type Skill,
 } from "../skills/index.js";
-import { loadTriggerFixture } from "./fixtures/index.js";
+import { caseAttemptKey, loadTriggerFixture } from "./fixtures/index.js";
 import {
   type AgentLane,
   createLane,
@@ -45,6 +45,8 @@ export type RunTriggerEvalOptions = {
   force?: boolean;
   timeoutMs?: number;
   concurrency?: number;
+  // Attempts per case; a case passes only when every attempt passes. Defaults to 1.
+  repeat?: number;
   // Retain staged workspaces and Codex homes after the run for debugging.
   keepRuntime?: boolean;
   sourceCodexHome?: string;
@@ -57,9 +59,11 @@ export type RunTriggerEvalOptions = {
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_CONCURRENCY = 3;
+const DEFAULT_REPEAT = 1;
 
 export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<TriggerEvalResult> {
   const runStartedAt = Date.now();
+  const repeat = normalizePositiveInteger(options.repeat ?? DEFAULT_REPEAT, "repeat");
   const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
   const agent: Agent = options.agent ?? "codex";
   const target = resolveSkill(repoRoot, options.skillPath);
@@ -117,7 +121,11 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
   const runtime = createRuntimeResources({ keep: options.keepRuntime === true });
   const cleanupFailures: string[] = [];
   const targetLabel = formatSkillLabel(target);
-  const results: Array<TriggerCaseResult | undefined> = new Array(fixture.cases.length);
+  // Every attempt of every case, case-major in fixture order, so results keep that order.
+  const attempts = fixture.cases.flatMap((testCase) =>
+    Array.from({ length: repeat }, (_, index) => ({ testCase, attempt: index + 1 })),
+  );
+  const results: Array<TriggerCaseResult | undefined> = new Array(attempts.length);
   // Run preparation tracks the staged workspace before its fallible staging steps, so it sits
   // inside the same try whose finally releases the runtime.
   let laneRun: LaneRun | undefined;
@@ -133,14 +141,18 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
       ...(extraRepoLocalSkills.length > 0 ? { extraRepoLocalSkills } : {}),
     });
     const preparedRun = laneRun;
-    const concurrency = normalizeConcurrency(options.concurrency ?? DEFAULT_CONCURRENCY);
-    await runConcurrently(fixture.cases, concurrency, async (testCase, index) => {
+    const concurrency = normalizePositiveInteger(
+      options.concurrency ?? DEFAULT_CONCURRENCY,
+      "concurrency",
+    );
+    await runConcurrently(attempts, concurrency, async ({ testCase, attempt }, index) => {
       if (options.abortSignal?.aborted === true) {
         return;
       }
-      const caseDir = path.join(runDir, "cases", testCase.id);
+      const attemptKey = caseAttemptKey(testCase.id, attempt);
+      const caseDir = path.join(runDir, "cases", attemptKey);
       try {
-        const laneCase = await preparedRun.prepareCase(testCase);
+        const laneCase = await preparedRun.prepareCase(testCase, attempt);
         try {
           const caseStartedAt = Date.now();
           const runResult = await laneCase.execute({
@@ -152,6 +164,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           });
           results[index] = buildCaseResult({
             testCase,
+            attempt,
             targetLabel,
             stagedSkillLabels: preparedRun.stagedSkillLabels,
             skillDependencies: preparedRun.skillDependencies,
@@ -163,7 +176,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
           await laneCase.cleanup();
         }
       } finally {
-        cleanupFailures.push(...(await runtime.release(testCase.id)));
+        cleanupFailures.push(...(await runtime.release(attemptKey)));
       }
     });
   } catch (caught) {
@@ -233,9 +246,9 @@ function isDefined<T>(value: T | undefined): value is T {
   return value !== undefined;
 }
 
-function normalizeConcurrency(value: number): number {
+function normalizePositiveInteger(value: number, optionName: string): number {
   if (!Number.isSafeInteger(value) || value < 1) {
-    throw new Error("concurrency must be a positive integer.");
+    throw new Error(`${optionName} must be a positive integer.`);
   }
   return value;
 }

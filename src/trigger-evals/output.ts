@@ -11,18 +11,15 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
     return;
   }
 
-  const failures = result.results.filter((caseResult) => !caseResult.passed);
+  const cases = groupAttemptsByCase(result.results);
+  const passedCases = cases.filter((attempts) => attempts.every((attempt) => attempt.passed));
   console.log(
-    `Trigger eval completed for ${formatSkillLabel(result.target)} on ${result.agent}: ${result.results.length - failures.length}/${result.results.length} passed in ${formatDuration(result.durationMs)}.`,
+    `Trigger eval completed for ${formatSkillLabel(result.target)} on ${result.agent}: ${passedCases.length}/${cases.length} passed in ${formatDuration(result.durationMs)}.`,
   );
 
-  for (const caseResult of result.results) {
-    console.log(formatCaseLine(caseResult));
-    if (caseResult.environmentalFailure !== undefined) {
-      console.log(`  environment: ${caseResult.environmentalFailure}`);
-    }
-    if (caseResult.error !== undefined) {
-      console.log(`  error: ${caseResult.error}`);
+  for (const attempts of cases) {
+    for (const line of formatCaseLines(attempts)) {
+      console.log(line);
     }
   }
 
@@ -33,22 +30,63 @@ export function printTriggerEvalResult(result: TriggerEvalResult): void {
   }
 }
 
-// One result line: status, case id, the fixture's expectation, and what was observed.
-export function formatCaseLine(caseResult: TriggerCaseResult): string {
-  const status = caseResult.passed
-    ? "PASS"
-    : caseResult.environmentalFailure === undefined
-      ? "FAIL"
-      : "ERROR";
+// Results arrive case-major (every attempt of a case before the next case), so a case's attempts
+// are one consecutive run.
+function groupAttemptsByCase(results: TriggerCaseResult[]): TriggerCaseResult[][] {
+  const cases: TriggerCaseResult[][] = [];
+  for (const attempt of results) {
+    const current = cases.at(-1);
+    if (current?.[0]?.caseId === attempt.caseId) {
+      current.push(attempt);
+    } else {
+      cases.push([attempt]);
+    }
+  }
+  return cases;
+}
+
+// One case: a status line with the attempt tally and the fixture's expectation, then one line per
+// attempt with what was observed and any environment or execution error beneath it. The case
+// passes only when every attempt passed; a genuine FAIL outranks an environmental ERROR.
+export function formatCaseLines(attempts: TriggerCaseResult[]): string[] {
+  const [first] = attempts;
+  if (first === undefined) {
+    return [];
+  }
+  const statuses = attempts.map(attemptStatus);
+  const status = statuses.includes("FAIL") ? "FAIL" : statuses.includes("ERROR") ? "ERROR" : "PASS";
+  const passed = statuses.filter((value) => value === "PASS").length;
+  const errors = statuses.filter((value) => value === "ERROR").length;
+  const tally = `${passed}/${attempts.length} passed${errors === 0 ? "" : ` (${errors} error${errors === 1 ? "" : "s"})`}`;
   const expected =
-    caseResult.invokeInstead === undefined
-      ? caseResult.expect
-      : `${caseResult.expect} with invoke-instead ${caseResult.invokeInstead}`;
-  const dependencyLoads =
-    caseResult.dependencyLoads === undefined
-      ? ""
-      : `; dependency loads ${caseResult.dependencyLoads.join(", ")}`;
-  return `- ${status} ${caseResult.caseId}: expected ${expected}, observed ${formatObserved(caseResult)}${dependencyLoads} (${formatDuration(caseResult.durationMs)})`;
+    first.invokeInstead === undefined
+      ? first.expect
+      : `${first.expect} with invoke-instead ${first.invokeInstead}`;
+
+  const lines = [`- ${status} ${first.caseId}: ${tally}, expected ${expected}`];
+  for (const attempt of attempts) {
+    const dependencyLoads =
+      attempt.dependencyLoads === undefined
+        ? ""
+        : `; dependency loads ${attempt.dependencyLoads.join(", ")}`;
+    lines.push(
+      `  attempt ${attempt.attempt} ${attemptStatus(attempt)}: observed ${formatObserved(attempt)}${dependencyLoads} (${formatDuration(attempt.durationMs)})`,
+    );
+    if (attempt.environmentalFailure !== undefined) {
+      lines.push(`    environment: ${attempt.environmentalFailure}`);
+    }
+    if (attempt.error !== undefined) {
+      lines.push(`    error: ${attempt.error}`);
+    }
+  }
+  return lines;
+}
+
+function attemptStatus(attempt: TriggerCaseResult): "PASS" | "FAIL" | "ERROR" {
+  if (attempt.passed) {
+    return "PASS";
+  }
+  return attempt.environmentalFailure === undefined ? "FAIL" : "ERROR";
 }
 
 function formatObserved(caseResult: TriggerCaseResult): string {

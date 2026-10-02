@@ -11,4 +11,4 @@ export {
   type TriggerFixture,
   type WorkspaceSpec,
 } from "./fixture.js";
-export { needsCaseWorkspace, stageCaseWorkspace } from "./workspace.js";
+export { caseAttemptKey, needsCaseWorkspace, stageCaseWorkspace } from "./workspace.js";

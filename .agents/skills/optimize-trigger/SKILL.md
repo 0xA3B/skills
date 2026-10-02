@@ -214,10 +214,13 @@ cases where loaded repository instructions should affect the trigger boundary, s
 9. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
    direction — fix the repo-local description. Marketplace descriptions serve every installation;
    edit one only when the overlap would also misfire in a session without the repo-local skills.
-10. After edits, rerun failed cases as diagnostic runs. When step 4's gate conditions hold, rerun
-    with `--with-dependents` the fixtures of every skill whose `description` or `when_to_use`
-    changed and every skill named in `wrong-skill` results. For plugin skills, one marketplace
-    selection covers several:
+10. After edits, rerun each failed case as a diagnostic run with `--case <id> --repeat 5`. Count the
+    case fixed only at `5/5 passed`; a lower tally means the case is flaky, and a flaky case stays a
+    failure. Fix the case or the description; skipping a flaky case is a user decision. Gate runs
+    keep the default single attempt. When step 4's gate conditions hold, rerun with
+    `--with-dependents` the fixtures of every skill whose `description` or `when_to_use` changed and
+    every skill named in `wrong-skill` results. For plugin skills, one marketplace selection covers
+    several:
     `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both --with-dependents`.
     The marketplace selection refuses a repo-local path, so rerun a repo-local target one at a time:
     `mise exec -- pnpm eval:trigger -- <skill-path> --agent both --with-dependents`. The flag runs
@@ -242,9 +245,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
   files, matching an installed session and keeping them out of project reconnaissance.
 - Runtime state is removed as the run goes: each case's Codex home once its output is captured, and
   the staged workspaces and run home when the run ends, whether it completed, failed, timed out, or
-  was canceled. `report.json` and the per-case `events.jsonl`, `final.txt`, and `stderr.log` stay.
-  Pass `--keep-runtime` to retain the homes and workspaces for debugging; a directory the runner
-  could not remove is printed as a warning and never fails the run.
+  was canceled. `report.json` and each attempt's `events.jsonl`, `final.txt`, and `stderr.log` under
+  `cases/<case-id>/attempt-<n>/` stay. Pass `--keep-runtime` to retain the homes and workspaces for
+  debugging; a directory the runner could not remove is printed as a warning and never fails the
+  run.
 - Cases with a `workspace` block or `workspace_files` run in a case-specific copy of the staged
   workspace. The runner builds the seeded repository identically on both lanes, with a harness-owned
   git identity and signing disabled, so the machine's git configuration cannot affect a run.
@@ -291,8 +295,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
 - Staging is lane-specific: only the evaluated agent's config surfaces are written into the
   workspace (`.claude/` for Claude, `.agents/` for Codex), so the other agent's files never pollute
   the workspace under test.
-- Case pass/fail is based on matching the expected invoke or skip classification. Exec errors and
-  timeouts remain in the report because trigger evals do not validate workflow completion.
+- Attempt pass/fail is based on matching the expected invoke or skip classification, and a case
+  passes only when every attempt passes. Each case prints its tally (`2/3 passed`) and one line per
+  attempt. Exec errors and timeouts remain in the report because trigger evals do not validate
+  workflow completion.
 - Skip verdicts record how the run ended: natural completion, the decision-item budget, or the case
   timeout. Timeout skips are annotated as weak signals because the model might have invoked after
   the cutoff; treat a fixture that repeatedly skips only via timeout as unresolved, not passing.

@@ -2,13 +2,14 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { formatCaseLine, printTriggerEvalResult } from "../../src/trigger-evals/output.js";
+import { formatCaseLines, printTriggerEvalResult } from "../../src/trigger-evals/output.js";
 import type { TriggerEvalResult } from "../../src/trigger-evals/runner.js";
 import type { TriggerCaseResult } from "../../src/trigger-evals/verdict.js";
 
 function caseResult(overrides: Partial<TriggerCaseResult> = {}): TriggerCaseResult {
   return {
     caseId: "existing-feedback",
+    attempt: 1,
     expect: "skip",
     invocationSignal: "none",
     invoked: false,
@@ -23,32 +24,48 @@ function caseResult(overrides: Partial<TriggerCaseResult> = {}): TriggerCaseResu
   };
 }
 
-describe("formatCaseLine", () => {
-  it.each<[string, Partial<TriggerCaseResult>, string]>([
+describe("formatCaseLines", () => {
+  it.each<[string, Partial<TriggerCaseResult>, string[]]>([
     [
       "prints a plain skip",
       { skipSignal: "completed" },
-      "- PASS existing-feedback: expected skip, observed skip (1.5s)",
+      [
+        "- PASS existing-feedback: 1/1 passed, expected skip",
+        "  attempt 1 PASS: observed skip (1.5s)",
+      ],
     ],
     [
       "names the item budget that ended a skip",
       { skipSignal: "item-budget" },
-      "- PASS existing-feedback: expected skip, observed skip via item-budget (1.5s)",
+      [
+        "- PASS existing-feedback: 1/1 passed, expected skip",
+        "  attempt 1 PASS: observed skip via item-budget (1.5s)",
+      ],
     ],
     [
       "flags a timeout skip as a weak signal",
       { skipSignal: "timeout" },
-      "- PASS existing-feedback: expected skip, observed skip via timeout (weak signal) (1.5s)",
+      [
+        "- PASS existing-feedback: 1/1 passed, expected skip",
+        "  attempt 1 PASS: observed skip via timeout (weak signal) (1.5s)",
+      ],
     ],
     [
       "prints an environmental failure as ERROR, not FAIL",
       { passed: false, environmentalFailure: "the run produced no agent output" },
-      "- ERROR existing-feedback: expected skip, observed skip (1.5s)",
+      [
+        "- ERROR existing-feedback: 0/1 passed (1 error), expected skip",
+        "  attempt 1 ERROR: observed skip (1.5s)",
+        "    environment: the run produced no agent output",
+      ],
     ],
     [
       "prints a sub-second duration in milliseconds",
       { skipSignal: "completed", durationMs: 250 },
-      "- PASS existing-feedback: expected skip, observed skip (250ms)",
+      [
+        "- PASS existing-feedback: 1/1 passed, expected skip",
+        "  attempt 1 PASS: observed skip (250ms)",
+      ],
     ],
     [
       "lists the dependency loads the verdict dropped",
@@ -59,7 +76,10 @@ describe("formatCaseLine", () => {
         invokedSkills: ["demo:target"],
         dependencyLoads: ["writing:technical-writing"],
       },
-      "- PASS existing-feedback: expected invoke, observed invoke via command-skill-read; dependency loads writing:technical-writing (1.5s)",
+      [
+        "- PASS existing-feedback: 1/1 passed, expected invoke",
+        "  attempt 1 PASS: observed invoke via command-skill-read; dependency loads writing:technical-writing (1.5s)",
+      ],
     ],
     [
       // Overlap: the wrong skill is named even though the target invocation was observed.
@@ -72,7 +92,10 @@ describe("formatCaseLine", () => {
         wrongSkill: "demo:sibling",
         passed: false,
       },
-      "- FAIL existing-feedback: expected invoke, observed invoke plus wrong-skill demo:sibling via stdout-skill-canary (1.5s)",
+      [
+        "- FAIL existing-feedback: 0/1 passed, expected invoke",
+        "  attempt 1 FAIL: observed invoke plus wrong-skill demo:sibling via stdout-skill-canary (1.5s)",
+      ],
     ],
     [
       "names the alternate on a passing routing assertion",
@@ -82,7 +105,10 @@ describe("formatCaseLine", () => {
         invokedSkills: ["demo:sibling"],
         wrongSkill: "demo:sibling",
       },
-      "- PASS existing-feedback: expected skip with invoke-instead demo:sibling, observed alternate demo:sibling via stdout-skill-canary (1.5s)",
+      [
+        "- PASS existing-feedback: 1/1 passed, expected skip with invoke-instead demo:sibling",
+        "  attempt 1 PASS: observed alternate demo:sibling via stdout-skill-canary (1.5s)",
+      ],
     ],
     [
       "lists every other skill when a routing assertion fails with the alternate",
@@ -93,7 +119,10 @@ describe("formatCaseLine", () => {
         wrongSkill: "demo:sibling",
         passed: false,
       },
-      "- FAIL existing-feedback: expected skip with invoke-instead demo:sibling, observed alternate demo:sibling plus wrong-skill other:skill via stream-skill-tool-use (1.5s)",
+      [
+        "- FAIL existing-feedback: 0/1 passed, expected skip with invoke-instead demo:sibling",
+        "  attempt 1 FAIL: observed alternate demo:sibling plus wrong-skill other:skill via stream-skill-tool-use (1.5s)",
+      ],
     ],
     [
       "names the alternate even when another skill was detected first",
@@ -104,7 +133,10 @@ describe("formatCaseLine", () => {
         wrongSkill: "other:skill",
         passed: false,
       },
-      "- FAIL existing-feedback: expected skip with invoke-instead demo:sibling, observed alternate demo:sibling plus wrong-skill other:skill via stream-skill-tool-use (1.5s)",
+      [
+        "- FAIL existing-feedback: 0/1 passed, expected skip with invoke-instead demo:sibling",
+        "  attempt 1 FAIL: observed alternate demo:sibling plus wrong-skill other:skill via stream-skill-tool-use (1.5s)",
+      ],
     ],
     [
       "reports a different skill as wrong-skill on a routing assertion",
@@ -115,10 +147,42 @@ describe("formatCaseLine", () => {
         wrongSkill: "other:skill",
         passed: false,
       },
-      "- FAIL existing-feedback: expected skip with invoke-instead demo:sibling, observed wrong-skill other:skill via stdout-skill-canary (1.5s)",
+      [
+        "- FAIL existing-feedback: 0/1 passed, expected skip with invoke-instead demo:sibling",
+        "  attempt 1 FAIL: observed wrong-skill other:skill via stdout-skill-canary (1.5s)",
+      ],
     ],
   ])("%s", (_name, overrides, expected) => {
-    expect(formatCaseLine(caseResult(overrides))).toBe(expected);
+    expect(formatCaseLines([caseResult(overrides)])).toStrictEqual(expected);
+  });
+
+  it("tallies the attempts and fails the case when any attempt fails", () => {
+    expect(
+      formatCaseLines([
+        caseResult({ attempt: 1, skipSignal: "completed" }),
+        caseResult({ attempt: 2, passed: false, wrongSkill: "demo:sibling" }),
+        caseResult({
+          attempt: 3,
+          passed: false,
+          environmentalFailure: "the run produced no agent output",
+        }),
+      ]),
+    ).toStrictEqual([
+      "- FAIL existing-feedback: 1/3 passed (1 error), expected skip",
+      "  attempt 1 PASS: observed skip (1.5s)",
+      "  attempt 2 FAIL: observed wrong-skill demo:sibling via none (1.5s)",
+      "  attempt 3 ERROR: observed skip (1.5s)",
+      "    environment: the run produced no agent output",
+    ]);
+  });
+
+  it("marks a case ERROR when its only failures are environmental", () => {
+    expect(
+      formatCaseLines([
+        caseResult({ attempt: 1 }),
+        caseResult({ attempt: 2, passed: false, environmentalFailure: "unstaged skills loaded" }),
+      ])[0],
+    ).toBe("- ERROR existing-feedback: 1/2 passed (1 error), expected skip");
   });
 });
 
@@ -185,11 +249,14 @@ describe("printTriggerEvalResult", () => {
 
     expect(log.mock.calls.flat()).toStrictEqual([
       "Trigger eval completed for demo:auto-skill on codex: 1/3 passed in 10ms.",
-      "- PASS skip-case: expected skip, observed skip (1.5s)",
-      "- FAIL invoke-case: expected invoke, observed skip (1.5s)",
-      "- ERROR dead-case: expected skip, observed skip (1.5s)",
-      "  environment: the run produced no agent output",
-      "  error: codex exec exited with code 1.",
+      "- PASS skip-case: 1/1 passed, expected skip",
+      "  attempt 1 PASS: observed skip (1.5s)",
+      "- FAIL invoke-case: 0/1 passed, expected invoke",
+      "  attempt 1 FAIL: observed skip (1.5s)",
+      "- ERROR dead-case: 0/1 passed (1 error), expected skip",
+      "  attempt 1 ERROR: observed skip (1.5s)",
+      "    environment: the run produced no agent output",
+      "    error: codex exec exited with code 1.",
       "Report written to run/report.json.",
     ]);
     expect(warn.mock.calls.flat()).toStrictEqual([

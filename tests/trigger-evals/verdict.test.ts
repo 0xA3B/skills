@@ -25,6 +25,7 @@ function observations(overrides: Partial<CaseObservations> = {}): CaseObservatio
 function verdictOptions(overrides: Partial<CaseVerdictOptions> = {}): CaseVerdictOptions {
   return {
     testCase: { id: "case-1", expect: "invoke" },
+    attempt: 1,
     targetLabel: TARGET,
     stagedSkillLabels: new Set([TARGET]),
     observations: observations(),
@@ -167,6 +168,7 @@ describe("buildCaseResult", () => {
 
     expect(result).toStrictEqual({
       caseId: "case-1",
+      attempt: 1,
       expect: "invoke",
       invocationSignal: "stdout-skill-canary",
       invoked: true,

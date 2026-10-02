@@ -56,13 +56,14 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
             )
           : undefined;
 
-      const prepareCase = async (testCase: TriggerCase): Promise<LaneCase> => {
+      const prepareCase = async (testCase: TriggerCase, attempt: number): Promise<LaneCase> => {
         const caseWorkspacePath = needsCaseWorkspace(testCase)
           ? await stageCaseWorkspace({
               baseWorkspacePath: deployment.workspacePath,
               workspaceRoot: deployment.workspaceRoot,
               repoRoot: target.repoRoot,
               testCase,
+              attempt,
             })
           : deployment.workspacePath;
 

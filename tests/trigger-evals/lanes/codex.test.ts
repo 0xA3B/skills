@@ -5,6 +5,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type Skill, formatSkillLabel } from "../../../src/skills/index.js";
+import { caseAttemptKey } from "../../../src/trigger-evals/fixtures/index.js";
 import {
   CODEX_SKIP_DECISION_ITEM_BUDGET,
   createCodexLane,
@@ -57,8 +58,9 @@ async function makeSourceCodexHome(): Promise<string> {
 }
 
 // The CODEX_HOME the lane builds for one case.
+// The Codex home of a case's first attempt.
 function caseCodexHome(runDir: string, caseId: string): string {
-  return path.join(runDir, "codex-home", "cases", caseId);
+  return path.join(runDir, "codex-home", "cases", caseId, "attempt-1");
 }
 
 // A skill file in a case home's plugin cache, the copy Codex actually loads.
@@ -158,7 +160,7 @@ describe("createCodexLane", () => {
     const laneRun = await lane.prepareRun(runOptions);
     expect(laneRun.skipDecisionItemBudget).toBe(CODEX_SKIP_DECISION_ITEM_BUDGET);
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
-    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 1);
     await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
     // Codex-only surfaces: the eval marketplace catalog, no Claude settings. Both live in the
@@ -209,22 +211,24 @@ describe("createCodexLane", () => {
     );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const invokeCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
-    const skipCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"));
-    await invokeCase.execute({
-      caseDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-")),
-      timeoutMs: 60_000,
-    });
-    await skipCase.execute({
-      caseDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-")),
-      timeoutMs: 60_000,
-    });
+    const invokeCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 1);
+    const secondInvokeAttempt = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 2);
+    const skipCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"), 1);
+    for (const laneCase of [invokeCase, secondInvokeAttempt, skipCase]) {
+      await laneCase.execute({
+        caseDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-")),
+        timeoutMs: 60_000,
+      });
+    }
 
-    // Sharing a CODEX_HOME would let one case's auth cleanup race a sibling still executing.
+    // Sharing a CODEX_HOME would let one attempt's auth cleanup race a sibling still executing,
+    // including another attempt of the same case.
     const codexHomes = spawnCalls.map((call) => call.options.env["CODEX_HOME"]);
-    expect(new Set(codexHomes).size).toBe(2);
-    expect(codexHomes[0]).toContain(path.join("cases", "invoke-case"));
-    expect(codexHomes[1]).toContain(path.join("cases", "skip-case"));
+    expect(codexHomes).toStrictEqual([
+      caseCodexHome(runOptions.runDir, "invoke-case"),
+      path.join(runOptions.runDir, "codex-home", "cases", "invoke-case", "attempt-2"),
+      caseCodexHome(runOptions.runDir, "skip-case"),
+    ]);
   });
 
   it("removes the copied auth when case setup fails after the auth copy", async () => {
@@ -242,14 +246,14 @@ describe("createCodexLane", () => {
     // prepareCodexHome has already copied the user's auth.json into the per-case home.
     await rm(path.join(repoRoot, "plugins", "demo"), { recursive: true, force: true });
 
-    await expect(laneRun.prepareCase(triggerCase("invoke-case", "invoke"))).rejects.toThrow(
+    await expect(laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 1)).rejects.toThrow(
       /ENOENT/,
     );
     const codexHome = caseCodexHome(runOptions.runDir, "invoke-case");
     await expect(readFile(path.join(codexHome, "auth.json"), "utf8")).rejects.toThrow(/ENOENT/);
     // The half-built case home was tracked under the case scope before the failure, so releasing
     // that case alone removes it.
-    await runOptions.runtime.release("invoke-case");
+    await runOptions.runtime.release(caseAttemptKey("invoke-case", 1));
     expect(await exists(codexHome)).toBe(false);
   });
 
@@ -264,7 +268,7 @@ describe("createCodexLane", () => {
     );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 1);
     await laneCase.execute({
       caseDir: await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-")),
       timeoutMs: 60_000,
@@ -276,7 +280,9 @@ describe("createCodexLane", () => {
     expect(await exists(caseHome)).toBe(true);
 
     // The case scope releases only that case's home; the run scope takes the rest.
-    await expect(runOptions.runtime.release("invoke-case")).resolves.toStrictEqual([]);
+    await expect(
+      runOptions.runtime.release(caseAttemptKey("invoke-case", 1)),
+    ).resolves.toStrictEqual([]);
     expect(await exists(caseHome)).toBe(false);
     expect(await exists(runHome)).toBe(true);
     expect(await exists(workspaceRoot)).toBe(true);
@@ -300,10 +306,10 @@ describe("createCodexLane", () => {
     );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 1);
     await laneCase.cleanup();
     await laneRun.cleanup();
-    await runOptions.runtime.release("invoke-case");
+    await runOptions.runtime.release(caseAttemptKey("invoke-case", 1));
     await runOptions.runtime.release();
 
     const caseHome = caseCodexHome(runOptions.runDir, "invoke-case");
@@ -319,7 +325,7 @@ describe("createCodexLane", () => {
     const laneRun = await lane.prepareRun(
       await makeLaneRunOptions("codex", repoRoot, "plugins/demo/skills/auto-skill"),
     );
-    const laneCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"));
+    const laneCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"), 1);
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
 
     // The faked codex exec never writes its -o file, as a run stopped at the first invocation
@@ -340,7 +346,7 @@ describe("createCodexLane", () => {
     const laneRun = await lane.prepareRun(
       await makeLaneRunOptions("codex", repoRoot, "plugins/demo/skills/auto-skill"),
     );
-    const laneCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"));
+    const laneCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"), 1);
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
     // A directory at the -o path fails the read with EISDIR, which is not a missing file.
     await mkdir(path.join(caseDir, "final.txt"));
@@ -362,7 +368,7 @@ describe("createCodexLane", () => {
     );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 1);
     const deploymentPath = await readDeploymentPath(runOptions.runDir, "invoke-case");
     const targetCanary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
     const siblingCanary = await readStagedCanary(deploymentPath, "demo", "sibling-skill");
@@ -401,7 +407,7 @@ describe("createCodexLane", () => {
     );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"));
+    const laneCase = await laneRun.prepareCase(triggerCase("skip-case", "skip"), 1);
 
     const deploymentPath = await readDeploymentPath(runOptions.runDir, "skip-case");
     const catalog = JSON.parse(
@@ -436,10 +442,11 @@ describe("createCodexLane", () => {
       triggerCase("seeded-case", "invoke", {
         workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
       }),
+      1,
     );
 
     // A seeded case gets its own copy instead of the base workspace plain cases share.
-    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"));
+    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"), 1);
     expect(seededCase.workspacePath).not.toBe(plainCase.workspacePath);
     // The seeded cwd is trusted in the case config, and plugins stay outside it.
     const config = await readFile(
@@ -472,7 +479,7 @@ describe("createCodexLane", () => {
     });
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"), 1);
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(
       new Set(["other:other-skill", "auto-skill", "sibling-skill", "manual-skill"]),
@@ -548,7 +555,7 @@ describe("createCodexLane", () => {
     );
 
     const laneRun = await lane.prepareRun(runOptions);
-    const laneCase = await laneRun.prepareCase(triggerCase("read-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("read-case", "invoke"), 1);
     const cachedFile = cachedSkillFile(
       caseCodexHome(runOptions.runDir, "read-case"),
       "demo",
@@ -573,7 +580,7 @@ describe("createCodexLane", () => {
 
     const laneRun = await lane.prepareRun(runOptions);
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "codex-lane-case-"));
-    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"), 1);
     await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
     const skillBody = await readFile(
@@ -601,7 +608,10 @@ describe("createCodexLane", () => {
     // per-case copy is reserved for cases with their own workspace content.
     const args = spawnCalls[0]?.args ?? [];
     expect(args[args.indexOf("-s") + 1]).toBe("read-only");
-    const secondPlainCase = await laneRun.prepareCase(triggerCase("other-repo-local-case", "skip"));
+    const secondPlainCase = await laneRun.prepareCase(
+      triggerCase("other-repo-local-case", "skip"),
+      1,
+    );
     expect(secondPlainCase.workspacePath).toBe(laneCase.workspacePath);
 
     const observed = laneCase.observe({
