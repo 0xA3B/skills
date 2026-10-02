@@ -235,6 +235,41 @@ describe("stageDeployment", () => {
     await expect(stat(path.join(deployment.workspacePath, ".agents"))).rejects.toThrow("ENOENT");
   });
 
+  it("surveys the dependencies of every staged plugin and repo-local skill", async () => {
+    const pluginRepoRoot = await writeRepoFixture({ siblingSkills: [{ name: "helper-skill" }] });
+    await writeFile(
+      path.join(pluginRepoRoot, "plugins", "demo", "skills", "auto-skill", "SKILL.md"),
+      "---\nname: auto-skill\n---\nApply `helper-skill` first.\n",
+    );
+    const repoRoot = await writeRepoLocalSkillFixture({
+      siblingSkills: [{ name: "sibling-skill" }],
+    });
+    const target = resolveSkill(repoRoot, ".agents/skills/auto-skill");
+    await writeFile(
+      target.skillFilePath,
+      "---\nname: auto-skill\n---\nThen run `sibling-skill`.\n",
+    );
+
+    const deployment = await stageDeployment(
+      deploymentOptions(target, {
+        plugins: [{ pluginName: "demo", pluginPath: path.join(pluginRepoRoot, "plugins", "demo") }],
+        repoLocalSkills: [
+          {
+            skillName: "sibling-skill",
+            skillPath: path.join(repoRoot, ".agents", "skills", "sibling-skill"),
+          },
+        ],
+      }),
+    );
+
+    expect(deployment.skillDependencies.get("demo:auto-skill")).toStrictEqual(
+      new Set(["demo:helper-skill"]),
+    );
+    expect(deployment.skillDependencies.get("auto-skill")).toStrictEqual(
+      new Set(["sibling-skill"]),
+    );
+  });
+
   it("tracks the workspace root on the runtime so a release removes it", async () => {
     const repoRoot = await writeRepoFixture();
     const target = resolveSkill(repoRoot, "plugins/demo/skills/auto-skill");

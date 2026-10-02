@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, stat } from "node:fs/promises";
+import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -104,6 +104,21 @@ describe("createClaudeLane", () => {
     await expect(
       readFile(path.join(laneCase.workspacePath, ".agents", "plugins", "marketplace.json"), "utf8"),
     ).rejects.toThrow(/ENOENT/);
+  });
+
+  it("passes the staged skills' dependencies to the run", async () => {
+    const repoRoot = await writeRepoFixture({ siblingSkills: [{ name: "helper-skill" }] });
+    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    await writeFile(
+      runOptions.target.skillFilePath,
+      "---\nname: auto-skill\n---\nUse `helper-skill`.\n",
+    );
+
+    const laneRun = await createClaudeLane().prepareRun(runOptions);
+
+    expect(laneRun.skillDependencies.get("demo:auto-skill")).toStrictEqual(
+      new Set(["demo:helper-skill"]),
+    );
   });
 
   it("builds claude args with model, effort, and deployment plugin dirs", async () => {

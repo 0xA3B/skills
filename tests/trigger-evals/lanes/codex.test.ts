@@ -129,6 +129,23 @@ describe("createCodexLane", () => {
     spawnCalls.length = 0;
   });
 
+  it("passes the staged skills' dependencies to the run", async () => {
+    const repoRoot = await writeRepoFixture({ siblingSkills: [{ name: "helper-skill" }] });
+    const runOptions = await makeRunOptions(repoRoot, "plugins/demo/skills/auto-skill");
+    await writeFile(
+      runOptions.target.skillFilePath,
+      "---\nname: auto-skill\n---\nUse `helper-skill`.\n",
+    );
+
+    const laneRun = await createCodexLane({
+      sourceCodexHome: await makeSourceCodexHome(),
+    }).prepareRun(runOptions);
+
+    expect(laneRun.skillDependencies.get("demo:auto-skill")).toStrictEqual(
+      new Set(["demo:helper-skill"]),
+    );
+  });
+
   it("stages Codex surfaces, plugin caches, and canaries for plugin targets", async () => {
     const repoRoot = await writeRepoFixture();
     const sourceCodexHome = await makeSourceCodexHome();

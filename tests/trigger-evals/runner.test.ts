@@ -27,6 +27,7 @@ type FakeLaneOptions = {
   // Hold a case's execute until the named sibling's runtime directory has been released, so a
   // test can observe what a sibling's release did to a case that is still running.
   holdUntilReleased?: (testCase: TriggerCase) => string | undefined;
+  skillDependencies?: ReadonlyMap<string, ReadonlySet<string>>;
 };
 
 type FakeLaneState = {
@@ -102,7 +103,7 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
       }
       return {
         stagedSkillLabels: new Set(["demo:auto-skill"]),
-        skillDependencies: new Map(),
+        skillDependencies: options.skillDependencies ?? new Map(),
         skipDecisionItemBudget: 5,
         async prepareCase(testCase) {
           state.preparedCaseIds.push(testCase.id);
@@ -312,6 +313,32 @@ describe("runTriggerEval", () => {
       invoked: false,
       passed: true,
       error: "codex exec exited with code 1.",
+    });
+  });
+
+  it("attributes a skill the target's body names to the target's workflow", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const { lane } = createFakeLane({
+      skillDependencies: new Map([["demo:auto-skill", new Set(["demo:helper-skill"])]]),
+      observationsFor: () => ({
+        signal: "command-skill-read",
+        invokedSkills: ["demo:helper-skill", "demo:auto-skill"],
+        hasActivity: true,
+        decisionItemCount: 1,
+      }),
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseIds: ["invoke-case"],
+      lane,
+    });
+
+    expect(result.results[0]).toMatchObject({
+      invoked: true,
+      dependencyLoads: ["demo:helper-skill"],
+      passed: true,
     });
   });
 
