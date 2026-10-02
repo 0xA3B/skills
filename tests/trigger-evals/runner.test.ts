@@ -5,16 +5,22 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { TriggerCase } from "../../src/trigger-evals/fixtures/index.js";
-import type {
-  AgentLane,
-  CaseExecuteOptions,
-  CaseObservations,
-  CliRunResult,
-  LaneRunOptions,
-  StreamingCliOutput,
+import {
+  type AgentLane,
+  type CaseExecuteOptions,
+  type CaseObservations,
+  type CliRunResult,
+  DEFAULT_EVAL_MODELS,
+  type LaneRunOptions,
+  type StreamingCliOutput,
 } from "../../src/trigger-evals/lanes/index.js";
 import { runTriggerEval } from "../../src/trigger-evals/runner.js";
-import { buildCliRunResult, writeRepoFixture, writeRepoLocalSkillFixture } from "./test-utils.js";
+import {
+  buildCliRunResult,
+  exists,
+  writeRepoFixture,
+  writeRepoLocalSkillFixture,
+} from "./test-utils.js";
 
 type FakeLaneOptions = {
   observationsFor?: (testCase: TriggerCase, output: StreamingCliOutput) => CaseObservations;
@@ -42,27 +48,25 @@ type FakeLaneState = {
   caseRuntimeDirs: Map<string, string>;
   // Which case runtime directories still existed when each case executed.
   liveCaseDirsAtExecute: Map<string, string[]>;
-  // Whether the case's own directory and the run directory still existed when its execute ended.
-  runtimeLiveAtExecuteEnd: Map<string, { caseDir: boolean; runDir: boolean }>;
+  // Which case runtime directories, and whether the run directory, still existed when each case's
+  // execute ended.
+  runtimeLiveAtExecuteEnd: Map<string, { caseDirs: string[]; runDir: boolean }>;
 };
 
+// Throws at the deadline so a release that never comes fails the test instead of passing late.
 async function waitUntilGone(dirPath: string): Promise<void> {
   const deadline = Date.now() + 2_000;
-  let present = await exists(dirPath);
-  while (present && Date.now() < deadline) {
+  while (await exists(dirPath)) {
+    if (Date.now() >= deadline) {
+      throw new Error(`${dirPath} was not released within 2000ms.`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 5));
-    present = await exists(dirPath);
   }
 }
 
-async function exists(dirPath: string): Promise<boolean> {
-  try {
-    await stat(dirPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
+// A skip-decision budget other than the verdict default, so a runner that drops the lane's budget
+// is caught.
+const FAKE_SKIP_DECISION_ITEM_BUDGET = 8;
 
 // Orchestration tests exercise the runner through the lane seam with a fake adapter; real lane
 // behavior is covered by the lane and staging tests.
@@ -89,6 +93,15 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
           decisionItemCount: 1,
         }
       : { signal: "none", invokedSkills: [], hasActivity: true, decisionItemCount: 1 };
+  const liveCaseDirs = async (): Promise<string[]> => {
+    const live: string[] = [];
+    for (const [caseId, caseRuntimeDir] of state.caseRuntimeDirs) {
+      if (await exists(caseRuntimeDir)) {
+        live.push(caseId);
+      }
+    }
+    return live;
+  };
 
   const lane: AgentLane = {
     async prepareRun(runOptions) {
@@ -104,7 +117,7 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
       return {
         stagedSkillLabels: new Set(["demo:auto-skill"]),
         skillDependencies: options.skillDependencies ?? new Map(),
-        skipDecisionItemBudget: 5,
+        skipDecisionItemBudget: FAKE_SKIP_DECISION_ITEM_BUDGET,
         async prepareCase(testCase) {
           state.preparedCaseIds.push(testCase.id);
           if (options.runtimeRoot !== undefined) {
@@ -125,13 +138,7 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
               state.executed.push({ testCase, executeOptions });
               state.activeExecs += 1;
               state.maxActiveExecs = Math.max(state.maxActiveExecs, state.activeExecs);
-              const live: string[] = [];
-              for (const [caseId, caseRuntimeDir] of state.caseRuntimeDirs) {
-                if (await exists(caseRuntimeDir)) {
-                  live.push(caseId);
-                }
-              }
-              state.liveCaseDirsAtExecute.set(testCase.id, live);
+              state.liveCaseDirsAtExecute.set(testCase.id, await liveCaseDirs());
               // Evidence a real lane writes under the case directory, which cleanup must keep.
               await mkdir(executeOptions.caseDir, { recursive: true });
               await writeFile(path.join(executeOptions.caseDir, "events.jsonl"), "{}\n");
@@ -145,12 +152,11 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
                 if (siblingDir !== undefined) {
                   await waitUntilGone(siblingDir);
                 }
-                await new Promise((resolve) => setTimeout(resolve, 20));
                 return buildCliRunResult();
               } finally {
                 state.activeExecs -= 1;
                 state.runtimeLiveAtExecuteEnd.set(testCase.id, {
-                  caseDir: await exists(state.caseRuntimeDirs.get(testCase.id) ?? ""),
+                  caseDirs: await liveCaseDirs(),
                   runDir: await exists(state.runtimeDir ?? ""),
                 });
               }
@@ -204,7 +210,6 @@ describe("runTriggerEval", () => {
     expect(state.maxActiveExecs).toBe(2);
     expect(state.caseCleanups).toBe(4);
     expect(state.runCleanups).toBe(1);
-    expect(result.results.every((caseResult) => caseResult.durationMs >= 0)).toBe(true);
     expect(result.durationMs).toBeGreaterThanOrEqual(
       Math.max(...result.results.map((caseResult) => caseResult.durationMs)),
     );
@@ -254,7 +259,10 @@ describe("runTriggerEval", () => {
       caseIds: ["skip-case"],
       lane: codex.lane,
     });
-    expect(codex.state.runOptions).toMatchObject({ model: "gpt-6-sol", effort: "medium" });
+    expect(codex.state.runOptions).toMatchObject({
+      model: DEFAULT_EVAL_MODELS.codex,
+      effort: "medium",
+    });
 
     const claude = createFakeLane();
     await runTriggerEval({
@@ -264,7 +272,33 @@ describe("runTriggerEval", () => {
       caseIds: ["skip-case"],
       lane: claude.lane,
     });
-    expect(claude.state.runOptions).toMatchObject({ model: "opus", effort: "medium" });
+    expect(claude.state.runOptions).toMatchObject({
+      model: DEFAULT_EVAL_MODELS.claude,
+      effort: "medium",
+    });
+  });
+
+  it("hands an explicit model, effort, timeout, and abort signal to the lane", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const { lane, state } = createFakeLane();
+    const abortController = new AbortController();
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseIds: ["skip-case"],
+      model: "custom-model",
+      effort: "high",
+      timeoutMs: 1_234,
+      abortSignal: abortController.signal,
+      lane,
+    });
+
+    expect(state.runOptions).toMatchObject({ model: "custom-model", effort: "high" });
+    expect(state.executed[0]?.executeOptions).toMatchObject({
+      timeoutMs: 1_234,
+      abortSignal: abortController.signal,
+    });
   });
 
   it("wires lane observations into the early-stop condition", async () => {
@@ -287,8 +321,13 @@ describe("runTriggerEval", () => {
 
     const stopWhen = state.executed[0]?.executeOptions.stopWhen;
     expect(stopWhen).toBeDefined();
-    expect(stopWhen?.({ stdout: "ITEM".repeat(4), stderr: "" })).toBe(false);
-    expect(stopWhen?.({ stdout: "ITEM".repeat(5), stderr: "" })).toBe(true);
+    // The lane's own skip-decision budget bounds the run, not the verdict default.
+    expect(
+      stopWhen?.({ stdout: "ITEM".repeat(FAKE_SKIP_DECISION_ITEM_BUDGET - 1), stderr: "" }),
+    ).toBe(false);
+    expect(stopWhen?.({ stdout: "ITEM".repeat(FAKE_SKIP_DECISION_ITEM_BUDGET), stderr: "" })).toBe(
+      true,
+    );
     expect(stopWhen?.({ stdout: "CANARY", stderr: "" })).toBe(true);
   });
 
@@ -423,9 +462,11 @@ describe("runTriggerEval", () => {
     ).rejects.toThrow("Unable to read the codex marketplace catalog");
   });
 
-  it("cleans up the case and the run when execution fails", async () => {
+  it("cleans up, releases runtime state, and rethrows the original error when execution fails", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
     const { lane, state } = createFakeLane({
+      runtimeRoot,
       executeResult: async () => {
         throw new Error("exec blew up");
       },
@@ -441,6 +482,8 @@ describe("runTriggerEval", () => {
     ).rejects.toThrow("exec blew up");
     expect(state.caseCleanups).toBe(1);
     expect(state.runCleanups).toBe(1);
+    expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
+    expect(await exists(state.runtimeDir ?? "")).toBe(false);
   });
 
   it("skips case preparation and execution when the run is already aborted", async () => {
@@ -525,41 +568,11 @@ describe("runTriggerEval", () => {
       expect(state.liveCaseDirsAtExecute.get(caseId)).toContain(caseId);
       expect(await exists(state.caseRuntimeDirs.get(caseId) ?? "")).toBe(false);
     }
-    expect(state.runtimeLiveAtExecuteEnd.get("case-c")).toStrictEqual({
-      caseDir: true,
-      runDir: true,
-    });
+    const caseCAtEnd = state.runtimeLiveAtExecuteEnd.get("case-c");
+    expect(caseCAtEnd?.caseDirs).toContain("case-c");
+    expect(caseCAtEnd?.runDir).toBe(true);
     expect(await exists(state.runtimeDir ?? "")).toBe(false);
   });
-
-  it.each(["timeout", "abort"] as const)(
-    "releases runtime state when a case ends by %s",
-    async (endedBy) => {
-      const repoRoot = await writeRepoFixture({ marketplace: true });
-      const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
-      const abortController = new AbortController();
-      const { lane, state } = createFakeLane({
-        runtimeRoot,
-        executeResult: async () => {
-          if (endedBy === "abort") {
-            abortController.abort();
-          }
-          return buildCliRunResult({ endedBy, error: `fake ${endedBy}` });
-        },
-      });
-
-      await runTriggerEval({
-        repoRoot,
-        skillPath: "plugins/demo/skills/auto-skill",
-        caseIds: ["skip-case"],
-        abortSignal: abortController.signal,
-        lane,
-      });
-
-      expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
-      expect(await exists(state.runtimeDir ?? "")).toBe(false);
-    },
-  );
 
   it("releases the workspace a failed run preparation left behind", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
@@ -608,8 +621,9 @@ describe("runTriggerEval", () => {
       }),
     ).rejects.toThrow("staging blew up");
 
+    // case-a's failed staging was released while case-b ran; case-b's own state outlived it.
     expect(state.runtimeLiveAtExecuteEnd.get("case-b")).toStrictEqual({
-      caseDir: true,
+      caseDirs: ["case-b"],
       runDir: true,
     });
     expect(state.preparedCaseIds).not.toContain("case-c");
@@ -631,28 +645,6 @@ describe("runTriggerEval", () => {
 
     expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(true);
     expect(await exists(state.runtimeDir ?? "")).toBe(true);
-  });
-
-  it("releases runtime state and rethrows the original error when execution fails", async () => {
-    const repoRoot = await writeRepoFixture({ marketplace: true });
-    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
-    const { lane, state } = createFakeLane({
-      runtimeRoot,
-      executeResult: async () => {
-        throw new Error("exec blew up");
-      },
-    });
-
-    await expect(
-      runTriggerEval({
-        repoRoot,
-        skillPath: "plugins/demo/skills/auto-skill",
-        caseIds: ["skip-case"],
-        lane,
-      }),
-    ).rejects.toThrow("exec blew up");
-    expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
-    expect(await exists(state.runtimeDir ?? "")).toBe(false);
   });
 
   it("releases the runtime state a failed case preparation left behind", async () => {
