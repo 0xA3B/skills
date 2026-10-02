@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   listPluginSkills,
@@ -12,6 +12,15 @@ import {
   resolveSkillLabel,
   formatSkillLabel,
 } from "../../src/skills/index.js";
+
+// APFS returns directory entries in name order, so on macOS a listing that forgot to sort would
+// still pass; reversing them makes the listing's own order observable on every file system.
+vi.mock(import("node:fs/promises"), async (importOriginal) => {
+  const actual = await importOriginal();
+  const readdir = async (...args: Parameters<typeof actual.readdir>) =>
+    (await actual.readdir(...args)).reverse();
+  return { ...actual, readdir: readdir as typeof actual.readdir };
+});
 
 async function tempRepo(): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), "skills-layout-"));
