@@ -1,4 +1,3 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -11,7 +10,13 @@ import {
   runSelection,
   type SelectionRunOptions,
 } from "../../../src/trigger-evals/selection/index.js";
-import { buildCliRunResult, writeRepoFixture } from "../test-utils.js";
+import {
+  buildCliRunResult,
+  triggerFixtureYaml,
+  writeMarketplaceCatalogs,
+  writeRepoFixture,
+  writeSkillFiles,
+} from "../test-utils.js";
 
 // A lane whose agent behaves exactly as each case expects: an invoke case fires the target, a
 // routed skip case fires its alternate, and any other skip case fires nothing. A case named in
@@ -75,36 +80,21 @@ async function run(
   return { ok, report };
 }
 
-async function makeManualOnly(repoRoot: string): Promise<void> {
-  const skillPath = path.join(repoRoot, "plugins", "demo", "skills", "auto-skill");
-  await writeFile(
-    path.join(skillPath, "SKILL.md"),
-    "---\nname: auto-skill\ndisable-model-invocation: true\n---\n",
-  );
-  await writeFile(
-    path.join(skillPath, "agents", "openai.yaml"),
-    "version: 1\npolicy:\n  allow_implicit_invocation: false\n",
-  );
-}
+const demoSkillPath = (repoRoot: string, skillName: string) =>
+  path.join(repoRoot, "plugins", "demo", "skills", skillName);
+const otherSkillPath = (repoRoot: string) =>
+  path.join(repoRoot, "plugins", "other", "skills", "other-skill");
 
-async function writeOtherFixture(repoRoot: string, content: string): Promise<void> {
-  const evalsPath = path.join(repoRoot, "plugins", "other", "skills", "other-skill", "evals");
-  await mkdir(evalsPath, { recursive: true });
-  await writeFile(path.join(evalsPath, "triggers.yaml"), content);
-}
-
-const routingFixture = [
-  "version: 1",
-  "cases:",
-  "  - id: own-invoke",
-  "    prompt: Use the other skill.",
-  "    expect: invoke",
-  "  - id: routes-to-demo",
-  "    prompt: Use the demo skill.",
-  "    expect: skip",
-  "    invoke-instead: demo:auto-skill",
-  "",
-].join("\n");
+// Other-skill's fixture: its own invoke case and a skip case routing to demo:auto-skill.
+const routingFixture = triggerFixtureYaml([
+  { id: "own-invoke", expect: "invoke", prompt: "Use the other skill." },
+  {
+    id: "routes-to-demo",
+    expect: "skip",
+    prompt: "Use the demo skill.",
+    invokeInstead: "demo:auto-skill",
+  },
+]);
 
 describe("runSelection", () => {
   it("runs the marketplace suite on each agent and summarizes it", async () => {
@@ -145,7 +135,7 @@ describe("runSelection", () => {
 
   it("cannot end green when every candidate skill is manual-only", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
-    await makeManualOnly(repoRoot);
+    await writeSkillFiles(demoSkillPath(repoRoot, "auto-skill"), { manualOnly: true });
 
     const { ok, report } = await run({
       repoRoot,
@@ -163,9 +153,51 @@ describe("runSelection", () => {
     ]);
   });
 
+  // The skipped result runs no case, so it fails nothing; only a plugin or marketplace suite that
+  // runs no skill cannot end green.
+  it("ends green when a selected single skill is manual-only", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSkillFiles(demoSkillPath(repoRoot, "auto-skill"), { manualOnly: true });
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: { mode: "skill", skillPath: "plugins/demo/skills/auto-skill" },
+      agents: ["codex"],
+    });
+
+    expect(ok).toBe(true);
+    expect(report.results).toHaveLength(1);
+    expect(report.results[0]?.skippedReason).toMatch(/^demo:auto-skill is manual-only/);
+    expect(report.errors).toStrictEqual([]);
+  });
+
+  it("reports a selected skill whose plugin is outside the agent's catalog instead of running it", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: triggerFixtureYaml() });
+    await writeMarketplaceCatalogs(repoRoot, { codex: ["demo"], claude: ["demo", "other"] });
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: {
+        mode: "marketplace",
+        skillPaths: ["plugins/demo/skills/auto-skill", "plugins/other/skills/other-skill"],
+      },
+      agents: ["codex"],
+    });
+
+    expect(ok).toBe(true);
+    expect(report.results.map((result) => formatSkillLabel(result.target))).toStrictEqual([
+      "demo:auto-skill",
+    ]);
+    expect(report.info).toStrictEqual([
+      "Skipping skills whose plugin is not in the codex marketplace catalog: plugins/other/skills/other-skill.",
+      "Marketplace suite on codex: 1/1 skills passed.",
+    ]);
+  });
+
   it("runs the dependent cases that route to the selected skill under their own fixture", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
-    await writeOtherFixture(repoRoot, routingFixture);
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: routingFixture });
 
     const { ok, report } = await run({
       repoRoot,
@@ -203,7 +235,7 @@ describe("runSelection", () => {
 
   it("cannot end green when a dependent case fails", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
-    await writeOtherFixture(repoRoot, routingFixture);
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: routingFixture });
 
     const { ok, report } = await run(
       {
@@ -223,9 +255,29 @@ describe("runSelection", () => {
     expect(report.errors).toStrictEqual([]);
   });
 
+  it("reports dependent cases it skips because their owning skill is manual-only", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSkillFiles(otherSkillPath(repoRoot), { manualOnly: true, fixture: routingFixture });
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: { mode: "skill", skillPath: "plugins/demo/skills/auto-skill" },
+      agents: ["codex"],
+      withDependents: true,
+    });
+
+    expect(ok).toBe(true);
+    expect(report.results.map((result) => formatSkillLabel(result.target))).toStrictEqual([
+      "demo:auto-skill",
+    ]);
+    expect(report.info).toStrictEqual([
+      "Skipping dependent cases in other:other-skill on codex: other:other-skill is manual-only on codex.",
+    ]);
+  });
+
   it("cannot end green when a fixture the dependents scan needs is unreadable", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
-    await writeOtherFixture(repoRoot, "version: [unclosed\n");
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: "version: [unclosed\n" });
 
     const { ok, report } = await run({
       repoRoot,
@@ -260,16 +312,11 @@ describe("runSelection", () => {
   });
 
   it("reports no empty suite when an abort lands before the suite's first skill", async () => {
-    const repoRoot = await writeRepoFixture({
-      marketplace: true,
-      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSkillFiles(demoSkillPath(repoRoot, "manual-skill"), {
+      manualOnly: true,
+      fixture: triggerFixtureYaml(),
     });
-    const manualEvals = path.join(repoRoot, "plugins", "demo", "skills", "manual-skill", "evals");
-    await mkdir(manualEvals, { recursive: true });
-    await writeFile(
-      path.join(manualEvals, "triggers.yaml"),
-      "version: 1\ncases:\n  - id: manual-invoke\n    prompt: Use it.\n    expect: invoke\n",
-    );
     const abortController = new AbortController();
 
     // The manual-only notice is reported after suite selection and before any skill runs.
