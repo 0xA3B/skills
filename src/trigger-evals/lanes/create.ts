@@ -1,4 +1,4 @@
-import type { PluginTarget } from "../../skills/index.js";
+import type { Agent } from "../../skills/index.js";
 import { createClaudeLane } from "./claude.js";
 import { createCodexLane } from "./codex.js";
 import type { AgentLane } from "./lane.js";
@@ -8,7 +8,7 @@ export type CreateLaneOptions = {
   claudeConfigDir?: string;
 };
 
-export function createLane(agent: PluginTarget, options: CreateLaneOptions = {}): AgentLane {
+export function createLane(agent: Agent, options: CreateLaneOptions = {}): AgentLane {
   if (agent === "claude") {
     return createClaudeLane(
       options.claudeConfigDir === undefined ? {} : { configDir: options.claudeConfigDir },

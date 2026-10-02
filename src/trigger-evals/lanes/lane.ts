@@ -1,4 +1,4 @@
-import type { PluginTarget, Skill, SkillDirectory } from "../../skills/index.js";
+import type { Agent, Skill, SkillDirectory } from "../../skills/index.js";
 import type { TriggerCase } from "../fixtures/index.js";
 import type { MarketplacePluginEntry } from "../marketplace.js";
 import type { RuntimeResources } from "../runtime.js";
@@ -8,7 +8,7 @@ import type { CliRunResult, StreamingCliOutput } from "./exec.js";
 // results predict real invocation behavior. Full-sweep comparisons showed trigger boundaries are
 // model-specific, so proxying with smaller models measures the wrong thing. Override with
 // --model/--effort to spot-check other models.
-export const DEFAULT_EVAL_MODELS: Record<PluginTarget, string> = {
+export const DEFAULT_EVAL_MODELS: Record<Agent, string> = {
   claude: "opus",
   codex: "gpt-6-sol",
 };
@@ -23,11 +23,11 @@ export type LaneRunOptions = {
   // The lane tracks them, run-scoped or under the case id; the runner releases them.
   runtime: RuntimeResources;
   // Plugins staged alongside the target's own surface (the default deployment-context staging).
-  // Entries matching a plugin target's own plugin are deduplicated.
+  // Entries matching a plugin-skill target's own plugin are deduplicated.
   extraPlugins?: MarketplacePluginEntry[];
   // Sibling repo-local skills staged alongside a repo-local target, mirroring how this checkout
-  // loads every repo-local skill together. Never set for plugin targets: repo-local skills do not
-  // exist in a plugin's deployment context.
+  // loads every repo-local skill together. Never set for plugin-skill targets: repo-local skills
+  // do not exist in a plugin's deployment context.
   extraRepoLocalSkills?: SkillDirectory[];
 };
 

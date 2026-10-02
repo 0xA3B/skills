@@ -7,7 +7,7 @@ import {
   readAllowImplicitInvocation,
   resolveSkill,
   formatSkillLabel,
-  type PluginTarget,
+  type Agent,
   type Skill,
 } from "../skills/index.js";
 import { loadTriggerFixture } from "./fixtures/index.js";
@@ -26,7 +26,7 @@ export type TriggerEvalResult = {
   runDir: string;
   reportPath: string;
   target: Skill;
-  agent: PluginTarget;
+  agent: Agent;
   durationMs: number;
   results: TriggerCaseResult[];
   skippedReason?: string;
@@ -37,7 +37,7 @@ export type TriggerEvalResult = {
 export type RunTriggerEvalOptions = {
   repoRoot?: string;
   skillPath: string;
-  agent?: PluginTarget;
+  agent?: Agent;
   fixturePath?: string;
   caseIds?: string[];
   model?: string;
@@ -61,7 +61,7 @@ const DEFAULT_CONCURRENCY = 3;
 export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<TriggerEvalResult> {
   const runStartedAt = Date.now();
   const repoRoot = path.resolve(options.repoRoot ?? process.cwd());
-  const agent: PluginTarget = options.agent ?? "codex";
+  const agent: Agent = options.agent ?? "codex";
   const target = resolveSkill(repoRoot, options.skillPath);
   const model = options.model ?? DEFAULT_EVAL_MODELS[agent];
   const effort = options.effort ?? DEFAULT_EVAL_EFFORT;
@@ -240,11 +240,7 @@ function normalizeConcurrency(value: number): number {
   return value;
 }
 
-async function createRunDir(
-  repoRoot: string,
-  skillName: string,
-  agent: PluginTarget,
-): Promise<string> {
+async function createRunDir(repoRoot: string, skillName: string, agent: Agent): Promise<string> {
   const timestamp = new Date()
     .toISOString()
     .replaceAll(":", "-")

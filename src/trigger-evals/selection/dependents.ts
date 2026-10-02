@@ -7,7 +7,7 @@ import {
   readAllowImplicitInvocation,
   resolveSkill,
   formatSkillLabel,
-  type PluginTarget,
+  type Agent,
 } from "../../skills/index.js";
 import { parseTriggerFixture } from "../fixtures/index.js";
 import { listMarketplacePlugins } from "../marketplace.js";
@@ -144,7 +144,7 @@ export function dependentRunOptions(
 export async function selectDependentsForAgent(
   repoRoot: string,
   dependents: DependentFixture[],
-  agent: PluginTarget,
+  agent: Agent,
 ): Promise<DependentsForAgent> {
   const catalogPluginPaths = new Set(
     (await listMarketplacePlugins(repoRoot, agent)).map((entry) => path.resolve(entry.pluginPath)),

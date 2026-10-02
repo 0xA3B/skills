@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { PluginTarget } from "../skills/index.js";
+import type { Agent } from "../skills/index.js";
 import { isRecord } from "./json.js";
 
 export type MarketplacePluginEntry = {
@@ -14,7 +14,7 @@ export type MarketplacePluginEntry = {
 // example claude-in-codex ships only on Codex) and use different source shapes.
 export async function listMarketplacePlugins(
   repoRoot: string,
-  agent: PluginTarget,
+  agent: Agent,
 ): Promise<MarketplacePluginEntry[]> {
   const catalogPath =
     agent === "claude"

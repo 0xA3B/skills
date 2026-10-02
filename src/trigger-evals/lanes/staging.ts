@@ -31,12 +31,12 @@ export type SkillCanary = {
 
 export type DeploymentOptions = {
   target: Skill;
-  // Catalog plugins staged alongside the target's own surface; an entry for a plugin target's own
-  // plugin is deduplicated.
+  // Catalog plugins staged alongside the target's own surface; an entry for a plugin-skill
+  // target's own plugin is deduplicated.
   plugins: MarketplacePluginEntry[];
   // Sibling repo-local skills staged alongside a repo-local target, mirroring how this checkout
-  // loads every repo-local skill together. Ignored for a plugin target: repo-local skills do not
-  // exist where plugins install.
+  // loads every repo-local skill together. Ignored for a plugin-skill target: repo-local skills do
+  // not exist where plugins install.
   repoLocalSkills: SkillDirectory[];
   // Where the agent discovers project skills: .agents/skills for Codex, .claude/skills for Claude
   // Code.
@@ -191,8 +191,8 @@ export async function surveySkillDependencies(
   return dependencies;
 }
 
-// A plugin target stages its own plugin first; a repo-local target owns no plugin, so it stages
-// exactly the given entries.
+// A plugin-skill target stages its own plugin first; a repo-local target owns no plugin, so it
+// stages exactly the given entries.
 function pluginsToStage(
   target: Skill,
   plugins: MarketplacePluginEntry[],

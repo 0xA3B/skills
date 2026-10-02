@@ -3,7 +3,7 @@ import path from "node:path";
 
 import {
   listPluginSkills,
-  type PluginTarget,
+  type Agent,
   readAllowImplicitInvocation,
   resolveSkill,
 } from "../../skills/index.js";
@@ -33,7 +33,7 @@ export type TriggerEvalSuite = {
 export async function selectSuite(
   repoRoot: string,
   selection: TriggerEvalSelection,
-  agent: PluginTarget,
+  agent: Agent,
 ): Promise<TriggerEvalSuite> {
   if (selection.mode === "skill") {
     return {
@@ -54,7 +54,7 @@ export async function selectSuite(
 export async function selectPluginSuite(
   repoRoot: string,
   pluginPathArgument: string,
-  agent: PluginTarget,
+  agent: Agent,
 ): Promise<TriggerEvalSuite> {
   const pluginPath = path.resolve(repoRoot, pluginPathArgument);
   const relativeParts = path.relative(repoRoot, pluginPath).split(path.sep);
@@ -78,7 +78,7 @@ export async function selectPluginSuite(
 // every catalog description while only its own fixtures run.
 export async function selectMarketplaceSuite(
   repoRoot: string,
-  agent: PluginTarget,
+  agent: Agent,
   selectedSkillPaths: string[] = [],
 ): Promise<TriggerEvalSuite> {
   const suite: TriggerEvalSuite = {
@@ -147,7 +147,7 @@ async function filterMarketplaceSuite(
 async function selectSkillsWithFixtures(
   repoRoot: string,
   pluginPath: string,
-  agent: PluginTarget,
+  agent: Agent,
 ): Promise<TriggerEvalSuite> {
   const suite: TriggerEvalSuite = {
     skillPaths: [],

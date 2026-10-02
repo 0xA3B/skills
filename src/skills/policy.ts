@@ -5,8 +5,8 @@ import { parse as parseYaml } from "yaml";
 import { parseSkillDocument } from "./document.js";
 import type { Skill } from "./layout.js";
 
-// An agent a plugin ships to.
-export type PluginTarget = "claude" | "codex";
+// An agent that loads skills: each plugin target, and the agent a trigger eval runs on.
+export type Agent = "claude" | "codex";
 
 type OpenAiMetadata = {
   policy?: {
@@ -17,10 +17,7 @@ type OpenAiMetadata = {
 // Whether the agent may load the skill implicitly. Codex reads agents/openai.yaml; Claude Code
 // reads SKILL.md frontmatter, and Claude-only plugins ship no agents/openai.yaml. The plugin
 // linter's invocation-policy parity rule keeps both policies equivalent for dual-target skills.
-export async function readAllowImplicitInvocation(
-  skill: Skill,
-  agent: PluginTarget,
-): Promise<boolean> {
+export async function readAllowImplicitInvocation(skill: Skill, agent: Agent): Promise<boolean> {
   if (agent === "claude") {
     return readSkillFileAllowImplicitInvocation(skill.skillFilePath);
   }

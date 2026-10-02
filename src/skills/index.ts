@@ -17,7 +17,7 @@ export {
   type SkillLabel,
 } from "./layout.js";
 export {
-  type PluginTarget,
+  type Agent,
   readAllowImplicitInvocation,
   readSkillFileAllowImplicitInvocation,
 } from "./policy.js";
