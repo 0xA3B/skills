@@ -47,6 +47,9 @@ describe("prepareCodexHome", () => {
         "[features]",
         "plugins = false",
         "",
+        "[profiles.fast]",
+        'web_search = "disabled"',
+        "",
       ].join("\n"),
     );
 
@@ -66,6 +69,8 @@ describe("prepareCodexHome", () => {
     expect(config).not.toContain('model = "gpt-5.5"');
     expect(config).not.toContain('model_reasoning_effort = "xhigh"');
     expect(config).toContain('web_search = "enabled"');
+    // An allowlisted key inside a table belongs to that table, so it is never lifted to the top.
+    expect(config).not.toContain('web_search = "disabled"');
     expect(config).not.toContain("unknown_setting");
     expect(config).toContain("plugins = true");
   });
