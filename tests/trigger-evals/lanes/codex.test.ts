@@ -438,7 +438,9 @@ describe("createCodexLane", () => {
       }),
     );
 
-    expect(seededCase.workspacePath).toContain(path.join("cases", "seeded-case", "workspace"));
+    // A seeded case gets its own copy instead of the base workspace plain cases share.
+    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"));
+    expect(seededCase.workspacePath).not.toBe(plainCase.workspacePath);
     // The seeded cwd is trusted in the case config, and plugins stay outside it.
     const config = await readFile(
       path.join(caseCodexHome(runOptions.runDir, "seeded-case"), "config.toml"),

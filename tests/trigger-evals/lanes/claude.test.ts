@@ -280,7 +280,9 @@ describe("createClaudeLane", () => {
       }),
     );
 
-    expect(seededCase.workspacePath).toContain(path.join("cases", "seeded-case", "workspace"));
+    // A seeded case gets its own copy instead of the base workspace plain cases share.
+    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"));
+    expect(seededCase.workspacePath).not.toBe(plainCase.workspacePath);
     // Harness surfaces still accompany the seeded project.
     await expect(
       readFile(path.join(seededCase.workspacePath, ".claude", "settings.json"), "utf8"),
