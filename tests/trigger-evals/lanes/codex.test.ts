@@ -183,7 +183,7 @@ describe("createCodexLane", () => {
     const canary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
     const codexHome = caseCodexHome(runOptions.runDir, "invoke-case");
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
-    expect(config).toContain('model = "gpt-6-sol"');
+    expect(config).toContain('model = "gpt-6.1-sol"');
     expect(config).toContain('model_reasoning_effort = "medium"');
     expect(config).toContain('[plugins."demo@trigger-eval"]');
     await expect(
