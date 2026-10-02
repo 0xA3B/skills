@@ -10,7 +10,7 @@ import type { CliRunResult, StreamingCliOutput } from "./exec.js";
 // --model/--effort to spot-check other models.
 export const DEFAULT_EVAL_MODELS: Record<Agent, string> = {
   claude: "opus",
-  codex: "gpt-6-sol",
+  codex: "gpt-6.1-sol",
 };
 export const DEFAULT_EVAL_EFFORT = "medium";
 

@@ -12,7 +12,7 @@
 #                  a directory this script created before is replaced, any other is refused
 #   EXTRA_SKILLS   space-separated skill dirs the target applies, staged alongside it: a plugin
 #                  skill brings its whole plugin, a repo-local skill is copied as a project skill
-#   MODEL          model override; defaults match the trigger evals: codex gpt-6-sol, claude opus
+#   MODEL          model override; defaults match the trigger evals: codex gpt-6.1-sol, claude opus
 #   EFFORT         reasoning effort (default medium)
 #   TOOLS          Claude tool list (default Read,Write,Edit,Glob,Grep,Bash,Skill)
 #   CODEX_SOURCE_HOME  Codex home whose auth.json is copied (default ~/.codex)
@@ -332,7 +332,7 @@ case "$AGENT" in
     ' "$RUN/events.jsonl" "$CALLOUT" "$CANARY" "$RUN/final.md" "$ALLOWED")" || CHECK_STATUS=1
     ;;
   codex)
-    MODEL="${MODEL:-gpt-6-sol}"
+    MODEL="${MODEL:-gpt-6.1-sol}"
     mkdir -p "$CODEX_HOME_DIR"
     cp "${CODEX_SOURCE_HOME:-$HOME/.codex}/auth.json" "$CODEX_HOME_DIR/auth.json"
     {

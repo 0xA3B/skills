@@ -206,7 +206,7 @@ describe("printTriggerEvalResult", () => {
         fixturePath: "/tmp/repo/plugins/demo/skills/auto-skill/evals/triggers.yaml",
       },
       agent: "codex",
-      model: "gpt-6-sol",
+      model: "gpt-6.1-sol",
       effort: "medium",
       durationMs: 10,
       results: [],
@@ -252,7 +252,7 @@ describe("printTriggerEvalResult", () => {
 
     expect(log.mock.calls.flat()).toStrictEqual([
       "Trigger eval completed for demo:auto-skill on codex: 1/3 passed in 10ms.",
-      "Agent: codex-cli 0.159.3, model gpt-6-sol, effort medium.",
+      "Agent: codex-cli 0.159.3, model gpt-6.1-sol, effort medium.",
       "- PASS skip-case: 1/1 passed, expected skip",
       "  attempt 1 PASS: observed skip (1.5s)",
       "- FAIL invoke-case: 0/1 passed, expected invoke",
@@ -285,7 +285,7 @@ describe("printTriggerEvalResult", () => {
 
     expect(log.mock.calls.flat()).toStrictEqual([
       "Trigger eval completed for demo:auto-skill on codex: 1/2 passed in 10ms.",
-      "Agent: codex-cli 0.159.3, model gpt-6-sol, effort medium.",
+      "Agent: codex-cli 0.159.3, model gpt-6.1-sol, effort medium.",
       "- FAIL flaky-case: 1/2 passed, expected skip",
       "  attempt 1 PASS: observed skip (1.5s)",
       "  attempt 2 FAIL: observed skip (1.5s)",

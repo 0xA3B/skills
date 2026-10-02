@@ -403,7 +403,7 @@ describe("runTriggerEval", () => {
       lane,
     });
 
-    expect(result).toMatchObject({ model: "gpt-6-sol", agentVersion: "codex-cli 0.159.3" });
+    expect(result).toMatchObject({ model: "gpt-6.1-sol", agentVersion: "codex-cli 0.159.3" });
     expect(result.resolvedModel).toBeUndefined();
   });
 
