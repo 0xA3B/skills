@@ -4,6 +4,13 @@ import path from "node:path";
 import type { TriggerCase } from "./fixture.js";
 import { stageSeededWorkspace, writeWorkspaceFiles } from "./seeds.js";
 
+// One attempt of a case as a relative path: the attempt's artifact directory under the run's
+// cases/ directory, its per-attempt runtime directories and workspace, and its runtime release
+// scope. Attempts number from 1.
+export function caseAttemptKey(caseId: string, attempt: number): string {
+  return path.join(caseId, `attempt-${attempt}`);
+}
+
 // A case needs its own workspace copy when the fixture mutates it: a seeded git repository, or
 // unstaged workspace files. Other cases share the base workspace.
 // An empty workspace_files map declares no files, so it needs no per-case copy.
@@ -23,9 +30,15 @@ export async function stageCaseWorkspace(options: {
   workspaceRoot: string;
   repoRoot: string;
   testCase: TriggerCase;
+  attempt: number;
 }): Promise<string> {
   const { testCase } = options;
-  const workspacePath = path.join(options.workspaceRoot, "cases", testCase.id, "workspace");
+  const workspacePath = path.join(
+    options.workspaceRoot,
+    "cases",
+    caseAttemptKey(testCase.id, options.attempt),
+    "workspace",
+  );
   await cp(options.baseWorkspacePath, workspacePath, { recursive: true });
 
   if (testCase.workspace === undefined) {

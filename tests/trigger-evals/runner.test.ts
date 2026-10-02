@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { TriggerCase } from "../../src/trigger-evals/fixtures/index.js";
+import { caseAttemptKey, type TriggerCase } from "../../src/trigger-evals/fixtures/index.js";
 import {
   type AgentLane,
   type CaseExecuteOptions,
@@ -23,17 +23,23 @@ import {
 } from "./test-utils.js";
 
 type FakeLaneOptions = {
-  observationsFor?: (testCase: TriggerCase, output: StreamingCliOutput) => CaseObservations;
+  observationsFor?: (
+    testCase: TriggerCase,
+    output: StreamingCliOutput,
+    attempt: number,
+  ) => CaseObservations;
   executeResult?: (testCase: TriggerCase) => Promise<CliRunResult>;
   // Runtime directories the fake lane creates and tracks, mirroring a real lane's staged
-  // workspace root (run scope) and per-case Codex home (case scope).
+  // workspace root (run scope) and per-attempt Codex home (attempt scope).
   runtimeRoot?: string;
   prepareRunError?: Error;
   prepareCaseError?: (testCase: TriggerCase) => Error | undefined;
-  // Hold a case's execute until the named sibling's runtime directory has been released, so a
-  // test can observe what a sibling's release did to a case that is still running.
+  // Hold a case's execute until the named sibling case's runtime directory for the same attempt has
+  // been released, so a test can observe what a sibling's release did to a case still running.
   holdUntilReleased?: (testCase: TriggerCase) => string | undefined;
   skillDependencies?: ReadonlyMap<string, ReadonlySet<string>>;
+  // The agent CLI version the lane reports for the whole run, as the Codex lane does.
+  agentVersion?: string;
 };
 
 type FakeLaneState = {
@@ -45,11 +51,12 @@ type FakeLaneState = {
   activeExecs: number;
   maxActiveExecs: number;
   runtimeDir: string | undefined;
+  // Keyed by attempt key, as are the two maps below.
   caseRuntimeDirs: Map<string, string>;
-  // Which case runtime directories still existed when each case executed.
+  // Which attempt runtime directories still existed when each attempt executed.
   liveCaseDirsAtExecute: Map<string, string[]>;
-  // Which case runtime directories, and whether the run directory, still existed when each case's
-  // execute ended.
+  // Which attempt runtime directories, and whether the run directory, still existed when each
+  // attempt's execute ended.
   runtimeLiveAtExecuteEnd: Map<string, { caseDirs: string[]; runDir: boolean }>;
 };
 
@@ -95,9 +102,9 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
       : { signal: "none", invokedSkills: [], hasActivity: true, decisionItemCount: 1 };
   const liveCaseDirs = async (): Promise<string[]> => {
     const live: string[] = [];
-    for (const [caseId, caseRuntimeDir] of state.caseRuntimeDirs) {
+    for (const [key, caseRuntimeDir] of state.caseRuntimeDirs) {
       if (await exists(caseRuntimeDir)) {
-        live.push(caseId);
+        live.push(key);
       }
     }
     return live;
@@ -118,13 +125,15 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
         stagedSkillLabels: new Set(["demo:auto-skill"]),
         skillDependencies: options.skillDependencies ?? new Map(),
         skipDecisionItemBudget: FAKE_SKIP_DECISION_ITEM_BUDGET,
-        async prepareCase(testCase) {
+        ...(options.agentVersion === undefined ? {} : { agentVersion: options.agentVersion }),
+        async prepareCase(testCase, attempt) {
           state.preparedCaseIds.push(testCase.id);
+          const key = caseAttemptKey(testCase.id, attempt);
           if (options.runtimeRoot !== undefined) {
-            const caseRuntimeDir = path.join(options.runtimeRoot, "cases", testCase.id);
+            const caseRuntimeDir = path.join(options.runtimeRoot, "cases", key);
             await mkdir(caseRuntimeDir, { recursive: true });
-            state.caseRuntimeDirs.set(testCase.id, caseRuntimeDir);
-            runOptions.runtime.track(caseRuntimeDir, testCase.id);
+            state.caseRuntimeDirs.set(key, caseRuntimeDir);
+            runOptions.runtime.track(caseRuntimeDir, key);
           }
           const prepareError = options.prepareCaseError?.(testCase);
           if (prepareError !== undefined) {
@@ -133,12 +142,12 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
           return {
             workspacePath: `/fake/${testCase.id}`,
             observe: (output) =>
-              options.observationsFor?.(testCase, output) ?? defaultObservations(testCase),
+              options.observationsFor?.(testCase, output, attempt) ?? defaultObservations(testCase),
             async execute(executeOptions) {
               state.executed.push({ testCase, executeOptions });
               state.activeExecs += 1;
               state.maxActiveExecs = Math.max(state.maxActiveExecs, state.activeExecs);
-              state.liveCaseDirsAtExecute.set(testCase.id, await liveCaseDirs());
+              state.liveCaseDirsAtExecute.set(key, await liveCaseDirs());
               // Evidence a real lane writes under the case directory, which cleanup must keep.
               await mkdir(executeOptions.caseDir, { recursive: true });
               await writeFile(path.join(executeOptions.caseDir, "events.jsonl"), "{}\n");
@@ -148,14 +157,16 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
                 }
                 const sibling = options.holdUntilReleased?.(testCase);
                 const siblingDir =
-                  sibling === undefined ? undefined : state.caseRuntimeDirs.get(sibling);
+                  sibling === undefined
+                    ? undefined
+                    : state.caseRuntimeDirs.get(caseAttemptKey(sibling, attempt));
                 if (siblingDir !== undefined) {
                   await waitUntilGone(siblingDir);
                 }
                 return buildCliRunResult();
               } finally {
                 state.activeExecs -= 1;
-                state.runtimeLiveAtExecuteEnd.set(testCase.id, {
+                state.runtimeLiveAtExecuteEnd.set(key, {
                   caseDirs: await liveCaseDirs(),
                   runDir: await exists(state.runtimeDir ?? ""),
                 });
@@ -174,6 +185,11 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
   };
 
   return { lane, state };
+}
+
+// The attempt key of a case's only attempt in a run without --repeat.
+function onlyAttempt(caseId: string): string {
+  return caseAttemptKey(caseId, 1);
 }
 
 describe("runTriggerEval", () => {
@@ -213,10 +229,10 @@ describe("runTriggerEval", () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(
       Math.max(...result.results.map((caseResult) => caseResult.durationMs)),
     );
-    // Case artifacts land under the run directory, one directory per case; the run directory
-    // names the skill and agent so codex and claude artifacts stay distinguishable on disk.
+    // Case artifacts land under the run directory, one directory per attempt of each case; the
+    // run directory names the skill and agent so codex and claude artifacts stay distinguishable.
     expect(state.executed[0]?.executeOptions.caseDir).toBe(
-      path.join(result.runDir, "cases", "case-a"),
+      path.join(result.runDir, "cases", "case-a", "attempt-1"),
     );
     expect(result.runDir).toContain("auto_skill-codex-");
     const report = JSON.parse(await readFile(result.reportPath, "utf8")) as {
@@ -248,6 +264,147 @@ describe("runTriggerEval", () => {
       "case-c",
     ]);
     expect(state.preparedCaseIds).toStrictEqual(["case-a", "case-c"]);
+  });
+
+  it("runs every case once per attempt and records each attempt in fixture order", async () => {
+    const repoRoot = await writeRepoFixture({
+      marketplace: true,
+      cases: [
+        { id: "case-a", expect: "invoke" },
+        { id: "case-b", expect: "skip" },
+      ],
+    });
+    // case-a's second attempt misses the invocation, so only that attempt fails.
+    const { lane } = createFakeLane({
+      observationsFor: (testCase, _output, attempt) =>
+        testCase.id === "case-a" && attempt !== 2
+          ? {
+              signal: "stdout-skill-canary",
+              invokedSkills: ["demo:auto-skill"],
+              hasActivity: true,
+              decisionItemCount: 1,
+            }
+          : { signal: "none", invokedSkills: [], hasActivity: true, decisionItemCount: 1 },
+    });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      repeat: 3,
+      lane,
+    });
+
+    expect(
+      result.results.map(({ caseId, attempt, passed }) => ({ caseId, attempt, passed })),
+    ).toStrictEqual([
+      { caseId: "case-a", attempt: 1, passed: true },
+      { caseId: "case-a", attempt: 2, passed: false },
+      { caseId: "case-a", attempt: 3, passed: true },
+      { caseId: "case-b", attempt: 1, passed: true },
+      { caseId: "case-b", attempt: 2, passed: true },
+      { caseId: "case-b", attempt: 3, passed: true },
+    ]);
+    // The failing attempt keeps its own evidence beside its siblings'.
+    await expect(
+      stat(path.join(result.runDir, "cases", "case-a", "attempt-2", "events.jsonl")),
+    ).resolves.toBeDefined();
+    const report = JSON.parse(await readFile(result.reportPath, "utf8")) as {
+      results: Array<{ caseId: string; attempt: number }>;
+    };
+    expect(report.results.map(({ caseId, attempt }) => `${caseId}#${attempt}`)).toStrictEqual([
+      "case-a#1",
+      "case-a#2",
+      "case-a#3",
+      "case-b#1",
+      "case-b#2",
+      "case-b#3",
+    ]);
+  });
+
+  it("releases each attempt's runtime state on its own", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "runner-runtime-"));
+    const { lane, state } = createFakeLane({ runtimeRoot });
+
+    await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseIds: ["invoke-case"],
+      repeat: 2,
+      concurrency: 1,
+      lane,
+    });
+
+    // Sequential attempts: the first attempt's state is gone before the second executes.
+    const second = caseAttemptKey("invoke-case", 2);
+    expect(state.liveCaseDirsAtExecute.get(second)).toStrictEqual([second]);
+    expect(await exists(state.caseRuntimeDirs.get(second) ?? "")).toBe(false);
+  });
+
+  it.each([0, -1, 1.5])("rejects a repeat count of %s", async (repeat) => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const { lane, state } = createFakeLane();
+
+    await expect(
+      runTriggerEval({ repoRoot, skillPath: "plugins/demo/skills/auto-skill", repeat, lane }),
+    ).rejects.toThrow("repeat must be a positive integer.");
+    expect(state.preparedCaseIds).toStrictEqual([]);
+  });
+
+  it("records the checkout, requested model, agent version, and resolved model in the report", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    // Claude reports its version and resolved model in each case's own event stream.
+    const { lane } = createFakeLane({
+      observationsFor: () => ({
+        signal: "none",
+        invokedSkills: [],
+        hasActivity: true,
+        decisionItemCount: 1,
+        agentVersion: "Claude Code 2.1.286",
+        resolvedModel: "claude-opus-5-5",
+      }),
+    });
+    const checkout = { root: repoRoot, branch: "main", head: "abc1234", uncommittedFiles: 2 };
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      agent: "claude",
+      caseIds: ["skip-case"],
+      checkout,
+      lane,
+    });
+
+    const report = JSON.parse(await readFile(result.reportPath, "utf8")) as Record<string, unknown>;
+    expect(report).toMatchObject({
+      checkout,
+      model: "opus",
+      effort: "medium",
+      agentVersion: "Claude Code 2.1.286",
+      resolvedModel: "claude-opus-5-5",
+      results: [
+        {
+          caseId: "skip-case",
+          resolvedModel: "claude-opus-5-5",
+          agentVersion: "Claude Code 2.1.286",
+        },
+      ],
+    });
+  });
+
+  it("records the agent version a lane reports for the whole run", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    const { lane } = createFakeLane({ agentVersion: "codex-cli 0.159.3" });
+
+    const result = await runTriggerEval({
+      repoRoot,
+      skillPath: "plugins/demo/skills/auto-skill",
+      caseIds: ["skip-case"],
+      lane,
+    });
+
+    expect(result).toMatchObject({ model: "gpt-6-sol", agentVersion: "codex-cli 0.159.3" });
+    expect(result.resolvedModel).toBeUndefined();
   });
 
   it("resolves per-agent default models before handing the run to the lane", async () => {
@@ -482,7 +639,7 @@ describe("runTriggerEval", () => {
     ).rejects.toThrow("exec blew up");
     expect(state.caseCleanups).toBe(1);
     expect(state.runCleanups).toBe(1);
-    expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
+    expect(await exists(state.caseRuntimeDirs.get(onlyAttempt("skip-case")) ?? "")).toBe(false);
     expect(await exists(state.runtimeDir ?? "")).toBe(false);
   });
 
@@ -526,16 +683,20 @@ describe("runTriggerEval", () => {
 
     // Sequential cases: case-a's runtime directory is gone before case-b executes, while the run
     // directory outlives both.
-    expect(state.liveCaseDirsAtExecute.get("case-a")).toStrictEqual(["case-a"]);
-    expect(state.liveCaseDirsAtExecute.get("case-b")).toStrictEqual(["case-b"]);
-    expect(await exists(state.caseRuntimeDirs.get("case-b") ?? "")).toBe(false);
+    expect(state.liveCaseDirsAtExecute.get(onlyAttempt("case-a"))).toStrictEqual([
+      onlyAttempt("case-a"),
+    ]);
+    expect(state.liveCaseDirsAtExecute.get(onlyAttempt("case-b"))).toStrictEqual([
+      onlyAttempt("case-b"),
+    ]);
+    expect(await exists(state.caseRuntimeDirs.get(onlyAttempt("case-b")) ?? "")).toBe(false);
     expect(await exists(state.runtimeDir ?? "")).toBe(false);
     expect(result.cleanupFailures).toBeUndefined();
     // Durable artifacts survive: the report and each case's evidence are still on disk.
     await expect(stat(result.reportPath)).resolves.toBeDefined();
     for (const caseId of ["case-a", "case-b"]) {
       await expect(
-        stat(path.join(result.runDir, "cases", caseId, "events.jsonl")),
+        stat(path.join(result.runDir, "cases", caseId, "attempt-1", "events.jsonl")),
       ).resolves.toBeDefined();
     }
   });
@@ -565,11 +726,11 @@ describe("runTriggerEval", () => {
 
     // Every case saw its own directory while executing; a sibling's release never removed it.
     for (const caseId of ["case-a", "case-b", "case-c"]) {
-      expect(state.liveCaseDirsAtExecute.get(caseId)).toContain(caseId);
-      expect(await exists(state.caseRuntimeDirs.get(caseId) ?? "")).toBe(false);
+      expect(state.liveCaseDirsAtExecute.get(onlyAttempt(caseId))).toContain(onlyAttempt(caseId));
+      expect(await exists(state.caseRuntimeDirs.get(onlyAttempt(caseId)) ?? "")).toBe(false);
     }
-    const caseCAtEnd = state.runtimeLiveAtExecuteEnd.get("case-c");
-    expect(caseCAtEnd?.caseDirs).toContain("case-c");
+    const caseCAtEnd = state.runtimeLiveAtExecuteEnd.get(onlyAttempt("case-c"));
+    expect(caseCAtEnd?.caseDirs).toContain(onlyAttempt("case-c"));
     expect(caseCAtEnd?.runDir).toBe(true);
     expect(await exists(state.runtimeDir ?? "")).toBe(false);
   });
@@ -622,8 +783,8 @@ describe("runTriggerEval", () => {
     ).rejects.toThrow("staging blew up");
 
     // case-a's failed staging was released while case-b ran; case-b's own state outlived it.
-    expect(state.runtimeLiveAtExecuteEnd.get("case-b")).toStrictEqual({
-      caseDirs: ["case-b"],
+    expect(state.runtimeLiveAtExecuteEnd.get(onlyAttempt("case-b"))).toStrictEqual({
+      caseDirs: [onlyAttempt("case-b")],
       runDir: true,
     });
     expect(state.preparedCaseIds).not.toContain("case-c");
@@ -643,7 +804,7 @@ describe("runTriggerEval", () => {
       lane,
     });
 
-    expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(true);
+    expect(await exists(state.caseRuntimeDirs.get(onlyAttempt("skip-case")) ?? "")).toBe(true);
     expect(await exists(state.runtimeDir ?? "")).toBe(true);
   });
 
@@ -663,7 +824,7 @@ describe("runTriggerEval", () => {
         lane,
       }),
     ).rejects.toThrow("staging blew up");
-    expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
+    expect(await exists(state.caseRuntimeDirs.get(onlyAttempt("skip-case")) ?? "")).toBe(false);
     expect(await exists(state.runtimeDir ?? "")).toBe(false);
     expect(state.caseCleanups).toBe(0);
     expect(state.runCleanups).toBe(1);
@@ -721,7 +882,7 @@ describe("runTriggerEval", () => {
       expect(result.results).toHaveLength(1);
       expect(result.cleanupFailures).toHaveLength(1);
       expect(result.cleanupFailures?.[0]).toContain(state.runtimeDir ?? "");
-      expect(await exists(state.caseRuntimeDirs.get("skip-case") ?? "")).toBe(false);
+      expect(await exists(state.caseRuntimeDirs.get(onlyAttempt("skip-case")) ?? "")).toBe(false);
       const report = JSON.parse(await readFile(result.reportPath, "utf8")) as {
         cleanupFailures?: string[];
       };

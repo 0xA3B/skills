@@ -35,10 +35,13 @@ export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOption
     options.effort = readStringOption(parsed.values.effort, "--effort");
   }
   if (parsed.values["timeout-ms"] !== undefined) {
-    options.timeoutMs = parseTimeoutMs(parsed.values["timeout-ms"]);
+    options.timeoutMs = parsePositiveInteger(parsed.values["timeout-ms"], "--timeout-ms");
   }
   if (parsed.values.concurrency !== undefined) {
-    options.concurrency = parseConcurrency(parsed.values.concurrency);
+    options.concurrency = parsePositiveInteger(parsed.values.concurrency, "--concurrency");
+  }
+  if (parsed.values.repeat !== undefined) {
+    options.repeat = parsePositiveInteger(parsed.values.repeat, "--repeat");
   }
   if (parsed.values["codex-home"] !== undefined) {
     options.sourceCodexHome = readStringOption(parsed.values["codex-home"], "--codex-home");
@@ -168,6 +171,8 @@ export function usage(): string {
     "  --effort <effort>          Reasoning effort override. Defaults to medium.",
     "  --timeout-ms <ms>          Per-case timeout. Defaults to 60000.",
     "  --concurrency <n>          Number of cases to run in parallel. Defaults to 3.",
+    "  --repeat <n>               Run each case n times. A case passes only when every attempt",
+    "                             passes. Defaults to 1.",
     "  --codex-home <path>        Source Codex home to copy auth/config from. Defaults to ~/.codex.",
     "  --claude-config-dir <path> CLAUDE_CONFIG_DIR for Claude runs. Defaults to the ambient value.",
     "  --with-dependents          Also run the dependent cases: skip cases in other fixtures whose",
@@ -195,6 +200,7 @@ function parseTriggerArgs(argv: string[]) {
         effort: { type: "string" },
         "timeout-ms": { type: "string" },
         concurrency: { type: "string" },
+        repeat: { type: "string" },
         "codex-home": { type: "string" },
         "claude-config-dir": { type: "string" },
         "with-dependents": { type: "boolean" },
@@ -206,14 +212,6 @@ function parseTriggerArgs(argv: string[]) {
   } catch (caught: unknown) {
     throw normalizeParseArgsError(caught);
   }
-}
-
-function parseTimeoutMs(value: string): number {
-  return parsePositiveInteger(value, "--timeout-ms");
-}
-
-function parseConcurrency(value: string): number {
-  return parsePositiveInteger(value, "--concurrency");
 }
 
 function parsePositiveInteger(value: string, optionName: string): number {

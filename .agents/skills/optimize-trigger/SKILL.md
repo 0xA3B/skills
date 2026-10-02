@@ -147,8 +147,8 @@ cases where loaded repository instructions should affect the trigger boundary, s
    - near-miss cases that exercise the description boundary
 4. Separate diagnostic runs from gate runs. A diagnostic run is a run narrowed to one case with
    `--case <id>` and without `--with-dependents`, allowed while wording changes; every other run,
-   including the target's full fixture, is a gate run. Start a gate run only when each condition
-   that applies holds:
+   including the target's full fixture, is a gate run. Run gate runs without `--repeat`, which
+   multiplies eval time. Start a gate run only when each condition that applies holds:
    - If any skill's `description` or `when_to_use` differs from `main`, or from the version this
      tuning pass started with, in more than mechanical or incidental wording, the prose lane of
      `engineering:review-changes` has reviewed the exact wording the gate run evaluates, and its
@@ -166,9 +166,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
 
    The `description` is one trigger contract shared by both agents, so skills should pass on both.
    Use `--agent codex` or `--agent claude` to run one agent at a time; while wording changes,
-   iterate with diagnostic runs. The harness stages repo-local skills under `.agents/skills/` for
-   Codex and `.claude/skills/` for Claude Code, mirroring how the checkout's `.claude/skills`
-   symlink exposes them in live sessions.
+   iterate with diagnostic runs.
 
    Every run stages the target's deployment context by default. A plugin skill competes against
    every plugin in the agent's marketplace catalog, matching an installed session. A repo-local
@@ -185,7 +183,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
    Two suite selections widen which fixtures run; staging is unchanged:
    `mise exec -- pnpm eval:trigger:plugin -- plugins/<plugin>` runs every implicitly invokable
    skill's fixtures in the plugin, and `mise exec -- pnpm eval:trigger:marketplace` runs every
-   fixture in the agent's marketplace catalog, exercising every cross-plugin boundary in one pass.
+   fixture in the agent's marketplace catalog.
 
    To retest a few skills, pass skill paths to the marketplace selection:
    `mise exec -- pnpm eval:trigger:marketplace -- plugins/<plugin>/skills/<skill> [more paths] --agent both`
@@ -193,10 +191,8 @@ cases where loaded repository instructions should affect the trigger boundary, s
    catalog is skipped with a notice on the other agent's lane. For one skill, use the plain
    single-skill run; `--case <id>` and `--fixture <path>` narrow it to one flaky case.
 
-   Trigger cases run with bounded parallelism by default. When the target fixture needs a slower or
-   faster run than the default concurrency of 3, use `--concurrency <n>`. The default per-case
-   timeout is 60 seconds because trigger evals measure whether the skill is invoked, not whether the
-   requested workflow completes.
+   The default per-case timeout is 60 seconds because trigger evals measure whether the skill is
+   invoked, not whether the requested workflow completes.
 
    Evals pin the default models to the ones this repository's skills are used with day to day:
    `gpt-6-sol` for Codex and `opus` for Claude Code, both at `medium` reasoning effort. Trigger
@@ -204,7 +200,11 @@ cases where loaded repository instructions should affect the trigger boundary, s
    smaller-model proxy. Use `--model` and `--effort` to spot-check other models or match a different
    working setup.
 
-6. Read the report and failed case outputs under `.local/skill-evals/trigger/`.
+6. Read the report and failed case outputs under `.local/skill-evals/trigger/`. Before you edit a
+   description for a FAIL, confirm that the `Checkout:` line names the checkout and branch under
+   test, and that each `Agent:` line names the model you selected and the same agent version as any
+   run you compare against. If a line does not match, rerun from the correct checkout or agent
+   before you interpret the results. `report.json` records the same fields.
 7. For false negatives, make the description more explicit about the missing user intent.
 8. For false positives, narrow the description with clearer ownership boundaries or exclusions. When
    only Claude Code needs different tuning, prefer adding or adjusting the Claude-only `when_to_use`
@@ -214,10 +214,15 @@ cases where loaded repository instructions should affect the trigger boundary, s
 9. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
    direction — fix the repo-local description. Marketplace descriptions serve every installation;
    edit one only when the overlap would also misfire in a session without the repo-local skills.
-10. After edits, rerun failed cases as diagnostic runs. When step 4's gate conditions hold, rerun
-    with `--with-dependents` the fixtures of every skill whose `description` or `when_to_use`
-    changed and every skill named in `wrong-skill` results. For plugin skills, one marketplace
-    selection covers several:
+10. After edits, rerun as a diagnostic run with `--case <id> --repeat 5` each case that failed in
+    any run of this tuning pass, even when it passed since, and each case the user or an open issue
+    names as flaky. Count the case fixed only at `5/5 passed`; any lower tally keeps the case a
+    failure, including a flaky one. If an attempt prints ERROR, fix the environment and rerun before
+    you judge the case. Otherwise fix the case or the description; deleting a flaky case, changing
+    its expectation, or leaving it out of the gate run is a user decision. When step 4's gate
+    conditions hold, rerun with `--with-dependents` the fixtures of every skill whose `description`
+    or `when_to_use` changed and every skill named in `wrong-skill` results. For plugin skills, one
+    marketplace selection covers several:
     `mise exec -- pnpm eval:trigger:marketplace -- <skill-path> [more paths] --agent both --with-dependents`.
     The marketplace selection refuses a repo-local path, so rerun a repo-local target one at a time:
     `mise exec -- pnpm eval:trigger -- <skill-path> --agent both --with-dependents`. The flag runs
@@ -240,12 +245,13 @@ cases where loaded repository instructions should affect the trigger boundary, s
   checkout's live skills never leak into the trigger signal. On both lanes, staged plugin deployment
   copies and the Codex marketplace catalog are siblings of the case workspace rather than project
   files, matching an installed session and keeping them out of project reconnaissance.
-- Runtime state is removed as the run goes: each case's Codex home once its output is captured, and
-  the staged workspaces and run home when the run ends, whether it completed, failed, timed out, or
-  was canceled. `report.json` and the per-case `events.jsonl`, `final.txt`, and `stderr.log` stay.
-  Pass `--keep-runtime` to retain the homes and workspaces for debugging; a directory the runner
+- Runtime state is removed as the run goes: each attempt's Codex home once its output is captured,
+  and the staged workspaces and run home when the run ends, whether it completed, failed, timed out,
+  or was canceled. `report.json` and each attempt's `events.jsonl`, `final.txt`, and `stderr.log`
+  under `cases/<case-id>/attempt-<n>/` stay. Pass `--keep-runtime` to retain the homes and
+  workspaces for debugging, though the copied `auth.json` is still removed; a directory the runner
   could not remove is printed as a warning and never fails the run.
-- Cases with a `workspace` block or `workspace_files` run in a case-specific copy of the staged
+- Cases with a `workspace` block or `workspace_files` run in an attempt-specific copy of the staged
   workspace. The runner builds the seeded repository identically on both lanes, with a harness-owned
   git identity and signing disabled, so the machine's git configuration cannot affect a run.
 - The committed `description` remains the trigger surface under test.
@@ -285,13 +291,14 @@ cases where loaded repository instructions should affect the trigger boundary, s
 - Claude workspaces stage project-only `.claude/settings.json` with `disableBundledSkills: true` so
   bundled skills such as `code-review` do not compete with the target. The runner verifies the
   isolation at runtime: each Claude case checks the init event's `skills` list against the staged
-  set (plus the exempt `doctor` skill) and reports an environmental failure when unstaged skills
-  leak in, because a leaked skill can steal or provoke an invocation in either direction.
+  set (plus the exempt list in `verdict.ts`) and reports an environmental failure when unstaged
+  skills leak in, because a leaked skill can steal or provoke an invocation in either direction.
 - Staging is lane-specific: only the evaluated agent's config surfaces are written into the
   workspace (`.claude/` for Claude, `.agents/` for Codex), so the other agent's files never pollute
   the workspace under test.
-- Case pass/fail is based on matching the expected invoke or skip classification. Exec errors and
-  timeouts remain in the report because trigger evals do not validate workflow completion.
+- Attempt pass/fail is based on matching the expected invoke or skip classification, and a case
+  passes only when every attempt passes. Exec errors and timeouts remain in the report because
+  trigger evals do not validate workflow completion.
 - Skip verdicts record how the run ended: natural completion, the decision-item budget, or the case
   timeout. Timeout skips are annotated as weak signals because the model might have invoked after
   the cutoff; treat a fixture that repeatedly skips only via timeout as unresolved, not passing.
@@ -300,7 +307,6 @@ cases where loaded repository instructions should affect the trigger boundary, s
   (a sandboxed Codex session, a sandboxed Bash tool call) kills every case before it executes —
   macOS refuses to nest a second Seatbelt sandbox. The runner reports such cases as ERROR with an
   environmental-failure note instead of counting the dead run as a skip.
-- The runner removes copied `auth.json` from the temporary Codex home after the run.
 
 ## Boundaries
 

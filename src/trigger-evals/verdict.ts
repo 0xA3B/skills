@@ -1,8 +1,11 @@
 import type { TriggerExpectation } from "./fixtures/index.js";
 import type { CaseObservations, CliRunResult, InvocationSignal } from "./lanes/index.js";
 
+// The verdict on one attempt of a case.
 export type TriggerCaseResult = {
   caseId: string;
+  // Which attempt of the case this is, from 1.
+  attempt: number;
   expect: TriggerExpectation;
   // The case's routing assertion, copied from the fixture so reports can show the expectation.
   invokeInstead?: string;
@@ -26,6 +29,10 @@ export type TriggerCaseResult = {
   // later). Absent on invoked cases and on runs that ended by abort or spawn failure.
   skipSignal?: "completed" | "item-budget" | "timeout";
   environmentalFailure?: string;
+  // The model the agent reported answering with and the agent CLI version, when the lane reads
+  // them from each case's output (Claude).
+  resolvedModel?: string;
+  agentVersion?: string;
   durationMs: number;
   exitCode: number | null;
   finalMessagePath: string;
@@ -58,6 +65,7 @@ export function shouldStopEarly(
 
 export type CaseVerdictOptions = {
   testCase: { id: string; expect: TriggerExpectation; invokeInstead?: string };
+  attempt: number;
   targetLabel: string;
   // Every staged skill's label regardless of invocation policy, for the isolation check.
   stagedSkillLabels: ReadonlySet<string>;
@@ -129,6 +137,7 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   const passed = environmentalFailure === undefined && matchedExpectation;
   return {
     caseId: testCase.id,
+    attempt: options.attempt,
     expect: testCase.expect,
     ...(testCase.invokeInstead === undefined ? {} : { invokeInstead: testCase.invokeInstead }),
     invocationSignal: observations.signal,
@@ -139,6 +148,10 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
     passed,
     ...(skipSignal === undefined ? {} : { skipSignal }),
     ...(environmentalFailure === undefined ? {} : { environmentalFailure }),
+    ...(observations.resolvedModel === undefined
+      ? {}
+      : { resolvedModel: observations.resolvedModel }),
+    ...(observations.agentVersion === undefined ? {} : { agentVersion: observations.agentVersion }),
     durationMs: options.durationMs,
     exitCode: runResult.exitCode,
     finalMessagePath: runResult.finalMessagePath,
@@ -191,9 +204,10 @@ function detectEnvironmentalFailure(
   return undefined;
 }
 
-// Bundled skills Claude Code loads even when disableBundledSkills is honored (observed on
-// 2.1.210). Extend when a new Claude version exempts more skills from the setting.
-const DISABLE_BUNDLED_SKILLS_EXEMPT = new Set(["doctor"]);
+// Bundled skills Claude Code loads even when disableBundledSkills is honored: doctor (observed on
+// 2.1.210) and plugin-authoring (added in 2.1.286). Extend when a new Claude version exempts more
+// skills from the setting. An exempt skill that fires is still reported as a wrong skill.
+const DISABLE_BUNDLED_SKILLS_EXEMPT = new Set(["doctor", "plugin-authoring"]);
 
 // The loaded-skills observation lists every skill the agent reported loading: plugin skills as
 // <plugin>:<skill>, project and bundled skills as bare names. With staging honored, only staged

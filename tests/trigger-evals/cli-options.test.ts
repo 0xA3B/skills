@@ -47,6 +47,8 @@ describe("parseTriggerEvalCliOptions", () => {
         "5000",
         "--concurrency",
         "4",
+        "--repeat",
+        "5",
         "--codex-home",
         "/tmp/codex",
         "--claude-config-dir",
@@ -63,6 +65,7 @@ describe("parseTriggerEvalCliOptions", () => {
       effort: "high",
       timeoutMs: 5000,
       concurrency: 4,
+      repeat: 5,
       sourceCodexHome: "/tmp/codex",
       claudeConfigDir: "/tmp/claude-config",
       keepRuntime: true,
@@ -210,6 +213,8 @@ describe("parseTriggerEvalCliOptions", () => {
     ["--timeout-ms", "9007199254740993"],
     ["--concurrency", "0"],
     ["--concurrency", "abc"],
+    ["--repeat", "0"],
+    ["--repeat", "2.5"],
   ])("rejects %s %s as not a positive integer", (flag, value) => {
     expect(() => parseTriggerEvalCliOptions(["plugins/foo/skills/bar", flag, value])).toThrow(
       `${flag} must be a positive integer.`,
@@ -248,6 +253,7 @@ describe("usage", () => {
     "--effort",
     "--timeout-ms",
     "--concurrency",
+    "--repeat",
     "--codex-home",
     "--claude-config-dir",
     "--with-dependents",

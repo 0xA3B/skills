@@ -66,6 +66,7 @@ describe("stageCaseWorkspace", () => {
         workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
         workspaceFiles: { "notes.md": "unstaged\n" },
       },
+      attempt: 1,
     });
 
     expectCaseWorkspace(caseWorkspacePath, { workspaceRoot, workspacePath });
@@ -99,6 +100,7 @@ describe("stageCaseWorkspace", () => {
         expect: "skip",
         workspaceFiles: { "AGENTS.md": "Use Gitmoji.\n" },
       },
+      attempt: 1,
     });
 
     expectCaseWorkspace(caseWorkspacePath, { workspaceRoot, workspacePath });
@@ -119,6 +121,7 @@ describe("stageCaseWorkspace", () => {
         workspaceRoot,
         repoRoot,
         testCase: { id, prompt: "Anything", expect: "skip", workspaceFiles },
+        attempt: 1,
       });
 
     const firstPath = await stage("first-case", { "first.md": "first\n" });
@@ -126,5 +129,34 @@ describe("stageCaseWorkspace", () => {
 
     expect(secondPath).not.toBe(firstPath);
     await expect(stat(path.join(secondPath, "first.md"))).rejects.toThrow(/ENOENT/);
+  });
+
+  it("gives each attempt of a case its own copy of the base workspace", async () => {
+    const { workspaceRoot, workspacePath } = await writeBaseWorkspace();
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "fixture-repo-"));
+    const testCase = {
+      id: "agents-case",
+      prompt: "Anything",
+      expect: "skip" as const,
+      workspaceFiles: { "AGENTS.md": "Use Gitmoji.\n" },
+    };
+    const stage = async (attempt: number) =>
+      stageCaseWorkspace({
+        baseWorkspacePath: workspacePath,
+        workspaceRoot,
+        repoRoot,
+        testCase,
+        attempt,
+      });
+
+    const firstPath = await stage(1);
+    // An agent that edits its workspace in one attempt cannot leak the edit into the next.
+    await writeFile(path.join(firstPath, "AGENTS.md"), "Edited by attempt 1.\n");
+    const secondPath = await stage(2);
+
+    expect(secondPath).not.toBe(firstPath);
+    await expect(readFile(path.join(secondPath, "AGENTS.md"), "utf8")).resolves.toBe(
+      "Use Gitmoji.\n",
+    );
   });
 });

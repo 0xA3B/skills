@@ -70,6 +70,7 @@ describe("createClaudeLane", () => {
     const laneRun = await lane.prepareRun(runOptions);
     const laneCase = await laneRun.prepareCase(
       triggerCase("invoke-case", "invoke", { workspaceFiles: { "notes.md": "hello" } }),
+      1,
     );
     await expect(stat(laneCase.workspacePath)).resolves.toBeDefined();
 
@@ -85,7 +86,7 @@ describe("createClaudeLane", () => {
     const laneRun = await lane.prepareRun(
       await makeLaneRunOptions("claude", repoRoot, "plugins/demo/skills/auto-skill"),
     );
-    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 1);
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(new Set(["demo:auto-skill"]));
     const settings = JSON.parse(
@@ -128,7 +129,7 @@ describe("createClaudeLane", () => {
       }),
     );
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "claude-lane-case-"));
-    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 1);
     const runResult = await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
     const call = spawnCalls[0];
@@ -164,7 +165,7 @@ describe("createClaudeLane", () => {
     const laneRun = await lane.prepareRun(
       await makeLaneRunOptions("claude", repoRoot, ".agents/skills/auto-skill"),
     );
-    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"), 1);
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(new Set(["auto-skill"]));
     const stagedProjectSkill = await readFile(
@@ -204,7 +205,7 @@ describe("createClaudeLane", () => {
       }),
     );
     const caseDir = await mkdtemp(path.join(os.tmpdir(), "claude-lane-case-"));
-    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"));
+    const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"), 1);
     await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(
@@ -212,7 +213,10 @@ describe("createClaudeLane", () => {
     );
     // Plain repo-local cases share the base workspace like plain plugin cases do; a per-case copy
     // is reserved for workspace_files mutations.
-    const secondPlainCase = await laneRun.prepareCase(triggerCase("other-repo-local-case", "skip"));
+    const secondPlainCase = await laneRun.prepareCase(
+      triggerCase("other-repo-local-case", "skip"),
+      1,
+    );
     expect(secondPlainCase.workspacePath).toBe(laneCase.workspacePath);
     expect(laneCase.workspacePath).not.toContain(`cases${path.sep}`);
     // Both repo-local skills stage as pristine project skills; the staged plugin competes through
@@ -245,18 +249,23 @@ describe("createClaudeLane", () => {
     const laneRun = await lane.prepareRun(
       await makeLaneRunOptions("claude", repoRoot, "plugins/demo/skills/auto-skill"),
     );
-    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"));
-    const secondPlainCase = await laneRun.prepareCase(triggerCase("other-plain-case", "skip"));
-    const workspaceFilesCase = await laneRun.prepareCase(
-      triggerCase("agents-case", "skip", { workspaceFiles: { "AGENTS.md": "Use Gitmoji.\n" } }),
-    );
+    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"), 1);
+    const secondPlainCase = await laneRun.prepareCase(triggerCase("other-plain-case", "skip"), 1);
+    const agentsCase = triggerCase("agents-case", "skip", {
+      workspaceFiles: { "AGENTS.md": "Use Gitmoji.\n" },
+    });
+    const workspaceFilesCase = await laneRun.prepareCase(agentsCase, 1);
+    const secondAttempt = await laneRun.prepareCase(agentsCase, 2);
 
     // Plain plugin cases share the base workspace; a case that mutates workspace files gets an
-    // isolated copy so concurrent cases cannot clobber each other.
+    // isolated copy per attempt so concurrent attempts cannot clobber each other.
     expect(plainCase.workspacePath).toBe(secondPlainCase.workspacePath);
     expect(plainCase.workspacePath).not.toContain(`cases${path.sep}`);
     expect(workspaceFilesCase.workspacePath).toContain(
-      path.join("cases", "agents-case", "workspace"),
+      path.join("cases", "agents-case", "attempt-1", "workspace"),
+    );
+    expect(secondAttempt.workspacePath).toContain(
+      path.join("cases", "agents-case", "attempt-2", "workspace"),
     );
     await expect(
       readFile(path.join(workspaceFilesCase.workspacePath, "AGENTS.md"), "utf8"),
@@ -278,10 +287,11 @@ describe("createClaudeLane", () => {
       triggerCase("seeded-case", "invoke", {
         workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} },
       }),
+      1,
     );
 
     // A seeded case gets its own copy instead of the base workspace plain cases share.
-    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"));
+    const plainCase = await laneRun.prepareCase(triggerCase("plain-case", "skip"), 1);
     expect(seededCase.workspacePath).not.toBe(plainCase.workspacePath);
     // Harness surfaces still accompany the seeded project.
     await expect(
@@ -425,6 +435,22 @@ describe("observeClaudeOutput", () => {
     expect(observations.loadedSkills).toStrictEqual(["demo:auto-skill", "doctor"]);
     expect(observations.hasActivity).toBe(true);
     expect(observations.decisionItemCount).toBe(0);
+  });
+
+  it("reads the resolved model and Claude Code version from the init event", () => {
+    // Recorded 2026-10-02: the opus alias as Claude Code 2.1.286 reports it.
+    const stdout = JSON.stringify({
+      type: "system",
+      subtype: "init",
+      model: "claude-opus-5-5",
+      claude_code_version: "2.1.286",
+      skills: [],
+    });
+
+    const observations = observeClaudeOutput(stdout);
+
+    expect(observations.resolvedModel).toBe("claude-opus-5-5");
+    expect(observations.agentVersion).toBe("Claude Code 2.1.286");
   });
 
   it("reports no loaded skills or activity for an empty run", () => {

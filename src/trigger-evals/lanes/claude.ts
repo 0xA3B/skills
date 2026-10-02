@@ -56,13 +56,14 @@ export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
             )
           : undefined;
 
-      const prepareCase = async (testCase: TriggerCase): Promise<LaneCase> => {
+      const prepareCase = async (testCase: TriggerCase, attempt: number): Promise<LaneCase> => {
         const caseWorkspacePath = needsCaseWorkspace(testCase)
           ? await stageCaseWorkspace({
               baseWorkspacePath: deployment.workspacePath,
               workspaceRoot: deployment.workspaceRoot,
               repoRoot: target.repoRoot,
               testCase,
+              attempt,
             })
           : deployment.workspacePath;
 
@@ -111,6 +112,8 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
   let decisionItemCount = 0;
   let sawInitEvent = false;
   let loadedSkills: string[] | undefined;
+  let resolvedModel: string | undefined;
+  let agentVersion: string | undefined;
   let errorSignal: string | undefined;
 
   for (const event of parseJsonlEvents(stdout)) {
@@ -124,6 +127,10 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
       loadedSkills = Array.isArray(skills)
         ? skills.filter((skill): skill is string => typeof skill === "string")
         : undefined;
+      const model = event["model"];
+      resolvedModel = typeof model === "string" ? model : undefined;
+      const version = event["claude_code_version"];
+      agentVersion = typeof version === "string" ? `Claude Code ${version}` : undefined;
     }
 
     if (event["type"] === "assistant" || event["type"] === "result") {
@@ -148,6 +155,8 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
     hasActivity,
     decisionItemCount,
     ...(loadedSkills === undefined ? {} : { loadedSkills }),
+    ...(resolvedModel === undefined ? {} : { resolvedModel }),
+    ...(agentVersion === undefined ? {} : { agentVersion }),
     ...(errorSignal === undefined ? {} : { errorSignal }),
   };
 }

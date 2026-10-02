@@ -2,7 +2,12 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { formatSkillLabel, type Skill } from "../../skills/index.js";
-import { needsCaseWorkspace, stageCaseWorkspace, type TriggerCase } from "../fixtures/index.js";
+import {
+  caseAttemptKey,
+  needsCaseWorkspace,
+  stageCaseWorkspace,
+  type TriggerCase,
+} from "../fixtures/index.js";
 import { isRecord, parseJsonlEvents } from "../json.js";
 import type { RuntimeResources } from "../runtime.js";
 import { SKIP_DECISION_ITEM_BUDGET } from "../verdict.js";
@@ -17,6 +22,7 @@ import {
   type CliRunResult,
   finishCliRun,
   prepareCaseArtifacts,
+  readCliVersion,
   spawnStreamingCli,
   type StreamingCliOutput,
 } from "./exec.js";
@@ -50,6 +56,9 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
   return {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
       const { runDir, target, model, effort, runtime } = runOptions;
+      // Codex's event stream names neither its version nor the model, so the version is read once
+      // here, before anything is staged; the requested model stands as the model.
+      const agentVersion = await readCliVersion("codex");
       // A repo-local target's siblings get canaries too, so a sibling stealing the invocation is
       // attributable.
       const deployment = await stageDeployment({
@@ -81,9 +90,11 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
         stagedSkillLabels: deployment.stagedSkillLabels,
         skillDependencies: deployment.skillDependencies,
         skipDecisionItemBudget: CODEX_SKIP_DECISION_ITEM_BUDGET,
-        prepareCase: (testCase) =>
+        agentVersion,
+        prepareCase: (testCase, attempt) =>
           prepareCodexCase({
             testCase,
+            attempt,
             target,
             targetLabel: formatSkillLabel(target),
             runDir,
@@ -105,6 +116,7 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
 
 type CodexCaseContext = {
   testCase: TriggerCase;
+  attempt: number;
   target: Skill;
   targetLabel: string;
   runDir: string;
@@ -118,7 +130,7 @@ type CodexCaseContext = {
 };
 
 async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
-  const { target, testCase, deployment } = context;
+  const { target, testCase, attempt, deployment } = context;
   // Cases run in a read-only sandbox, so a case without its own workspace content shares the base
   // workspace, as on the Claude lane.
   const caseWorkspacePath = needsCaseWorkspace(testCase)
@@ -127,13 +139,15 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
         workspaceRoot: deployment.workspaceRoot,
         repoRoot: target.repoRoot,
         testCase,
+        attempt,
       })
     : deployment.workspacePath;
 
   // Tracked before anything is written so a setup failure still leaves nothing behind.
+  const attemptKey = caseAttemptKey(testCase.id, attempt);
   const codexHome = context.runtime.track(
-    path.join(context.runDir, "codex-home", "cases", testCase.id),
-    testCase.id,
+    path.join(context.runDir, "codex-home", "cases", attemptKey),
+    attemptKey,
   );
   // The copied auth.json must be removed even when case setup fails after prepareCodexHome, so
   // the rest of the setup runs inside this try/catch; success hands cleanup to the case.

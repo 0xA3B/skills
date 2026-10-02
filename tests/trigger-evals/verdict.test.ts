@@ -25,6 +25,7 @@ function observations(overrides: Partial<CaseObservations> = {}): CaseObservatio
 function verdictOptions(overrides: Partial<CaseVerdictOptions> = {}): CaseVerdictOptions {
   return {
     testCase: { id: "case-1", expect: "invoke" },
+    attempt: 1,
     targetLabel: TARGET,
     stagedSkillLabels: new Set([TARGET]),
     observations: observations(),
@@ -167,6 +168,7 @@ describe("buildCaseResult", () => {
 
     expect(result).toStrictEqual({
       caseId: "case-1",
+      attempt: 1,
       expect: "invoke",
       invocationSignal: "stdout-skill-canary",
       invoked: true,
@@ -448,20 +450,25 @@ describe("buildCaseResult", () => {
     },
   );
 
-  it("accepts staged skills and the exempt set in the loaded-skills observation", () => {
-    const result = buildCaseResult(
-      verdictOptions({
-        stagedSkillLabels: new Set([TARGET, "demo:manual-skill"]),
-        observations: {
-          ...invokedObservations(TARGET),
-          loadedSkills: [TARGET, "demo:manual-skill", "doctor"],
-        },
-      }),
-    );
+  // Bundled skills Claude Code loads despite disableBundledSkills: doctor (observed on 2.1.210) and
+  // plugin-authoring (observed on 2.1.286).
+  it.each(["doctor", "plugin-authoring"])(
+    "accepts staged skills and the exempt bundled skill %s in the loaded-skills observation",
+    (bundledSkill) => {
+      const result = buildCaseResult(
+        verdictOptions({
+          stagedSkillLabels: new Set([TARGET, "demo:manual-skill"]),
+          observations: {
+            ...invokedObservations(TARGET),
+            loadedSkills: [TARGET, "demo:manual-skill", bundledSkill],
+          },
+        }),
+      );
 
-    expect(result.passed).toBe(true);
-    expect(result.environmentalFailure).toBeUndefined();
-  });
+      expect(result.passed).toBe(true);
+      expect(result.environmentalFailure).toBeUndefined();
+    },
+  );
 
   it("fails environmentally when unstaged skills leak in, even on a matched invoke", () => {
     // The leak poisons the case in both directions, so it overrides a matched expectation.
