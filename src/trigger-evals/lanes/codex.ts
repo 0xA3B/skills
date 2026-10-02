@@ -119,15 +119,16 @@ type CodexCaseContext = {
 
 async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
   const { target, testCase, deployment } = context;
-  let caseWorkspacePath = deployment.workspacePath;
-  if (target.kind !== "plugin" || needsCaseWorkspace(testCase)) {
-    caseWorkspacePath = await stageCaseWorkspace({
-      baseWorkspacePath: deployment.workspacePath,
-      workspaceRoot: deployment.workspaceRoot,
-      repoRoot: target.repoRoot,
-      testCase,
-    });
-  }
+  // Cases run in a read-only sandbox, so a case without its own workspace content shares the base
+  // workspace, as on the Claude lane.
+  const caseWorkspacePath = needsCaseWorkspace(testCase)
+    ? await stageCaseWorkspace({
+        baseWorkspacePath: deployment.workspacePath,
+        workspaceRoot: deployment.workspaceRoot,
+        repoRoot: target.repoRoot,
+        testCase,
+      })
+    : deployment.workspacePath;
 
   // Tracked before anything is written so a setup failure still leaves nothing behind.
   const codexHome = context.runtime.track(
@@ -159,9 +160,6 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
     throw caught;
   }
 
-  const sandboxMode: "read-only" | "workspace-write" =
-    target.kind === "repo-local" ? "workspace-write" : "read-only";
-
   return {
     workspacePath: caseWorkspacePath,
     execute: (executeOptions: CaseExecuteOptions) =>
@@ -170,7 +168,6 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
         prompt: testCase.prompt,
         codexHome,
         workspacePath: caseWorkspacePath,
-        sandboxMode,
       }),
     observe: (output: StreamingCliOutput) =>
       observeCodexOutput(
@@ -312,13 +309,13 @@ function codexErrorMessage(event: Record<string, unknown>): string | undefined {
   return isRecord(error) && typeof error["message"] === "string" ? error["message"] : undefined;
 }
 
-// Boundary-match a skill label in stderr telemetry so a label is never credited from inside a
-// longer sibling label (foo:bar inside foo:bar-baz).
 function commandFailed(item: Record<string, unknown>): boolean {
   const exitCode = item["exit_code"];
   return item["status"] === "failed" || (typeof exitCode === "number" && exitCode !== 0);
 }
 
+// Boundary-match a skill label in stderr telemetry so a label is never credited from inside a
+// longer sibling label (foo:bar inside foo:bar-baz).
 function stderrNamesSkill(stderr: string, skillLabel: string): boolean {
   const escaped = skillLabel.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
   return new RegExp(String.raw`(?<![\w:-])${escaped}(?![\w-])`).test(stderr);
@@ -328,7 +325,6 @@ type CodexExecOptions = CaseExecuteOptions & {
   prompt: string;
   codexHome: string;
   workspacePath: string;
-  sandboxMode: "read-only" | "workspace-write";
 };
 
 async function runCodexExec(options: CodexExecOptions): Promise<CliRunResult> {
@@ -337,8 +333,10 @@ async function runCodexExec(options: CodexExecOptions): Promise<CliRunResult> {
   const args = [
     "-a",
     "never",
+    // A trigger decision needs only reads, and a read-only case cannot change the workspace its
+    // sibling cases share.
     "-s",
-    options.sandboxMode,
+    "read-only",
     "exec",
     "--json",
     "--ephemeral",

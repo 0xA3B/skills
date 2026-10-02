@@ -595,8 +595,12 @@ describe("createCodexLane", () => {
       ),
     ).rejects.toThrow(/ENOENT/);
 
-    // Repo-local runs must be able to write in the workspace under test.
-    expect(spawnCalls[0]?.args).toContain("workspace-write");
+    // Repo-local cases run read-only like plugin cases, so plain cases share the base workspace; a
+    // per-case copy is reserved for cases with their own workspace content.
+    const args = spawnCalls[0]?.args ?? [];
+    expect(args[args.indexOf("-s") + 1]).toBe("read-only");
+    const secondPlainCase = await laneRun.prepareCase(triggerCase("other-repo-local-case", "skip"));
+    expect(secondPlainCase.workspacePath).toBe(laneCase.workspacePath);
 
     const observed = laneCase.observe({
       stdout: agentMessageEvent(canary ?? "missing-canary"),
