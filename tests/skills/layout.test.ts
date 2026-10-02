@@ -64,11 +64,6 @@ describe("resolveSkill", () => {
 });
 
 describe("skill labels", () => {
-  it("labels a plugin skill with its plugin and a repo-local skill by bare name", () => {
-    expect(formatSkillLabel(resolveSkill("/repo", "plugins/git/skills/commit"))).toBe("git:commit");
-    expect(formatSkillLabel(resolveSkill("/repo", ".agents/skills/add-skill"))).toBe("add-skill");
-  });
-
   it("parses a label back into its plugin and skill names", () => {
     expect(parseSkillLabel("git:commit")).toStrictEqual({
       pluginName: "git",

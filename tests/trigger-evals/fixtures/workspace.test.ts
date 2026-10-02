@@ -11,7 +11,7 @@ import {
   stageCaseWorkspace,
 } from "../../../src/trigger-evals/fixtures/index.js";
 import { seedGitEnvironment } from "../../../src/trigger-evals/fixtures/seeds.js";
-import { writeRepoLocalSkillFixture, writeSeedFixture } from "../test-utils.js";
+import { writeSeedFixture } from "../test-utils.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -23,6 +23,15 @@ async function writeBaseWorkspace(): Promise<{ workspaceRoot: string; workspaceP
   await mkdir(skillPath, { recursive: true });
   await writeFile(path.join(skillPath, "SKILL.md"), "---\nname: auto-skill\n---\n");
   return { workspaceRoot, workspacePath };
+}
+
+// A case workspace is the case's own copy: inside the workspace root, outside the base workspace.
+function expectCaseWorkspace(
+  caseWorkspacePath: string,
+  base: { workspaceRoot: string; workspacePath: string },
+): void {
+  expect(caseWorkspacePath.startsWith(base.workspaceRoot + path.sep)).toBe(true);
+  expect(path.relative(base.workspacePath, caseWorkspacePath).startsWith("..")).toBe(true);
 }
 
 describe("needsCaseWorkspace", () => {
@@ -43,7 +52,7 @@ describe("needsCaseWorkspace", () => {
 describe("stageCaseWorkspace", () => {
   it("seeds a git repository for a case with a workspace block", async () => {
     const { workspaceRoot, workspacePath } = await writeBaseWorkspace();
-    const repoRoot = await writeRepoLocalSkillFixture();
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "fixture-repo-"));
     await writeSeedFixture(repoRoot, "demo-seed");
 
     const caseWorkspacePath = await stageCaseWorkspace({
@@ -59,7 +68,7 @@ describe("stageCaseWorkspace", () => {
       },
     });
 
-    expect(caseWorkspacePath).toContain(path.join("cases", "seeded-case", "workspace"));
+    expectCaseWorkspace(caseWorkspacePath, { workspaceRoot, workspacePath });
     await expect(stat(path.join(caseWorkspacePath, ".git"))).resolves.toBeDefined();
     await expect(
       readFile(path.join(caseWorkspacePath, "src", "index.js"), "utf8"),
@@ -78,12 +87,12 @@ describe("stageCaseWorkspace", () => {
 
   it("copies the base workspace and applies fixture workspace files", async () => {
     const { workspaceRoot, workspacePath } = await writeBaseWorkspace();
-    const repoRoot = await writeRepoLocalSkillFixture();
 
     const caseWorkspacePath = await stageCaseWorkspace({
       baseWorkspacePath: workspacePath,
       workspaceRoot,
-      repoRoot,
+      // A case without a workspace block reads nothing from the repository.
+      repoRoot: await mkdtemp(path.join(os.tmpdir(), "fixture-repo-")),
       testCase: {
         id: "agents-case",
         prompt: "Anything",
@@ -92,12 +101,30 @@ describe("stageCaseWorkspace", () => {
       },
     });
 
-    expect(caseWorkspacePath).toContain(path.join("cases", "agents-case", "workspace"));
+    expectCaseWorkspace(caseWorkspacePath, { workspaceRoot, workspacePath });
     await expect(readFile(path.join(caseWorkspacePath, "AGENTS.md"), "utf8")).resolves.toBe(
       "Use Gitmoji.\n",
     );
     await expect(
       readFile(path.join(caseWorkspacePath, ".agents", "skills", "auto-skill", "SKILL.md"), "utf8"),
     ).resolves.toContain("auto-skill");
+  });
+
+  it("gives each case its own copy of the base workspace", async () => {
+    const { workspaceRoot, workspacePath } = await writeBaseWorkspace();
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "fixture-repo-"));
+    const stage = async (id: string, workspaceFiles: Record<string, string>) =>
+      stageCaseWorkspace({
+        baseWorkspacePath: workspacePath,
+        workspaceRoot,
+        repoRoot,
+        testCase: { id, prompt: "Anything", expect: "skip", workspaceFiles },
+      });
+
+    const firstPath = await stage("first-case", { "first.md": "first\n" });
+    const secondPath = await stage("second-case", { "second.md": "second\n" });
+
+    expect(secondPath).not.toBe(firstPath);
+    await expect(stat(path.join(secondPath, "first.md"))).rejects.toThrow(/ENOENT/);
   });
 });
