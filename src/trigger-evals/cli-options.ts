@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 
 import type { Agent } from "../skills/index.js";
+import { parseSeedArgument } from "./fixtures/index.js";
 import type { RunTriggerEvalOptions } from "./runner.js";
 import type { SelectionEvalOptions, TriggerEvalSelection } from "./selection/index.js";
 
@@ -77,7 +78,12 @@ export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOption
     }
   }
   if (selection.mode !== "skill" && options.force === true) {
-    throw new Error("--force applies to single-skill runs, not --plugin or --marketplace.");
+    throw new Error(
+      "--force applies to single-skill runs, not --plugin, --marketplace, or --seed.",
+    );
+  }
+  if (selection.mode === "seed" && parsed.values["with-dependents"] === true) {
+    throw new Error("--with-dependents needs selected skills; a --seed selection has none.");
   }
 
   return {
@@ -89,11 +95,28 @@ export function parseTriggerEvalCliOptions(argv: string[]): TriggerEvalCliOption
 }
 
 function parseSelection(
-  values: { plugin?: boolean; marketplace?: boolean },
+  values: { plugin?: boolean; marketplace?: boolean; seed?: string[] },
   positionals: string[],
 ): TriggerEvalSelection {
-  if (values.plugin === true && values.marketplace === true) {
-    throw new Error("Use either --plugin or --marketplace, not both.");
+  // --plugin and --marketplace read the positionals as their paths; --seed takes none.
+  const seeds = values.seed ?? [];
+  const selectionFlags = [values.plugin === true, values.marketplace === true, seeds.length > 0];
+  if (selectionFlags.filter(Boolean).length > 1 || (seeds.length > 0 && positionals.length > 0)) {
+    throw new Error("Use one selection: a skill path, --plugin, --marketplace, or --seed.");
+  }
+
+  const [seedArgument, extraSeed] = seeds;
+  if (extraSeed !== undefined) {
+    throw new Error("Pass one --seed per run.");
+  }
+  if (seedArgument !== undefined) {
+    const seedName = parseSeedArgument(seedArgument);
+    if (seedName === undefined) {
+      throw new Error(
+        `--seed takes a kebab-case seed name or evals/seeds/<name>; received ${seedArgument}.`,
+      );
+    }
+    return { mode: "seed", seedName };
   }
 
   if (values.marketplace === true) {
@@ -149,6 +172,7 @@ export function usage(): string {
     "  pnpm eval:trigger -- <skill-path> [options]",
     "  pnpm eval:trigger -- --plugin plugins/<plugin> [options]",
     "  pnpm eval:trigger -- --marketplace [skill-path ...] [options]",
+    "  pnpm eval:trigger -- --seed <seed> [options]",
     "",
     "Skill paths:",
     "  plugins/<plugin>/skills/<skill>",
@@ -164,6 +188,10 @@ export function usage(): string {
     "  --plugin                   Run every trigger eval in the plugin at the given path.",
     "  --marketplace              Run every trigger eval in the agent's marketplace catalog. Pass",
     "                             skill paths to run only those skills' fixtures.",
+    "  --seed <seed>              Run the seeded cases of one workspace seed, named as <name> or",
+    "                             evals/seeds/<name>: every fixture case whose workspace resolves",
+    "                             to the seed, under its own fixture and on its fixture's lanes.",
+    "                             Use after a seed edit. Combines with no other selection.",
     "  --fixture <path>           Use a fixture file other than evals/triggers.yaml. Requires one",
     "                             target skill.",
     "  --case <id>                Run one trigger fixture case. Requires one target skill.",
@@ -194,6 +222,8 @@ function parseTriggerArgs(argv: string[]) {
         agent: { type: "string" },
         plugin: { type: "boolean" },
         marketplace: { type: "boolean" },
+        // Multiple so a repeated --seed is an error instead of the last value winning.
+        seed: { type: "string", multiple: true },
         fixture: { type: "string" },
         case: { type: "string" },
         model: { type: "string" },

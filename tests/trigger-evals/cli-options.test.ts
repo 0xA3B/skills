@@ -114,10 +114,57 @@ describe("parseTriggerEvalCliOptions", () => {
     });
   });
 
-  it("rejects combining --plugin with --marketplace", () => {
-    expect(() => parseTriggerEvalCliOptions(["--plugin", "--marketplace", "plugins/foo"])).toThrow(
-      "Use either --plugin or --marketplace, not both.",
+  it.each([
+    ["--plugin with --marketplace", ["--plugin", "--marketplace", "plugins/foo"]],
+    ["--seed with a skill path", ["--seed", "node-service", "plugins/foo/skills/bar"]],
+    ["--seed with --plugin", ["--seed", "node-service", "--plugin", "plugins/foo"]],
+    ["--seed with --marketplace", ["--seed", "node-service", "--marketplace"]],
+  ])("rejects combining %s", (_combination, argv) => {
+    expect(() => parseTriggerEvalCliOptions(argv)).toThrow(
+      "Use one selection: a skill path, --plugin, --marketplace, or --seed.",
     );
+  });
+
+  // Spec (grill-me 1.1): `--seed <seed>` is a selection mode naming one workspace seed, given as a
+  // bare name or a seed path under evals/seeds/.
+  it.each([
+    "node-service",
+    "evals/seeds/node-service",
+    "evals/seeds/node-service/",
+    "./evals/seeds/node-service",
+  ])("selects seed mode from --seed %s", (seedArgument) => {
+    expect(parseTriggerEvalCliOptions(["--seed", seedArgument])).toStrictEqual({
+      agents: ["codex"],
+      selection: { mode: "seed", seedName: "node-service" },
+    });
+  });
+
+  it.each([
+    "Node_Service",
+    "evals/node-service",
+    "evals/seeds/node-service/src",
+    "../node-service",
+    // Indirect spellings name the seed only after path normalization, which --seed does not do.
+    "other/../node-service",
+    "evals/seeds/../seeds/node-service",
+    "evals/seeds//node-service",
+  ])("rejects --seed %s as not a seed", (seedArgument) => {
+    expect(() => parseTriggerEvalCliOptions(["--seed", seedArgument])).toThrow(
+      `--seed takes a kebab-case seed name or evals/seeds/<name>; received ${seedArgument}.`,
+    );
+  });
+
+  it("takes one seed per run", () => {
+    expect(() =>
+      parseTriggerEvalCliOptions(["--seed", "node-service", "--seed", "other-seed"]),
+    ).toThrow("Pass one --seed per run.");
+  });
+
+  // Spec (grill-me 2.1): a seed selection has no selected skill for a routing assertion to name.
+  it("rejects --with-dependents with --seed", () => {
+    expect(() =>
+      parseTriggerEvalCliOptions(["--seed", "node-service", "--with-dependents"]),
+    ).toThrow("--with-dependents needs selected skills; a --seed selection has none.");
   });
 
   it("requires a plugin path with --plugin", () => {
@@ -152,6 +199,16 @@ describe("parseTriggerEvalCliOptions", () => {
     ).toThrow(
       "--case requires one target skill: pass a single skill path, or --marketplace with exactly one skill path.",
     );
+    expect(() =>
+      parseTriggerEvalCliOptions(["--seed", "node-service", "--case", "case-a"]),
+    ).toThrow(
+      "--case requires one target skill: pass a single skill path, or --marketplace with exactly one skill path.",
+    );
+    expect(() =>
+      parseTriggerEvalCliOptions(["--seed", "node-service", "--fixture", "custom.yaml"]),
+    ).toThrow(
+      "--fixture requires one target skill: pass a single skill path, or --marketplace with exactly one skill path.",
+    );
   });
 
   it("accepts narrowing flags with a single-skill marketplace selection", () => {
@@ -176,9 +233,10 @@ describe("parseTriggerEvalCliOptions", () => {
     ["a plugin", ["--plugin", "plugins/foo"]],
     ["the whole marketplace", ["--marketplace"]],
     ["a one-skill marketplace selection", ["--marketplace", "plugins/foo/skills/bar"]],
+    ["a seed", ["--seed", "node-service"]],
   ])("rejects --force for %s", (_selection, argv) => {
     expect(() => parseTriggerEvalCliOptions([...argv, "--force"])).toThrow(
-      "--force applies to single-skill runs, not --plugin or --marketplace.",
+      "--force applies to single-skill runs, not --plugin, --marketplace, or --seed.",
     );
   });
 
@@ -247,6 +305,7 @@ describe("usage", () => {
     "--agent",
     "--plugin",
     "--marketplace",
+    "--seed",
     "--fixture",
     "--case",
     "--model",

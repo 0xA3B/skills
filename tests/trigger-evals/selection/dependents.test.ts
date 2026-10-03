@@ -5,11 +5,13 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  dependentRunOptions,
   findDependentFixtures,
   listSelectedSkillPaths,
-  selectDependentsForAgent,
 } from "../../../src/trigger-evals/selection/dependents.js";
+import {
+  ownedCasesRunOptions,
+  selectOwnersForAgent,
+} from "../../../src/trigger-evals/selection/owned-cases.js";
 import {
   type FixtureCase,
   triggerFixtureYaml,
@@ -68,7 +70,7 @@ describe("findDependentFixtures", () => {
     const scan = await findDependentFixtures(repoRoot, ["plugins/demo/skills/target-skill"]);
 
     expect(scan.unreadableFixtures).toStrictEqual([]);
-    expect(scan.dependents).toStrictEqual([
+    expect(scan.found).toStrictEqual([
       {
         skillPath: path.join("plugins", "demo", "skills", "auto-skill"),
         label: "demo:auto-skill",
@@ -87,7 +89,7 @@ describe("findDependentFixtures", () => {
   it("excludes fixtures owned by the selected skills because the suite already ran them", async () => {
     const repoRoot = await writeDependentsFixture();
 
-    const { dependents } = await findDependentFixtures(repoRoot, [
+    const { found: dependents } = await findDependentFixtures(repoRoot, [
       "plugins/demo/skills/auto-skill",
       "plugins/demo/skills/target-skill",
     ]);
@@ -98,7 +100,7 @@ describe("findDependentFixtures", () => {
   it("finds repo-local cases that route to a selected repo-local skill", async () => {
     const repoRoot = await writeDependentsFixture();
 
-    const { dependents } = await findDependentFixtures(repoRoot, [".agents/skills/local-b"]);
+    const { found: dependents } = await findDependentFixtures(repoRoot, [".agents/skills/local-b"]);
 
     expect(dependents).toStrictEqual([
       {
@@ -115,7 +117,7 @@ describe("findDependentFixtures", () => {
 
     await expect(
       findDependentFixtures(repoRoot, ["plugins/other/skills/other-skill"]),
-    ).resolves.toStrictEqual({ dependents: [], unreadableFixtures: [] });
+    ).resolves.toStrictEqual({ found: [], unreadableFixtures: [] });
   });
 
   // A fixture that fails to read or to parse may hold routing cases, so the scan reports it and
@@ -144,9 +146,7 @@ describe("findDependentFixtures", () => {
 
       const scan = await findDependentFixtures(repoRoot, ["plugins/demo/skills/target-skill"]);
 
-      expect(scan.dependents.map((dependent) => dependent.label)).toStrictEqual([
-        "demo:auto-skill",
-      ]);
+      expect(scan.found.map((dependent) => dependent.label)).toStrictEqual(["demo:auto-skill"]);
       expect(scan.unreadableFixtures.map((entry) => entry.skillPath)).toStrictEqual([
         path.join("plugins", "other", "skills", "other-skill"),
       ]);
@@ -155,10 +155,10 @@ describe("findDependentFixtures", () => {
   );
 });
 
-describe("dependentRunOptions", () => {
+describe("ownedCasesRunOptions", () => {
   // Spec: the selection's case and fixture narrowing does not carry over to dependents.
   it("replaces the selection's narrowing with the dependent's own cases", () => {
-    const options = dependentRunOptions(
+    const options = ownedCasesRunOptions(
       {
         repoRoot: "/repo",
         caseIds: ["selected-case"],
@@ -170,7 +170,6 @@ describe("dependentRunOptions", () => {
         skillPath: "plugins/other/skills/other-skill",
         label: "other:other-skill",
         caseIds: ["first-route", "second-route"],
-        routesTo: ["demo:target-skill"],
       },
     );
 
@@ -184,16 +183,16 @@ describe("dependentRunOptions", () => {
   });
 });
 
-describe("selectDependentsForAgent", () => {
+describe("selectOwnersForAgent", () => {
   // Spec: "run them on the lanes their own fixture runs on".
   it("runs plugin dependents only on agents whose catalog lists the owning plugin", async () => {
     const repoRoot = await writeDependentsFixture();
-    const { dependents } = await findDependentFixtures(repoRoot, [
+    const { found: dependents } = await findDependentFixtures(repoRoot, [
       "plugins/demo/skills/target-skill",
     ]);
 
-    const onClaude = await selectDependentsForAgent(repoRoot, dependents, "claude");
-    const onCodex = await selectDependentsForAgent(repoRoot, dependents, "codex");
+    const onClaude = await selectOwnersForAgent(repoRoot, dependents, "claude");
+    const onCodex = await selectOwnersForAgent(repoRoot, dependents, "codex");
 
     expect(onClaude.runnable.map((dependent) => dependent.label)).toStrictEqual([
       "demo:auto-skill",
@@ -213,9 +212,9 @@ describe("selectDependentsForAgent", () => {
 
   it("skips dependents whose owning skill is manual-only on the agent", async () => {
     const repoRoot = await writeDependentsFixture({ manualOnlyLocalA: true });
-    const { dependents } = await findDependentFixtures(repoRoot, [".agents/skills/local-b"]);
+    const { found: dependents } = await findDependentFixtures(repoRoot, [".agents/skills/local-b"]);
 
-    const selected = await selectDependentsForAgent(repoRoot, dependents, "codex");
+    const selected = await selectOwnersForAgent(repoRoot, dependents, "codex");
 
     expect(selected.runnable).toStrictEqual([]);
     expect(selected.skipped).toStrictEqual([

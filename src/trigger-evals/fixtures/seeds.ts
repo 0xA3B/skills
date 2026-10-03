@@ -21,6 +21,24 @@ export function resolveSeedPath(repoRoot: string, seedName: string): string {
   return path.join(repoRoot, SEEDS_DIR, seedName);
 }
 
+// A seed named on the command line: its bare name, or its directory under evals/seeds/ with an
+// optional leading "./" and trailing slashes. Returns undefined for any other form.
+export function parseSeedArgument(argument: string): string | undefined {
+  const trimmed = argument.replace(/^\.\//, "").replace(/\/+$/, "");
+  const prefix = `${SEEDS_DIR.split(path.sep).join("/")}/`;
+  const seedName = trimmed.startsWith(prefix) ? trimmed.slice(prefix.length) : trimmed;
+  return SEED_NAME_PATTERN.test(seedName) ? seedName : undefined;
+}
+
+// The directory of a seed that exists, or an error naming where it was looked for.
+export async function findSeedPath(repoRoot: string, seedName: string): Promise<string> {
+  const seedPath = resolveSeedPath(repoRoot, seedName);
+  if (!(await isDirectory(seedPath))) {
+    throw new Error(`workspace seed "${seedName}" not found at ${seedPath}.`);
+  }
+  return seedPath;
+}
+
 // Top-level workspace entries the lane writes before any case runs: staged skills and settings.
 // A seed's copies are left out, fixture paths under them are rejected, and the lane's own copies
 // are force-added to the seed commit.
@@ -91,10 +109,7 @@ export type StageSeededWorkspaceOptions = {
 // harness surfaces already in the workspace), staged files in the index, workspace files unstaged.
 export async function stageSeededWorkspace(options: StageSeededWorkspaceOptions): Promise<void> {
   const { workspacePath, workspace } = options;
-  const seedPath = resolveSeedPath(options.repoRoot, workspace.seed);
-  if (!(await isDirectory(seedPath))) {
-    throw new Error(`workspace seed "${workspace.seed}" not found at ${seedPath}.`);
-  }
+  const seedPath = await findSeedPath(options.repoRoot, workspace.seed);
   // The root is checked with lstat because stat follows a symlinked seed directory, and the walk
   // below only sees the entries beneath it.
   if ((await lstat(seedPath)).isSymbolicLink()) {
