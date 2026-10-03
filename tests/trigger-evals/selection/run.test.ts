@@ -16,6 +16,7 @@ import {
   triggerFixtureYaml,
   writeMarketplaceCatalogs,
   writeRepoFixture,
+  writeSeedFixture,
   writeSkillFiles,
 } from "../test-utils.js";
 
@@ -103,6 +104,207 @@ const routingFixture = triggerFixtureYaml([
     invokeInstead: "demo:auto-skill",
   },
 ]);
+
+// Other-skill's fixture with a node-service default workspace: two seeded cases around one case
+// that opts out of the seed.
+const seededFixture = [
+  "version: 1",
+  "workspace:",
+  "  seed: node-service",
+  "cases:",
+  "  - id: seeded-invoke",
+  "    prompt: Use the other skill.",
+  "    expect: invoke",
+  "  - id: unseeded-skip",
+  "    prompt: Do not invoke the skill.",
+  "    expect: skip",
+  "    workspace: none",
+  "  - id: seeded-skip",
+  "    prompt: Do not invoke the skill.",
+  "    expect: skip",
+  "",
+].join("\n");
+
+describe("runSelection with a seed", () => {
+  // Spec: "the run executes every fixture case that resolves to that seed ... reported under the
+  // owning fixture."
+  it("runs the seeded cases of each fixture under its owning skill", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: seededFixture });
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: { mode: "seed", seedName: "node-service" },
+      agents: ["codex"],
+    });
+
+    expect(ok).toBe(true);
+    expect(
+      report.results.map((result) => [
+        formatSkillLabel(result.target),
+        result.results.map((caseResult) => caseResult.caseId),
+      ]),
+    ).toStrictEqual([["other:other-skill", ["seeded-invoke", "seeded-skip"]]]);
+    expect(report.info).toStrictEqual([
+      "Seeded cases in other:other-skill: seeded-invoke, seeded-skip.",
+      "Seed node-service on codex: 1/1 fixtures passed.",
+    ]);
+    expect(report.errors).toStrictEqual([]);
+  });
+
+  // Spec: "on the lanes each fixture runs on".
+  it("reports seeded cases it skips because their owning skill is manual-only", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: seededFixture });
+    await writeSkillFiles(demoSkillPath(repoRoot, "seeded-skill"), {
+      fixture: seededFixture,
+      manualOnly: true,
+    });
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: { mode: "seed", seedName: "node-service" },
+      agents: ["codex"],
+    });
+
+    expect(ok).toBe(true);
+    expect(report.results.map((result) => formatSkillLabel(result.target))).toStrictEqual([
+      "other:other-skill",
+    ]);
+    expect(report.info).toStrictEqual([
+      "Skipping seeded cases in demo:seeded-skill on codex: demo:seeded-skill is manual-only on codex.",
+      "Seeded cases in other:other-skill: seeded-invoke, seeded-skip.",
+      "Seed node-service on codex: 1/1 fixtures passed.",
+    ]);
+  });
+
+  // Spec (grill-me 1.2): a known seed that no fixture names reports a 0-run line and cannot end
+  // green.
+  it("cannot end green when no fixture case resolves to the seed", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSeedFixture(repoRoot, "node-service");
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: { mode: "seed", seedName: "node-service" },
+      agents: ["codex", "claude"],
+    });
+
+    expect(ok).toBe(false);
+    expect(report.results).toStrictEqual([]);
+    expect(report.info).toStrictEqual([]);
+    expect(report.errors).toStrictEqual([
+      "Seed node-service: ran 0 fixtures — no trigger fixture case resolves to this seed.",
+    ]);
+  });
+
+  // Spec (grill-me 1.2): a seed whose every owner is skipped on an agent cannot end green.
+  it("cannot end green when every owner of seeded cases is skipped on an agent", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: seededFixture });
+    await writeMarketplaceCatalogs(repoRoot, { codex: ["demo", "other"], claude: ["demo"] });
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: { mode: "seed", seedName: "node-service" },
+      agents: ["codex", "claude"],
+    });
+
+    expect(ok).toBe(false);
+    expect(report.info).toStrictEqual([
+      "Seeded cases in other:other-skill: seeded-invoke, seeded-skip.",
+      "Seed node-service on codex: 1/1 fixtures passed.",
+      "Skipping seeded cases in other:other-skill on claude: plugin other is not in the claude marketplace catalog.",
+    ]);
+    expect(report.errors).toStrictEqual([
+      "Seed node-service on claude: ran 0 fixtures — every fixture with seeded cases is manual-only or outside this agent's marketplace catalog.",
+    ]);
+  });
+
+  it("cannot end green when a seeded case fails", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: seededFixture });
+
+    const { ok, report } = await run(
+      {
+        repoRoot,
+        selection: { mode: "seed", seedName: "node-service" },
+        agents: ["codex"],
+      },
+      { failingCaseIds: new Set(["seeded-invoke"]) },
+    );
+
+    expect(ok).toBe(false);
+    expect(report.info).toStrictEqual([
+      "Seeded cases in other:other-skill: seeded-invoke, seeded-skip.",
+      "Seed node-service on codex: 0/1 fixtures passed.",
+    ]);
+  });
+
+  // Spec (grill-me 1.2): an unreadable fixture may hold seeded cases, so the run cannot end green.
+  it("cannot end green when a fixture the seed scan needs is unreadable", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: seededFixture });
+    await writeSkillFiles(demoSkillPath(repoRoot, "broken-skill"), {
+      fixture: "version: [unclosed\n",
+    });
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: { mode: "seed", seedName: "node-service" },
+      agents: ["codex"],
+    });
+
+    expect(ok).toBe(false);
+    // The readable fixture's seeded cases still run.
+    expect(report.results.map((result) => formatSkillLabel(result.target))).toStrictEqual([
+      "other:other-skill",
+    ]);
+    expect(report.errors).toHaveLength(1);
+    expect(report.errors[0]).toMatch(
+      /^ERROR: could not scan the fixture of plugins\/demo\/skills\/broken-skill for seeded cases, so the seeded set is incomplete: /,
+    );
+  });
+
+  // Spec (grill-me 1.2): "An unknown seed name fails before any run".
+  it("rejects a seed that does not exist before running anything", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: seededFixture });
+
+    await expect(
+      run({
+        repoRoot,
+        selection: { mode: "seed", seedName: "node-service" },
+        agents: ["codex"],
+      }),
+    ).rejects.toThrow(
+      `workspace seed "node-service" not found at ${path.join(repoRoot, "evals", "seeds", "node-service")}.`,
+    );
+  });
+
+  it("runs nothing once the run is aborted", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: seededFixture });
+    const abortController = new AbortController();
+    abortController.abort();
+
+    const { ok, report } = await run({
+      repoRoot,
+      selection: { mode: "seed", seedName: "node-service" },
+      agents: ["codex"],
+      abortSignal: abortController.signal,
+    });
+
+    expect(ok).toBe(false);
+    expect(report).toStrictEqual({ info: [], errors: [], results: [] });
+  });
+});
 
 describe("runSelection", () => {
   it("runs the marketplace suite on each agent and summarizes it", async () => {

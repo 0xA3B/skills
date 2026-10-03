@@ -9,8 +9,12 @@ import {
 } from "../../skills/index.js";
 import { listMarketplacePlugins } from "../marketplace.js";
 
-// What a run covers: one skill, one plugin's skills, or the marketplace.
-export type TriggerEvalSelection =
+// What a run covers: one skill, one plugin's skills, the marketplace, or the seeded cases of one
+// workspace seed.
+export type TriggerEvalSelection = SkillSelection | { mode: "seed"; seedName: string };
+
+// The selections that name skills, so they have a suite and can have dependents.
+export type SkillSelection =
   | { mode: "skill"; skillPath: string }
   | { mode: "plugin"; pluginPath: string }
   // An empty skillPaths runs every marketplace skill; a non-empty list stages the full
@@ -32,7 +36,7 @@ export type TriggerEvalSuite = {
 // between Claude and Codex.
 export async function selectSuite(
   repoRoot: string,
-  selection: TriggerEvalSelection,
+  selection: SkillSelection,
   agent: Agent,
 ): Promise<TriggerEvalSuite> {
   if (selection.mode === "skill") {
