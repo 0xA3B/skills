@@ -3,6 +3,7 @@
 // that materialization.
 export {
   type FixtureFinding,
+  type FixturePath,
   loadTriggerFixture,
   type ParsedTriggerFixture,
   parseTriggerFixture,

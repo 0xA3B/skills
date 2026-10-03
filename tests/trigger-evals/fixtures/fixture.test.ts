@@ -202,12 +202,12 @@ cases:
 
     expect(parseTriggerFixture("version: 1\ncases:\n  - id: [unterminated\n")).toMatchObject({
       fixture: undefined,
-      findings: [{ pointer: "", message: expect.stringMatching(/^invalid YAML: /) }],
+      findings: [{ path: [], message: expect.stringMatching(/^invalid YAML: /) }],
     });
     await expect(loadTriggerFixture(fixturePath)).rejects.toThrow(`${fixturePath}: invalid YAML: `);
   });
 
-  it("exposes findings with pointers for the linter", () => {
+  it("exposes findings with structural paths for the linter", () => {
     const { fixture, findings } = parseTriggerFixture(
       "version: 1\ncases:\n  - id: a\n    prompt: p\n    expect: skip\n    invoke-instead: 3\n",
     );
@@ -215,11 +215,11 @@ cases:
     expect(fixture).toBeUndefined();
     expect(findings).toStrictEqual([
       {
-        pointer: "cases[0].invoke-instead",
+        path: ["cases", 0, "invoke-instead"],
         message:
           "expected cases[0].invoke-instead to be a skill label: <plugin>:<skill> or a bare repo-local skill name.",
       },
-      { pointer: "cases", message: "expected at least one case with expect: invoke." },
+      { path: ["cases"], message: "expected at least one case with expect: invoke." },
     ]);
   });
 });
@@ -251,7 +251,7 @@ function fixtureYaml(
 }
 
 const notASkillLabel = {
-  pointer: "cases[1].invoke-instead",
+  path: ["cases", 1, "invoke-instead"],
   message:
     "expected cases[1].invoke-instead to be a skill label: <plugin>:<skill> or a bare repo-local skill name.",
 };
@@ -319,7 +319,7 @@ describe("parseTriggerFixture details", () => {
       fixture: undefined,
       findings: [
         {
-          pointer: "cases[0].workspace.branch",
+          path: ["cases", 0, "workspace", "branch"],
           message: "expected cases[0].workspace.branch to be a git branch name.",
         },
       ],
@@ -361,7 +361,7 @@ describe("parseTriggerFixture details", () => {
       fixture: undefined,
       findings: [
         {
-          pointer: `cases[0].workspace.committed[${JSON.stringify(filePath)}]`,
+          path: ["cases", 0, "workspace", "committed", filePath],
           message: `expected cases[0].workspace.committed path "${filePath}" to be a safe relative path outside .git, .agents, and .claude.`,
         },
       ],
@@ -370,19 +370,58 @@ describe("parseTriggerFixture details", () => {
 
   it.each([
     [
+      "a fixture root that is not an object",
+      stringifyYaml(["not-a-fixture"]),
+      [{ path: [], message: "expected fixture root to be an object." }],
+    ],
+    // An unreadable case cannot count toward the presence checks, so it is the only finding.
+    [
+      "a case that is not an object",
+      stringifyYaml({
+        version: 1,
+        cases: ["not-a-case", { id: "skip-case", prompt: "Do something else.", expect: "skip" }],
+      }),
+      [{ path: ["cases", 0], message: "expected cases[0] to be an object." }],
+    ],
+    [
+      "a case id outside the id pattern",
+      fixtureYaml({ firstCase: { id: "Bad_Id" } }),
+      [
+        {
+          path: ["cases", 0, "id"],
+          message: "expected cases[0].id to be 1-80 lowercase letters, numbers, or hyphens.",
+        },
+      ],
+    ],
+    [
+      "a case workspace that is neither an object nor none",
+      fixtureYaml({ firstCase: { workspace: 3 } }),
+      [
+        {
+          path: ["cases", 0, "workspace"],
+          message: 'expected cases[0].workspace to be an object or "none".',
+        },
+      ],
+    ],
+    [
+      "a fixture-level workspace_files that is not an object",
+      fixtureYaml({ top: { workspace_files: "src/a.ts" } }),
+      [{ path: ["workspace_files"], message: "expected workspace_files to be an object." }],
+    ],
+    [
       "a version other than 1",
       fixtureYaml({ top: { version: 2 } }),
-      [{ pointer: "version", message: "expected version: 1." }],
+      [{ path: ["version"], message: "expected version: 1." }],
     ],
     [
       "workspace: none at the fixture level",
       fixtureYaml({ top: { workspace: "none" } }),
-      [{ pointer: "workspace", message: "expected workspace to be an object." }],
+      [{ path: ["workspace"], message: "expected workspace to be an object." }],
     ],
     [
       "a fixture without a skip case",
       fixtureYaml({ secondCase: { expect: "invoke" } }),
-      [{ pointer: "cases", message: "expected at least one case with expect: skip." }],
+      [{ path: ["cases"], message: "expected at least one case with expect: skip." }],
     ],
     // A case without a readable prompt is dropped, so it no longer counts as the skip case.
     [
@@ -390,10 +429,10 @@ describe("parseTriggerFixture details", () => {
       fixtureYaml({ secondCase: { prompt: "" } }),
       [
         {
-          pointer: "cases[1].prompt",
+          path: ["cases", 1, "prompt"],
           message: "expected cases[1].prompt to be a non-empty string.",
         },
-        { pointer: "cases", message: "expected at least one case with expect: skip." },
+        { path: ["cases"], message: "expected at least one case with expect: skip." },
       ],
     ],
     [
@@ -401,7 +440,7 @@ describe("parseTriggerFixture details", () => {
       fixtureYaml({ firstCase: { rationale: "" } }),
       [
         {
-          pointer: "cases[0].rationale",
+          path: ["cases", 0, "rationale"],
           message: "expected cases[0].rationale to be a non-empty string when provided.",
         },
       ],
@@ -411,7 +450,7 @@ describe("parseTriggerFixture details", () => {
       fixtureYaml({ firstCase: { workspace: { seed: "../escape" } } }),
       [
         {
-          pointer: "cases[0].workspace.seed",
+          path: ["cases", 0, "workspace", "seed"],
           message: "expected cases[0].workspace.seed to be a kebab-case seed name.",
         },
       ],
@@ -423,7 +462,7 @@ describe("parseTriggerFixture details", () => {
       }),
       [
         {
-          pointer: 'workspace.committed["/etc/passwd"]',
+          path: ["workspace", "committed", "/etc/passwd"],
           message:
             'expected workspace.committed path "/etc/passwd" to be a safe relative path outside .git, .agents, and .claude.',
         },
@@ -436,7 +475,7 @@ describe("parseTriggerFixture details", () => {
       }),
       [
         {
-          pointer: 'workspace.staged["/etc/passwd"]',
+          path: ["workspace", "staged", "/etc/passwd"],
           message:
             'expected workspace.staged path "/etc/passwd" to be a safe relative path outside .git, .agents, and .claude.',
         },
@@ -447,7 +486,7 @@ describe("parseTriggerFixture details", () => {
       fixtureYaml({ firstCase: { workspace_files: { "../AGENTS.md": "Invalid." } } }),
       [
         {
-          pointer: 'cases[0].workspace_files["../AGENTS.md"]',
+          path: ["cases", 0, "workspace_files", "../AGENTS.md"],
           message:
             'expected cases[0].workspace_files path "../AGENTS.md" to be a safe relative path outside .git, .agents, and .claude.',
         },
@@ -458,7 +497,7 @@ describe("parseTriggerFixture details", () => {
       fixtureYaml({ firstCase: { "invoke-instead": "engineering:tdd" } }),
       [
         {
-          pointer: "cases[0].invoke-instead",
+          path: ["cases", 0, "invoke-instead"],
           message: "expected cases[0].invoke-instead only on expect: skip cases.",
         },
       ],
@@ -498,12 +537,12 @@ cases:
 `);
 
     expect(parsed.findings).toStrictEqual([
-      { pointer: "cases[1].id", message: 'duplicate case id "same".' },
-      { pointer: "cases[2].expect", message: "expected cases[2].expect to be invoke or skip." },
+      { path: ["cases", 1, "id"], message: 'duplicate case id "same".' },
+      { path: ["cases", 2, "expect"], message: "expected cases[2].expect to be invoke or skip." },
     ]);
   });
 
-  it("quotes file-map keys in pointers so a key with quotes stays one token", () => {
+  it("reports a file-map entry whose content is not a string at its key", () => {
     const parsed = parseTriggerFixture(`
 version: 1
 cases:
@@ -511,14 +550,17 @@ cases:
     prompt: Do the thing.
     expect: invoke
     workspace_files:
-      'src/a"b.ts': 3
+      src/a.ts: 3
   - id: skip-case
     prompt: Do something else.
     expect: skip
 `);
 
-    expect(parsed.findings.map((finding) => finding.pointer)).toStrictEqual([
-      'cases[0].workspace_files["src/a\\"b.ts"]',
+    expect(parsed.findings).toStrictEqual([
+      {
+        path: ["cases", 0, "workspace_files", "src/a.ts"],
+        message: 'expected cases[0].workspace_files["src/a.ts"] to be a string.',
+      },
     ]);
   });
 

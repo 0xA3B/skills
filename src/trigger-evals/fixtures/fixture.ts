@@ -41,11 +41,14 @@ type FixtureOptions = {
   caseIds?: string[];
 };
 
-// One schema problem in a fixture: the pointer names the offending key in the fixture's own
-// vocabulary (cases[3].workspace.seed; file-map keys are JSON-quoted, as in
-// workspace_files["src/a.ts"]) and the message repeats it so the text stands alone.
+// The keys and list indexes from the fixture root to one value; [] is the root.
+export type FixturePath = Array<string | number>;
+
+// One schema problem in a fixture: the path names where it is, and the message names that place
+// in the fixture's own vocabulary (cases[3].workspace.seed) when it is below the root or the case
+// list, so the text stands alone.
 export type FixtureFinding = {
-  pointer: string;
+  path: FixturePath;
   message: string;
 };
 
@@ -91,15 +94,15 @@ export async function loadTriggerFixture(
 // a case whose expect is unreadable cannot count toward the invoke and skip presence checks.
 export function parseTriggerFixture(content: string): ParsedTriggerFixture {
   const findings: FixtureFinding[] = [];
-  const report: Report = (pointer, message) => {
-    findings.push({ pointer, message });
+  const report: Report = (path, message) => {
+    findings.push({ path, message });
   };
 
   let value: unknown;
   try {
     value = parseYaml(content);
   } catch (caught) {
-    report("", `invalid YAML: ${caught instanceof Error ? caught.message : String(caught)}`);
+    report([], `invalid YAML: ${caught instanceof Error ? caught.message : String(caught)}`);
     return { fixture: undefined, findings };
   }
 
@@ -107,30 +110,38 @@ export function parseTriggerFixture(content: string): ParsedTriggerFixture {
   return { fixture: findings.length === 0 ? fixture : undefined, findings };
 }
 
-type Report = (pointer: string, message: string) => void;
+type Report = (path: FixturePath, message: string) => void;
+
+// Names a path in messages the way a fixture author reads it: cases[3].workspace.seed. A message
+// about a file-map entry formats the map's path and appends the file key itself.
+function formatLocation(path: FixturePath): string {
+  return path
+    .map((segment, index) =>
+      typeof segment === "number" ? `[${segment}]` : index === 0 ? segment : `.${segment}`,
+    )
+    .join("");
+}
 
 function validateFixture(value: unknown, report: Report): TriggerFixture | undefined {
   if (!isRecord(value)) {
-    report("", "expected fixture root to be an object.");
+    report([], "expected fixture root to be an object.");
     return undefined;
   }
 
   if (value["version"] !== 1) {
-    report("version", "expected version: 1.");
+    report(["version"], "expected version: 1.");
   }
 
-  const defaultWorkspace = readWorkspaceSpec(value["workspace"], report, "workspace");
+  const defaultWorkspace = readWorkspaceSpec(value["workspace"], report, ["workspace"]);
   if (defaultWorkspace === "none") {
-    report("workspace", "expected workspace to be an object.");
+    report(["workspace"], "expected workspace to be an object.");
   }
-  const defaultWorkspaceFiles = readWorkspaceFiles(
-    value["workspace_files"],
-    report,
+  const defaultWorkspaceFiles = readWorkspaceFiles(value["workspace_files"], report, [
     "workspace_files",
-  );
+  ]);
 
   if (!Array.isArray(value["cases"]) || value["cases"].length === 0) {
-    report("cases", "expected cases to be a non-empty list.");
+    report(["cases"], "expected cases to be a non-empty list.");
     return undefined;
   }
 
@@ -150,7 +161,7 @@ function validateFixture(value: unknown, report: Report): TriggerFixture | undef
       return;
     }
     if (ids.has(parsedCase.testCase.id)) {
-      report(`cases[${index}].id`, `duplicate case id "${parsedCase.testCase.id}".`);
+      report(["cases", index, "id"], `duplicate case id "${parsedCase.testCase.id}".`);
     }
     ids.add(parsedCase.testCase.id);
     cases.push(parsedCase.testCase);
@@ -158,10 +169,10 @@ function validateFixture(value: unknown, report: Report): TriggerFixture | undef
 
   if (everyExpectationRead) {
     if (!cases.some((testCase) => testCase.expect === "invoke")) {
-      report("cases", "expected at least one case with expect: invoke.");
+      report(["cases"], "expected at least one case with expect: invoke.");
     }
     if (!cases.some((testCase) => testCase.expect === "skip")) {
-      report("cases", "expected at least one case with expect: skip.");
+      report(["cases"], "expected at least one case with expect: skip.");
     }
   }
 
@@ -188,40 +199,40 @@ function validateCase(
   index: number,
   defaults: FixtureDefaults,
 ): ParsedCase {
-  const location = `cases[${index}]`;
+  const path: FixturePath = ["cases", index];
+  const location = formatLocation(path);
   if (!isRecord(value)) {
-    report(location, `expected ${location} to be an object.`);
+    report(path, `expected ${location} to be an object.`);
     return { testCase: undefined, expectationRead: false };
   }
 
-  const id = readString(value, "id", report, location);
+  const id = readString(value, "id", report, path);
   if (id !== undefined && !/^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/.test(id)) {
     report(
-      `${location}.id`,
+      [...path, "id"],
       `expected ${location}.id to be 1-80 lowercase letters, numbers, or hyphens.`,
     );
   }
 
-  const prompt = readString(value, "prompt", report, location);
-  const expect = readExpectation(value["expect"], report, location);
+  const prompt = readString(value, "prompt", report, path);
+  const expect = readExpectation(value["expect"], report, path);
   const rationale = value["rationale"];
   if (rationale !== undefined && (typeof rationale !== "string" || rationale.length === 0)) {
     report(
-      `${location}.rationale`,
+      [...path, "rationale"],
       `expected ${location}.rationale to be a non-empty string when provided.`,
     );
   }
-  const invokeInstead = readInvokeInstead(value["invoke-instead"], expect, report, location);
+  const invokeInstead = readInvokeInstead(value["invoke-instead"], expect, report, path);
   // A case workspace replaces the fixture default wholesale; "none" opts out of it.
-  const caseWorkspace = readWorkspaceSpec(value["workspace"], report, `${location}.workspace`);
+  const caseWorkspace = readWorkspaceSpec(value["workspace"], report, [...path, "workspace"]);
   const workspace =
     caseWorkspace === "none" ? undefined : (caseWorkspace ?? defaults.defaultWorkspace);
   // Unstaged files merge per path, the case's own entries winning.
-  const caseWorkspaceFiles = readWorkspaceFiles(
-    value["workspace_files"],
-    report,
-    `${location}.workspace_files`,
-  );
+  const caseWorkspaceFiles = readWorkspaceFiles(value["workspace_files"], report, [
+    ...path,
+    "workspace_files",
+  ]);
   const workspaceFiles =
     defaults.defaultWorkspaceFiles === undefined && caseWorkspaceFiles === undefined
       ? undefined
@@ -256,23 +267,22 @@ function readInvokeInstead(
   value: unknown,
   expect: TriggerExpectation | undefined,
   report: Report,
-  location: string,
+  casePath: FixturePath,
 ): string | undefined {
   if (value === undefined) {
     return undefined;
   }
+  const path = [...casePath, "invoke-instead"];
+  const location = formatLocation(path);
   if (typeof value !== "string" || !SKILL_LABEL_PATTERN.test(value)) {
     report(
-      `${location}.invoke-instead`,
-      `expected ${location}.invoke-instead to be a skill label: <plugin>:<skill> or a bare repo-local skill name.`,
+      path,
+      `expected ${location} to be a skill label: <plugin>:<skill> or a bare repo-local skill name.`,
     );
     return undefined;
   }
   if (expect === "invoke") {
-    report(
-      `${location}.invoke-instead`,
-      `expected ${location}.invoke-instead only on expect: skip cases.`,
-    );
+    report(path, `expected ${location} only on expect: skip cases.`);
     return undefined;
   }
 
@@ -300,7 +310,7 @@ function isGitBranchName(name: string): boolean {
 function readWorkspaceSpec(
   value: unknown,
   report: Report,
-  location: string,
+  path: FixturePath,
 ): WorkspaceSpec | "none" | undefined {
   if (value === undefined) {
     return undefined;
@@ -308,21 +318,22 @@ function readWorkspaceSpec(
   if (value === "none") {
     return "none";
   }
+  const location = formatLocation(path);
   if (!isRecord(value)) {
-    report(location, `expected ${location} to be an object or "none".`);
+    report(path, `expected ${location} to be an object or "none".`);
     return undefined;
   }
 
   const seed = value["seed"];
   if (typeof seed !== "string" || !SEED_NAME_PATTERN.test(seed)) {
-    report(`${location}.seed`, `expected ${location}.seed to be a kebab-case seed name.`);
+    report([...path, "seed"], `expected ${location}.seed to be a kebab-case seed name.`);
   }
   const branch = value["branch"] ?? "main";
   if (typeof branch !== "string" || !isGitBranchName(branch)) {
-    report(`${location}.branch`, `expected ${location}.branch to be a git branch name.`);
+    report([...path, "branch"], `expected ${location}.branch to be a git branch name.`);
   }
-  const committed = readWorkspaceFiles(value["committed"], report, `${location}.committed`) ?? {};
-  const staged = readWorkspaceFiles(value["staged"], report, `${location}.staged`) ?? {};
+  const committed = readWorkspaceFiles(value["committed"], report, [...path, "committed"]) ?? {};
+  const staged = readWorkspaceFiles(value["staged"], report, [...path, "staged"]) ?? {};
 
   if (typeof seed !== "string" || typeof branch !== "string") {
     return undefined;
@@ -335,11 +346,12 @@ function readString(
   value: Record<string, unknown>,
   key: string,
   report: Report,
-  location: string,
+  parentPath: FixturePath,
 ): string | undefined {
   const field = value[key];
   if (typeof field !== "string" || field.length === 0) {
-    report(`${location}.${key}`, `expected ${location}.${key} to be a non-empty string.`);
+    const path = [...parentPath, key];
+    report(path, `expected ${formatLocation(path)} to be a non-empty string.`);
     return undefined;
   }
 
@@ -349,10 +361,11 @@ function readString(
 function readExpectation(
   value: unknown,
   report: Report,
-  location: string,
+  casePath: FixturePath,
 ): TriggerExpectation | undefined {
   if (value !== "invoke" && value !== "skip") {
-    report(`${location}.expect`, `expected ${location}.expect to be invoke or skip.`);
+    const path = [...casePath, "expect"];
+    report(path, `expected ${formatLocation(path)} to be invoke or skip.`);
     return undefined;
   }
 
@@ -360,19 +373,20 @@ function readExpectation(
 }
 
 // Shared by every file map in the schema: workspace_files at both levels, and the committed and
-// staged layers of a workspace block. The location names the map in diagnostics. Entries that fail
+// staged layers of a workspace block. The path names the map in diagnostics. Entries that fail
 // are dropped so the rest of the fixture still parses for further findings.
 function readWorkspaceFiles(
   value: unknown,
   report: Report,
-  location: string,
+  path: FixturePath,
 ): Record<string, string> | undefined {
   if (value === undefined) {
     return undefined;
   }
 
+  const location = formatLocation(path);
   if (!isRecord(value)) {
-    report(location, `expected ${location} to be an object.`);
+    report(path, `expected ${location} to be an object.`);
     return undefined;
   }
 
@@ -380,16 +394,13 @@ function readWorkspaceFiles(
   for (const [filePath, content] of Object.entries(value)) {
     if (!isSafeWorkspaceFilePath(filePath)) {
       report(
-        `${location}[${JSON.stringify(filePath)}]`,
+        [...path, filePath],
         `expected ${location} path "${filePath}" to be a safe relative path outside .git, .agents, and .claude.`,
       );
       continue;
     }
     if (typeof content !== "string") {
-      report(
-        `${location}[${JSON.stringify(filePath)}]`,
-        `expected ${location}["${filePath}"] to be a string.`,
-      );
+      report([...path, filePath], `expected ${location}["${filePath}"] to be a string.`);
       continue;
     }
     // An own data property even for "__proto__", which plain assignment would route to the setter.
