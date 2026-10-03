@@ -134,9 +134,10 @@ cases:
       await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual(["trigger-fixture/schema"]);
-      expect(diagnosticByRule(context, "trigger-fixture/schema")?.message).toMatch(
-        /^invalid YAML: /,
-      );
+      const diagnostic = diagnosticByRule(context, "trigger-fixture/schema");
+      expect(diagnostic?.message).toMatch(/^invalid YAML: /);
+      // A finding at the fixture root names no value, so it carries no pointer.
+      expect(diagnostic).not.toHaveProperty("pointer");
     });
   });
 

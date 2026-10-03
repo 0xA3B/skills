@@ -9,7 +9,11 @@ import {
   type Skill,
   formatSkillLabel,
 } from "../../skills/index.js";
-import { parseTriggerFixture, type TriggerFixture } from "../../trigger-evals/fixtures/index.js";
+import {
+  type FixturePath,
+  parseTriggerFixture,
+  type TriggerFixture,
+} from "../../trigger-evals/fixtures/index.js";
 import { error, type ValidationContext } from "../diagnostics.js";
 import { isDirectory, pathExists } from "../files.js";
 import type { FindMissingPluginTargets } from "../repository.js";
@@ -42,7 +46,7 @@ export async function validateTriggerFixture(
       "trigger-fixture/schema",
       fixturePath,
       finding.message,
-      toJsonPointer(finding.pointer),
+      toJsonPointer(finding.path),
     );
   }
   if (fixture === undefined) {
@@ -87,7 +91,7 @@ async function validateAlternate(
   missingTargets: FindMissingPluginTargets,
 ): Promise<void> {
   const { fixturePath, kind, targets, ownLabel, label, caseIndex } = check;
-  const pointer = `/cases/${caseIndex}/invoke-instead`;
+  const pointer = toJsonPointer(["cases", caseIndex, "invoke-instead"]);
   const { pluginName } = parseSkillLabel(label);
   if (kind === "plugin" && pluginName === undefined) {
     error(
@@ -176,13 +180,16 @@ async function validateSeeds(
   fixturePath: string,
   fixture: TriggerFixture,
 ): Promise<void> {
-  const checks: Array<{ seed: string; pointer: string }> = [];
+  const checks: Array<{ seed: string; pointer: string | undefined }> = [];
   if (fixture.workspace !== undefined) {
-    checks.push({ seed: fixture.workspace.seed, pointer: "/workspace/seed" });
+    checks.push({ seed: fixture.workspace.seed, pointer: toJsonPointer(["workspace", "seed"]) });
   }
   for (const [index, testCase] of fixture.cases.entries()) {
     if (testCase.workspace !== undefined && testCase.workspace !== fixture.workspace) {
-      checks.push({ seed: testCase.workspace.seed, pointer: `/cases/${index}/workspace/seed` });
+      checks.push({
+        seed: testCase.workspace.seed,
+        pointer: toJsonPointer(["cases", index, "workspace", "seed"]),
+      });
     }
   }
   for (const { seed, pointer } of checks) {
@@ -210,23 +217,15 @@ function fixtureTarget(repoRoot: string, skillPath: string): Skill | undefined {
   }
 }
 
-// Loader pointers use the fixture's own vocabulary (cases[3].workspace_files["src/a.ts"], with
-// JSON-quoted file-map keys); the linter reports JSON pointers like the rest of its rules.
-function toJsonPointer(pointer: string): string | undefined {
-  if (pointer === "") {
+// Every fixture pointer this rule reports, as an RFC 6901 JSON pointer like the rest of the
+// linter's rules. The root path reports no pointer.
+function toJsonPointer(fixturePath: FixturePath): string | undefined {
+  if (fixturePath.length === 0) {
     return undefined;
   }
-  const tokens: string[] = [];
-  const tokenPattern = /\["(?<quoted>(?:[^"\\]|\\.)*)"\]|\[(?<index>\d+)\]|(?<key>[^.[\]"]+)/g;
-  for (const match of pointer.matchAll(tokenPattern)) {
-    const quoted = match.groups?.["quoted"];
-    tokens.push(
-      quoted === undefined
-        ? (match.groups?.["index"] ?? match.groups?.["key"] ?? "")
-        : (JSON.parse(`"${quoted}"`) as string),
-    );
-  }
-  return tokens.map((token) => `/${token.replaceAll("~", "~0").replaceAll("/", "~1")}`).join("");
+  return fixturePath
+    .map((segment) => `/${String(segment).replaceAll("~", "~0").replaceAll("/", "~1")}`)
+    .join("");
 }
 
 function toPosix(relativePath: string): string {
