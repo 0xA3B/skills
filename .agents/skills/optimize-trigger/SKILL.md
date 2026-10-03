@@ -227,8 +227,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
     The marketplace selection refuses a repo-local path, so rerun a repo-local target one at a time:
     `mise exec -- pnpm eval:trigger -- <skill-path> --agent both --with-dependents`. The flag runs
     each selected skill's dependent cases under their own fixtures and lanes. After a seed edit,
-    rerun the seed's seeded cases, which run in the edited workspace:
-    `mise exec -- pnpm eval:trigger -- --seed <seed> --agent both`.
+    rerun the seed's seeded cases: `mise exec -- pnpm eval:trigger -- --seed <seed> --agent both`.
 11. Run repository validation for changed files:
 
     ```bash

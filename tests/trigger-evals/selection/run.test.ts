@@ -106,7 +106,7 @@ const routingFixture = triggerFixtureYaml([
 ]);
 
 // Other-skill's fixture with a node-service default workspace: two seeded cases around one case
-// that opts out of the seed.
+// that opts out of the seed and one that replaces it with another seed.
 const seededFixture = [
   "version: 1",
   "workspace:",
@@ -119,6 +119,11 @@ const seededFixture = [
   "    prompt: Do not invoke the skill.",
   "    expect: skip",
   "    workspace: none",
+  "  - id: other-seed-skip",
+  "    prompt: Do not invoke the skill.",
+  "    expect: skip",
+  "    workspace:",
+  "      seed: other-seed",
   "  - id: seeded-skip",
   "    prompt: Do not invoke the skill.",
   "    expect: skip",
@@ -132,6 +137,38 @@ describe("runSelection with a seed", () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     await writeSeedFixture(repoRoot, "node-service");
     await writeSkillFiles(otherSkillPath(repoRoot), { fixture: seededFixture });
+    // A fixture with no default whose one case names the seed, and one whose default is another
+    // seed.
+    await writeSkillFiles(demoSkillPath(repoRoot, "case-seeded-skill"), {
+      fixture: [
+        "version: 1",
+        "cases:",
+        "  - id: unseeded-skip",
+        "    prompt: Do not invoke the skill.",
+        "    expect: skip",
+        "  - id: case-seeded-invoke",
+        "    prompt: Use the case-seeded skill.",
+        "    expect: invoke",
+        "    workspace:",
+        "      seed: node-service",
+        "",
+      ].join("\n"),
+    });
+    await writeSkillFiles(demoSkillPath(repoRoot, "other-seed-skill"), {
+      fixture: [
+        "version: 1",
+        "workspace:",
+        "  seed: other-seed",
+        "cases:",
+        "  - id: other-seed-invoke",
+        "    prompt: Use the other-seed skill.",
+        "    expect: invoke",
+        "  - id: other-seed-skip",
+        "    prompt: Do not invoke the skill.",
+        "    expect: skip",
+        "",
+      ].join("\n"),
+    });
 
     const { ok, report } = await run({
       repoRoot,
@@ -139,18 +176,22 @@ describe("runSelection with a seed", () => {
       agents: ["codex"],
     });
 
-    expect(ok).toBe(true);
     expect(
       report.results.map((result) => [
         formatSkillLabel(result.target),
         result.results.map((caseResult) => caseResult.caseId),
       ]),
-    ).toStrictEqual([["other:other-skill", ["seeded-invoke", "seeded-skip"]]]);
+    ).toStrictEqual([
+      ["demo:case-seeded-skill", ["case-seeded-invoke"]],
+      ["other:other-skill", ["seeded-invoke", "seeded-skip"]],
+    ]);
     expect(report.info).toStrictEqual([
+      "Seeded cases in demo:case-seeded-skill: case-seeded-invoke.",
       "Seeded cases in other:other-skill: seeded-invoke, seeded-skip.",
-      "Seed node-service on codex: 1/1 fixtures passed.",
+      "Seed node-service on codex: 2/2 fixtures passed.",
     ]);
     expect(report.errors).toStrictEqual([]);
+    expect(ok).toBe(true);
   });
 
   // Spec: "on the lanes each fixture runs on".
@@ -303,6 +344,33 @@ describe("runSelection with a seed", () => {
 
     expect(ok).toBe(false);
     expect(report).toStrictEqual({ info: [], errors: [], results: [] });
+  });
+
+  it("reports no empty seed run when an abort lands before the agent's first fixture", async () => {
+    const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeSeedFixture(repoRoot, "node-service");
+    await writeSkillFiles(otherSkillPath(repoRoot), { fixture: seededFixture, manualOnly: true });
+    const abortController = new AbortController();
+
+    // The skip line is reported after the lane filter and before any fixture runs.
+    const { ok, report } = await run(
+      {
+        repoRoot,
+        selection: { mode: "seed", seedName: "node-service" },
+        agents: ["codex"],
+        abortSignal: abortController.signal,
+      },
+      { onInfo: () => abortController.abort() },
+    );
+
+    expect(ok).toBe(false);
+    expect(report).toStrictEqual({
+      info: [
+        "Skipping seeded cases in other:other-skill on codex: other:other-skill is manual-only on codex.",
+      ],
+      errors: [],
+      results: [],
+    });
   });
 });
 

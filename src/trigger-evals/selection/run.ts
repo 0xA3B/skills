@@ -37,6 +37,7 @@ export type SelectionRunOptions = {
   selection: TriggerEvalSelection;
   agents: Agent[];
   // Also run the dependent cases: routing assertions in other fixtures that name a selected skill.
+  // A seed selection names no skill, so it ignores this; the CLI refuses the combination.
   withDependents?: boolean;
   evalOptions: SelectionEvalOptions;
   abortSignal?: AbortSignal;

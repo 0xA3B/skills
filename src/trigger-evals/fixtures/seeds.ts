@@ -21,6 +21,15 @@ export function resolveSeedPath(repoRoot: string, seedName: string): string {
   return path.join(repoRoot, SEEDS_DIR, seedName);
 }
 
+// A seed named on the command line: its bare name, or its directory under evals/seeds/ with an
+// optional leading "./" and trailing slashes. Returns undefined for any other form.
+export function parseSeedArgument(argument: string): string | undefined {
+  const trimmed = argument.replace(/^\.\//, "").replace(/\/+$/, "");
+  const prefix = `${SEEDS_DIR.split(path.sep).join("/")}/`;
+  const seedName = trimmed.startsWith(prefix) ? trimmed.slice(prefix.length) : trimmed;
+  return SEED_NAME_PATTERN.test(seedName) ? seedName : undefined;
+}
+
 // The directory of a seed that exists, or an error naming where it was looked for.
 export async function findSeedPath(repoRoot: string, seedName: string): Promise<string> {
   const seedPath = resolveSeedPath(repoRoot, seedName);

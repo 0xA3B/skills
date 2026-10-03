@@ -144,6 +144,10 @@ describe("parseTriggerEvalCliOptions", () => {
     "evals/node-service",
     "evals/seeds/node-service/src",
     "../node-service",
+    // Indirect spellings name the seed only after path normalization, which --seed does not do.
+    "other/../node-service",
+    "evals/seeds/../seeds/node-service",
+    "evals/seeds//node-service",
   ])("rejects --seed %s as not a seed", (seedArgument) => {
     expect(() => parseTriggerEvalCliOptions(["--seed", seedArgument])).toThrow(
       `--seed takes a kebab-case seed name or evals/seeds/<name>; received ${seedArgument}.`,
@@ -199,6 +203,11 @@ describe("parseTriggerEvalCliOptions", () => {
       parseTriggerEvalCliOptions(["--seed", "node-service", "--case", "case-a"]),
     ).toThrow(
       "--case requires one target skill: pass a single skill path, or --marketplace with exactly one skill path.",
+    );
+    expect(() =>
+      parseTriggerEvalCliOptions(["--seed", "node-service", "--fixture", "custom.yaml"]),
+    ).toThrow(
+      "--fixture requires one target skill: pass a single skill path, or --marketplace with exactly one skill path.",
     );
   });
 

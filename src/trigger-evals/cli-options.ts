@@ -1,8 +1,7 @@
-import path from "node:path";
 import { parseArgs } from "node:util";
 
 import type { Agent } from "../skills/index.js";
-import { SEED_NAME_PATTERN } from "./fixtures/index.js";
+import { parseSeedArgument } from "./fixtures/index.js";
 import type { RunTriggerEvalOptions } from "./runner.js";
 import type { SelectionEvalOptions, TriggerEvalSelection } from "./selection/index.js";
 
@@ -111,7 +110,13 @@ function parseSelection(
     throw new Error("Pass one --seed per run.");
   }
   if (seedArgument !== undefined) {
-    return { mode: "seed", seedName: parseSeedName(seedArgument) };
+    const seedName = parseSeedArgument(seedArgument);
+    if (seedName === undefined) {
+      throw new Error(
+        `--seed takes a kebab-case seed name or evals/seeds/<name>; received ${seedArgument}.`,
+      );
+    }
+    return { mode: "seed", seedName };
   }
 
   if (values.marketplace === true) {
@@ -136,22 +141,6 @@ function parseSelection(
 
   return { mode: "skill", skillPath: firstPositional };
 }
-
-// A seed is named bare or by its directory under evals/seeds/, relative to the repository root.
-function parseSeedName(argument: string): string {
-  const normalized = path.posix.normalize(argument).replace(/\/+$/, "");
-  const seedName = normalized.startsWith(SEEDS_PREFIX)
-    ? normalized.slice(SEEDS_PREFIX.length)
-    : normalized;
-  if (!SEED_NAME_PATTERN.test(seedName)) {
-    throw new Error(
-      `--seed takes a kebab-case seed name or evals/seeds/<name>; received ${argument}.`,
-    );
-  }
-  return seedName;
-}
-
-const SEEDS_PREFIX = "evals/seeds/";
 
 function usageLine(): string {
   return "Usage: pnpm eval:trigger -- <skill-path> [options]";
