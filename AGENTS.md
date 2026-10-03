@@ -140,6 +140,7 @@ implementation.
 | **Workspace seed**           | Committed project content under `evals/seeds/<name>/`, copied into a case workspace and initialized as a git repository before the agent runs.                                                                                                                                                                                        | scaffold, checkout, fixture workspace    |
 | **Routing assertion**        | The `invoke-instead` check on a skip case: the named alternate must be the only skill that fires.                                                                                                                                                                                                                                     | route-to, redirect                       |
 | **Dependent case**           | A skip case in another skill's fixture whose routing assertion names the target skill.                                                                                                                                                                                                                                                | dependency                               |
+| **Seeded case**              | A trigger fixture case whose resolved workspace (its own `workspace`, or else the fixture default) names a given workspace seed.                                                                                                                                                                                                      | seed dependent, dependent case           |
 | **Trigger eval**             | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code).                                                                                                                                                                  | validation gate                          |
 | **Attempt**                  | One execution of one trigger fixture case within a trigger eval, numbered from 1; `--repeat <n>` runs n attempts of each selected case.                                                                                                                                                                                               | repeat, iteration, trial                 |
 | **Eval lane**                | The per-agent adapter a trigger eval runs through, owning that agent's staging, case execution, and invocation observations. Distinct from a **Review lane**, which is a focused review pass.                                                                                                                                         | review lane, harness                     |
@@ -175,7 +176,8 @@ Relationships:
 - A **Trigger eval** runs one or more **Attempts** of each selected case; the case passes only when
   every **Attempt** passes.
 - Each **Trigger fixture** case runs in zero or one **Workspace seed**; a **Workspace seed** is
-  shared by every fixture that names it.
+  shared by every fixture that names it, and the cases across fixtures that resolve to it are its
+  **Seeded cases**.
 - A **Trigger fixture** skip case carries zero or one **Routing assertion**; the cases whose
   **Routing assertion** names a skill are that skill's **Dependent cases**.
 - **Plugin linter** checks are local and deterministic; the **Plugin version check** reads git
