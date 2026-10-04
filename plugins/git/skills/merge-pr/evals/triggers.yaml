@@ -56,7 +56,8 @@ cases:
     prompt: >-
       Squash my last three local commits into one before I push.
     expect: skip
-    rationale: Local history editing is not a forge merge.
+    invoke-instead: git:tidy-history
+    rationale: Local history editing is not a forge merge; tidy-history owns it.
 
   - id: open-pull-request
     prompt: >-

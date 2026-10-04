@@ -1,6 +1,7 @@
 # Merge method selection
 
-Shared policy for `create-pr` and `merge-pr`. Select the expected merge method in this order:
+Shared policy for `create-pr` and `merge-pr`; `tidy-history` applies only its durable-SHA search.
+Select the expected merge method in this order:
 
 1. repository-enforced policy;
 2. explicit user choice;

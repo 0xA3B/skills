@@ -28,8 +28,9 @@ authorization, validation, or forge state prevent that outcome.
 - Push normally after validation.
 - Rebase unpublished topic history when the merge policy selects rebase and the operation is
   conflict-free.
-- Require explicit authorization before rewriting any remote history. When authorized, fetch first
-  and use `--force-with-lease`, never `--force`.
+- Tidy topic history through `git:tidy-history`. Require explicit authorization before any other
+  rewrite of remote history. When authorized, fetch first and use `--force-with-lease`, never
+  `--force`.
 - Never resolve merge or rebase conflicts, rebase a target branch onto a topic branch, bypass hooks,
   perform code review, or merge the change request.
 
@@ -122,8 +123,10 @@ the effective diff, and the decisions that shaped the final solution:
 
 After authoring:
 
-1. push the topic branch;
-2. create or refresh the change request through the selected forge lane with the authored title and
+1. apply `git:tidy-history` to the topic branch against the resolved target; it keeps the validated
+   tree, and when it refuses or stops, continue with the history it left and report its reason;
+2. push the topic branch normally when `git:tidy-history` did not publish it;
+3. create or refresh the change request through the selected forge lane with the authored title and
    completed description, ready for review unless the user explicitly asks for a draft.
 
 Record the change-request URL, target, and exact source-head SHA.
@@ -145,7 +148,7 @@ Report:
 - whether the request was created or reused;
 - expected merge method and any identity constraint;
 - ignored SHA references recorded for later cleanup;
-- commits created and push mode used;
+- commits created, history changes `git:tidy-history` made, and push mode used;
 - local validation and initial CI state;
 - blockers or pending work.
 
