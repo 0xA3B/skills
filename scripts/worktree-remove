@@ -6,8 +6,8 @@ usage() {
 Usage: worktree-remove <branch> [--force]
 
 Remove the worktree registered for <branch> and delete the branch when every commit on it is
-reachable from main. A worktree with uncommitted changes is kept unless --force is given. A
-branch with commits main does not contain is kept and reported; delete it by hand with
+reachable from main or origin/main. A worktree with uncommitted changes is kept unless --force is
+given. A branch with commits neither contains is kept and reported; delete it by hand with
 git branch -D when that is intended. A worktree whose directory was deleted by hand is
 unregistered the same way.
 
@@ -67,11 +67,11 @@ else
   # git worktree remove deletes ignored files without --force; keep them unless forced. The
   # install output worktree-add generates, node_modules and .husky/_, is disposable and excluded,
   # as is .claude/.cc-writes, the write-tracking state Claude Code leaves in every worktree it
-  # edits, at the root or under the directory a shell ran in. git lists an ignored directory
-  # either whole or file by file (the hook files under .husky/_), so the match is by prefix.
+  # edits, at the root or under the directory a shell ran in. git lists each ignored file, so an
+  # ignored directory holding no files is not listed.
   if [ -d "$dir" ]; then
-    ignored="$(git -C "$dir" status --porcelain --ignored=matching -z \
-      | tr '\0' '\n' | sed -n 's/^!! //p' \
+    ignored="$(git -C "$dir" ls-files -z --others --ignored --exclude-standard \
+      | tr '\0' '\n' \
       | grep -v -E '^(node_modules|\.husky/_)(/|$)|(^|/)\.claude/\.cc-writes(/|$)' || true)"
     if [ -n "$ignored" ]; then
       echo "worktree-remove: $dir holds ignored files; pass --force to delete them:" >&2
@@ -83,8 +83,11 @@ else
 fi
 
 # Qualified refs: a tag named like the branch would otherwise win the ancestry check.
-if git -C "$root" merge-base --is-ancestor "refs/heads/$branch" refs/heads/main; then
+# origin/main covers a branch started from it and a merged branch local main has not pulled yet;
+# a clone without it fails the check quietly.
+if git -C "$root" merge-base --is-ancestor "refs/heads/$branch" refs/heads/main \
+  || git -C "$root" merge-base --is-ancestor "refs/heads/$branch" refs/remotes/origin/main 2>/dev/null; then
   git -C "$root" branch -D "$branch"
 else
-  echo "kept branch $branch: it has commits main does not contain; delete it with git branch -D $branch when intended"
+  echo "kept branch $branch: it has commits neither main nor origin/main contains; delete it with git branch -D $branch when intended"
 fi
