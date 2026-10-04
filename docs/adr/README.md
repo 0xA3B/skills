@@ -11,3 +11,4 @@ the index.
 ## Index
 
 - [0001 The plugin linter validates local plugin sources only](0001-validate-local-plugin-sources-only.md)
+- [0002 The git plugin tidies topic-branch history without asking](0002-git-plugin-tidies-topic-history-autonomously.md)
