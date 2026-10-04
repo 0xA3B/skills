@@ -18,6 +18,7 @@ import { runTriggerEval } from "../../src/trigger-evals/runner.js";
 import {
   buildCliRunResult,
   exists,
+  triggerFixtureYaml,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
 } from "./test-utils.js";
@@ -512,10 +513,13 @@ describe("runTriggerEval", () => {
     });
   });
 
-  it("attributes a skill the target's body names to the target's workflow", async () => {
+  it("attributes a skill the target applies to the target's workflow", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
+    await writeFile(
+      path.join(repoRoot, "plugins", "demo", "skills", "auto-skill", "evals", "triggers.yaml"),
+      `applies:\n  - demo:helper-skill\n${triggerFixtureYaml()}`,
+    );
     const { lane } = createFakeLane({
-      skillDependencies: new Map([["demo:auto-skill", new Set(["demo:helper-skill"])]]),
       observationsFor: () => ({
         signal: "command-skill-read",
         invokedSkills: ["demo:helper-skill", "demo:auto-skill"],
@@ -537,6 +541,37 @@ describe("runTriggerEval", () => {
       passed: true,
     });
   });
+
+  it.each([
+    { name: "declares", applies: "applies:\n  - demo:helper-skill\n", stagedApplies: [] },
+    { name: "omits", applies: "", stagedApplies: ["demo:helper-skill"] },
+  ])(
+    "takes the target's applied skills from a --fixture file that $name them",
+    async ({ applies, stagedApplies }) => {
+      const repoRoot = await writeRepoFixture({ marketplace: true });
+      const fixturePath = path.join(repoRoot, "custom-triggers.yaml");
+      await writeFile(fixturePath, `${applies}${triggerFixtureYaml()}`);
+      const { lane } = createFakeLane({
+        skillDependencies: new Map([["demo:auto-skill", new Set(stagedApplies)]]),
+        observationsFor: () => ({
+          signal: "command-skill-read",
+          invokedSkills: ["demo:helper-skill", "demo:auto-skill"],
+          hasActivity: true,
+          decisionItemCount: 1,
+        }),
+      });
+
+      const result = await runTriggerEval({
+        repoRoot,
+        skillPath: "plugins/demo/skills/auto-skill",
+        fixturePath,
+        caseIds: ["invoke-case"],
+        lane,
+      });
+
+      expect(result.results[0]?.passed).toBe(applies !== "");
+    },
+  );
 
   it("skips manual-only skills without preparing the lane", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();

@@ -22,6 +22,7 @@ import {
   exists,
   makeLaneRunOptions,
   triggerCase,
+  triggerFixtureYaml,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
   writeSeedFixture,
@@ -106,8 +107,8 @@ describe("createCodexLane", () => {
       "plugins/demo/skills/auto-skill",
     );
     await writeFile(
-      runOptions.target.skillFilePath,
-      "---\nname: auto-skill\n---\nUse `helper-skill`.\n",
+      runOptions.target.fixturePath,
+      `applies:\n  - demo:helper-skill\n${triggerFixtureYaml()}`,
     );
 
     const laneRun = await createCodexLane({

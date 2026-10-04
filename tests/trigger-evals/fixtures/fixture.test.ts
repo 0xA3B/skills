@@ -166,6 +166,64 @@ cases:
     expect(fixture.cases[0]).not.toHaveProperty("invokeInstead");
   });
 
+  it("reads the fixture-level applies list", async () => {
+    const fixturePath = await writeFixture(`
+version: 1
+applies:
+  - git:commit
+  - writing:technical-writing
+cases:
+  - id: create-pr
+    prompt: Open a pull request for this branch.
+    expect: invoke
+  - id: general-question
+    prompt: What is a pull request?
+    expect: skip
+`);
+
+    const fixture = await loadTriggerFixture(fixturePath);
+    expect(fixture.applies).toStrictEqual(["git:commit", "writing:technical-writing"]);
+  });
+
+  it("reads a fixture without applies as applying no skills", () => {
+    const { fixture } = parseTriggerFixture(
+      "version: 1\ncases:\n  - id: a\n    prompt: p\n    expect: invoke\n  - id: b\n    prompt: q\n    expect: skip\n",
+    );
+
+    expect(fixture?.applies).toStrictEqual([]);
+  });
+
+  it.each([
+    [
+      "not a list",
+      "applies: git:commit",
+      [{ path: ["applies"], message: "expected applies to be a list of skill labels." }],
+    ],
+    [
+      "an entry that is not a skill label",
+      "applies:\n  - git:commit\n  - 3",
+      [
+        {
+          path: ["applies", 1],
+          message:
+            "expected applies[1] to be a skill label: <plugin>:<skill> or a bare repo-local skill name.",
+        },
+      ],
+    ],
+    [
+      "a repeated entry",
+      "applies:\n  - git:commit\n  - git:commit",
+      [{ path: ["applies", 1], message: 'duplicate applies entry "git:commit".' }],
+    ],
+  ])("reports applies that is %s", (_label, applies, findings) => {
+    const result = parseTriggerFixture(
+      `version: 1\n${applies}\ncases:\n  - id: a\n    prompt: p\n    expect: invoke\n  - id: b\n    prompt: q\n    expect: skip\n`,
+    );
+
+    expect(result.fixture).toBeUndefined();
+    expect(result.findings).toStrictEqual(findings);
+  });
+
   // Spec: "fixtures.ts owns the schema and collects every finding ... instead of throwing at the
   // first; invalid YAML yields one finding. The runner's load aggregates findings into one thrown
   // error."

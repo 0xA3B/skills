@@ -1,4 +1,7 @@
 version: 1
+applies:
+  - git:commit
+  - writing:technical-writing
 cases:
   - id: create-github-pr
     prompt: >-

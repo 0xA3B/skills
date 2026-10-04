@@ -162,6 +162,12 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
       ...(extraRepoLocalSkills.length > 0 ? { extraRepoLocalSkills } : {}),
     });
     const preparedRun = laneRun;
+    // The fixture under evaluation owns the target's applied skills, so a --fixture file overrides
+    // the committed fixture the lane read from the staged copy.
+    const skillDependencies = new Map(preparedRun.skillDependencies).set(
+      targetLabel,
+      new Set(fixture.applies),
+    );
     const concurrency = normalizePositiveInteger(
       options.concurrency ?? DEFAULT_CONCURRENCY,
       "concurrency",
@@ -188,7 +194,7 @@ export async function runTriggerEval(options: RunTriggerEvalOptions): Promise<Tr
             attempt,
             targetLabel,
             stagedSkillLabels: preparedRun.stagedSkillLabels,
-            skillDependencies: preparedRun.skillDependencies,
+            skillDependencies,
             observations: laneCase.observe(runResult),
             runResult,
             durationMs: Date.now() - caseStartedAt,

@@ -1,4 +1,10 @@
 version: 1
+applies:
+  - engineering:codebase-design
+  - engineering:receiving-feedback
+  - writing:agent-instructions
+  - writing:prose
+  - writing:technical-writing
 workspace:
   seed: node-service
 workspace_files:

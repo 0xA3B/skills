@@ -1,4 +1,6 @@
 version: 1
+applies:
+  - engineering:review-changes
 cases:
   - id: tune-trigger-request
     prompt: >-

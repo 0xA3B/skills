@@ -17,7 +17,7 @@ export type TriggerCaseResult = {
   // dependency loads below.
   invokedSkills: string[];
   // Detected skills the verdict attributed to another detected skill's workflow because that
-  // skill's body names them (dropDependencyLoads). Kept for the report; they carry no decision.
+  // skill applies them (dropDependencyLoads). Kept for the report; they carry no decision.
   dependencyLoads?: string[];
   // Label of a non-target staged skill whose invocation was detected. Fails an invoke case even
   // when the target also fired (simultaneous invocation is trigger-contract overlap); surfaced
@@ -69,17 +69,17 @@ export type CaseVerdictOptions = {
   targetLabel: string;
   // Every staged skill's label regardless of invocation policy, for the isolation check.
   stagedSkillLabels: ReadonlySet<string>;
-  // For each staged skill, the staged skills its body names (LaneRun.skillDependencies).
+  // For each staged skill, the skills it applies (LaneRun.skillDependencies).
   skillDependencies?: ReadonlyMap<string, ReadonlySet<string>>;
   observations: CaseObservations;
   runResult: CliRunResult;
   durationMs: number;
 };
 
-// Drops every detected skill that another detected skill's body names: the agent loaded it while
+// Drops every detected skill that another detected skill applies: the agent loaded it while
 // applying that skill, so it carries no trigger decision of its own. Read order does not decide,
-// because an agent that has announced a workflow may read the helper it names first. Two skills
-// that name each other both keep their decisions, and a longer cycle that would drop every
+// because an agent that has announced a workflow may read the helper it applies first. Two skills
+// that apply each other both keep their decisions, and a longer cycle that would drop every
 // detected skill keeps them all, so an observed invocation never reports no skill at all.
 export function dropDependencyLoads(
   invokedSkills: readonly string[],

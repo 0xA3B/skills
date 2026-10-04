@@ -1,4 +1,7 @@
 version: 1
+applies:
+  - writing:agent-instructions
+  - pressure-test-skill
 cases:
   - id: add-skill-to-existing-plugin
     prompt: >-

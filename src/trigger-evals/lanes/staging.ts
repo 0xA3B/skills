@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -8,6 +8,7 @@ import {
   type Skill,
   type SkillDirectory,
 } from "../../skills/index.js";
+import { loadTriggerFixture } from "../fixtures/index.js";
 import type { MarketplacePluginEntry } from "../marketplace.js";
 import type { RuntimeResources } from "../runtime.js";
 import type { InvocableSkill } from "./skill-reads.js";
@@ -55,7 +56,7 @@ export type StagedDeployment = {
   // Every staged skill's label regardless of invocation policy: manual-only skills also surface
   // in loaded-skills observations, so the isolation check must expect them.
   stagedSkillLabels: ReadonlySet<string>;
-  // For each staged skill, the staged skills its body names; see surveySkillDependencies.
+  // For each staged skill with a trigger fixture, the skills its fixture says it applies.
   skillDependencies: ReadonlyMap<string, ReadonlySet<string>>;
 };
 
@@ -73,14 +74,14 @@ export async function stageDeployment(options: DeploymentOptions): Promise<Stage
   const entries = pluginsToStage(target, options.plugins);
   const stagedPlugins = await stagePluginCopies(deploymentPath, entries);
   const labels: string[] = [];
-  const skillFiles: StagedSkillFile[] = [];
+  const skillDependencies = new Map<string, ReadonlySet<string>>();
   const invocableSkills: InvocableSkill[] = [];
   for (const entry of entries) {
     for (const { skillName, skillPath } of await listPluginSkills(entry.pluginPath)) {
       const skillLabel = `${entry.pluginName}:${skillName}`;
       const filePath = path.join(skillPath, "SKILL.md");
       labels.push(skillLabel);
-      skillFiles.push({ skillLabel, pluginName: entry.pluginName, skillName, filePath });
+      await readAppliedSkills(skillDependencies, skillLabel, skillPath);
       const isTarget =
         target.kind === "plugin" &&
         entry.pluginName === target.pluginName &&
@@ -94,12 +95,11 @@ export async function stageDeployment(options: DeploymentOptions): Promise<Stage
   if (target.kind === "repo-local") {
     for (const skill of [target, ...options.repoLocalSkills]) {
       await stageRepoLocalSkill(workspacePath, skill, options.repoLocalSurface);
-      const filePath = path.join(skill.skillPath, "SKILL.md");
       labels.push(skill.skillName);
-      skillFiles.push({ skillLabel: skill.skillName, skillName: skill.skillName, filePath });
+      await readAppliedSkills(skillDependencies, skill.skillName, skill.skillPath);
       if (
         skill.skillName === target.skillName ||
-        (await readSkillFileAllowImplicitInvocation(filePath))
+        (await readSkillFileAllowImplicitInvocation(path.join(skill.skillPath, "SKILL.md")))
       ) {
         invocableSkills.push({ skillLabel: skill.skillName, skillName: skill.skillName });
       }
@@ -113,53 +113,26 @@ export async function stageDeployment(options: DeploymentOptions): Promise<Stage
     stagedPlugins,
     invocableSkills,
     stagedSkillLabels: new Set(labels),
-    skillDependencies: await surveySkillDependencies(skillFiles),
+    skillDependencies,
   };
 }
 
-export type StagedSkillFile = {
-  skillLabel: string;
-  // Undefined for a repo-local skill.
-  pluginName?: string;
-  skillName: string;
-  // The committed SKILL.md the staged copy was made from.
-  filePath: string;
-};
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-}
-
-// A skill whose body names another staged skill applies that skill inside its own workflow, so a
-// read or load of the named skill in the same run is a dependency load, not a second
-// trigger decision. Bodies name a skill as `plugin:skill` (also `$plugin:skill` in Codex prompt
-// form) or, within the same plugin or among repo-local siblings, as the bare `skill` name.
-export async function surveySkillDependencies(
-  skillFiles: StagedSkillFile[],
-): Promise<Map<string, ReadonlySet<string>>> {
-  const bodies = await Promise.all(
-    skillFiles.map((skillFile) => readFile(skillFile.filePath, "utf8")),
-  );
-  const dependencies = new Map<string, ReadonlySet<string>>();
-  skillFiles.forEach((skillFile, index) => {
-    const body = bodies[index] ?? "";
-    const named = new Set<string>();
-    for (const other of skillFiles) {
-      if (other.skillLabel === skillFile.skillLabel) {
-        continue;
-      }
-      const label = escapeRegExp(other.skillLabel);
-      const forms = [`\`${label}\``, String.raw`\$${label}(?![\w:-])`];
-      if (other.pluginName === skillFile.pluginName) {
-        forms.push(`\`${escapeRegExp(other.skillName)}\``);
-      }
-      if (forms.some((form) => new RegExp(form).test(body))) {
-        named.add(other.skillLabel);
-      }
-    }
-    dependencies.set(skillFile.skillLabel, named);
-  });
-  return dependencies;
+// Records the skills a staged skill applies, from the applies list of its committed trigger
+// fixture. A skill without a fixture applies nothing: only manual-only skills ship without one,
+// and they never fire on their own in a run.
+async function readAppliedSkills(
+  skillDependencies: Map<string, ReadonlySet<string>>,
+  skillLabel: string,
+  skillPath: string,
+): Promise<void> {
+  const fixturePath = path.join(skillPath, "evals", "triggers.yaml");
+  try {
+    await access(fixturePath);
+  } catch {
+    return;
+  }
+  const { applies } = await loadTriggerFixture(fixturePath);
+  skillDependencies.set(skillLabel, new Set(applies));
 }
 
 // A plugin-skill target stages its own plugin first; a repo-local target owns no plugin, so it

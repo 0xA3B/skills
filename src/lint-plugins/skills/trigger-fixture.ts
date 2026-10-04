@@ -71,8 +71,104 @@ export async function validateTriggerFixture(
       missingTargets,
     );
   }
+  if (ownTarget !== undefined) {
+    const ownBody = await readFile(ownTarget.skillFilePath, "utf8");
+    for (const [index, label] of fixture.applies.entries()) {
+      await validateApplied(
+        context,
+        { fixturePath, ownTarget, ownBody, targets, label, index },
+        missingTargets,
+      );
+    }
+  }
 
   await validateSeeds(context, fixturePath, fixture);
+}
+
+type AppliedCheck = {
+  fixturePath: string;
+  ownTarget: Skill;
+  ownBody: string;
+  targets: PluginTargets;
+  label: string;
+  index: number;
+};
+
+// An applied skill is loaded inside the fixture's skill's workflow, so the trigger verdict drops
+// its load as a dependency load. Only a model-invocable skill can be loaded that way, and only a
+// body that names the skill can tell the agent to apply it. A plugin skill never runs beside
+// repo-local skills, so a plugin fixture applies plugin skills only; a repo-local skill runs
+// beside the marketplace plugins, so a repo-local fixture may apply either kind.
+async function validateApplied(
+  context: ValidationContext,
+  check: AppliedCheck,
+  missingTargets: FindMissingPluginTargets,
+): Promise<void> {
+  const { fixturePath, ownTarget, ownBody, targets, label, index } = check;
+  const pointer = toJsonPointer(["applies", index]);
+  const report = (ruleId: string, message: string) =>
+    error(context, ruleId, fixturePath, `applies names "${label}", ${message}`, pointer);
+  const { pluginName, skillName } = parseSkillLabel(label);
+  if (ownTarget.kind === "plugin" && pluginName === undefined) {
+    report(
+      "trigger-fixture/applies-kind",
+      "but a plugin fixture must name a plugin skill as <plugin>:<skill>.",
+    );
+    return;
+  }
+  if (label === formatSkillLabel(ownTarget)) {
+    report("trigger-fixture/applies-self", "the fixture's own skill.");
+    return;
+  }
+
+  const { skillPath, skillFilePath } = resolveSkillLabel(context.repoRoot, label);
+  if (!(await pathExists(skillFilePath))) {
+    report(
+      "trigger-fixture/applies-missing",
+      `but ${toPosix(path.relative(context.repoRoot, skillPath))} has no SKILL.md.`,
+    );
+    return;
+  }
+  // An unparsable applied frontmatter is that skill's own parse/yaml diagnostic, so the
+  // manual-only check is skipped rather than aborting.
+  const implicitlyInvokable = await readSkillFileAllowImplicitInvocation(skillFilePath).catch(
+    () => true,
+  );
+  if (!implicitlyInvokable) {
+    report(
+      "trigger-fixture/applies-manual-only",
+      "which is manual-only, so no agent can load it inside a workflow.",
+    );
+    return;
+  }
+
+  // A body names a skill by its label, in Codex prompt form as $label, or, within one plugin or
+  // among repo-local skills, by its bare name.
+  const sameScope = pluginName === (ownTarget.kind === "plugin" ? ownTarget.pluginName : undefined);
+  const named =
+    ownBody.includes(`\`${label}\``) ||
+    new RegExp(String.raw`\$${escapeRegExp(label)}(?![\w:-])`).test(ownBody) ||
+    (sameScope && ownBody.includes(`\`${skillName}\``));
+  if (!named) {
+    const forms = [`\`${label}\``, `\`$${label}\``, ...(sameScope ? [`\`${skillName}\``] : [])];
+    const listed = `${forms.slice(0, -1).join(", ")}${forms.length > 2 ? "," : ""} or ${forms.at(-1)}`;
+    report("trigger-fixture/applies-unnamed", `but SKILL.md never names it as ${listed}.`);
+  }
+  if (pluginName === undefined) {
+    return;
+  }
+  // The applying skill's workflow runs on every target its own plugin ships on, so the applied
+  // skill's plugin must ship on each of them or the workflow cannot load it there.
+  for (const target of missingTargets(pluginName, targets)) {
+    report(
+      "trigger-fixture/applies-target",
+      `but plugin "${pluginName}" does not ship on ${target}, where this skill's workflow also runs.`,
+    );
+  }
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 type AlternateCheck = {

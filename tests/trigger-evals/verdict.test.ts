@@ -77,7 +77,7 @@ describe("shouldStopEarly", () => {
 
 describe("dropDependencyLoads", () => {
   // Recorded 2026-09-24 on gpt-6-sol: "Use Claude Code with sonnet to review these changes" read
-  // adversarial-review, whose body names using-claude-cli for CLI mechanics, and then read
+  // adversarial-review, which applies using-claude-cli for CLI mechanics, and then read
   // using-claude-cli. Only the first read is a trigger decision.
   const dependencies = new Map<string, ReadonlySet<string>>([
     ["claude-in-codex:adversarial-review", new Set(["claude-in-codex:using-claude-cli"])],
@@ -96,15 +96,15 @@ describe("dropDependencyLoads", () => {
 
   it.each<[string, string[], ReadonlyMap<string, ReadonlySet<string>>, string[]]>([
     [
-      "drops a skill loaded after the skill whose body names it",
+      "drops a skill loaded after the skill that applies it",
       ["claude-in-codex:adversarial-review", "claude-in-codex:using-claude-cli"],
       dependencies,
       ["claude-in-codex:adversarial-review"],
     ],
     [
-      // An agent that announced a workflow may read the helper it names first: recorded
+      // An agent that announced a workflow may read the helper it applies first: recorded
       // 2026-09-24 on gpt-6-sol, where git:create-pr read technical-writing before itself.
-      "drops the named skill regardless of read order",
+      "drops the applied skill regardless of read order",
       ["claude-in-codex:using-claude-cli", "claude-in-codex:adversarial-review"],
       dependencies,
       ["claude-in-codex:adversarial-review"],
@@ -121,12 +121,12 @@ describe("dropDependencyLoads", () => {
     ],
     [
       // The unrelated c keeps the cycle fallback from restoring a and b on its own.
-      "keeps both skills when their bodies name each other",
+      "keeps both skills when they apply each other",
       ["a", "b", "c"],
       mutual,
       ["a", "b", "c"],
     ],
-    ["keeps every skill when no body names another", ["a", "b"], new Map(), ["a", "b"]],
+    ["keeps every skill when none applies another", ["a", "b"], new Map(), ["a", "b"]],
     [
       "keeps every skill when a cycle would otherwise drop them all",
       ["a", "b", "c"],

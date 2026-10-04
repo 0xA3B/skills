@@ -376,6 +376,155 @@ cases:
     });
   });
 
+  // An applied skill is one the fixture's skill loads inside its own workflow: it must exist, be
+  // model-invocable (no agent can load a manual-only skill on its own), and be named in the body
+  // whose workflow applies it.
+  describe("applies", () => {
+    const HELLO_BODY_PATH = `${HELLO_SKILL}/SKILL.md`;
+    const helloBody = (body: string) =>
+      `---\nname: hello\ndescription: Use when a test needs a valid skill fixture.\n---\n\n${body}\n`;
+    const fixtureApplying = (...labels: string[]) =>
+      `applies:\n${labels.map((label) => `  - ${label}\n`).join("")}${fixtureWithSkip("")}`;
+
+    it("accepts model-invocable skills the body names by bare same-plugin name or by label", async () => {
+      await withTempRepo(async (repoRoot) => {
+        await writeValidPluginRepo(repoRoot);
+        await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
+        await writePlugin(repoRoot, { name: "writing", skillName: "style", implicit: true });
+        await writeText(
+          repoRoot,
+          HELLO_BODY_PATH,
+          helloBody("Apply `auto` first, then apply `writing:style` to the summary."),
+        );
+        await writeText(
+          repoRoot,
+          `${HELLO_SKILL}/evals/triggers.yaml`,
+          fixtureApplying("demo-plugin:auto", "writing:style"),
+        );
+        const context = createTestContext(repoRoot);
+
+        await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+
+        expect(ruleIds(context)).toStrictEqual([]);
+      });
+    });
+
+    it.each([
+      [
+        "the fixture's own skill",
+        "demo-plugin:hello",
+        "Apply `demo-plugin:hello`.",
+        "trigger-fixture/applies-self",
+        'applies names "demo-plugin:hello", the fixture\'s own skill.',
+      ],
+      [
+        "a skill that does not exist",
+        "demo-plugin:nope",
+        "Apply `nope`.",
+        "trigger-fixture/applies-missing",
+        'applies names "demo-plugin:nope", but plugins/demo-plugin/skills/nope has no SKILL.md.',
+      ],
+      [
+        "a manual-only skill",
+        "demo-plugin:manual",
+        "Apply `manual`.",
+        "trigger-fixture/applies-manual-only",
+        'applies names "demo-plugin:manual", which is manual-only, so no agent can load it inside a workflow.',
+      ],
+      [
+        "a repo-local skill from a plugin fixture",
+        "local-skill",
+        "Apply `local-skill`.",
+        "trigger-fixture/applies-kind",
+        'applies names "local-skill", but a plugin fixture must name a plugin skill as <plugin>:<skill>.',
+      ],
+      [
+        "a skill the body never names",
+        "demo-plugin:auto",
+        "Use the automatic workflow.",
+        "trigger-fixture/applies-unnamed",
+        'applies names "demo-plugin:auto", but SKILL.md never names it as `demo-plugin:auto`, `$demo-plugin:auto`, or `auto`.',
+      ],
+      [
+        "another plugin's skill the body names only by its bare name",
+        "writing:style",
+        "Apply `style`.",
+        "trigger-fixture/applies-unnamed",
+        'applies names "writing:style", but SKILL.md never names it as `writing:style` or `$writing:style`.',
+      ],
+      [
+        "a skill whose plugin does not ship on Claude Code",
+        "codex-only:auto",
+        "Apply `codex-only:auto`.",
+        "trigger-fixture/applies-target",
+        'applies names "codex-only:auto", but plugin "codex-only" does not ship on claude, where this skill\'s workflow also runs.',
+      ],
+      [
+        "a skill whose plugin does not ship on Codex",
+        "claude-only:auto",
+        "Apply `claude-only:auto`.",
+        "trigger-fixture/applies-target",
+        'applies names "claude-only:auto", but plugin "claude-only" does not ship on codex, where this skill\'s workflow also runs.',
+      ],
+    ])("reports %s", async (_label, applied, body, ruleId, message) => {
+      await withTempRepo(async (repoRoot) => {
+        await writeValidPluginRepo(repoRoot);
+        await writePlugin(repoRoot, { name: "writing", skillName: "style", implicit: true });
+        await writePlugin(repoRoot, {
+          name: "codex-only",
+          targets: { claude: false, codex: true },
+          skillName: "auto",
+          implicit: true,
+        });
+        await writePlugin(repoRoot, {
+          name: "claude-only",
+          targets: { claude: true, codex: false },
+          skillName: "auto",
+          implicit: true,
+        });
+        await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
+        await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "manual" });
+        await writeSkill(repoRoot, { name: "local-skill", implicit: true });
+        await writeText(repoRoot, HELLO_BODY_PATH, helloBody(body));
+        const fixturePath = await writeText(
+          repoRoot,
+          `${HELLO_SKILL}/evals/triggers.yaml`,
+          fixtureApplying(applied),
+        );
+        const context = createTestContext(repoRoot);
+
+        await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+
+        expect(context.diagnostics).toStrictEqual([
+          { filePath: fixturePath, message, pointer: "/applies/0", ruleId },
+        ]);
+      });
+    });
+
+    it("accepts a plugin skill applied by a repo-local fixture through its label", async () => {
+      await withTempRepo(async (repoRoot) => {
+        await writeValidPluginRepo(repoRoot);
+        await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
+        await writeSkill(repoRoot, {
+          name: "local-skill",
+          implicit: true,
+          skillMarkdown:
+            "---\nname: local-skill\ndescription: Use when a test needs a valid skill fixture.\n---\n\nApply `demo-plugin:auto`.\n",
+        });
+        await writeText(
+          repoRoot,
+          ".agents/skills/local-skill/evals/triggers.yaml",
+          fixtureApplying("demo-plugin:auto"),
+        );
+        const context = createTestContext(repoRoot);
+
+        await lintFixture(context, path.join(repoRoot, ".agents/skills/local-skill"), bothTargets);
+
+        expect(ruleIds(context)).toStrictEqual([]);
+      });
+    });
+  });
+
   // Spec: "then runs the cross-reference rules (alternate checks, seed directory exists)".
   it("reports a workspace seed that has no directory under evals/seeds", async () => {
     await withTempRepo(async (repoRoot) => {
