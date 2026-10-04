@@ -1,2 +1,4 @@
 [settings]
-idiomatic_version_file_enable_tools = ["node"]
+# Take node from .node-version and pnpm from package.json#packageManager, so mise provides the
+# pinned pnpm instead of a global one that pnpm would try to switch away from at startup.
+idiomatic_version_file_enable_tools = ["node", "pnpm"]
