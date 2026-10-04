@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: claude-worktree-hook create|remove
+
+The Claude Code WorktreeCreate and WorktreeRemove hooks. Each reads the hook input on stdin.
+
+create makes the worktree through worktree-add, so claude --worktree, EnterWorktree, and isolated
+subagents get the same worktree and dependency install as pnpm worktree:add. The worktree name is
+the branch; a new branch starts from origin/main, fetched first. Prints only the worktree path on
+stdout, as Claude Code requires; worktree-add's output goes to stderr.
+
+remove deletes the worktree at the input path through worktree-remove --force, which deletes its
+branch only when main or origin/main contains it. A detached worktree is removed directly when a
+branch, remote branch, or tag contains its HEAD, and kept with an error otherwise.
+
+Options:
+  -h, --help   Show this help text
+USAGE
+}
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Prints one string field of the hook input JSON on stdin.
+input_field() {
+  node -e 'process.stdout.write(String(JSON.parse(require("fs").readFileSync(0, "utf8"))[process.argv[1]] ?? ""))' "$1"
+}
+
+case "${1:-}" in
+  -h | --help) usage; exit 0 ;;
+  create)
+    name="$(input_field name)"
+    case "$name" in
+      "")
+        echo "claude-worktree-hook: the hook input has no worktree name" >&2
+        exit 1 ;;
+      # worktree-add would read the name as an option, and no branch name can start with -.
+      -*)
+        echo "claude-worktree-hook: worktree name $name starts with -; use a branch name" >&2
+        exit 1 ;;
+    esac
+    # Offline, the branch starts from the last fetched origin/main instead of failing.
+    git fetch --quiet origin main >&2 \
+      || echo "claude-worktree-hook: could not fetch origin main; using the last fetched origin/main" >&2
+    output="$("$here/worktree-add" "$name" refs/remotes/origin/main)"
+    printf '%s\n' "$output" >&2
+    printf '%s\n' "${output##*$'\n'}"
+    ;;
+  remove)
+    dir="$(input_field worktree_path)"
+    if [ -z "$dir" ]; then
+      echo "claude-worktree-hook: the hook input has no worktree path" >&2
+      exit 1
+    fi
+    # Claude Code runs this hook inside the worktree it removes; work from the main checkout.
+    cd "$(dirname "$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir)")"
+    # Claude Code confirms discarding uncommitted work before it calls the hook, and its subagent
+    # cleanup removes only a worktree without changes (2.1.288 keeps every hook-made subagent
+    # worktree), so the removal is forced; worktree-remove still keeps a branch with commits main
+    # and origin/main lack.
+    # The full ref: --short would print heads/<branch> when a tag shares the branch's name.
+    if ref="$(git -C "$dir" symbolic-ref --quiet HEAD)"; then
+      "$here/worktree-remove" "${ref#refs/heads/}" --force
+    else
+      # A detached HEAD has no branch to keep, so removing it would orphan commits no ref holds.
+      if [ -z "$(git -C "$dir" for-each-ref --contains HEAD --count=1 refs/heads refs/remotes refs/tags)" ]; then
+        echo "claude-worktree-hook: no branch, remote branch, or tag contains the detached HEAD of $dir; create a branch for it or remove the worktree with git worktree remove --force" >&2
+        exit 1
+      fi
+      git worktree remove --force "$dir"
+    fi
+    ;;
+  *) usage >&2; exit 2 ;;
+esac

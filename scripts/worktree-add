@@ -78,7 +78,8 @@ if [ -z "$existing" ]; then
   elif git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
     git -C "$root" worktree add --track -b "$branch" "$dir" "refs/remotes/origin/$branch"
   else
-    git -C "$root" worktree add -b "$branch" "$dir" "$start_point"
+    # A remote-tracking start point would otherwise become the new branch's upstream.
+    git -C "$root" worktree add --no-track -b "$branch" "$dir" "$start_point"
   fi
 fi
 
