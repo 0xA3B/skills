@@ -93,6 +93,10 @@ the alternate is the only skill that fires. A plugin fixture names a plugin skil
 the case a plain skip; `pnpm lint:plugins` rejects an alternate that is missing, manual-only, of the
 other kind, or absent from a plugin target the fixture's plugin ships on.
 
+When the skill's workflow applies another skill in a step, list its label under a top-level
+`applies:`. When a `wrong-skill` result names a skill the workflow applies, declare it there;
+otherwise fix the descriptions.
+
 Make every standalone case actionable. When a prompt refers to a file, branch, prior response, or
 artifact that the prompt does not contain, add the smallest representative `workspace_files` input
 or embed the needed text in the prompt. Missing input can make an agent inspect the empty fixture or
@@ -253,12 +257,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
 - Cases with a `workspace` block or `workspace_files` run in an attempt-specific copy of the staged
   workspace. The runner builds the seeded repository identically on both lanes, with a harness-owned
   git identity and signing disabled, so the machine's git configuration cannot affect a run.
-- The committed `description` remains the trigger surface under test.
-- The runner appends eval-only instructions to the staged skill copies telling the model to output a
-  canary token and stop immediately after invocation. This keeps positive cases focused on trigger
-  classification instead of workflow completion.
-- The runner also stops the agent CLI once it observes the invocation signal, except on Codex while
-  a skill-file read is pending until the next assistant message, so positive cases do not need to
+- The committed `description` remains the trigger surface under test. Staged skill copies are
+  byte-identical to the committed skills on both lanes.
+- The runner stops the agent CLI once it observes the invocation signal, except on Codex while a
+  skill-file read is pending until the next assistant message, so positive cases do not need to
   finish the requested workflow.
 - Negative cases stop early too: once the lane's budget of decision-bearing items completes without
   an invocation signal, the run is stopped and classified as a clean skip. The Claude lane allows
@@ -266,27 +268,25 @@ cases where loaded repository instructions should affect the trigger boundary, s
   `Glob`, or `Grep` reconnaissance do not consume the budget. The Codex lane allows eight and counts
   every non-reasoning completed item, because its generic command events do not reliably distinguish
   read-only reconnaissance and the model inspects a seeded workspace before it loads a skill.
-- On Codex, the canary section is body-only so the frontmatter description under test stays
-  byte-identical to the committed skill. Invocation is classified when a command reads a staged
-  skill's `SKILL.md`, or when the assistant outputs the token: Codex loads a skill by reading its
-  file, so the read usually ends the case before any message, and a model that ignores the stop
-  instruction never outputs the token at all. A command that failed does not count as a read. Older
-  Codex CLIs' `codex.skill.injected` stderr telemetry remains a secondary signal.
-- A skill loaded in the same run as a skill whose body names it, in backticks as
-  `` `plugin:skill` ``, as `$plugin:skill`, or as a backticked bare `` `skill` `` name from the same
-  plugin or among repo-local siblings, is a dependency of that skill's workflow, not a second
-  trigger decision, and the verdict drops it whatever the read order; two skills that name each
-  other both count. The case line lists the dropped loads after `dependency loads`.
-- Every staged skill keeps its real invocation policy, and each implicitly invokable staged skill
-  gets its own canary, so invoking the wrong skill is a distinct, attributable observation. A
+- Codex has no skill tool or skill event, so on Codex a successful command that prints a staged
+  `SKILL.md` from its first line is the invocation. `src/trigger-evals/lanes/skill-reads.ts` owns
+  the load and inspection forms; a command naming a staged `SKILL.md` in another form is reported as
+  ERROR, and classifying that form is a harness attribution change. A whole-file read made to answer
+  a question about a skill still counts, so read `events.jsonl` before tuning a conceptual case that
+  fails only on Codex.
+- A skill loaded in the same run as a skill whose fixture lists it under `applies` is a dependency
+  load of that skill's workflow, not a second trigger decision, and the verdict drops it whatever
+  the read order; two skills that apply each other both stay invocations. The case line lists the
+  dropped loads after `dependency loads`.
+- Every staged skill keeps its real invocation policy, and the lane watches each implicitly
+  invokable staged skill, so invoking the wrong skill is a distinct, attributable observation. A
   `wrong-skill` result names a plugin skill as `<plugin>:<skill>` and a repo-local sibling by its
   bare skill name. It fails an invoke case — even when the target also fires, because simultaneous
   invocation is itself trigger-contract overlap — and is surfaced on passing skip cases too, because
   either direction exposes overlap between loaded skills.
 - On Claude Code, the runner launches `claude -p` with a read-only tool surface and classifies
   invocation from Skill tool events in the stream-json output. Plugin skills load from the staged
-  plugin copy via `--plugin-dir`; repo-local skills load as pristine project skills from the staged
-  `.claude/skills/` copy, so the committed description is tested unmodified on Claude.
+  plugin copy via `--plugin-dir`; repo-local skills load from the staged `.claude/skills/` copy.
 - Claude workspaces stage project-only `.claude/settings.json` with `disableBundledSkills: true` so
   bundled skills such as `code-review` do not compete with the target. The runner verifies the
   isolation at runtime: each Claude case checks the init event's `skills` list against the staged
@@ -315,9 +315,10 @@ cases where loaded repository instructions should affect the trigger boundary, s
 - Treat a change to how the harness attributes an invocation, such as a verdict or dependency-load
   rule, as a user decision: present the failing cases and the proposed rule, and implement it only
   after the user decides.
-- Change skill behavior or body instructions only when the trigger boundary requires it. Add a skill
-  reference to a body only when that body's workflow applies the referenced skill in a step; a
-  reference added so the harness drops a load as a dependency load hides real overlap.
+- Change skill behavior or body instructions only when the trigger boundary requires it. Add an
+  `applies` entry, and the body reference it requires, only when that body's workflow applies the
+  referenced skill in a step; an entry added so the harness drops a load as a dependency load hides
+  real overlap.
 - Do not make the script edit descriptions automatically.
 - Do not add trigger evals to `mise exec -- pnpm check`; this is a development workflow, not a
   routine gate.
