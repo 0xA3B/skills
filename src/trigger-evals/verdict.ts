@@ -17,7 +17,7 @@ export type TriggerCaseResult = {
   // dependency loads below.
   invokedSkills: string[];
   // Detected skills the verdict attributed to another detected skill's workflow because that
-  // skill's body names them (dropDependencyLoads). Kept for the report; they carry no decision.
+  // skill applies them (dropDependencyLoads). Kept for the report; they carry no decision.
   dependencyLoads?: string[];
   // Label of a non-target staged skill whose invocation was detected. Fails an invoke case even
   // when the target also fired (simultaneous invocation is trigger-contract overlap); surfaced
@@ -69,17 +69,17 @@ export type CaseVerdictOptions = {
   targetLabel: string;
   // Every staged skill's label regardless of invocation policy, for the isolation check.
   stagedSkillLabels: ReadonlySet<string>;
-  // For each staged skill, the staged skills its body names (LaneRun.skillDependencies).
+  // For each staged skill, the skills it applies (LaneRun.skillDependencies).
   skillDependencies?: ReadonlyMap<string, ReadonlySet<string>>;
   observations: CaseObservations;
   runResult: CliRunResult;
   durationMs: number;
 };
 
-// Drops every detected skill that another detected skill's body names: the agent loaded it while
+// Drops every detected skill that another detected skill applies: the agent loaded it while
 // applying that skill, so it carries no trigger decision of its own. Read order does not decide,
-// because an agent that has announced a workflow may read the helper it names first. Two skills
-// that name each other both keep their decisions, and a longer cycle that would drop every
+// because an agent that has announced a workflow may read the helper it applies first. Two skills
+// that apply each other both keep their decisions, and a longer cycle that would drop every
 // detected skill keeps them all, so an observed invocation never reports no skill at all.
 export function dropDependencyLoads(
   invokedSkills: readonly string[],
@@ -114,11 +114,10 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   // A routing assertion tightens a skip case: the target must not fire and the named alternate
   // must be the only skill that fires. Nothing firing, a different skill, or the target alongside
   // the alternate all fail. The explicit !invoked keeps a label equal to the target from passing.
-  // "Only" is bounded by the observation window: the run stops at the first invocation signal,
-  // mirroring the staged canary's instruction to stop right after invoking, so a later firing
-  // would require the agent to ignore that instruction. On the Codex read path the window
-  // extends while skill-file reads are pending, until the agent's next message. Skills fired in
-  // one event are all seen. Invoke cases carry the same bound for wrong-skill detection.
+  // "Only" is bounded by the observation window: the run stops at the first invocation signal, so
+  // a later firing goes unobserved. On the Codex read path the window extends while skill-file
+  // reads are pending, until the agent's next message. Skills fired in one event are all seen.
+  // Invoke cases carry the same bound for wrong-skill detection.
   const matchedExpectation =
     testCase.expect === "invoke"
       ? invoked && wrongSkill === undefined
@@ -126,12 +125,13 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
         ? !invoked
         : !invoked && invokedSkills.length === 1 && invokedSkills[0] === testCase.invokeInstead;
   const endedBy = runResult.endedBy ?? "completed";
-  // Isolation leaks poison the case in both directions — an unstaged skill can steal an invoke or
-  // provoke one — so the check applies even when the target fired. Other environmental checks only
-  // apply when no skill fired, because any observed invocation proves the run executed.
-  const isolationFailure = detectSkillIsolationFailure(observations, options.stagedSkillLabels);
+  // Isolation leaks and unclassified skill-file access poison the case in both directions — an
+  // unstaged skill can steal an invoke or provoke one, and an unclassified command may or may not
+  // have loaded a skill — so those checks apply even when the target fired. Other environmental
+  // checks only apply when no skill fired, because any observed invocation proves the run executed.
   const environmentalFailure =
-    isolationFailure ??
+    detectSkillIsolationFailure(observations, options.stagedSkillLabels) ??
+    detectUnclassifiedSkillAccess(observations) ??
     (anyInvocation ? undefined : detectEnvironmentalFailure(runResult, endedBy, observations));
   const skipSignal = anyInvocation ? undefined : classifySkipSignal(endedBy);
   const passed = environmentalFailure === undefined && matchedExpectation;
@@ -234,6 +234,18 @@ function detectSkillIsolationFailure(
     "not isolated, so the verdict is not trustworthy. Check the Claude version's " +
     "disableBundledSkills support, or extend the exempt list if a new bundled skill ignores the " +
     "setting."
+  );
+}
+
+function detectUnclassifiedSkillAccess(observations: CaseObservations): string | undefined {
+  if (observations.unclassifiedSkillAccess === undefined) {
+    return undefined;
+  }
+
+  return (
+    "a command named a staged skill file in a form the lane cannot classify as a load or an " +
+    "inspection, so the verdict is not trustworthy. Teach the lane's read matcher the form. " +
+    `command: ${observations.unclassifiedSkillAccess}`
   );
 }
 

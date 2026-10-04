@@ -31,6 +31,10 @@ export type TriggerCase = {
 
 export type TriggerFixture = {
   version: 1;
+  // Labels of the skills this fixture's skill applies inside its own workflow, so an agent
+  // running the workflow loads them too. Such a load is a dependency load, not a second trigger
+  // decision. Hand-off targets are not applied skills: a hand off stops the current skill.
+  applies: string[];
   cases: TriggerCase[];
   // The fixture-level default; a case that inherited it holds this same object.
   workspace?: WorkspaceSpec;
@@ -139,6 +143,7 @@ function validateFixture(value: unknown, report: Report): TriggerFixture | undef
   const defaultWorkspaceFiles = readWorkspaceFiles(value["workspace_files"], report, [
     "workspace_files",
   ]);
+  const applies = readApplies(value["applies"], report);
 
   if (!Array.isArray(value["cases"]) || value["cases"].length === 0) {
     report(["cases"], "expected cases to be a non-empty list.");
@@ -178,6 +183,7 @@ function validateFixture(value: unknown, report: Report): TriggerFixture | undef
 
   return {
     version: 1,
+    applies,
     cases,
     ...(defaults.defaultWorkspace === undefined ? {} : { workspace: defaults.defaultWorkspace }),
   };
@@ -259,6 +265,36 @@ function validateCase(
 // The labels formatSkillLabel emits: kebab-case names, joined by one colon for a plugin skill.
 const SKILL_LABEL_PATTERN =
   /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?::[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)?$/;
+
+// Whether each label names an existing, model-invocable skill that the skill's body names is the
+// plugin linter's cross-reference check.
+function readApplies(value: unknown, report: Report): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    report(["applies"], "expected applies to be a list of skill labels.");
+    return [];
+  }
+
+  const applies: string[] = [];
+  value.forEach((entry: unknown, index) => {
+    const path = ["applies", index];
+    if (typeof entry !== "string" || !SKILL_LABEL_PATTERN.test(entry)) {
+      report(
+        path,
+        `expected ${formatLocation(path)} to be a skill label: <plugin>:<skill> or a bare repo-local skill name.`,
+      );
+      return;
+    }
+    if (applies.includes(entry)) {
+      report(path, `duplicate applies entry "${entry}".`);
+      return;
+    }
+    applies.push(entry);
+  });
+  return applies;
+}
 
 // Spec: "invoke-instead: <label> is valid only on expect: skip cases." Whether the label names an
 // existing, implicitly invokable skill of the fixture's own kind is the plugin linter's

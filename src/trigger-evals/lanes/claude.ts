@@ -30,22 +30,17 @@ type ClaudeLaneOptions = {
 };
 
 // Claude Code invokes skills through the Skill tool, which is visible directly in the stream-json
-// events, so staged skill copies stay description-pristine and no canary detection is needed.
-// Plugin skills load through --plugin-dir; repo-local skills load as project skills from
+// events. Plugin skills load through --plugin-dir; repo-local skills load as project skills from
 // .claude/skills.
 export function createClaudeLane(options: ClaudeLaneOptions = {}): AgentLane {
   return {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
       const { target, model, effort } = runOptions;
-      // Plugin skill canaries are inert on this lane (detection uses Skill tool events), but their
-      // stop-immediately instruction still cuts invoked runs short. Repo-local skills stay
-      // canary-free.
       const deployment = await stageDeployment({
         target,
         plugins: runOptions.extraPlugins ?? [],
         repoLocalSkills: runOptions.extraRepoLocalSkills ?? [],
         repoLocalSurface: ".claude",
-        canaryRepoLocalSkills: false,
         runtime: runOptions.runtime,
       });
       await writeClaudeEvalSettings(deployment.workspacePath);

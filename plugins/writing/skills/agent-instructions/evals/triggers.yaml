@@ -15,10 +15,23 @@ cases:
     rationale: The user is asking to edit an agent-facing instruction file.
 
   - id: review-skill-body-diff
-    prompt: >-
+    prompt: |-
       Review this diff to our deploy skill's SKILL.md for instruction quality.
+
+      --- a/skills/deploy/SKILL.md
+      +++ b/skills/deploy/SKILL.md
+      @@ -6,4 +6,6 @@
+       ## Steps
+
+       1. Run the test suite.
+      -2. Deploy to staging.
+      +2. Deploy to staging if it seems safe.
+      +3. You should probably check the dashboards after deploying.
+      +4. Be careful with production.
     expect: invoke
-    rationale: The user is asking to review changes to a skill body, an agent-facing file.
+    rationale: >-
+      The user supplies a diff to a skill body, an agent-facing file, for instruction review; the
+      diff is not a change in this checkout, so no session-change review workflow owns it.
 
   - id: session-change-review
     prompt: >-

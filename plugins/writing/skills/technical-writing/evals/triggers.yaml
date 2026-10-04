@@ -1,4 +1,6 @@
 version: 1
+applies:
+  - writing:prose
 cases:
   - id: write-readme
     prompt: >-

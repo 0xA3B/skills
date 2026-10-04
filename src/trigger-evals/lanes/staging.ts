@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -8,9 +8,10 @@ import {
   type Skill,
   type SkillDirectory,
 } from "../../skills/index.js";
+import { loadTriggerFixture } from "../fixtures/index.js";
 import type { MarketplacePluginEntry } from "../marketplace.js";
 import type { RuntimeResources } from "../runtime.js";
-import { appendEvalSectionToFile, createCanary } from "./canary.js";
+import type { InvocableSkill } from "./skill-reads.js";
 
 export type StagedPlugin = {
   pluginName: string;
@@ -18,15 +19,6 @@ export type StagedPlugin = {
   // from here again per case.
   sourcePath: string;
   version: string;
-};
-
-// One eval canary and the staged skill whose body carries it.
-export type SkillCanary = {
-  canary: string;
-  skillLabel: string;
-  // Undefined for a repo-local skill.
-  pluginName?: string;
-  skillName: string;
 };
 
 export type DeploymentOptions = {
@@ -41,9 +33,6 @@ export type DeploymentOptions = {
   // Where the agent discovers project skills: .agents/skills for Codex, .claude/skills for Claude
   // Code.
   repoLocalSurface: ".agents" | ".claude";
-  // Whether staged repo-local skills carry canaries, for a lane that detects their invocation
-  // through the canary or a read of the canaried file.
-  canaryRepoLocalSkills: boolean;
   runtime: RuntimeResources;
 };
 
@@ -52,27 +41,27 @@ export type StagedDeployment = {
   // Temporary root holding everything below; tracked on the runtime before any fallible step.
   workspaceRoot: string;
   // The base case workspace: staged repo-local skills only. A case that mutates its workspace
-  // copies this one, so the canaries it carries are already in place.
+  // copies this one.
   workspacePath: string;
   // Installed plugins are deployment context, not project files, so their copies live under
   // <deploymentPath>/plugins/<plugin>, outside the case workspace, where project reconnaissance
   // sees only fixture files, as it would in a real installed session.
   deploymentPath: string;
   stagedPlugins: StagedPlugin[];
-  // Every canary appended to a staged skill body, plugin skills first.
-  canaries: SkillCanary[];
+  // The staged skills whose invocation a lane attributes, plugin skills first: every implicitly
+  // invokable staged skill, so a wrong skill firing is observable instead of an undifferentiated
+  // miss, and the target, because a --force run of a manual-only target would otherwise go
+  // unobserved.
+  invocableSkills: InvocableSkill[];
   // Every staged skill's label regardless of invocation policy: manual-only skills also surface
   // in loaded-skills observations, so the isolation check must expect them.
   stagedSkillLabels: ReadonlySet<string>;
-  // For each staged skill, the staged skills its body names; see surveySkillDependencies.
+  // For each staged skill with a trigger fixture, the skills its fixture says it applies.
   skillDependencies: ReadonlyMap<string, ReadonlySet<string>>;
 };
 
-// Stages the plugins and repo-local skills a target is evaluated among and appends the canaries
-// that make each invocation attributable. Every staged plugin skill that is implicitly invokable
-// gets a canary, so a wrong skill firing is observable instead of an undifferentiated miss;
-// manual-only skills cannot fire implicitly, so they stay canary-free. The target is always
-// canaried, because a --force run of a manual-only target would otherwise lose its signal.
+// Stages the plugins and repo-local skills a target is evaluated among. Staged copies are
+// byte-identical to the committed skills.
 export async function stageDeployment(options: DeploymentOptions): Promise<StagedDeployment> {
   const { target, runtime } = options;
   const workspaceRoot = runtime.track(
@@ -85,53 +74,35 @@ export async function stageDeployment(options: DeploymentOptions): Promise<Stage
   const entries = pluginsToStage(target, options.plugins);
   const stagedPlugins = await stagePluginCopies(deploymentPath, entries);
   const labels: string[] = [];
-  const skillFiles: StagedSkillFile[] = [];
-  const canaries: SkillCanary[] = [];
+  const skillDependencies = new Map<string, ReadonlySet<string>>();
+  const invocableSkills: InvocableSkill[] = [];
   for (const entry of entries) {
     for (const { skillName, skillPath } of await listPluginSkills(entry.pluginPath)) {
       const skillLabel = `${entry.pluginName}:${skillName}`;
       const filePath = path.join(skillPath, "SKILL.md");
       labels.push(skillLabel);
-      skillFiles.push({ skillLabel, pluginName: entry.pluginName, skillName, filePath });
+      await readAppliedSkills(skillDependencies, skillLabel, skillPath);
       const isTarget =
         target.kind === "plugin" &&
         entry.pluginName === target.pluginName &&
         skillName === target.skillName;
-      if (!isTarget && !(await readSkillFileAllowImplicitInvocation(filePath))) {
-        continue;
+      if (isTarget || (await readSkillFileAllowImplicitInvocation(filePath))) {
+        invocableSkills.push({ skillLabel, pluginName: entry.pluginName, skillName });
       }
-      const canary = createCanary();
-      await appendEvalSectionToFile(
-        path.join(deploymentPath, "plugins", entry.pluginName, "skills", skillName, "SKILL.md"),
-        canary,
-      );
-      canaries.push({ canary, skillLabel, pluginName: entry.pluginName, skillName });
     }
   }
 
   if (target.kind === "repo-local") {
     for (const skill of [target, ...options.repoLocalSkills]) {
-      const stagedSkillFile = await stageRepoLocalSkill(
-        workspacePath,
-        skill,
-        options.repoLocalSurface,
-      );
+      await stageRepoLocalSkill(workspacePath, skill, options.repoLocalSurface);
       labels.push(skill.skillName);
-      skillFiles.push({
-        skillLabel: skill.skillName,
-        skillName: skill.skillName,
-        filePath: path.join(skill.skillPath, "SKILL.md"),
-      });
+      await readAppliedSkills(skillDependencies, skill.skillName, skill.skillPath);
       if (
-        !options.canaryRepoLocalSkills ||
-        (skill.skillName !== target.skillName &&
-          !(await readSkillFileAllowImplicitInvocation(stagedSkillFile)))
+        skill.skillName === target.skillName ||
+        (await readSkillFileAllowImplicitInvocation(path.join(skill.skillPath, "SKILL.md")))
       ) {
-        continue;
+        invocableSkills.push({ skillLabel: skill.skillName, skillName: skill.skillName });
       }
-      const canary = createCanary();
-      await appendEvalSectionToFile(stagedSkillFile, canary);
-      canaries.push({ canary, skillLabel: skill.skillName, skillName: skill.skillName });
     }
   }
 
@@ -140,55 +111,28 @@ export async function stageDeployment(options: DeploymentOptions): Promise<Stage
     workspacePath,
     deploymentPath,
     stagedPlugins,
-    canaries,
+    invocableSkills,
     stagedSkillLabels: new Set(labels),
-    skillDependencies: await surveySkillDependencies(skillFiles),
+    skillDependencies,
   };
 }
 
-export type StagedSkillFile = {
-  skillLabel: string;
-  // Undefined for a repo-local skill.
-  pluginName?: string;
-  skillName: string;
-  // The committed SKILL.md the staged copy was made from; bodies differ only by the eval section.
-  filePath: string;
-};
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-}
-
-// A skill whose body names another staged skill applies that skill inside its own workflow, so a
-// read or load of the named skill in the same run is a dependency load, not a second
-// trigger decision. Bodies name a skill as `plugin:skill` (also `$plugin:skill` in Codex prompt
-// form) or, within the same plugin or among repo-local siblings, as the bare `skill` name.
-export async function surveySkillDependencies(
-  skillFiles: StagedSkillFile[],
-): Promise<Map<string, ReadonlySet<string>>> {
-  const bodies = await Promise.all(
-    skillFiles.map((skillFile) => readFile(skillFile.filePath, "utf8")),
-  );
-  const dependencies = new Map<string, ReadonlySet<string>>();
-  skillFiles.forEach((skillFile, index) => {
-    const body = bodies[index] ?? "";
-    const named = new Set<string>();
-    for (const other of skillFiles) {
-      if (other.skillLabel === skillFile.skillLabel) {
-        continue;
-      }
-      const label = escapeRegExp(other.skillLabel);
-      const forms = [`\`${label}\``, String.raw`\$${label}(?![\w:-])`];
-      if (other.pluginName === skillFile.pluginName) {
-        forms.push(`\`${escapeRegExp(other.skillName)}\``);
-      }
-      if (forms.some((form) => new RegExp(form).test(body))) {
-        named.add(other.skillLabel);
-      }
-    }
-    dependencies.set(skillFile.skillLabel, named);
-  });
-  return dependencies;
+// Records the skills a staged skill applies, from the applies list of its committed trigger
+// fixture. A skill without a fixture applies nothing: only manual-only skills ship without one,
+// and they never fire on their own in a run.
+async function readAppliedSkills(
+  skillDependencies: Map<string, ReadonlySet<string>>,
+  skillLabel: string,
+  skillPath: string,
+): Promise<void> {
+  const fixturePath = path.join(skillPath, "evals", "triggers.yaml");
+  try {
+    await access(fixturePath);
+  } catch {
+    return;
+  }
+  const { applies } = await loadTriggerFixture(fixturePath);
+  skillDependencies.set(skillLabel, new Set(applies));
 }
 
 // A plugin-skill target stages its own plugin first; a repo-local target owns no plugin, so it
@@ -226,16 +170,14 @@ async function stagePluginCopies(
   return stagedPlugins;
 }
 
-// Returns the staged SKILL.md path.
 async function stageRepoLocalSkill(
   workspacePath: string,
   skill: SkillDirectory,
   surface: ".agents" | ".claude",
-): Promise<string> {
+): Promise<void> {
   const copiedSkillPath = path.join(workspacePath, surface, "skills", skill.skillName);
   await mkdir(path.dirname(copiedSkillPath), { recursive: true });
   await cp(skill.skillPath, copiedSkillPath, { recursive: true });
-  return path.join(copiedSkillPath, "SKILL.md");
 }
 
 async function readPluginVersion(pluginPath: string): Promise<string> {

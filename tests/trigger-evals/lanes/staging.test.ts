@@ -1,5 +1,4 @@
-import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -8,10 +7,9 @@ import { resolveSkill, type Skill } from "../../../src/skills/index.js";
 import {
   type DeploymentOptions,
   stageDeployment,
-  surveySkillDependencies,
 } from "../../../src/trigger-evals/lanes/staging.js";
 import { createRuntimeResources } from "../../../src/trigger-evals/runtime.js";
-import { writeRepoFixture, writeRepoLocalSkillFixture } from "../test-utils.js";
+import { triggerFixtureYaml, writeRepoFixture, writeRepoLocalSkillFixture } from "../test-utils.js";
 
 function deploymentOptions(
   target: Skill,
@@ -22,7 +20,6 @@ function deploymentOptions(
     plugins: [],
     repoLocalSkills: [],
     repoLocalSurface: ".agents",
-    canaryRepoLocalSkills: true,
     runtime: createRuntimeResources(),
     ...overrides,
   };
@@ -33,7 +30,7 @@ function stagedPluginSkill(deploymentPath: string, pluginName: string, skillName
 }
 
 describe("stageDeployment", () => {
-  it("labels every staged plugin skill and canaries the target and implicit siblings", async () => {
+  it("labels every staged plugin skill and watches the target and implicit siblings", async () => {
     const repoRoot = await writeRepoFixture({
       siblingSkills: [{ name: "sibling-skill" }, { name: "manual-skill", manualOnly: true }],
     });
@@ -46,13 +43,13 @@ describe("stageDeployment", () => {
       "demo:manual-skill",
       "demo:sibling-skill",
     ]);
-    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual([
-      "demo:auto-skill",
-      "demo:sibling-skill",
+    expect(deployment.invocableSkills).toStrictEqual([
+      { skillLabel: "demo:auto-skill", pluginName: "demo", skillName: "auto-skill" },
+      { skillLabel: "demo:sibling-skill", pluginName: "demo", skillName: "sibling-skill" },
     ]);
   });
 
-  it("canaries a manual-only plugin target, as a forced run needs", async () => {
+  it("watches a manual-only plugin target, as a forced run needs", async () => {
     const repoRoot = await writeRepoFixture({
       siblingSkills: [{ name: "manual-skill", manualOnly: true }],
     });
@@ -64,33 +61,20 @@ describe("stageDeployment", () => {
 
     const deployment = await stageDeployment(deploymentOptions(target));
 
-    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual([
+    expect(deployment.invocableSkills.map((skill) => skill.skillLabel)).toStrictEqual([
       "demo:auto-skill",
     ]);
   });
 
-  it("appends each canary to the staged body only, leaving committed skills untouched", async () => {
-    const repoRoot = await writeRepoFixture({
-      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
-    });
+  it("stages plugin skills byte-identical to the committed skills", async () => {
+    const repoRoot = await writeRepoFixture();
     const target = resolveSkill(repoRoot, "plugins/demo/skills/auto-skill");
 
     const deployment = await stageDeployment(deploymentOptions(target));
 
-    const [targetCanary] = deployment.canaries;
-    const stagedTarget = await readFile(
-      stagedPluginSkill(deployment.deploymentPath, "demo", "auto-skill"),
-      "utf8",
-    );
-    expect(stagedTarget).toContain(targetCanary?.canary);
-    // Body-only injection: the frontmatter description under test stays untouched.
-    expect(stagedTarget).not.toContain("Eval only:");
     await expect(
-      readFile(stagedPluginSkill(deployment.deploymentPath, "demo", "manual-skill"), "utf8"),
-    ).resolves.not.toContain("Trigger Eval Instructions");
-    await expect(readFile(target.skillFilePath, "utf8")).resolves.not.toContain(
-      "Trigger Eval Instructions",
-    );
+      readFile(stagedPluginSkill(deployment.deploymentPath, "demo", "auto-skill"), "utf8"),
+    ).resolves.toBe(await readFile(target.skillFilePath, "utf8"));
   });
 
   it("stages a plugin target's own plugin once even when the catalog lists it", async () => {
@@ -132,7 +116,7 @@ describe("stageDeployment", () => {
     expect(deployment.stagedPlugins.map((plugin) => plugin.version)).toStrictEqual(["1.0.0"]);
   });
 
-  it("gives a repo-local target no exception for plugin skills and canaries implicit siblings", async () => {
+  it("gives a repo-local target no exception for plugin skills and watches implicit siblings", async () => {
     const pluginRepoRoot = await writeRepoFixture({
       siblingSkills: [{ name: "manual-skill", manualOnly: true }],
     });
@@ -159,22 +143,14 @@ describe("stageDeployment", () => {
       "manual-sibling",
       "sibling-skill",
     ]);
-    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual([
-      "demo:auto-skill",
-      "auto-skill",
-      "sibling-skill",
+    expect(deployment.invocableSkills).toStrictEqual([
+      { skillLabel: "demo:auto-skill", pluginName: "demo", skillName: "auto-skill" },
+      { skillLabel: "auto-skill", skillName: "auto-skill" },
+      { skillLabel: "sibling-skill", skillName: "sibling-skill" },
     ]);
-    // Repo-local canaries land in the base workspace, so every case copy carries them.
-    const [, targetCanary] = deployment.canaries;
-    await expect(
-      readFile(
-        path.join(deployment.workspacePath, ".agents", "skills", "auto-skill", "SKILL.md"),
-        "utf8",
-      ),
-    ).resolves.toContain(targetCanary?.canary);
   });
 
-  it("canaries a manual-only repo-local target, as a forced run needs", async () => {
+  it("watches a manual-only repo-local target, as a forced run needs", async () => {
     const repoRoot = await writeRepoLocalSkillFixture({
       siblingSkills: [{ name: "manual-sibling", manualOnly: true }],
     });
@@ -195,24 +171,25 @@ describe("stageDeployment", () => {
       }),
     );
 
-    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual(["auto-skill"]);
+    expect(deployment.invocableSkills.map((skill) => skill.skillLabel)).toStrictEqual([
+      "auto-skill",
+    ]);
   });
 
-  it("stages repo-local skills on the lane's surface without canaries when the lane opts out", async () => {
+  it("stages repo-local skills byte-identical on the lane's surface", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
     const target = resolveSkill(repoRoot, ".agents/skills/auto-skill");
 
     const deployment = await stageDeployment(
-      deploymentOptions(target, { repoLocalSurface: ".claude", canaryRepoLocalSkills: false }),
+      deploymentOptions(target, { repoLocalSurface: ".claude" }),
     );
 
-    expect(deployment.canaries).toStrictEqual([]);
     await expect(
       readFile(
         path.join(deployment.workspacePath, ".claude", "skills", "auto-skill", "SKILL.md"),
         "utf8",
       ),
-    ).resolves.not.toContain("Trigger Eval Instructions");
+    ).resolves.toBe(await readFile(target.skillFilePath, "utf8"));
   });
 
   it("never stages repo-local skills for a plugin target", async () => {
@@ -235,19 +212,28 @@ describe("stageDeployment", () => {
     await expect(stat(path.join(deployment.workspacePath, ".agents"))).rejects.toThrow("ENOENT");
   });
 
-  it("surveys the dependencies of every staged plugin and repo-local skill", async () => {
-    const pluginRepoRoot = await writeRepoFixture({ siblingSkills: [{ name: "helper-skill" }] });
+  it("reads every staged skill's applied skills from its trigger fixture", async () => {
+    const pluginRepoRoot = await writeRepoFixture({
+      siblingSkills: [{ name: "helper-skill" }, { name: "excluded-skill" }],
+    });
+    const pluginTarget = path.join(pluginRepoRoot, "plugins", "demo", "skills", "auto-skill");
+    // The body names two siblings, but only the declared one is an applied skill: a body may name
+    // a skill to exclude it.
     await writeFile(
-      path.join(pluginRepoRoot, "plugins", "demo", "skills", "auto-skill", "SKILL.md"),
-      "---\nname: auto-skill\n---\nApply `helper-skill` first.\n",
+      path.join(pluginTarget, "SKILL.md"),
+      "---\nname: auto-skill\n---\nApply `helper-skill`. Not for `excluded-skill` requests.\n",
+    );
+    await writeFile(
+      path.join(pluginTarget, "evals", "triggers.yaml"),
+      `applies:\n  - demo:helper-skill\n${triggerFixtureYaml()}`,
     );
     const repoRoot = await writeRepoLocalSkillFixture({
       siblingSkills: [{ name: "sibling-skill" }],
     });
     const target = resolveSkill(repoRoot, ".agents/skills/auto-skill");
     await writeFile(
-      target.skillFilePath,
-      "---\nname: auto-skill\n---\nThen run `sibling-skill`.\n",
+      path.join(target.skillPath, "evals", "triggers.yaml"),
+      `applies:\n  - sibling-skill\n${triggerFixtureYaml()}`,
     );
 
     const deployment = await stageDeployment(
@@ -268,6 +254,8 @@ describe("stageDeployment", () => {
     expect(deployment.skillDependencies.get("auto-skill")).toStrictEqual(
       new Set(["sibling-skill"]),
     );
+    // A skill without a fixture applies nothing.
+    expect(deployment.skillDependencies.get("sibling-skill")).toBeUndefined();
   });
 
   it("tracks the workspace root on the runtime so a release removes it", async () => {
@@ -279,81 +267,5 @@ describe("stageDeployment", () => {
     await expect(runtime.release()).resolves.toStrictEqual([]);
 
     await expect(stat(deployment.workspaceRoot)).rejects.toThrow("ENOENT");
-  });
-});
-
-describe("surveySkillDependencies", () => {
-  it("names the staged skills a body references by label or same-plugin bare name", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "skill-deps-"));
-    const write = async (name: string, body: string) => {
-      const file = path.join(dir, `${name}.md`);
-      await writeFile(file, body);
-      return file;
-    };
-    const skillFiles = [
-      {
-        skillLabel: "demo:review",
-        pluginName: "demo",
-        skillName: "review",
-        filePath: await write(
-          "review",
-          "Use the `cli` skill for mechanics and apply `writing:style` to the prompt.",
-        ),
-      },
-      {
-        skillLabel: "demo:cli",
-        pluginName: "demo",
-        skillName: "cli",
-        filePath: await write("cli", "Run the CLI. Mentions $writing:style in the default prompt."),
-      },
-      {
-        skillLabel: "writing:style",
-        pluginName: "writing",
-        skillName: "style",
-        filePath: await write("style", "House style. Mentions the word review and cli in prose."),
-      },
-      {
-        skillLabel: "local-skill",
-        skillName: "local-skill",
-        filePath: await write(
-          "local",
-          "Repo-local: apply `style`? No: cross-plugin needs the label.",
-        ),
-      },
-    ];
-
-    const dependencies = await surveySkillDependencies(skillFiles);
-
-    expect(dependencies.get("demo:review")).toStrictEqual(new Set(["demo:cli", "writing:style"]));
-    expect(dependencies.get("demo:cli")).toStrictEqual(new Set(["writing:style"]));
-    // Bare words in prose are not references; only backticked names count.
-    expect(dependencies.get("writing:style")).toStrictEqual(new Set());
-    // A bare name reaches only same-plugin siblings, so `style` does not resolve cross-plugin.
-    expect(dependencies.get("local-skill")).toStrictEqual(new Set());
-  });
-
-  it("does not credit a label that is only a prefix of the named skill", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "skill-deps-prefix-"));
-    const callerPath = path.join(dir, "caller.md");
-    await writeFile(callerPath, "Prompt form: $writing:prose-style for the body.");
-    const skillFiles = [
-      { skillLabel: "x:caller", pluginName: "x", skillName: "caller", filePath: callerPath },
-      {
-        skillLabel: "writing:prose",
-        pluginName: "writing",
-        skillName: "prose",
-        filePath: callerPath,
-      },
-      {
-        skillLabel: "writing:prose-style",
-        pluginName: "writing",
-        skillName: "prose-style",
-        filePath: callerPath,
-      },
-    ];
-
-    const dependencies = await surveySkillDependencies(skillFiles);
-
-    expect(dependencies.get("x:caller")).toStrictEqual(new Set(["writing:prose-style"]));
   });
 });

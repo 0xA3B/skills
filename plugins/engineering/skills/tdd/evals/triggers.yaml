@@ -1,4 +1,8 @@
 version: 1
+applies:
+  - engineering:codebase-design
+  - engineering:decision-records
+  - engineering:review-changes
 workspace:
   seed: node-service
 cases:

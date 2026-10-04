@@ -1,4 +1,6 @@
 version: 1
+applies:
+  - codex-in-claude:using-codex-cli
 cases:
   - id: codex-adversarial-current-changes
     prompt: >-

@@ -1,4 +1,6 @@
 version: 1
+applies:
+  - claude-in-codex:using-claude-cli
 cases:
   - id: claude-adversarial-current-changes
     prompt: >-

@@ -2,8 +2,7 @@ import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { appendEvalSectionToFile } from "./canary.js";
-import type { SkillCanary, StagedPlugin } from "./staging.js";
+import type { StagedPlugin } from "./staging.js";
 
 export const EVAL_MARKETPLACE_NAME = "trigger-eval";
 
@@ -172,12 +171,10 @@ export async function writeCodexMarketplaceCatalog(
   );
 }
 
-// Codex reads skill bodies from the plugin cache, so staged plugins are copied there per case and
-// the canaries must be present in the cached copies too.
+// Codex reads skill bodies from the plugin cache, so staged plugins are copied there per case.
 export async function stageCodexPluginCaches(
   codexHome: string,
   stagedPlugins: StagedPlugin[],
-  canaries: SkillCanary[],
 ): Promise<void> {
   for (const stagedPlugin of stagedPlugins) {
     const cachedPluginPath = path.join(
@@ -190,15 +187,6 @@ export async function stageCodexPluginCaches(
     );
     await mkdir(path.dirname(cachedPluginPath), { recursive: true });
     await cp(stagedPlugin.sourcePath, cachedPluginPath, { recursive: true });
-    for (const skillCanary of canaries) {
-      if (skillCanary.pluginName !== stagedPlugin.pluginName) {
-        continue;
-      }
-      await appendEvalSectionToFile(
-        path.join(cachedPluginPath, "skills", skillCanary.skillName, "SKILL.md"),
-        skillCanary.canary,
-      );
-    }
   }
 }
 

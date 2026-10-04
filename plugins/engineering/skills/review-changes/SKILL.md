@@ -7,9 +7,10 @@ description: >-
   one review lane, such as test quality or prose, over those changes. Runs focused review lanes with
   independent reviewers, verifies and triages the findings, applies accepted in-scope fixes, reruns
   the lanes those fixes invalidated, and validates. Do not use for a branch, PR, or MR someone else
-  authored; for existing reviewer feedback; for first-party bug reports; for implementation
-  requests; for architecture or test-suite audits of a whole codebase; for writing documentation; or
-  for conceptual questions about review.
+  authored; for a diff or file the user pastes or supplies rather than changes in this checkout; for
+  existing reviewer feedback; for first-party bug reports; for implementation requests; for
+  architecture or test-suite audits of a whole codebase; for writing documentation; or for
+  conceptual questions about review.
 when_to_use: >-
   Also use when the user asks to review a README, documentation, or other prose files they changed
   in this checkout during the session; the prose lane applies the writing skills to those changes

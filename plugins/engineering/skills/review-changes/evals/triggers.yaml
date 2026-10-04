@@ -1,4 +1,10 @@
 version: 1
+applies:
+  - engineering:codebase-design
+  - engineering:receiving-feedback
+  - writing:agent-instructions
+  - writing:prose
+  - writing:technical-writing
 workspace:
   seed: node-service
 workspace_files:
@@ -150,6 +156,25 @@ cases:
     expect: skip
     invoke-instead: engineering:receiving-feedback
     rationale: Existing reviewer feedback belongs to receiving-feedback.
+
+  - id: supplied-skill-diff-review
+    prompt: |-
+      Review this diff to our release skill's SKILL.md for instruction quality.
+
+      --- a/skills/release/SKILL.md
+      +++ b/skills/release/SKILL.md
+      @@ -3,4 +3,5 @@
+       ## Steps
+
+      -1. Tag the release commit.
+      +1. Tag the release commit when things look ready.
+      +2. Try to keep the changelog up to date.
+       2. Publish the package.
+    expect: skip
+    invoke-instead: writing:agent-instructions
+    rationale: >-
+      The user supplies a diff that is not a change in this checkout, so reviewing it belongs to
+      agent-instructions, not the session-change review workflow.
 
   - id: bug-report
     prompt: >-

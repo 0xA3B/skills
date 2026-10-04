@@ -13,6 +13,7 @@ import {
   makeLaneRunOptions,
   skillToolUseEvent,
   triggerCase,
+  triggerFixtureYaml,
   writeRepoFixture,
   writeRepoLocalSkillFixture,
   writeSeedFixture,
@@ -106,8 +107,8 @@ describe("createClaudeLane", () => {
       "plugins/demo/skills/auto-skill",
     );
     await writeFile(
-      runOptions.target.skillFilePath,
-      "---\nname: auto-skill\n---\nUse `helper-skill`.\n",
+      runOptions.target.fixturePath,
+      `applies:\n  - demo:helper-skill\n${triggerFixtureYaml()}`,
     );
 
     const laneRun = await createClaudeLane().prepareRun(runOptions);
@@ -162,9 +163,8 @@ describe("createClaudeLane", () => {
     const repoRoot = await writeRepoLocalSkillFixture();
     const lane = createClaudeLane();
 
-    const laneRun = await lane.prepareRun(
-      await makeLaneRunOptions("claude", repoRoot, ".agents/skills/auto-skill"),
-    );
+    const runOptions = await makeLaneRunOptions("claude", repoRoot, ".agents/skills/auto-skill");
+    const laneRun = await lane.prepareRun(runOptions);
     const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"), 1);
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(new Set(["auto-skill"]));
@@ -172,10 +172,7 @@ describe("createClaudeLane", () => {
       path.join(laneCase.workspacePath, ".claude", "skills", "auto-skill", "SKILL.md"),
       "utf8",
     );
-    // The Claude lane tests the committed description; invocation is detected from Skill tool
-    // events, so no canary rewrite is applied.
-    expect(stagedProjectSkill).not.toContain("Eval only:");
-    expect(stagedProjectSkill).not.toContain("Trigger Eval Instructions");
+    expect(stagedProjectSkill).toBe(await readFile(runOptions.target.skillFilePath, "utf8"));
     await expect(
       readFile(
         path.join(laneCase.workspacePath, ".agents", "skills", "auto-skill", "SKILL.md"),
@@ -219,14 +216,15 @@ describe("createClaudeLane", () => {
     );
     expect(secondPlainCase.workspacePath).toBe(laneCase.workspacePath);
     expect(laneCase.workspacePath).not.toContain(`cases${path.sep}`);
-    // Both repo-local skills stage as pristine project skills; the staged plugin competes through
-    // --plugin-dir with its implicitly invokable skill canaried so invoked runs stop early.
+    // Both repo-local skills stage as project skills; the staged plugin competes through
+    // --plugin-dir.
     for (const skillName of ["auto-skill", "sibling-skill"]) {
-      const stagedProjectSkill = await readFile(
-        path.join(laneCase.workspacePath, ".claude", "skills", skillName, "SKILL.md"),
-        "utf8",
-      );
-      expect(stagedProjectSkill).not.toContain("Trigger Eval Instructions");
+      await expect(
+        readFile(
+          path.join(laneCase.workspacePath, ".claude", "skills", skillName, "SKILL.md"),
+          "utf8",
+        ),
+      ).resolves.toBeDefined();
     }
     const pluginDirs = flagValues(spawnCalls[0]?.args, "--plugin-dir");
     expect(pluginDirs.map((pluginDir) => path.basename(pluginDir))).toStrictEqual(["other"]);
@@ -235,11 +233,6 @@ describe("createClaudeLane", () => {
       throw new Error("expected a staged plugin directory");
     }
     expect(stagedPluginDir.startsWith(`${laneCase.workspacePath}${path.sep}`)).toBe(false);
-    const stagedPluginSkill = await readFile(
-      path.join(stagedPluginDir, "skills", "other-skill", "SKILL.md"),
-      "utf8",
-    );
-    expect(stagedPluginSkill).toContain("Trigger Eval Instructions");
   });
 
   it("isolates plugin cases with workspace files while plain cases share the base workspace", async () => {
