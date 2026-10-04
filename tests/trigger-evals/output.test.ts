@@ -86,7 +86,7 @@ describe("formatCaseLines", () => {
       "names a wrong skill that fired alongside the target",
       {
         expect: "invoke",
-        invocationSignal: "stdout-skill-canary",
+        invocationSignal: "command-skill-read",
         invoked: true,
         invokedSkills: ["demo:target", "demo:sibling"],
         wrongSkill: "demo:sibling",
@@ -94,20 +94,20 @@ describe("formatCaseLines", () => {
       },
       [
         "- FAIL existing-feedback: 0/1 passed, expected invoke",
-        "  attempt 1 FAIL: observed invoke plus wrong-skill demo:sibling via stdout-skill-canary (1.5s)",
+        "  attempt 1 FAIL: observed invoke plus wrong-skill demo:sibling via command-skill-read (1.5s)",
       ],
     ],
     [
       "names the alternate on a passing routing assertion",
       {
         invokeInstead: "demo:sibling",
-        invocationSignal: "stdout-skill-canary",
+        invocationSignal: "command-skill-read",
         invokedSkills: ["demo:sibling"],
         wrongSkill: "demo:sibling",
       },
       [
         "- PASS existing-feedback: 1/1 passed, expected skip with invoke-instead demo:sibling",
-        "  attempt 1 PASS: observed alternate demo:sibling via stdout-skill-canary (1.5s)",
+        "  attempt 1 PASS: observed alternate demo:sibling via command-skill-read (1.5s)",
       ],
     ],
     [
@@ -142,14 +142,14 @@ describe("formatCaseLines", () => {
       "reports a different skill as wrong-skill on a routing assertion",
       {
         invokeInstead: "demo:sibling",
-        invocationSignal: "stdout-skill-canary",
+        invocationSignal: "command-skill-read",
         invokedSkills: ["other:skill"],
         wrongSkill: "other:skill",
         passed: false,
       },
       [
         "- FAIL existing-feedback: 0/1 passed, expected skip with invoke-instead demo:sibling",
-        "  attempt 1 FAIL: observed wrong-skill other:skill via stdout-skill-canary (1.5s)",
+        "  attempt 1 FAIL: observed wrong-skill other:skill via command-skill-read (1.5s)",
       ],
     ],
   ])("%s", (_name, overrides, expected) => {

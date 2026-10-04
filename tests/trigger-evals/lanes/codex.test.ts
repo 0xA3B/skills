@@ -4,13 +4,12 @@ import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type Skill, formatSkillLabel } from "../../../src/skills/index.js";
 import { caseAttemptKey } from "../../../src/trigger-evals/fixtures/index.js";
 import {
   CODEX_SKIP_DECISION_ITEM_BUDGET,
   createCodexLane,
+  type InvocableSkill,
   observeCodexOutput,
-  skillFileReadPattern,
 } from "../../../src/trigger-evals/lanes/codex.js";
 import type {
   StreamingCliOptions,
@@ -94,35 +93,6 @@ async function readDeploymentPath(runDir: string, caseId: string): Promise<strin
   return JSON.parse(source ?? '""') as string;
 }
 
-async function readStagedCanary(
-  deploymentPath: string,
-  pluginName: string,
-  skillName: string,
-): Promise<string> {
-  const skillBody = await readFile(
-    path.join(deploymentPath, "plugins", pluginName, "skills", skillName, "SKILL.md"),
-    "utf8",
-  );
-  const canary = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-  expect(canary).toBeDefined();
-  return canary ?? "missing-canary";
-}
-
-function observeFor(
-  target: Skill,
-  canaryLabels: ReadonlyMap<string, string>,
-  skillFilePatterns: ReadonlyMap<string, RegExp> = new Map(),
-) {
-  return (stdout: string, stderr = "") =>
-    observeCodexOutput(
-      { stdout, stderr },
-      target,
-      formatSkillLabel(target),
-      canaryLabels,
-      skillFilePatterns,
-    );
-}
-
 describe("createCodexLane", () => {
   beforeEach(() => {
     spawnCalls.length = 0;
@@ -149,7 +119,7 @@ describe("createCodexLane", () => {
     );
   });
 
-  it("stages Codex surfaces, plugin caches, and canaries for plugin targets", async () => {
+  it("stages Codex surfaces and byte-identical plugin caches for plugin targets", async () => {
     const repoRoot = await writeRepoFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
@@ -180,7 +150,6 @@ describe("createCodexLane", () => {
       readFile(path.join(laneCase.workspacePath, ".agents", "plugins", "marketplace.json"), "utf8"),
     ).rejects.toThrow(/ENOENT/);
 
-    const canary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
     const codexHome = caseCodexHome(runOptions.runDir, "invoke-case");
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
     expect(config).toContain('model = "gpt-6.1-sol"');
@@ -188,7 +157,7 @@ describe("createCodexLane", () => {
     expect(config).toContain('[plugins."demo@trigger-eval"]');
     await expect(
       readFile(cachedSkillFile(codexHome, "demo", "1.0.0", "auto-skill"), "utf8"),
-    ).resolves.toContain(canary);
+    ).resolves.toBe(await readFile(runOptions.target.skillFilePath, "utf8"));
 
     const call = spawnCalls[0];
     expect(call?.command).toBe("codex");
@@ -375,7 +344,7 @@ describe("createCodexLane", () => {
     expect((await stat(path.join(caseDir, "final.txt"))).isDirectory()).toBe(true);
   });
 
-  it("observes staged canaries in agent output, attributing siblings distinctly", async () => {
+  it("attributes reads of the target and a sibling distinctly", async () => {
     const repoRoot = await writeRepoFixture({ siblingSkills: [{ name: "sibling-skill" }] });
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
@@ -387,29 +356,24 @@ describe("createCodexLane", () => {
 
     const laneRun = await lane.prepareRun(runOptions);
     const laneCase = await laneRun.prepareCase(triggerCase("invoke-case", "invoke"), 1);
-    const deploymentPath = await readDeploymentPath(runOptions.runDir, "invoke-case");
-    const targetCanary = await readStagedCanary(deploymentPath, "demo", "auto-skill");
-    const siblingCanary = await readStagedCanary(deploymentPath, "demo", "sibling-skill");
+    const codexHome = caseCodexHome(runOptions.runDir, "invoke-case");
+    const target = cachedSkillFile(codexHome, "demo", "1.0.0", "auto-skill");
+    const sibling = cachedSkillFile(codexHome, "demo", "1.0.0", "sibling-skill");
 
     expect(laneRun.stagedSkillLabels).toStrictEqual(
       new Set(["demo:auto-skill", "demo:sibling-skill"]),
     );
-    const targetOnly = laneCase.observe({ stdout: agentMessageEvent(targetCanary), stderr: "" });
-    expect(targetOnly.signal).toBe("stdout-skill-canary");
-    expect(targetOnly.invokedSkills).toStrictEqual(["demo:auto-skill"]);
-    const siblingOnly = laneCase.observe({
-      stdout: agentMessageEvent(siblingCanary),
-      stderr: "",
-    });
-    expect(siblingOnly.invokedSkills).toStrictEqual(["demo:sibling-skill"]);
-    const both = laneCase.observe({
-      stdout: agentMessageEvent(`${targetCanary} and ${siblingCanary}`),
-      stderr: "",
-    });
-    expect(both.invokedSkills.sort()).toStrictEqual(["demo:auto-skill", "demo:sibling-skill"]);
+    const read = (command: string) =>
+      laneCase.observe({ stdout: commandExecutionEvent(command), stderr: "" }).invokedSkills;
+    expect(read(`cat ${target}`)).toStrictEqual(["demo:auto-skill"]);
+    expect(read(`cat ${sibling}`)).toStrictEqual(["demo:sibling-skill"]);
+    expect(read(`cat ${sibling} ${target}`)).toStrictEqual([
+      "demo:sibling-skill",
+      "demo:auto-skill",
+    ]);
   });
 
-  it("stages every marketplace plugin and canaries cross-plugin skills", async () => {
+  it("stages every marketplace plugin and watches cross-plugin skills", async () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
@@ -433,15 +397,56 @@ describe("createCodexLane", () => {
     ) as { plugins: Array<{ name: string }> };
     expect(catalog.plugins.map((plugin) => plugin.name)).toStrictEqual(["demo", "other"]);
 
-    // Cross-plugin wrong-skill detection: the other plugin's canary is a recognized invocation.
-    const otherCanary = await readStagedCanary(deploymentPath, "other", "other-skill");
-    const observed = laneCase.observe({ stdout: agentMessageEvent(otherCanary), stderr: "" });
+    // Cross-plugin wrong-skill detection: a read of the other plugin's cached skill is a
+    // recognized invocation.
+    const cachedOther = cachedSkillFile(
+      caseCodexHome(runOptions.runDir, "skip-case"),
+      "other",
+      "2.0.0",
+      "other-skill",
+    );
+    const observed = laneCase.observe({
+      stdout: commandExecutionEvent(`cat ${cachedOther}`),
+      stderr: "",
+    });
     expect(observed.invokedSkills).toStrictEqual(["other:other-skill"]);
+  });
 
-    const codexHome = caseCodexHome(runOptions.runDir, "skip-case");
+  // The read matcher credits any file at a staged skill's path, so a workspace copy there would
+  // turn a read of project content into a load.
+  const shadowingFile = "plugins/demo/skills/auto-skill/SKILL.md";
+  it.each([
+    {
+      layer: "a workspace file",
+      extra: { workspaceFiles: { [shadowingFile]: "---\nname: auto-skill\n---\n" } },
+    },
+    {
+      layer: "a seed file",
+      extra: { workspace: { seed: "demo-seed", branch: "main", committed: {}, staged: {} } },
+    },
+  ])("refuses a case whose workspace puts $layer at a staged skill's path", async ({ extra }) => {
+    const repoRoot = await writeRepoFixture();
+    await writeSeedFixture(repoRoot, "demo-seed");
+    const seedSkillFile = path.join(repoRoot, "evals", "seeds", "demo-seed", shadowingFile);
+    await mkdir(path.dirname(seedSkillFile), { recursive: true });
+    await writeFile(seedSkillFile, "---\nname: auto-skill\n---\n");
+    const lane = createCodexLane({ sourceCodexHome: await makeSourceCodexHome() });
+    const laneRun = await lane.prepareRun(
+      await makeLaneRunOptions("codex", repoRoot, "plugins/demo/skills/auto-skill"),
+    );
+
+    await expect(laneRun.prepareCase(triggerCase("case", "skip", extra), 1)).rejects.toThrow(
+      `"${shadowingFile}"`,
+    );
+    // A skill file of a plugin the run does not stage cannot be mistaken for a load.
     await expect(
-      readFile(cachedSkillFile(codexHome, "other", "2.0.0", "other-skill"), "utf8"),
-    ).resolves.toContain(otherCanary);
+      laneRun.prepareCase(
+        triggerCase("unstaged-plugin", "skip", {
+          workspaceFiles: { "plugins/unstaged/skills/auto-skill/SKILL.md": "body\n" },
+        }),
+        1,
+      ),
+    ).resolves.toBeDefined();
   });
 
   it("stages a seeded git workspace for plugin cases with a workspace block", async () => {
@@ -478,7 +483,7 @@ describe("createCodexLane", () => {
     await expect(stat(path.join(seededCase.workspacePath, "plugins"))).rejects.toThrow(/ENOENT/);
   });
 
-  it("stages plugins plus repo-local siblings for repo-local targets and merges canaries", async () => {
+  it("stages plugins plus repo-local siblings for repo-local targets and watches both", async () => {
     const repoRoot = await writeRepoLocalSkillFixture({
       marketplace: true,
       siblingSkills: [{ name: "sibling-skill" }, { name: "manual-skill", manualOnly: true }],
@@ -514,55 +519,24 @@ describe("createCodexLane", () => {
     const config = await readFile(path.join(codexHome, "config.toml"), "utf8");
     expect(config).toContain('[plugins."other@trigger-eval"]');
 
-    // The per-case target canary merges with the per-run plugin canaries, so a plugin skill
-    // stealing the invocation stays attributable alongside the target's own signal.
-    const stagedCanary = async (skillName: string) => {
-      const skillBody = await readFile(
-        path.join(laneCase.workspacePath, ".agents", "skills", skillName, "SKILL.md"),
-        "utf8",
-      );
-      const canary = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/)?.[0];
-      expect(canary).toBeDefined();
-      return canary ?? "missing-canary";
-    };
-    const targetCanary = await stagedCanary("auto-skill");
-    const otherCanary = await readStagedCanary(deploymentPath, "other", "other-skill");
-    expect(
-      laneCase.observe({ stdout: agentMessageEvent(targetCanary), stderr: "" }).invokedSkills,
-    ).toStrictEqual(["auto-skill"]);
-    expect(
-      laneCase.observe({ stdout: agentMessageEvent(otherCanary), stderr: "" }).invokedSkills,
-    ).toStrictEqual(["other:other-skill"]);
-
     // The Codex plugin cache is what actually makes the staged plugin loadable; repo-local
-    // targets must stage it too, with the canary present in the cached copy.
-    await expect(
-      readFile(cachedSkillFile(codexHome, "other", "2.0.0", "other-skill"), "utf8"),
-    ).resolves.toContain(otherCanary);
-
-    // Implicitly invokable sibling repo-local skills carry their own canary, so a sibling
-    // stealing the invocation is attributable.
-    const siblingCanary = await stagedCanary("sibling-skill");
-    expect(
-      laneCase.observe({ stdout: agentMessageEvent(siblingCanary), stderr: "" }).invokedSkills,
-    ).toStrictEqual(["sibling-skill"]);
-    // Reading the staged sibling file is the same invocation; the read pattern is wired through
-    // prepareRun for repo-local skills as well as plugins.
-    const siblingRead = laneCase.observe({
-      stdout: commandExecutionEvent("cat .agents/skills/sibling-skill/SKILL.md"),
-      stderr: "",
-    });
-    expect(siblingRead.signal).toBe("command-skill-read");
-    expect(siblingRead.invokedSkills).toStrictEqual(["sibling-skill"]);
-
+    // targets must stage it too, and a read of the cached copy is that plugin skill's invocation.
+    const cachedOther = cachedSkillFile(codexHome, "other", "2.0.0", "other-skill");
+    expect(await exists(cachedOther)).toBe(true);
+    const read = (command: string) =>
+      laneCase.observe({ stdout: commandExecutionEvent(command), stderr: "" });
+    expect(read(`cat ${cachedOther}`).invokedSkills).toStrictEqual(["other:other-skill"]);
+    expect(read("cat .agents/skills/auto-skill/SKILL.md").invokedSkills).toStrictEqual([
+      "auto-skill",
+    ]);
+    // An implicitly invokable sibling is watched, so a sibling stealing the invocation is
+    // attributable.
+    expect(read("cat .agents/skills/sibling-skill/SKILL.md").invokedSkills).toStrictEqual([
+      "sibling-skill",
+    ]);
     // A manual-only sibling keeps its real invocation policy: staged and labeled, but it can only
     // fire on explicit request, so reading it is not an implicit invocation.
-    expect(
-      laneCase.observe({
-        stdout: commandExecutionEvent("cat .agents/skills/manual-skill/SKILL.md"),
-        stderr: "",
-      }).signal,
-    ).toBe("none");
+    expect(read("cat .agents/skills/manual-skill/SKILL.md").signal).toBe("none");
   });
 
   it("credits a command that reads the per-case plugin cache copy of a plugin skill", async () => {
@@ -593,7 +567,7 @@ describe("createCodexLane", () => {
     expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill"]);
   });
 
-  it("stages repo-local targets under .agents with a per-run body canary", async () => {
+  it("stages repo-local targets byte-identical under .agents", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
     const sourceCodexHome = await makeSourceCodexHome();
     const lane = createCodexLane({ sourceCodexHome });
@@ -604,20 +578,12 @@ describe("createCodexLane", () => {
     const laneCase = await laneRun.prepareCase(triggerCase("repo-local-case", "invoke"), 1);
     await laneCase.execute({ caseDir, timeoutMs: 60_000 });
 
-    const skillBody = await readFile(
-      path.join(laneCase.workspacePath, ".agents", "skills", "auto-skill", "SKILL.md"),
-      "utf8",
-    );
-    const canaries = skillBody.match(/trigger-eval-canary-[a-z0-9-]+/g) ?? [];
-    // Exactly one canary: the target is canaried once per run, never again as a sibling.
-    expect(canaries).toHaveLength(1);
-    const canary = canaries[0];
-    // The committed skill, description included, stays a byte-identical prefix of the staged copy.
-    const committedSkill = await readFile(
-      path.join(repoRoot, ".agents", "skills", "auto-skill", "SKILL.md"),
-      "utf8",
-    );
-    expect(skillBody.startsWith(committedSkill)).toBe(true);
+    await expect(
+      readFile(
+        path.join(laneCase.workspacePath, ".agents", "skills", "auto-skill", "SKILL.md"),
+        "utf8",
+      ),
+    ).resolves.toBe(await readFile(runOptions.target.skillFilePath, "utf8"));
     await expect(
       readFile(
         path.join(laneCase.workspacePath, ".claude", "skills", "auto-skill", "SKILL.md"),
@@ -634,163 +600,493 @@ describe("createCodexLane", () => {
       1,
     );
     expect(secondPlainCase.workspacePath).toBe(laneCase.workspacePath);
-
-    const observed = laneCase.observe({
-      stdout: agentMessageEvent(canary ?? "missing-canary"),
-      stderr: "",
-    });
-    expect(observed.signal).toBe("stdout-skill-canary");
-    expect(observed.invokedSkills).toStrictEqual(["auto-skill"]);
   });
 });
 
 describe("observeCodexOutput", () => {
-  const repoTarget: Skill = {
-    kind: "plugin",
-    repoRoot: "/repo",
-    pluginName: "demo",
-    skillName: "auto-skill",
-    pluginPath: "/repo/plugins/demo",
-    skillPath: "/repo/plugins/demo/skills/auto-skill",
-    skillFilePath: "/repo/plugins/demo/skills/auto-skill/SKILL.md",
-    metadataPath: "/repo/plugins/demo/skills/auto-skill/agents/openai.yaml",
-    fixturePath: "/repo/plugins/demo/skills/auto-skill/evals/triggers.yaml",
-  };
-  const canaryLabels = new Map([
-    ["trigger-eval-canary-target", "demo:auto-skill"],
-    ["trigger-eval-canary-sibling", "demo:auto-skill-extra"],
-  ]);
-  const observe = observeFor(repoTarget, canaryLabels);
+  const invocableSkills: InvocableSkill[] = [
+    { skillLabel: "demo:auto-skill", pluginName: "demo", skillName: "auto-skill" },
+    { skillLabel: "demo:auto-skill-extra", pluginName: "demo", skillName: "auto-skill-extra" },
+    { skillLabel: "local-skill", skillName: "local-skill" },
+  ];
+  const observe = (stdout: string) => observeCodexOutput({ stdout, stderr: "" }, invocableSkills);
+  const cachePath =
+    "/run/codex-home/cases/x/attempt-1/plugins/cache/trigger-eval/demo/1.0.0/skills/auto-skill";
 
-  // The second row names the sibling demo:auto-skill-extra; the target demo:auto-skill must not be
-  // credited from inside the longer label.
+  // Each command is a recorded Codex form that loads the whole skill body from its first line.
   it.each([
-    ["the target", "codex.skill.injected demo:auto-skill", ["demo:auto-skill"]],
+    // 2026-10-03 prototype, both models: the plugin-cache copy read through the login shell.
+    ["cat of the plugin-cache copy", `/opt/homebrew/bin/zsh -lc 'cat ${cachePath}/SKILL.md'`],
+    // The dominant historical form: 1,058 of 1,285 recorded SKILL.md commands.
+    ["a sed range from line 1", `/bin/zsh -lc "sed -n '1,240p' '${cachePath}/SKILL.md'"`],
+    // 2026-10-03 prototype: a relative read after a cd in the same command.
+    ["cat after a cd", `/opt/homebrew/bin/zsh -lc 'cd ${cachePath} && cat SKILL.md'`],
+    ["numbered lines piped to a range", `nl -ba ${cachePath}/SKILL.md | sed -n '1,60p'`],
+    ["head", `head -n 80 ${cachePath}/SKILL.md`],
+    ["cat through an input redirection", `cat < ${cachePath}/SKILL.md`],
+    ["a sed range from line 0", `sed -n '0,/^## Steps/p' ${cachePath}/SKILL.md`],
     [
-      "a sibling whose label extends the target's",
-      "codex.skill.injected demo:auto-skill-extra",
-      ["demo:auto-skill-extra"],
+      "a load on a later line",
+      `/opt/homebrew/bin/zsh -lc 'ls ${cachePath}\ncat ${cachePath}/SKILL.md'`,
     ],
-  ])("credits %s from legacy stderr telemetry", (_label, stderr, invokedSkills) => {
-    const observed = observe(agentMessageEvent("I handled the request."), stderr);
+    ["a load continued across lines", `cat \\\n  ${cachePath}/SKILL.md`],
+    // Codex aggregates stderr into the command output, so the body still reaches the agent.
+    ["a cat to stderr", `cat ${cachePath}/SKILL.md >&2`],
+    ["a cat with stderr discarded", `cat ${cachePath}/SKILL.md 2>/dev/null`],
+    // A comment starts at a word, including one right after a `;`.
+    ["a load after a comment that follows a ;", `true;# note\ncat ${cachePath}/SKILL.md`],
+    // 2026-08-23 prose tighten-blog-intro: a quoted glob is the search's own, not a path.
+    [
+      "a load beside a file list with quoted globs",
+      `sed -n '1,240p' ${cachePath}/SKILL.md && rg --files -g '*.md' -g '*.txt' .`,
+    ],
+  ])("credits %s as a load", (_form, command) => {
+    const observed = observe(commandExecutionEvent(command));
 
-    expect(observed.signal).toBe("stderr-skill-injected");
-    expect(observed.invokedSkills).toStrictEqual(invokedSkills);
+    expect(observed.signal).toBe("command-skill-read");
+    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill"]);
+    expect(observed.unclassifiedSkillAccess).toBeUndefined();
   });
 
-  it("classifies a command that reads a staged skill file as that skill's invocation", () => {
-    // Recorded 2026-09-24 on gpt-6-sol: the model read the staged SKILL.md through the plugin
-    // cache, then ignored the eval section's stop instruction and never output the canary.
-    const readPatterns = new Map([
-      ["demo:auto-skill", skillFileReadPattern("demo", "auto-skill")],
-      ["demo:auto-skill-extra", skillFileReadPattern("demo", "auto-skill-extra")],
-      ["local-skill", skillFileReadPattern(undefined, "local-skill")],
-    ]);
-    const observeReads = observeFor(repoTarget, canaryLabels, readPatterns);
+  // Each command names a staged skill file without loading its body as instructions.
+  it.each([
+    // 2026-10-03 prototype: Codex's own parser credits a partial range; this matcher does not.
+    ["a range after line 1", `sed -n '2,3p' ${cachePath}/SKILL.md`],
+    // 2026-10-02 gpt-6.1-sol, sync-upstream conceptual-question: read to explain a key.
+    [
+      "a mid-file range of a repo-local skill",
+      "sed -n '18,38p' .agents/skills/local-skill/SKILL.md",
+    ],
+    // 2026-10-03 prototype: metadata reads.
+    ["a listing", `ls -l ${cachePath}/SKILL.md`],
+    ["a stat", `stat ${cachePath}/SKILL.md`],
+    ["a line count", `wc -l ${cachePath}/SKILL.md`],
+    ["a test", `test -f ${cachePath}/SKILL.md`],
+    ["a bracket test", `[ -f ${cachePath}/SKILL.md ]`],
+    ["a git diff", `git diff -- ${cachePath}/SKILL.md`],
+    // 2026-09-07 gpt-6-sol, review-changes instruction-file-review: a workspace diff.
+    ["a git diff of a bare skill file", "git diff -- SKILL.md"],
+    [
+      "a listing of a plugin's skills directory",
+      "ls /run/plugins/cache/trigger-eval/demo/1.0.0/skills",
+    ],
+    ["a file list under the repo-local skills", "rg -l name .agents/skills"],
+    ["a git log of names", "git log --oneline --name-only -- .agents/skills/local-skill/SKILL.md"],
+    // 2026-10-04 gpt-6.1-sol: a status listing of the work tree.
+    [
+      "a git status listing",
+      "git status --porcelain=v1 --untracked-files=all -- .agents/skills/local-skill/SKILL.md",
+    ],
+    // 2026-07-06 recorded form: a search for skill files by name.
+    ["a find by name", `find ${cachePath} -name SKILL.md -print`],
+    // 2026-07-04 add-skill update-plugin-metadata: a numbered read narrowed to later ranges.
+    [
+      "numbered lines piped to later ranges",
+      `nl -ba ${cachePath}/SKILL.md | sed -n '88,102p;124,134p'`,
+    ],
+    ["a listing piped to a sort", `find ${cachePath} -name SKILL.md -print | sort`],
+    ["a listing piped to a names search", `find ${cachePath} -name SKILL.md | grep -c auto`],
+    // Searches read matching lines to answer a question.
+    // 2026-10-03 prototype, both models: a search of the plugin-cache copy.
+    ["a content search", `/opt/homebrew/bin/zsh -lc "rg -n 'Conventional' ${cachePath}/SKILL.md"`],
+    // 2026-10-04 gpt-6.1-sol, add-skill add-trigger-evals attempts 1 and 4.
+    [
+      "a content search over two repo-local skills",
+      "rg -n 'trigger|fixture|repo-local' .agents/skills/local-skill/SKILL.md .agents/skills/other/SKILL.md",
+    ],
+    ["a grep content search", `grep -n name ${cachePath}/SKILL.md`],
+    ["a whole file piped to a content search", `cat ${cachePath}/SKILL.md | rg -n name`],
+    // 2026-07-04 review-changes: a search over a skill directory.
+    ["a content search over a skill directory", `rg -n "TODO|review" ${cachePath}`],
+    // Searches that print only file names or counts.
+    ["a count of every line", `grep -c '' ${cachePath}/SKILL.md`],
+    ["a file list for any line", `rg -l '^' ${cachePath}/SKILL.md`],
+    ["a file list in a flag cluster", `grep -il name ${cachePath}/SKILL.md`],
+    ["a whole file piped to a count", `cat ${cachePath}/SKILL.md | rg -c name`],
+    // 2026-10-02 gpt-6.1-sol, sync-upstream: a file list filtered by globs.
+    ["a file list by name", "pwd && rg --files -g 'AGENTS.md' -g 'SKILL.md' | head -80"],
+    // A form the classifier refuses still passes when it reaches no skill file, even under a
+    // directory named skills.
+    ["a refused form under a skills directory", "cat /src/skills/.local/notes.md || true"],
+    ["a loop over files outside any skill", `for f in src/*.ts; do cat "$f"; done`],
+  ])("does not credit %s", (_form, command) => {
+    const observed = observe(commandExecutionEvent(command));
 
-    const cached = observeReads(
-      commandExecutionEvent(
-        "/bin/zsh -lc 'cat /run/codex-home/cases/x/plugins/cache/trigger-eval/demo/1.0.0/skills/auto-skill/SKILL.md'",
-      ),
-    );
-    expect(cached.signal).toBe("command-skill-read");
-    expect(cached.invokedSkills).toStrictEqual(["demo:auto-skill"]);
+    expect(observed.signal).toBe("none");
+    expect(observed.invokedSkills).toStrictEqual([]);
+    expect(observed.unclassifiedSkillAccess).toBeUndefined();
+  });
 
-    // The sibling's longer skill name must not credit the target, and vice versa.
-    const sibling = observeReads(
-      commandExecutionEvent("sed -n 1,80p /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md"),
-    );
-    expect(sibling.invokedSkills).toStrictEqual(["demo:auto-skill-extra"]);
-
-    const repoLocal = observeReads(
-      commandExecutionEvent("cat .agents/skills/local-skill/SKILL.md"),
-    );
-    expect(repoLocal.invokedSkills).toStrictEqual(["local-skill"]);
-
-    const unrelated = observeReads(
+  it("does not credit a file outside the staged skills", () => {
+    const observed = observe(
       [
         commandExecutionEvent("cat README.md"),
-        commandExecutionEvent("cat /deploy/plugins/demo/skills/auto-skill/references/notes.md"),
+        commandExecutionEvent(`cat ${cachePath}/references/notes.md`),
         commandExecutionEvent("cat /deploy/plugins/other/skills/auto-skill/SKILL.md"),
+        // A workspace file that is a skill body but not a staged one, read after a cd.
+        commandExecutionEvent("cd skills/deploy && cat SKILL.md"),
       ].join("\n"),
     );
-    expect(unrelated.signal).toBe("none");
-    expect(unrelated.decisionItemCount).toBe(3);
+
+    expect(observed.signal).toBe("none");
+    expect(observed.unclassifiedSkillAccess).toBeUndefined();
+    expect(observed.decisionItemCount).toBe(4);
+  });
+
+  it("credits each load of a chained command in order, without crediting a longer sibling name", () => {
+    const observed = observe(
+      commandExecutionEvent(
+        [
+          `sed -n '1,240p' /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md`,
+          `sed -n '241,520p' /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md`,
+          "cat .agents/skills/local-skill/SKILL.md",
+        ].join(" && "),
+      ),
+    );
+
+    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill-extra", "local-skill"]);
+  });
+
+  // A command the matcher cannot classify could be a load or not, so the verdict must not trust
+  // either reading of the run.
+  it.each([
+    ["an awk read", `awk 'NR < 50' ${cachePath}/SKILL.md`],
+    ["a loop over skill files", `for f in ${cachePath}/SKILL.md; do cat "$f"; done`],
+    ["a sed script with a pattern address", `sed -n '/^## Steps/,$p' ${cachePath}/SKILL.md`],
+    ["a skill file with no resolvable directory", "cat SKILL.md"],
+    ["a tail from line 1", `tail -n +1 ${cachePath}/SKILL.md`],
+    ["a diff against an empty file", `diff /dev/null ${cachePath}/SKILL.md`],
+    ["a sed script without -n", `sed 's/a/b/' ${cachePath}/SKILL.md`],
+    ["a sed range with combined flags", `sed -ne '200,250p' ${cachePath}/SKILL.md`],
+    ["a git show", `git show HEAD:plugins/demo/skills/auto-skill/SKILL.md`],
+    ["a find that runs a command", `find ${cachePath} -name SKILL.md -exec cat {} +`],
+    ["a path inside a script", `python3 -c "print(open('${cachePath}/SKILL.md').read())"`],
+    ["a path held in a variable", `f=${cachePath}/SKILL.md; cat "$f"`],
+    ["a path in an assignment prefix", `F=${cachePath}/SKILL.md cat README.md`],
+    ["a git diff of an untracked file", `git diff --no-index /dev/null ${cachePath}/SKILL.md`],
+    ["a git log with patches", "git log -p -- .agents/skills/local-skill/SKILL.md"],
+    [
+      "a git show of a committed repo-local skill",
+      "git show HEAD:.agents/skills/local-skill/SKILL.md",
+    ],
+    ["a listing piped to xargs", `ls ${cachePath}/SKILL.md | xargs cat`],
+    ["an unquoted command substitution", `cat $(ls ${cachePath}/SKILL.md)`],
+    ["a command substitution in an assignment", `body=$(cat ${cachePath}/SKILL.md); echo ok`],
+    [
+      "a relative path in a command substitution",
+      'echo "$(cat .agents/skills/local-skill/SKILL.md)"',
+    ],
+    [
+      "a relative path in a script",
+      `python3 -c "print(open('.agents/skills/local-skill/SKILL.md').read())"`,
+    ],
+    ["a find piped to xargs", "find .agents/skills -name SKILL.md -print0 | xargs -0 cat"],
+    [
+      "a listing piped to a read loop",
+      `ls ${cachePath}/SKILL.md | while read f; do cat "$f"; done`,
+    ],
+    ["a command substitution", `echo "$(cat ${cachePath}/SKILL.md)"`],
+    ["a whole file piped to a pager", `cat ${cachePath}/SKILL.md | less`],
+    ["a glob over skill files", "cat .agents/skills/*/SKILL.md"],
+    // A load whose output never reaches the agent, or reaches it later through a copy.
+    ["a cat to /dev/null", `cat ${cachePath}/SKILL.md >/dev/null`],
+    ["a cat to a file through fd 1", `cat ${cachePath}/SKILL.md 1> copy.md`],
+    ["a cat appended to a file", `cat ${cachePath}/SKILL.md >> copy.md`],
+    ["a cat to a clobbered file", `cat ${cachePath}/SKILL.md >| copy.md`],
+    ["a cat with both streams to a file", `cat ${cachePath}/SKILL.md &> copy.md`],
+    ["a cat with both streams to a file via >&", `cat ${cachePath}/SKILL.md >& copy.md`],
+    ["a filtered load to /dev/null", `nl -ba ${cachePath}/SKILL.md | sed -n '1,9p' >/dev/null`],
+    ["a head of zero lines", `head -n 0 ${cachePath}/SKILL.md`],
+    ["a head of zero attached lines", `head -n0 ${cachePath}/SKILL.md`],
+    ["a head of zero bytes", `head -c 0 ${cachePath}/SKILL.md`],
+    ["a head of zero long-form lines", `head --lines=0 ${cachePath}/SKILL.md`],
+    ["a load piped to a head of zero lines", `cat ${cachePath}/SKILL.md | head -n 0`],
+    // A path the shell composes from a variable, a glob, or a brace expansion.
+    ["a skill file under a variable directory", `d=${cachePath}; cat "$d/SKILL.md"`],
+    ["a skill file under a braced variable", `d=${cachePath}; cat "\${d}/SKILL.md"`],
+    ["a skill file after a cd into a variable", `d=${cachePath}; cd "$d" && cat SKILL.md`],
+    ["a glob over a staged skill directory", `cat ${cachePath}/*`],
+    ["a brace expansion over skill names", "cat .agents/skills/{local-skill,other}/SKILL.md"],
+    // Text the shell does not run, unless the heredoc feeds a shell.
+    ["a skill path in a heredoc body", `cat <<'EOF'\ncat ${cachePath}/SKILL.md\nEOF`],
+    [
+      "a skill path in a tab-stripped heredoc body",
+      `cat <<-EOF > notes.md\n\tcat ${cachePath}/SKILL.md\n\tEOF\necho done`,
+    ],
+    ["a skill path in a multi-line string", `echo "notes\ncat ${cachePath}/SKILL.md\n"`],
+    ["a skill path in a herestring", `cat <<< ${cachePath}/SKILL.md`],
+    ["a load after a heredoc", `cat <<'EOF' > /dev/null\nnotes\nEOF\ncat ${cachePath}/SKILL.md`],
+    // A search flag outside the tool's list can print the body around the matches.
+    ["a search with context lines", `rg -C 400 name ${cachePath}/SKILL.md`],
+    ["an inverted search", `grep -v zzz ${cachePath}/SKILL.md`],
+    ["a passthrough search after a value flag", `rg -g -l --passthru name ${cachePath}/SKILL.md`],
+    // Forms whose control flow the classifier does not read.
+    ["a load after ||", `true || cat ${cachePath}/SKILL.md`],
+    ["a load in the background", `cat ${cachePath}/SKILL.md & wait`],
+    ["a load after a cd in a subshell", `(cd ${cachePath}); cat SKILL.md`],
+    ["a load after a cd joined by ;", `cd ${cachePath}; cat SKILL.md`],
+    ["a load in a backtick substitution", "echo `cat .agents/skills/local-skill/SKILL.md`"],
+    ["a load in an if", `if true; then cat ${cachePath}/SKILL.md; fi`],
+    // A recursive read rooted at a directory that holds a staged skill file.
+    [
+      "a find that runs cat under a plugin root",
+      "find /deploy/plugins/demo -type f -exec cat {} +",
+    ],
+    // Load commands whose flags print something other than the body from line 1.
+    ["a cat help", `cat --help ${cachePath}/SKILL.md`],
+    ["a cat version", `cat --version ${cachePath}/SKILL.md`],
+    ["a numbered help", `nl --help ${cachePath}/SKILL.md`],
+    ["a head of a suffixed zero count", `head -n 0K ${cachePath}/SKILL.md`],
+    ["a head of all but the last lines", `head -n -100000 ${cachePath}/SKILL.md`],
+    ["a load after an exit", `exit 0; cat ${cachePath}/SKILL.md`],
+    [
+      "a load after an exec with an assignment prefix",
+      `FOO=1 exec true; cat ${cachePath}/SKILL.md`,
+    ],
+    ["a load after a builtin exit", `builtin exit 0; cat ${cachePath}/SKILL.md`],
+    // A filter that names its own file prints that file instead of, or before, the piped body.
+    ["a load piped to a filter of another file", `cat ${cachePath}/SKILL.md | nl README.md`],
+    [
+      "a load piped behind another file",
+      `cat ${cachePath}/SKILL.md | cat README.md - | head -n 40`,
+    ],
+    [
+      "ANSI-C quoting before a heredoc",
+      "echo $'it\\'s' && cat <<EOF\nsee .agents/skills/local-skill/SKILL.md\nEOF",
+    ],
+    // Several files reach a range as one stream, so the range cannot be tied to one file.
+    [
+      "a sed range over two skill files",
+      `sed -n '1,200p' ${cachePath}/SKILL.md /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md`,
+    ],
+    ["a sed range from line 1 of another file", `sed -n '1,40p' README.md ${cachePath}/SKILL.md`],
+    ["a late sed range over another file", `sed -n '300,400p' README.md ${cachePath}/SKILL.md`],
+    ["two files piped to a head", `cat README.md ${cachePath}/SKILL.md | head -n 40`],
+    // Paths the shell composes from a cd into a skills directory or a bracket glob.
+    ["a glob after a cd into a skills directory", "cd .agents/skills && cat local-skill/SKILL*"],
+    [
+      "a relative glob after a cd into a plugin's skills directory",
+      "cd /run/plugins/cache/trigger-eval/demo/1.0.0/skills && cat */*.md",
+    ],
+    ["a bracket glob over a skill file name", "cat .agents/skills/local-skill/[S]KILL.md"],
+    ["a bracket glob over a file extension", `cat ${cachePath}/SKILL.m[d]`],
+    // A spaced number before `>` is an argument, and the redirect takes standard output.
+    ["a head of two lines to a file", `cat ${cachePath}/SKILL.md | head -n 2 > /tmp/x`],
+    ["a cat with a spaced 2 before a redirect", `cat ${cachePath}/SKILL.md 2 > /tmp/x`],
+    // git forms that print a body as patch lines.
+    [
+      "a git log with patch and stat",
+      "git log --patch-with-stat -- .agents/skills/local-skill/SKILL.md",
+    ],
+    ["a git log with context lines", "git log -U3 -- .agents/skills/local-skill/SKILL.md"],
+    [
+      "a git diff between revisions",
+      "git diff 4b825dc642cb6eb9a060e54bf8d69288fbb7d904 HEAD -- .agents/skills/local-skill/SKILL.md",
+    ],
+  ])("reports %s as unclassified access", (_form, command) => {
+    const observed = observe(commandExecutionEvent(command));
+
+    expect(observed.signal).toBe("none");
+    expect(observed.unclassifiedSkillAccess).toBeDefined();
+    expect(observed.unclassifiedSkillAccess).toMatch(/SKILL|skills|plugins|\.agents/);
   });
 
   it("marks a skill-file read pending until an assistant message follows it", () => {
-    const readPatterns = new Map([
-      ["demo:auto-skill", skillFileReadPattern("demo", "auto-skill")],
-      ["demo:auto-skill-extra", skillFileReadPattern("demo", "auto-skill-extra")],
-    ]);
-    const observeReads = observeFor(repoTarget, canaryLabels, readPatterns);
     const readExtra = commandExecutionEvent(
       "cat /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md",
     );
-    const readTarget = commandExecutionEvent("cat /deploy/plugins/demo/skills/auto-skill/SKILL.md");
+    const readTarget = commandExecutionEvent(`cat ${cachePath}/SKILL.md`);
 
     // A helper skill read first, then the workflow skill: both are attributed once the reads settle.
-    const pending = observeReads(readExtra);
+    const pending = observe(readExtra);
     expect(pending.pendingReads).toBe(true);
-    const settled = observeReads(
-      [readExtra, readTarget, agentMessageEvent("Loaded both.")].join("\n"),
-    );
+    const settled = observe([readExtra, readTarget, agentMessageEvent("Loaded both.")].join("\n"));
     expect(settled.pendingReads).toBe(false);
     // Read order, not staging order: the report and wrong-skill selection preserve it.
     expect(settled.invokedSkills).toStrictEqual(["demo:auto-skill-extra", "demo:auto-skill"]);
     // A message before the read does not settle it.
-    expect(observeReads([agentMessageEvent("Looking."), readTarget].join("\n")).pendingReads).toBe(
-      true,
-    );
+    expect(observe([agentMessageEvent("Looking."), readTarget].join("\n")).pendingReads).toBe(true);
   });
 
-  it("does not credit a skill-file read from a command that failed", () => {
-    // Recorded 2026-09-24 on gpt-6-sol: `rg --files -g 'AGENTS.md' ... && cat <cache>/SKILL.md`
-    // exited 1 because rg matched nothing, so the cat never ran and the skill was never loaded.
-    const readPatterns = new Map([["demo:auto-skill", skillFileReadPattern("demo", "auto-skill")]]);
-    const observeReads = observeFor(repoTarget, canaryLabels, readPatterns);
-    const failedRead =
-      "rg --files -g 'AGENTS.md' && cat /deploy/plugins/demo/skills/auto-skill/SKILL.md";
-
-    const failed = observeReads(
-      commandExecutionEvent(failedRead, { status: "failed", exitCode: 1 }),
-    );
-    expect(failed.signal).toBe("none");
-    expect(failed.pendingReads).toBeUndefined();
-    expect(failed.decisionItemCount).toBe(1);
-    expect(
-      observeReads(commandExecutionEvent(failedRead, { status: "completed", exitCode: 0 })).signal,
-    ).toBe("command-skill-read");
-  });
-
-  it("keeps a skill-file read of another skill alongside the canary", () => {
-    const readPatterns = new Map([
-      ["demo:auto-skill-extra", skillFileReadPattern("demo", "auto-skill-extra")],
-    ]);
-    const observed = observeFor(
-      repoTarget,
-      canaryLabels,
-      readPatterns,
-    )(
+  // A command's exit status covers its last segment, so the output decides whether a read in a
+  // failed command ran, and only output that can be tied to the load segment counts: the body at
+  // the start of the output of a leading load proves the load, and a file error on the staged path
+  // with no body anywhere proves a failed read.
+  const missingFile = `cat: ${cachePath}/SKILL.md: No such file or directory\n`;
+  const body = "---\nname: auto-skill\n---\n";
+  it.each([
+    {
+      name: "a failed command whose leading load's body starts the output",
+      command: `cd /tmp && cat ${cachePath}/SKILL.md && rg --files -g 'AGENTS.md'`,
+      outcome: { status: "failed", exitCode: 1, output: body },
+      loaded: true,
+      unclassified: false,
+    },
+    {
+      name: "a failed command whose leading load's body starts the output numbered by nl",
+      command: `nl -ba ${cachePath}/SKILL.md; false`,
+      outcome: { status: "failed", exitCode: 1, output: "     1\t---\n     2\tname: auto-skill\n" },
+      loaded: true,
+      unclassified: false,
+    },
+    {
+      name: "a failed command whose name line comes from an inspection before a skipped load",
+      command: `sed -n '2p' ${cachePath}/SKILL.md && false && cat ${cachePath}/SKILL.md`,
+      outcome: { status: "failed", exitCode: 1, output: "name: auto-skill\n" },
+      loaded: false,
+      unclassified: true,
+    },
+    {
+      name: "a failed command whose body follows another segment's output",
+      command: `pwd && cat ${cachePath}/SKILL.md && false`,
+      outcome: { status: "failed", exitCode: 1, output: `/work\n${body}` },
+      loaded: false,
+      unclassified: true,
+    },
+    {
+      name: "a failed command whose body follows a file error on another staged path",
+      command: `cat ${cachePath.replace("1.0.0", "9.9.9")}/SKILL.md; cat ${cachePath}/SKILL.md; false`,
+      outcome: {
+        status: "failed",
+        exitCode: 1,
+        output: `${missingFile.replace("1.0.0", "9.9.9")}${body}`,
+      },
+      loaded: true,
+      unclassified: false,
+    },
+    {
+      // Recorded 2026-10-04 on gpt-6.1-sol (add-skill repo-local-skill-request, attempt 2): the
+      // workspace had no AGENTS.md, so cat printed its error, then the body, and exited 1.
+      name: "a failed cat whose body follows a missing earlier operand",
+      command: `cat AGENTS.md ${cachePath}/SKILL.md`,
+      outcome: {
+        status: "failed",
+        exitCode: 1,
+        output: `cat: AGENTS.md: No such file or directory\n${body}`,
+      },
+      loaded: true,
+      unclassified: false,
+    },
+    {
+      name: "a failed command whose output shows a file error on the staged path",
+      command: `cat ${cachePath}/SKILL.md`,
+      outcome: { status: "failed", exitCode: 1, output: missingFile },
+      loaded: false,
+      unclassified: false,
+    },
+    {
+      // Recorded 2026-09-24 on gpt-6-sol: rg matched nothing and exited 1, so the cat may never
+      // have run, and nothing in the output says whether it did.
+      name: "a failed command whose output shows neither",
+      command: `rg --files -g 'AGENTS.md' && cat ${cachePath}/SKILL.md`,
+      outcome: { status: "failed", exitCode: 1, output: "" },
+      loaded: false,
+      unclassified: true,
+    },
+    {
+      name: "a successful command whose output shows a file error on the staged path",
+      command: `cat ${cachePath}/SKILL.md; echo done`,
+      outcome: { status: "completed", exitCode: 0, output: `${missingFile}done\n` },
+      loaded: false,
+      unclassified: false,
+    },
+    {
+      // Codex can drop the head of a long output, so a successful read stays credited without it.
+      name: "a successful command whose output shows neither",
+      command: `cat ${cachePath}/SKILL.md`,
+      outcome: { status: "completed", exitCode: 0, output: "…\n## Rules\n" },
+      loaded: true,
+      unclassified: false,
+    },
+    {
+      name: "a successful command whose file error names a longer path",
+      command: `cat ${cachePath}/SKILL.md; ls ${cachePath}/SKILL.md.bak; true`,
+      outcome: {
+        status: "completed",
+        exitCode: 0,
+        output: `…\n## Rules\nls: ${cachePath}/SKILL.md.bak: No such file or directory\n`,
+      },
+      loaded: true,
+      unclassified: false,
+    },
+    // An exit status of 0 proves only that the command's last list succeeded, and a form outside
+    // the accepted shapes is unclassified whole.
+    ...(
       [
-        commandExecutionEvent("cat /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md"),
-        agentMessageEvent("trigger-eval-canary-target"),
-      ].join("\n"),
-    );
+        ["a load that starts an || list", `cat ${cachePath}/SKILL.md || true`],
+        ["a load in an earlier && list", `false && cat ${cachePath}/SKILL.md; true`],
+        [
+          "a load in an || list",
+          `test -f ${cachePath}/SKILL.md && cat ${cachePath}/SKILL.md || echo none`,
+        ],
+        ["a load in an untaken branch", `if false; then cat ${cachePath}/SKILL.md; fi`],
+        ["a load in a loop body", `for x in; do cat ${cachePath}/SKILL.md; done`],
+        ["a load in a group after ||", `true || (cat ${cachePath}/SKILL.md; true)`],
+        ["a load in a group after &&", `cd /tmp && (cat ${cachePath}/SKILL.md)`],
+        ["a load in an uncalled function", `f() { cat ${cachePath}/SKILL.md; }; true`],
+        [
+          "a load in an uncalled keyword function",
+          `function f { cat ${cachePath}/SKILL.md; }; true`,
+        ],
+      ] as const
+    ).map(([form, command]) => ({
+      name: `a successful command with ${form}`,
+      command,
+      outcome: { status: "completed", exitCode: 0, output: "" },
+      loaded: false,
+      unclassified: true,
+    })),
+    ...(
+      [
+        // Recorded 2026-09-07 on gpt-6-sol: the whole && list ran, or the command would have failed.
+        [
+          "a load at the end of an && list",
+          `pwd && rg --files -g 'AGENTS.md' && sed -n '1,240p' ${cachePath}/SKILL.md`,
+        ],
+        ["a load after a ;", `false; cat ${cachePath}/SKILL.md`],
+      ] as const
+    ).map(([form, command]) => ({
+      name: `a successful command with ${form}`,
+      command,
+      outcome: { status: "completed", exitCode: 0, output: "…\n## Rules\n" },
+      loaded: true,
+      unclassified: false,
+    })),
+  ])("decides a skill read from $name", ({ command, outcome, loaded, unclassified }) => {
+    const observed = observe(commandExecutionEvent(command, outcome));
 
-    expect(observed.signal).toBe("stdout-skill-canary");
-    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill", "demo:auto-skill-extra"]);
-    expect(observed.pendingReads).toBeUndefined();
+    expect(observed.invokedSkills).toStrictEqual(loaded ? ["demo:auto-skill"] : []);
+    expect(observed.pendingReads).toBe(loaded ? true : undefined);
+    expect(observed.unclassifiedSkillAccess !== undefined).toBe(unclassified);
+    expect(observed.decisionItemCount).toBe(1);
   });
 
-  it("prefers the canary signal over stderr telemetry", () => {
-    const observed = observe(
-      agentMessageEvent("trigger-eval-canary-target"),
-      "codex.skill.injected demo:auto-skill-extra",
+  it("ties a failed command's leading body to its leading load, not a same-named skill", () => {
+    const otherPath = "/deploy/plugins/other/skills/auto-skill/SKILL.md";
+    const observed = observeCodexOutput(
+      {
+        stdout: commandExecutionEvent(`cat ${otherPath} && false && cat ${cachePath}/SKILL.md`, {
+          status: "failed",
+          exitCode: 1,
+          output: body,
+        }),
+        stderr: "",
+      },
+      [
+        ...invocableSkills,
+        { skillLabel: "other:auto-skill", pluginName: "other", skillName: "auto-skill" },
+      ],
     );
 
-    expect(observed.signal).toBe("stdout-skill-canary");
-    expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill"]);
+    expect(observed.invokedSkills).toStrictEqual(["other:auto-skill"]);
+    expect(observed.unclassifiedSkillAccess).toContain(`${cachePath}/SKILL.md`);
+  });
+
+  it("ignores skill names in assistant messages", () => {
+    const observed = observe(agentMessageEvent("I'll use demo:auto-skill for this."));
+
+    expect(observed.signal).toBe("none");
+    expect(observed.decisionItemCount).toBe(1);
   });
 
   it("excludes reasoning items from the decision count and sees turn activity", () => {

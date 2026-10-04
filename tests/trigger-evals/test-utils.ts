@@ -58,7 +58,7 @@ export function agentMessageEvent(text: string): string {
 
 export function commandExecutionEvent(
   command: string,
-  outcome: { status?: string; exitCode?: number } = {},
+  outcome: { status?: string; exitCode?: number; output?: string } = {},
 ): string {
   return JSON.stringify({
     type: "item.completed",
@@ -67,6 +67,7 @@ export function commandExecutionEvent(
       command,
       ...(outcome.status === undefined ? {} : { status: outcome.status }),
       ...(outcome.exitCode === undefined ? {} : { exit_code: outcome.exitCode }),
+      ...(outcome.output === undefined ? {} : { aggregated_output: outcome.output }),
     },
   });
 }

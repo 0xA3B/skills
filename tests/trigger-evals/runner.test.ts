@@ -94,7 +94,7 @@ function createFakeLane(options: FakeLaneOptions = {}): { lane: AgentLane; state
   const defaultObservations = (testCase: TriggerCase): CaseObservations =>
     testCase.expect === "invoke"
       ? {
-          signal: "stdout-skill-canary",
+          signal: "command-skill-read",
           invokedSkills: ["demo:auto-skill"],
           hasActivity: true,
           decisionItemCount: 1,
@@ -221,7 +221,7 @@ describe("runTriggerEval", () => {
     expect(result.results.every((caseResult) => caseResult.passed)).toBe(true);
     expect(result.results[0]).toMatchObject({
       invoked: true,
-      invocationSignal: "stdout-skill-canary",
+      invocationSignal: "command-skill-read",
     });
     expect(state.maxActiveExecs).toBe(2);
     expect(state.caseCleanups).toBe(4);
@@ -279,7 +279,7 @@ describe("runTriggerEval", () => {
       observationsFor: (testCase, _output, attempt) =>
         testCase.id === "case-a" && attempt !== 2
           ? {
-              signal: "stdout-skill-canary",
+              signal: "command-skill-read",
               invokedSkills: ["demo:auto-skill"],
               hasActivity: true,
               decisionItemCount: 1,
@@ -462,7 +462,7 @@ describe("runTriggerEval", () => {
     const repoRoot = await writeRepoFixture({ marketplace: true });
     const { lane, state } = createFakeLane({
       observationsFor: (_testCase, output) => ({
-        signal: output.stdout.includes("CANARY") ? "stdout-skill-canary" : "none",
+        signal: output.stdout.includes("CANARY") ? "command-skill-read" : "none",
         invokedSkills: output.stdout.includes("CANARY") ? ["demo:auto-skill"] : [],
         hasActivity: true,
         decisionItemCount: output.stdout.split("ITEM").length - 1,

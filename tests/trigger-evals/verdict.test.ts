@@ -36,14 +36,12 @@ function verdictOptions(overrides: Partial<CaseVerdictOptions> = {}): CaseVerdic
 }
 
 function invokedObservations(...invokedSkills: string[]): CaseObservations {
-  return observations({ signal: "stdout-skill-canary", invokedSkills });
+  return observations({ signal: "command-skill-read", invokedSkills });
 }
 
 describe("shouldStopEarly", () => {
   it.each<[string, Partial<CaseObservations>, number | undefined, boolean]>([
-    ["stops on a canary signal", { signal: "stdout-skill-canary" }, undefined, true],
     ["stops on a skill tool use", { signal: "stream-skill-tool-use" }, undefined, true],
-    ["stops on a skill injection", { signal: "stderr-skill-injected" }, undefined, true],
     ["stops on a skill-file read", { signal: "command-skill-read" }, undefined, true],
     [
       "stops on a settled skill-file read",
@@ -170,7 +168,7 @@ describe("buildCaseResult", () => {
       caseId: "case-1",
       attempt: 1,
       expect: "invoke",
-      invocationSignal: "stdout-skill-canary",
+      invocationSignal: "command-skill-read",
       invoked: true,
       invokedSkills: [TARGET],
       passed: true,
@@ -486,4 +484,25 @@ describe("buildCaseResult", () => {
     expect(result.environmentalFailure).toContain("code-review");
     expect(result.environmentalFailure).toContain("disableBundledSkills");
   });
+
+  // An unclassified access may or may not have loaded a skill, so neither a pass nor a fail can be
+  // trusted: it fails a matched skip and a matched invoke alike, quoting the command.
+  it.each<[string, CaseObservations, "invoke" | "skip"]>([
+    ["a matched skip", observations(), "skip"],
+    ["a matched invoke", invokedObservations(TARGET), "invoke"],
+  ])(
+    "fails environmentally on unclassified skill-file access over %s",
+    (_label, observed, expect_) => {
+      const command = "awk 'NR < 50' /cache/demo/1.0.0/skills/auto-skill/SKILL.md";
+      const result = buildCaseResult(
+        verdictOptions({
+          testCase: { id: "case", expect: expect_ },
+          observations: { ...observed, unclassifiedSkillAccess: command },
+        }),
+      );
+
+      expect(result.passed).toBe(false);
+      expect(result.environmentalFailure).toContain(command);
+    },
+  );
 });

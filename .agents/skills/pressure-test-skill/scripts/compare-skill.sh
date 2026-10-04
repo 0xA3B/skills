@@ -24,7 +24,7 @@
 # Plugins are copied whole next to the workspace and loaded the way each agent installs them
 # (--plugin-dir on Claude Code, a local marketplace plus a pre-populated plugin cache on Codex), so
 # a skill's plugin-root references resolve. The staged copy of the target skill carries a
-# body-only canary token, as the trigger evals do, so a load leaves a signal even when the agent
+# body-only canary token, so a load leaves a signal even when the agent
 # reads no further file. A manual-only target (frontmatter `disable-model-invocation: true`) is
 # invoked with Claude's slash form, because the model cannot load it from a prose request. The run
 # directory receives final.md, events.jsonl, stderr.log, and workspace/, and the script prints the

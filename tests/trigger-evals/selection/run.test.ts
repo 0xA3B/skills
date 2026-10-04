@@ -36,7 +36,7 @@ function createScriptedLane(failingCaseIds: ReadonlySet<string> = new Set()): Ag
         return invoked === undefined
           ? { signal: "none", invokedSkills: [], hasActivity: true, decisionItemCount: 1 }
           : {
-              signal: "stdout-skill-canary",
+              signal: "command-skill-read",
               invokedSkills: [invoked],
               hasActivity: true,
               decisionItemCount: 1,

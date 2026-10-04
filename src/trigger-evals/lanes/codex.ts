@@ -1,7 +1,7 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { formatSkillLabel, type Skill } from "../../skills/index.js";
+import type { Skill } from "../../skills/index.js";
 import {
   caseAttemptKey,
   needsCaseWorkspace,
@@ -34,7 +34,15 @@ import type {
   LaneRun,
   LaneRunOptions,
 } from "./lane.js";
+import {
+  classifySkillFileAccesses,
+  type InvocableSkill,
+  skillOutputEvidence,
+  stagedSkillAtPath,
+} from "./skill-reads.js";
 import { type StagedDeployment, stageDeployment } from "./staging.js";
+
+export type { InvocableSkill } from "./skill-reads.js";
 
 // The Codex lane counts every non-reasoning item, including the workspace reconnaissance commands
 // its generic command events cannot separate from decisions. Recorded gpt-6-sol runs on seeded
@@ -46,12 +54,10 @@ type CodexLaneOptions = {
   sourceCodexHome?: string;
 };
 
-// Codex emits no skill-invocation telemetry in current CLIs, so this lane detects invocation with
-// eval-only canaries appended to the bodies of the staged skill copies: one per run for the target
-// and for every implicitly invokable staged plugin skill and sibling repo-local skill, so a wrong
-// skill firing is attributable. Frontmatter descriptions stay
-// byte-identical to the committed skills, so the trigger surface under test is never perturbed.
-// Older Codex CLIs emitted codex.skill.injected stderr telemetry, kept as a secondary signal.
+// Codex has no skill tool and its event stream has no skill event (checked on codex-cli 0.160.0:
+// `exec --json`, the session rollout, and app-server all lack one), so an implicit invocation is a
+// shell read of the staged SKILL.md, and this lane detects invocation from those reads. Staged
+// skill copies are byte-identical to the committed skills.
 export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
   return {
     async prepareRun(runOptions: LaneRunOptions): Promise<LaneRun> {
@@ -59,14 +65,11 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
       // Codex's event stream names neither its version nor the model, so the version is read once
       // here, before anything is staged; the requested model stands as the model.
       const agentVersion = await readCliVersion("codex");
-      // A repo-local target's siblings get canaries too, so a sibling stealing the invocation is
-      // attributable.
       const deployment = await stageDeployment({
         target,
         plugins: runOptions.extraPlugins ?? [],
         repoLocalSkills: runOptions.extraRepoLocalSkills ?? [],
         repoLocalSurface: ".agents",
-        canaryRepoLocalSkills: true,
         runtime,
       });
       // Per-case homes nest under the run home, so tracking the run home covers a case whose
@@ -75,17 +78,6 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
       if (deployment.stagedPlugins.length > 0) {
         await writeCodexMarketplaceCatalog(deployment.deploymentPath, deployment.stagedPlugins);
       }
-      // Every canaried skill, plugin or repo-local, shares the per-run canary and read maps.
-      const canaryLabels = new Map(
-        deployment.canaries.map((skillCanary) => [skillCanary.canary, skillCanary.skillLabel]),
-      );
-      const skillFilePatterns = new Map(
-        deployment.canaries.map((skillCanary) => [
-          skillCanary.skillLabel,
-          skillFileReadPattern(skillCanary.pluginName, skillCanary.skillName),
-        ]),
-      );
-
       return {
         stagedSkillLabels: deployment.stagedSkillLabels,
         skillDependencies: deployment.skillDependencies,
@@ -96,14 +88,11 @@ export function createCodexLane(options: CodexLaneOptions = {}): AgentLane {
             testCase,
             attempt,
             target,
-            targetLabel: formatSkillLabel(target),
             runDir,
             deployment,
             model,
             effort,
             runtime,
-            canaryLabels,
-            skillFilePatterns,
             ...(options.sourceCodexHome === undefined
               ? {}
               : { sourceCodexHome: options.sourceCodexHome }),
@@ -118,14 +107,11 @@ type CodexCaseContext = {
   testCase: TriggerCase;
   attempt: number;
   target: Skill;
-  targetLabel: string;
   runDir: string;
   deployment: StagedDeployment;
   model: string;
   effort: string;
   runtime: RuntimeResources;
-  canaryLabels: Map<string, string>;
-  skillFilePatterns: Map<string, RegExp>;
   sourceCodexHome?: string;
 };
 
@@ -142,6 +128,9 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
         attempt,
       })
     : deployment.workspacePath;
+  if (caseWorkspacePath !== deployment.workspacePath) {
+    await refuseShadowingSkillFiles(caseWorkspacePath, deployment.invocableSkills);
+  }
 
   // Tracked before anything is written so a setup failure still leaves nothing behind.
   const attemptKey = caseAttemptKey(testCase.id, attempt);
@@ -168,7 +157,7 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
         ? {}
         : { sourceCodexHome: context.sourceCodexHome }),
     });
-    await stageCodexPluginCaches(codexHome, deployment.stagedPlugins, deployment.canaries);
+    await stageCodexPluginCaches(codexHome, deployment.stagedPlugins);
   } catch (caught) {
     await removeCopiedAuth(codexHome);
     throw caught;
@@ -183,50 +172,51 @@ async function prepareCodexCase(context: CodexCaseContext): Promise<LaneCase> {
         codexHome,
         workspacePath: caseWorkspacePath,
       }),
-    observe: (output: StreamingCliOutput) =>
-      observeCodexOutput(
-        output,
-        target,
-        context.targetLabel,
-        context.canaryLabels,
-        context.skillFilePatterns,
-      ),
+    observe: (output: StreamingCliOutput) => observeCodexOutput(output, deployment.invocableSkills),
     cleanup: () => removeCopiedAuth(codexHome),
   };
 }
 
-// Matches a command that reads a staged copy of one skill's SKILL.md: under a plugin cache
-// (`<plugin>/<version>/skills/<skill>/SKILL.md`), the deployment copy
-// (`plugins/<plugin>/skills/<skill>/SKILL.md`), or a repo-local staging (`.agents/skills/<skill>/
-// SKILL.md`). Codex loads a skill by reading its file, so the read is the invocation itself. In a
-// streamed run the read item lands before any message can carry the canary, so this signal is
-// what ends most invoked cases; the canary still decides a stream that completed without a read,
-// and a model that ignores the eval section's stop instruction never outputs it at all.
-export function skillFileReadPattern(pluginName: string | undefined, skillName: string): RegExp {
-  const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const prefix =
-    pluginName === undefined
-      ? String.raw`\.agents/`
-      : String.raw`(?:^|[/\s'"])${escape(pluginName)}/(?:[^/\s'"]+/)?`;
-  return new RegExp(String.raw`${prefix}skills/${escape(skillName)}/SKILL\.md(?![\w.-])`);
+// A seed or fixture file at a staged skill's path would turn a read of project content into a
+// credited load, so the case is refused instead. Fixture content cannot reach the harness-owned
+// .agents and .claude entries, where the staged repo-local copies live.
+async function refuseShadowingSkillFiles(
+  workspacePath: string,
+  skills: readonly InvocableSkill[],
+): Promise<void> {
+  for (const entry of await readdir(workspacePath, { withFileTypes: true, recursive: true })) {
+    if (!entry.isFile() || entry.name !== "SKILL.md") {
+      continue;
+    }
+    const relativePath = path
+      .relative(workspacePath, path.join(entry.parentPath, entry.name))
+      .split(path.sep)
+      .join("/");
+    if ([".agents", ".claude", ".git"].includes(relativePath.split("/")[0] ?? "")) {
+      continue;
+    }
+    const skillLabel = stagedSkillAtPath(relativePath, skills);
+    if (skillLabel !== undefined) {
+      throw new Error(
+        `workspace file "${relativePath}" sits at the path of staged skill ${skillLabel}, so the Codex lane would credit a read of it as a load; move it to another path.`,
+      );
+    }
+  }
 }
 
-// Single pass over the JSONL events for message text, executed commands, agent activity, and
-// completed decision items (reasoning items are excluded because they arrive before the model
-// has committed to acting), then canary, skill-file-read, and legacy-telemetry matching over the
-// collected text, in that precedence when one observation carries several.
+// Single pass over the JSONL events for agent activity, completed decision items (reasoning items
+// are excluded because they arrive before the model has committed to acting), and the staged
+// skill files each command loads. Load order is preserved for reporting and for the
+// verdict's wrong-skill selection; the dependency rule itself is order-free.
 export function observeCodexOutput(
   output: StreamingCliOutput,
-  target: Skill,
-  targetLabel: string,
-  canaryLabels: ReadonlyMap<string, string>,
-  skillFilePatterns: ReadonlyMap<string, RegExp>,
+  invocableSkills: readonly InvocableSkill[],
 ): CaseObservations {
   let hasActivity = false;
   let decisionItemCount = 0;
   let errorSignal: string | undefined;
-  const messageTexts: string[] = [];
-  const commandTexts: string[] = [];
+  const loads: string[] = [];
+  const unclassified: string[] = [];
   let lastSkillReadItem = -1;
   let lastMessageItem = -1;
   for (const event of parseJsonlEvents(output.stdout)) {
@@ -253,18 +243,41 @@ export function observeCodexOutput(
       decisionItemCount += 1;
     }
     if (item["type"] === "agent_message") {
-      messageTexts.push(typeof item["text"] === "string" ? item["text"] : "");
       lastMessageItem = decisionItemCount;
     }
     const command = item["type"] === "command_execution" ? item["command"] : undefined;
-    // A failed command is not a read: `rg ... && cat SKILL.md` exits 1 when rg matches nothing
-    // and the cat never runs, so the skill was never loaded. It still counts as a decision item.
-    // A read that succeeds before a later command in the same line fails is missed the same way;
-    // that conservative miss is preferred to crediting a load that never happened.
-    if (typeof command === "string" && !commandFailed(item)) {
-      commandTexts.push(command);
-      if ([...skillFilePatterns.values()].some((pattern) => pattern.test(command))) {
-        lastSkillReadItem = decisionItemCount;
+    if (typeof command !== "string") {
+      continue;
+    }
+    const accesses = classifySkillFileAccesses(command, invocableSkills);
+    unclassified.push(...accesses.unclassified);
+    // The exit status covers only the command's last and-or list: `cat SKILL.md && rg x` loads
+    // the skill and still exits 1, and `true || cat SKILL.md` exits 0 without running the cat. A
+    // file error on the skill's path with no name line anywhere means every read of it failed.
+    // Otherwise a failed command's load counts only when the output starts with the body of the
+    // command's leading load, and a successful command's load only when it runs whenever the
+    // command exits 0; any other load is unclassified.
+    const commandOutput =
+      typeof item["aggregated_output"] === "string" ? item["aggregated_output"] : "";
+    for (const skillLabel of accesses.loads) {
+      const skill = invocableSkills.find((candidate) => candidate.skillLabel === skillLabel);
+      if (skill === undefined) {
+        continue;
+      }
+      const evidence = skillOutputEvidence(commandOutput, skill);
+      if (evidence.fileError && !evidence.nameLine) {
+        continue;
+      }
+      const ran = commandFailed(item)
+        ? skillLabel === accesses.leadingLoad && evidence.leadingBody
+        : !accesses.conditionalLoads.includes(skillLabel);
+      if (!ran) {
+        unclassified.push(`${command} (nothing shows that the load of ${skillLabel} ran)`);
+        continue;
+      }
+      lastSkillReadItem = decisionItemCount;
+      if (!loads.includes(skillLabel)) {
+        loads.push(skillLabel);
       }
     }
   }
@@ -273,46 +286,15 @@ export function observeCodexOutput(
     hasActivity,
     decisionItemCount,
     ...(errorSignal === undefined ? {} : { errorSignal }),
+    ...(unclassified.length === 0 ? {} : { unclassifiedSkillAccess: unclassified.join("\n") }),
   };
-  const messageText = messageTexts.join("\n");
-  const canaryInvoked = [...canaryLabels.entries()]
-    .filter(([canary]) => messageText.includes(canary))
-    .map(([, skillLabel]) => skillLabel);
-  // Read order is preserved for reporting and for the verdict's wrong-skill selection; the
-  // dependency rule itself is order-free.
-  const readInvoked: string[] = [];
-  for (const command of commandTexts) {
-    for (const [skillLabel, pattern] of skillFilePatterns) {
-      if (!readInvoked.includes(skillLabel) && pattern.test(command)) {
-        readInvoked.push(skillLabel);
-      }
-    }
-  }
-  // The canary is the preferred signal, but a read of another skill in the same run is still an
-  // observed load: dropping it would hide the overlap the eval exists to expose.
-  if (canaryInvoked.length > 0) {
-    const invokedSkills = [
-      ...canaryInvoked,
-      ...readInvoked.filter((skillLabel) => !canaryInvoked.includes(skillLabel)),
-    ];
-    return { ...base, signal: "stdout-skill-canary", invokedSkills };
-  }
-  if (readInvoked.length > 0) {
+  if (loads.length > 0) {
     return {
       ...base,
       signal: "command-skill-read",
-      invokedSkills: readInvoked,
+      invokedSkills: loads,
       pendingReads: lastSkillReadItem > lastMessageItem,
     };
-  }
-
-  if (target.kind === "plugin" && output.stderr.includes("codex.skill.injected")) {
-    const stderrInvoked = [...new Set([targetLabel, ...canaryLabels.values()])].filter(
-      (skillLabel) => stderrNamesSkill(output.stderr, skillLabel),
-    );
-    if (stderrInvoked.length > 0) {
-      return { ...base, signal: "stderr-skill-injected", invokedSkills: stderrInvoked };
-    }
   }
 
   return { ...base, signal: "none", invokedSkills: [] };
@@ -326,13 +308,6 @@ function codexErrorMessage(event: Record<string, unknown>): string | undefined {
 function commandFailed(item: Record<string, unknown>): boolean {
   const exitCode = item["exit_code"];
   return item["status"] === "failed" || (typeof exitCode === "number" && exitCode !== 0);
-}
-
-// Boundary-match a skill label in stderr telemetry so a label is never credited from inside a
-// longer sibling label (foo:bar inside foo:bar-baz).
-function stderrNamesSkill(stderr: string, skillLabel: string): boolean {
-  const escaped = skillLabel.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-  return new RegExp(String.raw`(?<![\w:-])${escaped}(?![\w-])`).test(stderr);
 }
 
 type CodexExecOptions = CaseExecuteOptions & {

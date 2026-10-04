@@ -31,8 +31,8 @@ export type LaneRunOptions = {
   extraRepoLocalSkills?: SkillDirectory[];
 };
 
-// Runtime-only execution concerns; everything tied to the case's identity (prompt, staging,
-// canaries) is fixed at prepareCase so a case cannot be executed against inputs it was not
+// Runtime-only execution concerns; everything tied to the case's identity (prompt, staging) is
+// fixed at prepareCase so a case cannot be executed against inputs it was not
 // prepared for.
 export type CaseExecuteOptions = {
   caseDir: string;
@@ -75,12 +75,7 @@ export type AgentLane = {
   prepareRun(options: LaneRunOptions): Promise<LaneRun>;
 };
 
-export type InvocationSignal =
-  | "stderr-skill-injected"
-  | "stdout-skill-canary"
-  | "command-skill-read"
-  | "stream-skill-tool-use"
-  | "none";
+export type InvocationSignal = "command-skill-read" | "stream-skill-tool-use" | "none";
 
 // Normalized observations parsed from one case's raw CLI output. Lanes produce these; verdict
 // classification consumes them without knowing any agent's stream format.
@@ -107,4 +102,9 @@ export type CaseObservations = {
   // since: the agent may still be loading further skills before it speaks, so the invocation set
   // is not yet attributable. Lanes without a read signal leave it undefined.
   pendingReads?: boolean;
+  // Commands that named a staged skill file in a form the lane can classify neither as a load nor
+  // as an inspection, or that failed after a load without showing whether the load ran, one per
+  // line. Such a command may or may not have invoked the skill, so the verdict trusts neither
+  // reading of the run.
+  unclassifiedSkillAccess?: string;
 };

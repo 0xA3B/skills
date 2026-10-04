@@ -114,11 +114,10 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   // A routing assertion tightens a skip case: the target must not fire and the named alternate
   // must be the only skill that fires. Nothing firing, a different skill, or the target alongside
   // the alternate all fail. The explicit !invoked keeps a label equal to the target from passing.
-  // "Only" is bounded by the observation window: the run stops at the first invocation signal,
-  // mirroring the staged canary's instruction to stop right after invoking, so a later firing
-  // would require the agent to ignore that instruction. On the Codex read path the window
-  // extends while skill-file reads are pending, until the agent's next message. Skills fired in
-  // one event are all seen. Invoke cases carry the same bound for wrong-skill detection.
+  // "Only" is bounded by the observation window: the run stops at the first invocation signal, so
+  // a later firing goes unobserved. On the Codex read path the window extends while skill-file
+  // reads are pending, until the agent's next message. Skills fired in one event are all seen.
+  // Invoke cases carry the same bound for wrong-skill detection.
   const matchedExpectation =
     testCase.expect === "invoke"
       ? invoked && wrongSkill === undefined
@@ -126,12 +125,13 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
         ? !invoked
         : !invoked && invokedSkills.length === 1 && invokedSkills[0] === testCase.invokeInstead;
   const endedBy = runResult.endedBy ?? "completed";
-  // Isolation leaks poison the case in both directions — an unstaged skill can steal an invoke or
-  // provoke one — so the check applies even when the target fired. Other environmental checks only
-  // apply when no skill fired, because any observed invocation proves the run executed.
-  const isolationFailure = detectSkillIsolationFailure(observations, options.stagedSkillLabels);
+  // Isolation leaks and unclassified skill-file access poison the case in both directions — an
+  // unstaged skill can steal an invoke or provoke one, and an unclassified command may or may not
+  // have loaded a skill — so those checks apply even when the target fired. Other environmental
+  // checks only apply when no skill fired, because any observed invocation proves the run executed.
   const environmentalFailure =
-    isolationFailure ??
+    detectSkillIsolationFailure(observations, options.stagedSkillLabels) ??
+    detectUnclassifiedSkillAccess(observations) ??
     (anyInvocation ? undefined : detectEnvironmentalFailure(runResult, endedBy, observations));
   const skipSignal = anyInvocation ? undefined : classifySkipSignal(endedBy);
   const passed = environmentalFailure === undefined && matchedExpectation;
@@ -234,6 +234,18 @@ function detectSkillIsolationFailure(
     "not isolated, so the verdict is not trustworthy. Check the Claude version's " +
     "disableBundledSkills support, or extend the exempt list if a new bundled skill ignores the " +
     "setting."
+  );
+}
+
+function detectUnclassifiedSkillAccess(observations: CaseObservations): string | undefined {
+  if (observations.unclassifiedSkillAccess === undefined) {
+    return undefined;
+  }
+
+  return (
+    "a command named a staged skill file in a form the lane cannot classify as a load or an " +
+    "inspection, so the verdict is not trustworthy. Teach the lane's read matcher the form. " +
+    `command: ${observations.unclassifiedSkillAccess}`
   );
 }
 

@@ -22,7 +22,6 @@ function deploymentOptions(
     plugins: [],
     repoLocalSkills: [],
     repoLocalSurface: ".agents",
-    canaryRepoLocalSkills: true,
     runtime: createRuntimeResources(),
     ...overrides,
   };
@@ -33,7 +32,7 @@ function stagedPluginSkill(deploymentPath: string, pluginName: string, skillName
 }
 
 describe("stageDeployment", () => {
-  it("labels every staged plugin skill and canaries the target and implicit siblings", async () => {
+  it("labels every staged plugin skill and watches the target and implicit siblings", async () => {
     const repoRoot = await writeRepoFixture({
       siblingSkills: [{ name: "sibling-skill" }, { name: "manual-skill", manualOnly: true }],
     });
@@ -46,13 +45,13 @@ describe("stageDeployment", () => {
       "demo:manual-skill",
       "demo:sibling-skill",
     ]);
-    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual([
-      "demo:auto-skill",
-      "demo:sibling-skill",
+    expect(deployment.invocableSkills).toStrictEqual([
+      { skillLabel: "demo:auto-skill", pluginName: "demo", skillName: "auto-skill" },
+      { skillLabel: "demo:sibling-skill", pluginName: "demo", skillName: "sibling-skill" },
     ]);
   });
 
-  it("canaries a manual-only plugin target, as a forced run needs", async () => {
+  it("watches a manual-only plugin target, as a forced run needs", async () => {
     const repoRoot = await writeRepoFixture({
       siblingSkills: [{ name: "manual-skill", manualOnly: true }],
     });
@@ -64,33 +63,20 @@ describe("stageDeployment", () => {
 
     const deployment = await stageDeployment(deploymentOptions(target));
 
-    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual([
+    expect(deployment.invocableSkills.map((skill) => skill.skillLabel)).toStrictEqual([
       "demo:auto-skill",
     ]);
   });
 
-  it("appends each canary to the staged body only, leaving committed skills untouched", async () => {
-    const repoRoot = await writeRepoFixture({
-      siblingSkills: [{ name: "manual-skill", manualOnly: true }],
-    });
+  it("stages plugin skills byte-identical to the committed skills", async () => {
+    const repoRoot = await writeRepoFixture();
     const target = resolveSkill(repoRoot, "plugins/demo/skills/auto-skill");
 
     const deployment = await stageDeployment(deploymentOptions(target));
 
-    const [targetCanary] = deployment.canaries;
-    const stagedTarget = await readFile(
-      stagedPluginSkill(deployment.deploymentPath, "demo", "auto-skill"),
-      "utf8",
-    );
-    expect(stagedTarget).toContain(targetCanary?.canary);
-    // Body-only injection: the frontmatter description under test stays untouched.
-    expect(stagedTarget).not.toContain("Eval only:");
     await expect(
-      readFile(stagedPluginSkill(deployment.deploymentPath, "demo", "manual-skill"), "utf8"),
-    ).resolves.not.toContain("Trigger Eval Instructions");
-    await expect(readFile(target.skillFilePath, "utf8")).resolves.not.toContain(
-      "Trigger Eval Instructions",
-    );
+      readFile(stagedPluginSkill(deployment.deploymentPath, "demo", "auto-skill"), "utf8"),
+    ).resolves.toBe(await readFile(target.skillFilePath, "utf8"));
   });
 
   it("stages a plugin target's own plugin once even when the catalog lists it", async () => {
@@ -132,7 +118,7 @@ describe("stageDeployment", () => {
     expect(deployment.stagedPlugins.map((plugin) => plugin.version)).toStrictEqual(["1.0.0"]);
   });
 
-  it("gives a repo-local target no exception for plugin skills and canaries implicit siblings", async () => {
+  it("gives a repo-local target no exception for plugin skills and watches implicit siblings", async () => {
     const pluginRepoRoot = await writeRepoFixture({
       siblingSkills: [{ name: "manual-skill", manualOnly: true }],
     });
@@ -159,22 +145,14 @@ describe("stageDeployment", () => {
       "manual-sibling",
       "sibling-skill",
     ]);
-    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual([
-      "demo:auto-skill",
-      "auto-skill",
-      "sibling-skill",
+    expect(deployment.invocableSkills).toStrictEqual([
+      { skillLabel: "demo:auto-skill", pluginName: "demo", skillName: "auto-skill" },
+      { skillLabel: "auto-skill", skillName: "auto-skill" },
+      { skillLabel: "sibling-skill", skillName: "sibling-skill" },
     ]);
-    // Repo-local canaries land in the base workspace, so every case copy carries them.
-    const [, targetCanary] = deployment.canaries;
-    await expect(
-      readFile(
-        path.join(deployment.workspacePath, ".agents", "skills", "auto-skill", "SKILL.md"),
-        "utf8",
-      ),
-    ).resolves.toContain(targetCanary?.canary);
   });
 
-  it("canaries a manual-only repo-local target, as a forced run needs", async () => {
+  it("watches a manual-only repo-local target, as a forced run needs", async () => {
     const repoRoot = await writeRepoLocalSkillFixture({
       siblingSkills: [{ name: "manual-sibling", manualOnly: true }],
     });
@@ -195,24 +173,25 @@ describe("stageDeployment", () => {
       }),
     );
 
-    expect(deployment.canaries.map((canary) => canary.skillLabel)).toStrictEqual(["auto-skill"]);
+    expect(deployment.invocableSkills.map((skill) => skill.skillLabel)).toStrictEqual([
+      "auto-skill",
+    ]);
   });
 
-  it("stages repo-local skills on the lane's surface without canaries when the lane opts out", async () => {
+  it("stages repo-local skills byte-identical on the lane's surface", async () => {
     const repoRoot = await writeRepoLocalSkillFixture();
     const target = resolveSkill(repoRoot, ".agents/skills/auto-skill");
 
     const deployment = await stageDeployment(
-      deploymentOptions(target, { repoLocalSurface: ".claude", canaryRepoLocalSkills: false }),
+      deploymentOptions(target, { repoLocalSurface: ".claude" }),
     );
 
-    expect(deployment.canaries).toStrictEqual([]);
     await expect(
       readFile(
         path.join(deployment.workspacePath, ".claude", "skills", "auto-skill", "SKILL.md"),
         "utf8",
       ),
-    ).resolves.not.toContain("Trigger Eval Instructions");
+    ).resolves.toBe(await readFile(target.skillFilePath, "utf8"));
   });
 
   it("never stages repo-local skills for a plugin target", async () => {
