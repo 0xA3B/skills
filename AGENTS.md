@@ -94,6 +94,9 @@ Every reviewer of a change here applies these rules, plus the `## Code Review Ru
   a defect that yields a wrong result under a passing status, changes or leaks state outside the
   run, or breaks the tool's normal use; report every other defect there as a note. Scripts bundled
   under `plugins/` are plugin content, not repository tooling.
+- In the Codex skill-read classifier (`src/trigger-evals/lanes/skill-reads.ts`), report a shell form
+  as a finding only when a recorded Codex run used it. Report a form derived from shell syntax as a
+  note, even when its failure is silent: observed Codex commands set the classifier's scope.
 - When a tooling change reproduces external state, such as a repository copy, and a finding concerns
   a case the reproduction does not support, recommend that the tool refuse that case with a visible
   error rather than reproduce it, and state whether the finding asks for refusal or reproduction.

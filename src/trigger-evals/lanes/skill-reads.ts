@@ -30,6 +30,13 @@ export type SkillFileAccesses = {
   leadingLoad?: string;
 };
 
+// Coverage: the classifier handles the shell forms recorded Codex runs use to read a skill file,
+// such as `sed -n '1,240p' F`, `cat F`, `nl -ba F`, and `head -n 80 F`. It is neither a shell
+// parser nor a security boundary, and a misread affects one eval attempt. A form no recorded run uses
+// is out of scope, even when shell syntax shows the classifier would misread it. Change the
+// classifier only when a run shows Codex using a form it mishandles, and cite that run in the test
+// that adds the form.
+//
 // The classifier accepts only shell forms whose effect it can read exactly, and reports every other
 // form that names a skill file as unclassified, so a new shell construct yields an error verdict
 // instead of a guess.
