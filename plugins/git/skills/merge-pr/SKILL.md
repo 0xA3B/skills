@@ -99,6 +99,10 @@ For a rebase or squash path, inspect ignored text only when repository guidance,
 the `create-pr` hand off identifies a local artifact. Record matching paths and SHAs without
 crawling ignored trees; their presence does not block the rewrite.
 
+Unless the selected method is squash or the change request is already merged, apply
+`git:tidy-history` in review mode to the topic branch. When it plans any change, stop and recommend
+`git:tidy-history` followed by a `git:address-pr-feedback` round.
+
 When merge commit is selected, preserve a repository-configured merge-message template. When squash
 creates a replacement commit, use the Conventional Commit change-request title as its subject and
 retain the forge's change-request reference in the message. Rebase creates no merge or squash commit
@@ -151,6 +155,7 @@ If any proof is missing, preserve the branch.
 Report:
 
 - forge, change-request URL, exact merged source head, target, and merge method;
+- the `git:tidy-history` review result, or why the merge skipped it;
 - required checks, approvals, and thread-resolution evidence;
 - the head the last automated review covered, when it differs from the merged source head;
 - any review status the user accepted under the pre-merge gate;

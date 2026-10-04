@@ -1,0 +1,79 @@
+version: 1
+workspace:
+  seed: node-service
+cases:
+  - id: squash-local-commits
+    prompt: >-
+      Squash my last three local commits into one before I push.
+    expect: invoke
+    rationale: Combining existing commits on the topic branch is a history rewrite.
+
+  - id: fold-review-fixups
+    prompt: >-
+      This pull request branch picked up four "address review feedback" commits. Fold them into the
+      commits they fix and push the branch.
+    expect: invoke
+    rationale: Folding review fixes into the commits they correct is this skill's core workflow.
+
+  - id: reword-mislabeled-commit
+    prompt: >-
+      The second commit on this branch says it adds retries, logging, and docs, but it only adds
+      retries. Fix that commit message.
+    expect: invoke
+    rationale: Rewording an existing commit rewrites history rather than creating a commit.
+
+  - id: tidy-before-merge
+    prompt: >-
+      Clean up this branch's commit history before we merge the pull request.
+    expect: invoke
+    rationale: Tidying topic-branch history before merge is the skill's stated purpose.
+
+  - id: amend-last-commit
+    prompt: >-
+      Amend the last commit so its message uses fix instead of feat.
+    expect: invoke
+    rationale: Amending an existing commit belongs to this skill, not to commit.
+
+  - id: amend-working-changes
+    prompt: >-
+      Amend my last commit with the fix I just made in src/server.js.
+    expect: invoke
+    rationale: Folding working-tree changes into an existing commit rewrites that commit.
+
+  - id: commit-current-work
+    prompt: >-
+      Commit my current changes with a Conventional Commit message.
+    expect: skip
+    invoke-instead: git:commit
+    rationale: Creating new commits from working-tree changes belongs to commit.
+
+  - id: squash-merge-pr
+    prompt: >-
+      Pull request 42 is approved. Squash-merge it and delete the branch.
+    expect: skip
+    invoke-instead: git:merge-pr
+    rationale: A forge squash merge is a change-request merge, not a topic-branch rewrite.
+
+  - id: rebase-onto-main
+    prompt: >-
+      Rebase my feature branch onto the latest main so it picks up the new changes.
+    expect: skip
+    rationale: Moving the branch base changes its tree, which this skill never does.
+
+  - id: resolve-rebase-conflicts
+    prompt: >-
+      My rebase stopped on conflicts in src/config.ts. Resolve them and continue.
+    expect: skip
+    rationale: Conflict resolution is outside every git lifecycle skill.
+
+  - id: list-branch-commits
+    prompt: >-
+      Show me the commits on this branch since main.
+    expect: skip
+    rationale: Inspecting history does not ask for a rewrite.
+
+  - id: conceptual-fixup-question
+    prompt: >-
+      What is the difference between fixup and squash in an interactive rebase?
+    expect: skip
+    rationale: A conceptual question does not ask to rewrite a branch.

@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Tidy History"
+  short_description: "Tidy a topic branch's commits without changing its tree"
+  default_prompt: "Tidy this branch's commit history before merge."
+policy:
+  allow_implicit_invocation: true

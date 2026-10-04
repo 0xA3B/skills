@@ -13,6 +13,10 @@ workflow, and the agent continues into that workflow only when the user's reques
 that outcome, or for a later outcome that requires it, so `merge-pr` merges only when the user's
 request asks to merge the change request.
 
+`tidy-history` rewrites a topic branch and publishes it with `--force-with-lease` without asking, so
+`create-pr` and `address-pr-feedback` keep history tidy as they push. On `main`, the remote's
+default branch, or the change request's target, it only reports its plan.
+
 Conflict resolution is intentionally outside these lifecycle skills; `create-pr` and `merge-pr` stop
 and report when a merge or a rebase would require it.
 
@@ -20,6 +24,8 @@ and report when a merge or a rebase would require it.
 
 - `commit`: Inspect, partition, stage, and commit current changes with Conventional Commit messages.
   Detailed specification notes live in `skills/commit/references/`.
+- `tidy-history`: Fold, split, reorder, and reword a topic branch's commits without changing its
+  final tree, then force-push the result with `--force-with-lease`.
 - `create-pr`: Prepare a branch operationally, create or refresh its pull request or merge request,
   and observe initial CI.
 - `address-pr-feedback`: Drive active automated-review adapters to current-head approval or a

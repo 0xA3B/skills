@@ -87,6 +87,10 @@ preparation through automated review and verified merge cleanup.
 
 - [`git:commit`](./plugins/git/skills/commit/): Reviews current changes, stages logical units, and
   creates git commits with Conventional Commit messages.
+- [`git:tidy-history`](./plugins/git/skills/tidy-history/): Folds, splits, reorders, and rewords a
+  topic branch's commits without changing its final tree, then force-pushes the result with
+  `--force-with-lease` without asking; on `main`, the remote's default branch, or the change
+  request's target it only reports its plan.
 - [`git:create-pr`](./plugins/git/skills/create-pr/): Prepares a branch, creates or refreshes its
   pull request or merge request, and observes initial CI.
 - [`git:address-pr-feedback`](./plugins/git/skills/address-pr-feedback/): Drives active

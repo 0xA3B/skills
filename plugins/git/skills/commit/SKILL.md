@@ -6,9 +6,9 @@ description:
   commits, commit only a selected scope or subset of the changes, or run a fast commit workflow.
   Also use when no repository commit convention is specified. Do not use for message-only drafting,
   syntax validation, split guidance without commit execution, conceptual commit questions, history
-  inspection, user prompts or loaded repository instructions that reject Conventional Commits or
-  request Gitmoji or another commit-message standard, or ordinary-language uses of "commit" such as
-  committing to a plan.
+  inspection, amending or rewriting existing commits, user prompts or loaded repository instructions
+  that reject Conventional Commits or request Gitmoji or another commit-message standard, or
+  ordinary-language uses of "commit" such as committing to a plan.
 license: MIT
 argument-hint: "[instructions]"
 ---
@@ -115,9 +115,7 @@ If user provides extra context, apply it without switching to high-interaction m
 - Stage tracked paths and non-ignored untracked paths only. If the user names an ignored untracked
   path, identify the matching ignore rule and report that repository policy must change before the
   path can be committed; do not force-add it.
-- Before rewriting any commit, determine whether the affected history was published. When rewriting
-  a non-`HEAD` commit, preserve unrelated later commits. Verify the rewritten range and report the
-  replaced and resulting commit identifiers. Require explicit authorization before force-pushing
-  rewritten published history, and use `--force-with-lease` when authorized.
+- Create new commits only. When a request needs an existing commit amended, reworded, folded, or
+  split, commit the new content here and apply `git:tidy-history` to rewrite the history.
 - Stop and report if conflicts prevent safe commit execution.
 - Keep staging and commit commands serialized.

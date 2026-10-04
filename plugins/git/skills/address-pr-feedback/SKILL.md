@@ -55,13 +55,13 @@ the change request's own surface and tests; such a fix is a permitted fix. Gate 
 An explicit invocation of this skill, or a user request that asks to handle, address, or drive the
 feedback, to resolve its review threads, or to request a follow-up review, authorizes for active
 adapters polling, adapter-defined reactions and replies, thread resolution after disposition,
-permitted edits, relevant validation, applying `git:commit`, normal pushes, and the review requests
-an adapter defines, such as a transient-error retry. A request for a follow-up review is answered by
-each adapter's follow-up protocol, which observes the repository's review configuration and requests
-a review only where the adapter defines one. A request that asks only to wait for, poll, or triage a
-review bot's findings authorizes polling and triage: classify each finding, report the dispositions,
-and return `blocked` on the user's decision before any reaction, reply, review request, thread
-resolution, edit, commit, or push.
+permitted edits, relevant validation, applying `git:commit` and `git:tidy-history`, normal pushes,
+and the review requests an adapter defines, such as a transient-error retry. A request for a
+follow-up review is answered by each adapter's follow-up protocol, which observes the repository's
+review configuration and requests a review only where the adapter defines one. A request that asks
+only to wait for, poll, or triage a review bot's findings authorizes polling and triage: classify
+each finding, report the dispositions, and return `blocked` on the user's decision before any
+reaction, reply, review request, thread resolution, edit, commit, or push.
 
 Neither authorization extends to:
 
@@ -69,7 +69,7 @@ Neither authorization extends to:
   user grants it when asked;
 - bot-authored fixes such as asking a reviewer to change the branch;
 - CI troubleshooting;
-- force pushes or history rewriting;
+- force pushes or history rewriting outside `git:tidy-history`;
 - merging the change request.
 
 ## Adapter selection
@@ -149,7 +149,8 @@ For each new finding:
 5. respond, react, and resolve the thread according to the active adapter within granted authority;
 6. preserve rejected or deferred reasoning in the change request within granted authority.
 
-When accepted work changes the branch, apply `git:commit` to the completed round and push normally.
+When accepted work changes the branch, apply `git:commit` to the completed round, then apply
+`git:tidy-history`, which publishes the branch it rewrites; push normally when it rewrote nothing.
 Record the new SHA. The repository's review configuration decides whether the new head gets another
 review, and each adapter's follow-up protocol observes that decision: when the configuration reviews
 the new head, every earlier signal from that adapter is stale and its round continues on the new
