@@ -5,11 +5,11 @@ usage() {
   cat <<'USAGE'
 Usage: worktree-add <branch> [<start-point>]
 
-Create a git worktree for <branch> under .local/worktrees/<name>, where <name> is the last path
-segment of the branch, and install the branch's dependencies there with
-pnpm install --frozen-lockfile, so validation binaries resolve the branch's own lockfile and the
-husky prepare script generates the commit hooks. An existing local branch is checked out; a branch
-that exists only on origin is checked out tracking it; any other branch is created from
+Create a git worktree for <branch> under .claude/worktrees/<name>, where <name> is the branch with
+each / replaced by +, as Claude Code names its own worktrees, and install the branch's dependencies
+there with pnpm install --frozen-lockfile, so validation binaries resolve the branch's own lockfile
+and the husky prepare script generates the commit hooks. An existing local branch is checked out;
+a branch that exists only on origin is checked out tracking it; any other branch is created from
 <start-point> (default: main). Rerunning for a branch whose worktree already exists reinstalls.
 The last line of output is the worktree path.
 
@@ -34,7 +34,8 @@ branch="$1"
 # Qualified refs where the script chooses them: a tag named main or origin/<branch> would
 # otherwise make the operand ambiguous. A user-supplied start point is passed as given.
 start_point="${2:-refs/heads/main}"
-name="${branch##*/}"
+# + keeps feat/x and feat-x apart; Claude Code worktree names cannot contain it.
+name="${branch//\//+}"
 common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
 root="$(dirname "$common_dir")"
 # A checkout whose git directory lives elsewhere (git init --separate-git-dir) has no main
@@ -44,7 +45,7 @@ if [ "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/
   echo "worktree-add: cannot resolve the main checkout from $common_dir" >&2
   exit 1
 fi
-dir="$root/.local/worktrees/$name"
+dir="$root/.claude/worktrees/$name"
 
 # The registered worktree for the branch, if any, from git's own registry.
 registered_dir() {
