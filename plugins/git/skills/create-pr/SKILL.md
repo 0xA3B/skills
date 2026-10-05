@@ -47,14 +47,8 @@ stop on another or ambiguous forge. After selecting the forge, read exactly one 
 - GitLab remote: read [GITLAB.md](references/GITLAB.md) for `glab` inspection fields, create and
   refresh commands, and merge semantics.
 
-Resolve the target in this order:
-
-1. user-specified target;
-2. target of an existing open change request for the topic branch;
-3. repository or branch-specific merge-base configuration;
-4. the remote repository's default branch.
-
-Fetch and prune the selected remote before comparing heads.
+Resolve the target as [TARGET-BRANCH.md](../../references/TARGET-BRANCH.md) directs. Fetch and prune
+the selected remote before comparing heads.
 
 ## Workflow
 
