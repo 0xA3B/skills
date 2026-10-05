@@ -292,17 +292,17 @@ case "$AGENT" in
       done
     fi
     # Skills the init event may list: every skill of a staged plugin, each staged repo-local skill,
-    # and the bundled skills Claude loads despite disableBundledSkills (doctor, as the trigger
-    # evals exempt). Any other skill means the run was not isolated.
+    # and the bundled skills Claude loads despite disableBundledSkills, read from the list the
+    # trigger evals exempt. Any other skill means the run was not isolated.
     ALLOWED=""
     for copy in "${PLUGIN_COPIES[@]:-}"; do [ -n "$copy" ] && ALLOWED="$ALLOWED $(basename "$copy"):"; done
     for staged in "${REPO_LOCAL_STAGED[@]:-}"; do [ -n "$staged" ] && ALLOWED="$ALLOWED $(basename "$staged")"; done
     (cd "$WS" && claude "${ARGS[@]}" "$PROMPT" < /dev/null > "$RUN/events.jsonl" 2> "$RUN/stderr.log") || AGENT_STATUS=$?
     VERDICT="$(node -e '
       const fs = require("fs");
-      const [events, skill, canary, finalPath, allowedList] = process.argv.slice(1);
+      const [events, skill, canary, finalPath, allowedList, exemptPath] = process.argv.slice(1);
       const allowed = allowedList.split(" ").filter(Boolean);
-      const exempt = new Set(["doctor"]);
+      const exempt = new Set(JSON.parse(fs.readFileSync(exemptPath, "utf8")));
       const isAllowed = (name) => exempt.has(name)
         || allowed.some((a) => a.endsWith(":") ? name.startsWith(a) : name === a);
       let calls = 0, canaries = 0, denied = 0, errors = 0, result = "missing", finalText = "", unstaged = [];
@@ -329,7 +329,8 @@ case "$AGENT" in
       const loaded = calls > 0 || canaries > 0;
       console.log(`result: ${result}; skill loaded: ${loaded ? "yes" : "no"} (${calls} Skill tool calls, ${canaries} canary messages); denied tool calls: ${denied}; other tool errors: ${errors}; unstaged skills: ${unstaged.length === 0 ? "none" : unstaged.join(", ")}`);
       process.exitCode = result === "ok" && denied === 0 && unstaged.length === 0 ? 0 : 1;
-    ' "$RUN/events.jsonl" "$CALLOUT" "$CANARY" "$RUN/final.md" "$ALLOWED")" || CHECK_STATUS=1
+    ' "$RUN/events.jsonl" "$CALLOUT" "$CANARY" "$RUN/final.md" "$ALLOWED" \
+      "$ROOT/src/trigger-evals/disable-bundled-skills-exempt.json")" || CHECK_STATUS=1
     ;;
   codex)
     MODEL="${MODEL:-gpt-6.1-sol}"
