@@ -22,8 +22,9 @@ and report when a merge or a rebase would require it.
 
 ## Skills
 
-- `commit`: Inspect, partition, stage, and commit current changes with Conventional Commit messages.
-  Detailed specification notes live in `skills/commit/references/`.
+- `commit`: Inspect, partition, stage, and commit current changes with Conventional Commit messages,
+  and commit corrections to the topic branch's own commits as `fixup!` commits that `tidy-history`
+  folds. Detailed specification notes live in `skills/commit/references/`.
 - `tidy-history`: Fold, split, reorder, and reword a topic branch's commits without changing its
   final tree, then force-push the result with `--force-with-lease`.
 - `create-pr`: Prepare a branch operationally, create or refresh its pull request or merge request,

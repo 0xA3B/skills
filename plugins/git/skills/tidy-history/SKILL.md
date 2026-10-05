@@ -62,15 +62,15 @@ Refuse, naming the evidence, when:
 
 - a merge, rebase, cherry-pick, or revert is in progress;
 - the branch is checked out in another worktree;
-- in fix mode, the backup ref `refs/tidy-history/<branch>` exists, because it holds an earlier run's
-  restore point;
+- in fix mode, the backup ref `refs/tidy-history/<branch>` points at a commit the local head does
+  not contain, because it holds an earlier run's restore point;
 - in fix mode, the worktree has tracked changes the request does not cover, because the rebase needs
   a clean worktree;
-- in fix mode, an ignored file from `git ls-files --others --ignored --exclude-standard` collides
-  with a path a range commit touches, from `git log --format= --name-only <base-commit>..HEAD`, or a
-  path the intended changes touch, from `git diff --name-only HEAD`: the paths are equal, or one is
-  a directory containing the other. Replaying those commits deletes or overwrites ignored files
-  without warning;
+- in fix mode, an ignored path from `git ls-files --others --ignored --exclude-standard --directory`
+  collides with a path a range commit touches, from
+  `git log --format= --name-only <base-commit>..HEAD`, or a path the intended changes touch, from
+  `git diff --name-only HEAD`: the paths are equal, or one is a directory containing the other.
+  Replaying those commits deletes or overwrites ignored files without warning;
 - a commit in the range has an author email other than the one `git var GIT_AUTHOR_IDENT` reports;
 - the range contains a merge commit, because the rewrite would linearize commits the target owns;
 - another local branch, or a remote-tracking branch other than the published ref, contains a commit
@@ -107,9 +107,12 @@ mode, the worktree is clean.
 Judge each commit in the range by `git:commit`'s partitioning rules and commit message policy. Plan
 these changes, each with a one-line reason:
 
-- **fold** a commit that corrects an earlier commit in the range, such as a review fix, a format
-  pass, or a fixup, into the commit it corrects, unless it stands alone as its own rollback
-  boundary;
+- **fold** a commit that corrects an earlier commit in the range, such as a review fix or a format
+  pass, into the commit it corrects, unless it stands alone as its own rollback boundary. Fold every
+  `fixup!` commit, because `git:commit` makes one only for a correction, into the commit its subject
+  names by subject or full SHA; when several commits in the range share that subject, find the
+  target from the lines the fixup changes. Reword a `fixup!` commit that an explicit user
+  instruction keeps separate;
 - **split** a commit that mixes units the partitioning rules separate;
 - **reorder** commits into dependency order when a fold or split needs it;
 - **reword** a message that misdescribes its commit or breaks the message policy;
@@ -131,23 +134,44 @@ Range: 3f1c2a0..9d84e1b on feat/retry (base 3f1c2a0)
 
 ### 3. Rewrite
 
-1. Create the backup ref `refs/tidy-history/<branch>` at the local head.
-2. Write the plan as a rebase todo that uses only `pick`, `fixup`, `drop`, `edit`, and `exec`; the
+When the agent's commands run in a sandbox, run every `git rebase` command outside it, including
+`--continue` and `--abort`: the rebase writes and deletes files across the worktree and runs the
+commit signer, and a sandbox that blocks either stops the rebase partway.
+
+1. Set the backup ref `refs/tidy-history/<branch>` to the local head.
+2. When every planned change folds a `fixup!` commit whose subject names exactly one commit in the
+   range, run `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash <base-commit>`; Git writes that
+   plan as the todo, and would fold a subject several commits share into the oldest. Otherwise,
+   write the plan as a rebase todo that uses only `pick`, `fixup`, `drop`, `edit`, and `exec`; the
    message-taking verbs read the message from an editor, which a non-interactive run cannot supply.
    Write each new message to a file, check it as `git:commit` directs, and set it with
-   `exec git commit --amend --file=<message-file>` after the commit and its `fixup` lines.
-3. Run `GIT_SEQUENCE_EDITOR="cp <todo-file>" git rebase -i <base-commit>`. Mark a commit `edit` to
-   split it: at the stop, run `git reset HEAD^`, commit each unit under `git:commit`'s staging
-   rules, and continue with `GIT_EDITOR=true git rebase --continue`.
-4. On a conflict, run `git rebase --abort` and drop the reorder that caused it from the plan. When
-   the plan still conflicts without reorders, stop and report the conflicting commits.
+   `exec git commit --amend --file=<message-file>` after the commit and its `fixup` lines. Run
+   `GIT_SEQUENCE_EDITOR="cp <todo-file>" git rebase -i <base-commit>`.
+3. When the repository documents a fast check, such as a typecheck and unit tests, run it after
+   every commit the rebase writes: pass `--exec "<check>"` to an autosquash rebase, or add an
+   `exec <check>` line after each commit's last line in a written todo, which replaces the lines
+   `--exec` would add.
+4. Mark a commit `edit` to split it: at the stop, run `git reset HEAD^`, commit each unit under
+   `git:commit`'s partitioning, message, and staging rules, run the fast check from item 3 after
+   each ordinary commit and handle a failure as item 5 handles a failed check, and continue with
+   `GIT_EDITOR=true git rebase --continue`. Those rules commit a unit that corrects an earlier
+   commit as a `fixup!` commit, which this rebase cannot fold; after it finishes, run the autosquash
+   rebase from item 2 as a second pass under the same backup ref, whose `--exec` checks the commits
+   those units fold into.
+5. On a conflict, run `git rebase --abort` and drop the reorder that caused it from the plan. When
+   the plan still conflicts without reorders, stop and report the conflicting commits. On any other
+   stop than an `edit` stop, such as a failed check, hook, or signature, run `git rebase --abort`
+   and stop with the error. After an abort in the second pass, run
+   `git reset --hard refs/tidy-history/<branch>` before replanning or stopping.
 
-Step 3 is done when the rebase has finished and no rebase is in progress.
+Step 3 is done when every rebase the step started has finished and no rebase is in progress.
 
 ### 4. Verify and publish
 
 Compare the new head's tree with the recorded tree, confirm the base commit is an ancestor of the
-new head, and confirm each message the plan set appears on its commit. On any difference, run
+new head, confirm each message the plan set appears on its commit, and confirm no commit in the new
+range has a subject that starts with `fixup!`, `squash!`, or `amend!`, because autosquash leaves a
+commit whose subject names no commit in the range unfolded. On any difference, run
 `git reset --hard refs/tidy-history/<branch>` and stop with the difference.
 
 When the branch has a published ref, push with
