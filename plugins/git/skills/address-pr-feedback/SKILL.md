@@ -84,7 +84,10 @@ Select active adapters in this order:
 3. the sole available adapter when exactly one ships.
 
 Run all active adapters by default. When several adapters are available but evidence is ambiguous,
-ask which are active instead of waiting for bots the repository may not use.
+ask which are active instead of waiting for bots the repository may not use. When an adapter's
+reference reports that the repository's review configuration does not cover the change request and
+the adapter shows no activity on it, the adapter is not active for that change request: report it as
+not configured, with that evidence, instead of classifying it.
 
 Available adapters:
 
@@ -223,7 +226,8 @@ When every active adapter is `approved`, stop and recommend `git:merge-pr` next;
 only when the user's request asked to merge the change request.
 
 For `resolved-with-exceptions`, include every exception and the missing green signal in the same
-hand off. When every exception is a rejection recorded in the change request, every thread is
-resolved, and required CI passes, recommend `git:merge-pr` with those exceptions; otherwise the user
-decides whether to rerun this skill or continue with `git:merge-pr`. For `round-limit`, `timed-out`,
-or `blocked`, do not suggest that the review gate passed.
+hand off. When every exception is a rejection recorded in the change request or an accepted fix on a
+head the repository's review configuration does not review, every thread is resolved, and required
+CI passes, recommend `git:merge-pr` with those exceptions, naming each such fix as unconfirmed by
+its adapter; otherwise the user decides whether to rerun this skill or continue with `git:merge-pr`.
+For `round-limit`, `timed-out`, or `blocked`, do not suggest that the review gate passed.
