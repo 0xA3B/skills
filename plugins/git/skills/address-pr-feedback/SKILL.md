@@ -146,7 +146,8 @@ For each new finding:
 2. classify it using that skill's status taxonomy;
 3. implement only accepted work within granted authority;
 4. validate the smallest coherent fix;
-5. respond, react, and resolve the thread according to the active adapter within granted authority;
+5. respond, react, and resolve the thread according to the active adapter within granted authority,
+   after the round's push when accepted work changes the branch and at once when it does not;
 6. preserve rejected or deferred reasoning in the change request within granted authority.
 
 When accepted work changes the branch, apply `git:commit` to the completed round, then apply
@@ -156,6 +157,9 @@ review, and each adapter's follow-up protocol observes that decision: when the c
 the new head, every earlier signal from that adapter is stale and its round continues on the new
 head; when it does not, the classification the adapter's last review earned carries forward and the
 report names the head that review covered.
+
+Identify an accepted fix in a reply by the file and the behavior or rule it changes, not by a commit
+SHA, because this round's tidy, or a later round's, replaces the commits.
 
 Never filter new feedback by commit association alone when the forge can re-anchor old threads.
 Track stable thread or comment IDs and compare them with the snapshot.
