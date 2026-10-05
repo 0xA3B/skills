@@ -80,10 +80,12 @@ dump() {
       pullRequest(number:$num){ reviewThreads(first:100, after:$endCursor){
         pageInfo{ hasNextPage endCursor }
         nodes{ id isResolved isOutdated path line
-          comments(first:100){ nodes{ databaseId author{login} createdAt body } } } } } } }' \
+          comments(first:100){ totalCount nodes{ databaseId author{login} createdAt body } } } } } } }' \
     --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved|not)
           | "--- thread \(.id) \(.path):\(.line) outdated=\(.isOutdated)",
-            (.comments.nodes[] | "[\(.author.login) \(.createdAt) comment=\(.databaseId)]\n\(.body)\n")')" \
+            (.comments.nodes[] | "[\(.author.login) \(.createdAt) comment=\(.databaseId)]\n\(.body)\n"),
+            (select(.comments.totalCount > (.comments.nodes | length))
+              | "truncated: the thread has \(.comments.totalCount) comments; the dump shows the first \(.comments.nodes | length)\n")')" \
     || observe "review threads"
   local open; open="$(grep -c '^--- thread ' <<<"$threads" || true)"; OPEN="$open"
   [ -n "$threads" ] && printf '%s\n' "$threads"
