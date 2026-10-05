@@ -60,8 +60,20 @@ Split commits when units differ by:
 - Conventional Commit type (`feat` vs `fix`, etc.)
 - scope (`api` vs `ui`, etc.)
 - rollback boundary (one unit can be reverted independently)
+- target commit, for corrections
 
 Keep together when changes are jointly required for one behavior and should be reverted together.
+
+A **correction** only fixes, completes, or formats lines that one commit introduced, where that
+commit is on the topic branch and not on its target: the target the user or the applying skill
+names, else the change request's target, else the remote's default branch. Find that commit with
+`git blame` or `git log -L` on the corrected lines. Commit each correction with
+`git commit --fixup=<target-sha>`, one commit per target commit even when the parts are jointly
+required. Git writes `fixup! <target subject>`, the subject `git:tidy-history` folds the correction
+by, so the commit message policy does not apply to it. When another commit on the topic branch has
+the target's subject, commit with `git commit -m "fixup! <full-target-sha>"` instead, because
+autosquash folds a shared subject into the oldest commit that carries it. A unit that adds behavior,
+or that corrects a commit the target already contains, is an ordinary commit.
 
 ## Default workflow
 
@@ -75,7 +87,7 @@ before staging.
    - Untracked files, excluding ignored files
 2. Build a commit plan:
    - Split work into logical units by purpose and rollback boundary
-   - Choose type, scope, body, and footer for each unit
+   - Choose type, scope, body, and footer for each unit, or the target commit for a correction
 3. Execute commits in dependency order:
    - Check each drafted message before committing: run the repository's commit linter on the message
      when the linter accepts one from a file or stdin; otherwise check it against the rules read in
