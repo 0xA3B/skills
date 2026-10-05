@@ -39,12 +39,11 @@ invariant, and report the conflict and the closest result the invariant allows.
   fold that commit instead and say why. Content changes belong to `git:commit`; base changes, such
   as a rebase onto an updated target, belong to `git:create-pr`.
 - **Protected branches stay as they are.** A **protected branch** is `main`, the remote's default
-  branch, or the change request's target. Read the default branch from
-  `git ls-remote --symref <remote> HEAD`, because `git fetch` leaves a stale local
-  `refs/remotes/<remote>/HEAD` in place. A branch whose published ref names a protected branch on
-  the remote is protected too, because the push would update that branch. On a protected branch, run
-  review mode, even in a solo repository or when the user asks to rewrite the branch anyway, and
-  give the rewrite commands when the user asks for them.
+  branch, or the change request's target. Read the default branch as
+  [TARGET-BRANCH.md](../../references/TARGET-BRANCH.md) directs. A branch whose published ref names
+  a protected branch on the remote is protected too, because the push would update that branch. On a
+  protected branch, run review mode, even in a solo repository or when the user asks to rewrite the
+  branch anyway, and give the rewrite commands when the user asks for them.
 - **Lease-only publishing.** Publish only with `--force-with-lease=<remote-branch>:<recorded-sha>`;
   step 4 says how to recover from a failed push. This skill never runs a plain `--force`.
 - **No conflict resolution.** Resolve no conflicts; step 3 says how to back out of one.
@@ -82,15 +81,15 @@ Refuse, naming the evidence, when:
 
 ### 1. Establish the range
 
-Fetch the branch's remote. Resolve the target: the user-specified target, the open change request's
-target, then the remote's default branch. Resolve the range: from the oldest commit the user names
-through the local head, because the rebase replaces every later commit too, or else the commits
-since the merge base with the target. Resolve the **published ref**: the branch's configured
-upstream, or else `<remote>/<branch>` when the remote has a branch of that name; its branch name on
-the remote is `<remote-branch>`, and a branch with neither is unpublished. Record the base commit,
-which is the parent of the range's oldest commit, and the published ref's head as `<recorded-sha>`.
-When that head is not an ancestor of the local head, stop: the remote holds commits the local branch
-lacks.
+Fetch the branch's remote, then resolve and fetch the target as
+[TARGET-BRANCH.md](../../references/TARGET-BRANCH.md) directs. Resolve the range: from the oldest
+commit the user names through the local head, because the rebase replaces every later commit too, or
+else the commits since the merge base with the target. Resolve the **published ref**: the branch's
+configured upstream, or else `<remote>/<branch>` when the remote has a branch of that name; its
+branch name on the remote is `<remote-branch>`, and a branch with neither is unpublished. Record the
+base commit, which is the parent of the range's oldest commit, and the published ref's head as
+`<recorded-sha>`. When that head is not an ancestor of the local head, stop: the remote holds
+commits the local branch lacks.
 
 Run the durable-SHA search in [MERGE-METHOD.md](../../references/MERGE-METHOD.md) over the range;
 when a durable match requires stable commit identity, stop for a user decision.

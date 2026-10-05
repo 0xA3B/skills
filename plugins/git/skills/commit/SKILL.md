@@ -65,9 +65,9 @@ Split commits when units differ by:
 Keep together when changes are jointly required for one behavior and should be reverted together.
 
 A **correction** only fixes, completes, or formats lines that one commit introduced, where that
-commit is on the topic branch and not on its target: the target the user or the applying skill
-names, else the change request's target, else the remote's default branch. Find that commit with
-`git blame` or `git log -L` on the corrected lines. Commit each correction with
+commit is on the topic branch and not on its target. Resolve and fetch the target as
+[TARGET-BRANCH.md](../../references/TARGET-BRANCH.md) directs, and find that commit with `git blame`
+or `git log -L` on the corrected lines. Commit each correction with
 `git commit --fixup=<target-sha>`, one commit per target commit even when the parts are jointly
 required. Git writes `fixup! <target subject>`, the subject `git:tidy-history` folds the correction
 by, so the commit message policy does not apply to it. When another commit on the topic branch has
