@@ -819,7 +819,6 @@ describe("observeCodexOutput", () => {
     ["a skill path in a herestring", `cat <<< ${cachePath}/SKILL.md`],
     ["a load after a heredoc", `cat <<'EOF' > /dev/null\nnotes\nEOF\ncat ${cachePath}/SKILL.md`],
     // A search flag outside the tool's list can print the body around the matches.
-    ["a search with context lines", `rg -C 400 name ${cachePath}/SKILL.md`],
     ["an inverted search", `grep -v zzz ${cachePath}/SKILL.md`],
     ["a passthrough search after a value flag", `rg -g -l --passthru name ${cachePath}/SKILL.md`],
     // Forms whose control flow the classifier does not read.
@@ -891,6 +890,79 @@ describe("observeCodexOutput", () => {
     expect(observed.signal).toBe("none");
     expect(observed.unclassifiedSkillAccess).toBeDefined();
     expect(observed.unclassifiedSkillAccess).toMatch(/SKILL|skills|plugins|\.agents/);
+  });
+
+  // A context search prints the lines around each match, which can include line 1. It inspects only
+  // as the command's only segment, when its output shows it never printed line 1.
+  it.each([
+    // Recorded 2026-10-07 on codex-cli 0.160.1, gpt-6.1-sol (optimize-trigger conceptual-question
+    // attempt 2): two searches of a repo-local skill to answer a question about it. Each output is
+    // abridged to its first, match, and last lines.
+    {
+      name: "the recorded excerpt of a later section",
+      command: `/opt/homebrew/bin/zsh -lc "rg -n -A 50 -B 12 'On Claude Code, the runner' .agents/skills/local-skill/SKILL.md"`,
+      outcome: {
+        exitCode: 0,
+        output: "274-  change.\n286:- On Claude Code, the runner\n323-  stops\n",
+      },
+      unclassified: false,
+    },
+    {
+      name: "the recorded excerpt of another later section",
+      command: `/opt/homebrew/bin/zsh -lc "rg -n -A 17 -B 3 'decision-item' .agents/skills/local-skill/SKILL.md"`,
+      outcome: {
+        exitCode: 0,
+        output: "297-- Attempt\n300:- the decision-item budget\n317-  timeout\n",
+      },
+      unclassified: false,
+    },
+    // Not recorded: rg prints `--` between context groups that do not touch.
+    {
+      name: "an excerpt with two context groups",
+      command: `rg -n -A 1 -B 1 'decision-item' ${cachePath}/SKILL.md`,
+      outcome: {
+        exitCode: 0,
+        output: "299-a\n300:decision-item\n301-b\n--\n340-c\n341:decision-item\n342-d\n",
+      },
+      unclassified: false,
+    },
+    {
+      name: "an excerpt that includes line 1",
+      command: `rg -n -B 5 'name:' ${cachePath}/SKILL.md`,
+      outcome: { exitCode: 0, output: "1----\n2:name: auto-skill\n" },
+      unclassified: true,
+    },
+    {
+      name: "an excerpt without line numbers",
+      command: `rg -C 400 name ${cachePath}/SKILL.md`,
+      outcome: { exitCode: 0, output: "---\nname: auto-skill\n---\n" },
+      unclassified: true,
+    },
+    {
+      name: "an excerpt with no output",
+      command: `rg -n -A 3 zzz ${cachePath}/SKILL.md`,
+      outcome: { exitCode: 1, output: "" },
+      unclassified: true,
+    },
+    // Output the search did not number itself: a preceding command's output without a final line
+    // break runs into the first line, and piped text already carries numbers.
+    {
+      name: "an excerpt after another command",
+      command: `printf 5; rg -n -B 1 name ${cachePath}/SKILL.md`,
+      outcome: { exitCode: 0, output: "51----\n2:name: auto-skill\n" },
+      unclassified: true,
+    },
+    {
+      name: "an excerpt of piped text",
+      command: `nl -ba -v2 -s: -w1 ${cachePath}/SKILL.md | rg -B 1 -A 400 name`,
+      outcome: { exitCode: 0, output: "2:---\n3:name: auto-skill\n" },
+      unclassified: true,
+    },
+  ])("decides a context search from $name", ({ command, outcome, unclassified }) => {
+    const observed = observe(commandExecutionEvent(command, outcome));
+
+    expect(observed.invokedSkills).toStrictEqual([]);
+    expect(observed.unclassifiedSkillAccess !== undefined).toBe(unclassified);
   });
 
   // The trigger decision is the first command that loads a staged skill. Recorded 2026-10-04 on

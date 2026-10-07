@@ -246,7 +246,9 @@ export function observeCodexOutput(
     if (typeof command !== "string" || loads.length > 0) {
       continue;
     }
-    const accesses = classifySkillFileAccesses(command, invocableSkills);
+    const commandOutput =
+      typeof item["aggregated_output"] === "string" ? item["aggregated_output"] : "";
+    const accesses = classifySkillFileAccesses(command, commandOutput, invocableSkills);
     unclassified.push(...accesses.unclassified);
     // The exit status covers only the command's last and-or list: `cat SKILL.md && rg x` loads
     // the skill and still exits 1, and `true || cat SKILL.md` exits 0 without running the cat. A
@@ -254,8 +256,6 @@ export function observeCodexOutput(
     // Otherwise a failed command's load counts only when the output starts with the body of the
     // command's leading load, and a successful command's load only when it runs whenever the
     // command exits 0; any other load is unclassified.
-    const commandOutput =
-      typeof item["aggregated_output"] === "string" ? item["aggregated_output"] : "";
     for (const skillLabel of accesses.loads) {
       const skill = invocableSkills.find((candidate) => candidate.skillLabel === skillLabel);
       if (skill === undefined) {

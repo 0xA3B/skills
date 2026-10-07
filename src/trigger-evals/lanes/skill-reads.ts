@@ -46,13 +46,16 @@ export type SkillFileAccesses = {
 const LOAD_COMMANDS = new Set(["cat", "head", "nl"]);
 // Commands that name a skill file without loading its body: metadata reads and existence tests.
 const INSPECT_COMMANDS = new Set(["ls", "stat", "wc", "test", "["]);
-// Per tool, the search flags that take a value and select patterns or files, and the other flags a
-// search may use and still inspect. A search reads matching lines to answer a question, the
-// read-to-inspect case (#196), so it inspects when every flag is listed; an unlisted flag, such as
-// a context flag or `--passthru`, can print the body around the matches.
+// Per tool, the search flags that take a value and select patterns or files, the context flags,
+// which take a line count, and the other flags a search may use and still inspect. A search reads
+// matching lines to answer a question, the read-to-inspect case (#196), so it inspects when every
+// flag is listed. A context flag prints the lines around each match, which can include line 1, so
+// the command's output decides the search (see excerptSkipsLineOne); only rg lists them, the form
+// a recorded run uses. An unlisted flag, such as `--passthru`, can print the body around the
+// matches.
 const SEARCH_FLAGS: Record<
   "rg" | "grep",
-  { values: ReadonlySet<string>; other: ReadonlySet<string> }
+  { values: ReadonlySet<string>; context: ReadonlySet<string>; other: ReadonlySet<string> }
 > = {
   rg: {
     values: new Set(
@@ -60,6 +63,7 @@ const SEARCH_FLAGS: Record<
         " ",
       ),
     ),
+    context: new Set("-A --after-context -B --before-context -C --context".split(" ")),
     other: new Set(
       "-l --files-with-matches --files-without-match -c --count --count-matches -q --quiet --files -i --ignore-case -S --smart-case -s --case-sensitive -F --fixed-strings -w --word-regexp -x --line-regexp -n --line-number -N --no-line-number -H --with-filename -I --no-filename --hidden -. --no-ignore -u -L --follow -U --multiline -P --pcre2".split(
         " ",
@@ -68,6 +72,7 @@ const SEARCH_FLAGS: Record<
   },
   grep: {
     values: new Set("-e --regexp --include --exclude --exclude-dir -m --max-count".split(" ")),
+    context: new Set(),
     other: new Set(
       "-l -L --files-with-matches --files-without-match -c --count -q --quiet --silent -i -y --ignore-case -F --fixed-strings -E --extended-regexp -G --basic-regexp -P --perl-regexp -w --word-regexp -x --line-regexp -n --line-number -H --with-filename -h --no-filename -r -R --recursive --dereference-recursive -s --no-messages -I".split(
         " ",
@@ -227,9 +232,11 @@ export function skillOutputEvidence(output: string, skill: InvocableSkill): Skil
 // as a script or an assignment, and a path the shell composes from a variable, a glob, or a brace
 // expansion are unresolved too, and a `cd` into an expanded directory is unclassified whole. An
 // inspection wins over an unresolved path; a load or any other
-// verb leaves it unclassified.
+// verb leaves it unclassified. A context search inspects only as the command's only segment, when
+// the command's output shows it never printed line 1 (see excerptSkipsLineOne).
 export function classifySkillFileAccesses(
   command: string,
+  output: string,
   skills: readonly InvocableSkill[],
 ): SkillFileAccesses {
   const loads: string[] = [];
@@ -303,6 +310,12 @@ export function classifySkillFileAccesses(
         kind = "unclassified";
       }
     }
+    // The output is the whole command's, so it shows the search's own lines only when the search
+    // is the only segment: another segment's output can run into the excerpt's first line, and a
+    // pipe can feed the search text that already carries line numbers.
+    if (kind === "excerpt") {
+      kind = segments.length === 1 && excerptSkipsLineOne(output) ? "inspect" : "unclassified";
+    }
     if (kind === "inspect") {
       continue;
     }
@@ -338,14 +351,17 @@ function splitVerb(words: string[]): { verb: string | undefined; verbIndex: numb
   return { verb: verbIndex === -1 ? undefined : words[verbIndex], verbIndex };
 }
 
+// An excerpt is a context search, which the command's output decides.
+type ReadKind = "load" | "inspect" | "excerpt" | "unclassified";
+
 // A load whose standard output goes to a file never reaches the agent, or reaches it later through
 // the copy, so it is unclassified.
-function classifyOutput(segment: Segment): "load" | "inspect" | "unclassified" {
+function classifyOutput(segment: Segment): ReadKind {
   const kind = classifySegment(segment.words);
   return kind === "load" && segment.stdoutRedirected ? "unclassified" : kind;
 }
 
-function classifySegment(words: string[]): "load" | "inspect" | "unclassified" {
+function classifySegment(words: string[]): ReadKind {
   const { verb, verbIndex } = splitVerb(words);
   if (verb === undefined) {
     return "unclassified";
@@ -363,7 +379,7 @@ function classifySegment(words: string[]): "load" | "inspect" | "unclassified" {
     return "inspect";
   }
   if (name === "rg" || name === "grep") {
-    return knownSearch(name, args) ? "inspect" : "unclassified";
+    return classifySearch(name, args);
   }
   if (name === "sed") {
     return classifySed(args);
@@ -412,7 +428,7 @@ function passesNames(words: string[]): boolean {
   const name = path.basename(verb ?? "");
   const args = words.slice(verbIndex + 1);
   if (name === "rg" || name === "grep") {
-    return knownSearch(name, args);
+    return classifySearch(name, args) === "inspect";
   }
   if (name === "sed") {
     return classifySed(args) !== "unclassified";
@@ -420,11 +436,13 @@ function passesNames(words: string[]): boolean {
   return NAME_FILTERS.has(name);
 }
 
-// Whether every flag of a search is listed for its tool. Short flags may be clustered, as in
-// `-rl`; a value flag takes the rest of its word, or the next word, as its value (`--glob=x`,
-// `-gx`, `-g x`), so a value is never read as a flag.
-function knownSearch(name: "rg" | "grep", args: string[]): boolean {
-  const { values, other } = SEARCH_FLAGS[name];
+// A search inspects when every flag is listed for its tool, and is an excerpt when one of them is
+// a context flag. Short flags may be clustered, as in `-rl`; a value or context flag takes the rest
+// of its word, or the next word, as its value (`--glob=x`, `-gx`, `-g x`), so a value is never read
+// as a flag.
+function classifySearch(name: "rg" | "grep", args: string[]): ReadKind {
+  const { values, context, other } = SEARCH_FLAGS[name];
+  let excerpt = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index] ?? "";
     if (arg === "--") {
@@ -435,25 +453,41 @@ function knownSearch(name: "rg" | "grep", args: string[]): boolean {
     }
     if (arg.startsWith("--")) {
       const [flag = arg] = arg.split("=");
-      if (values.has(flag)) {
+      if (values.has(flag) || context.has(flag)) {
+        excerpt ||= context.has(flag);
         index += arg.includes("=") ? 0 : 1;
       } else if (!other.has(arg)) {
-        return false;
+        return "unclassified";
       }
       continue;
     }
     for (let at = 1; at < arg.length; at += 1) {
       const flag = `-${arg[at]}`;
-      if (values.has(flag)) {
+      if (values.has(flag) || context.has(flag)) {
+        excerpt ||= context.has(flag);
         index += at === arg.length - 1 ? 1 : 0;
         break;
       }
       if (!other.has(flag)) {
-        return false;
+        return "unclassified";
       }
     }
   }
-  return true;
+  return excerpt ? "excerpt" : "inspect";
+}
+
+// Whether a context search's output shows that it never printed line 1: the output has at least
+// one line, and every line is a group separator (`--`) or starts with a line number above 1 and
+// `:` for a match or `-` for context. A staged skill file starts with its frontmatter line `---`,
+// which a search prints as `1:---`, `1----`, or, without line numbers, `---`.
+function excerptSkipsLineOne(output: string): boolean {
+  const lines = output.split("\n").filter((line) => line !== "");
+  return (
+    lines.length > 0 &&
+    lines.every(
+      (line) => line === "--" || Number(/^(?<number>\d+)[:-]/.exec(line)?.groups?.["number"]) > 1,
+    )
+  );
 }
 
 // Whether a word the shell expands (a variable, a glob, or a brace expansion) can name a SKILL.md:
