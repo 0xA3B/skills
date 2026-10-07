@@ -50,8 +50,15 @@ function flagValues(args: string[] | undefined, flag: string): string[] {
   return (args ?? []).flatMap((arg, index) => (args?.[index - 1] === flag ? [arg] : []));
 }
 
-function assistantEvent(content: Array<Record<string, unknown>>): string {
-  return JSON.stringify({ type: "assistant", message: { content } });
+function assistantEvent(content: Array<Record<string, unknown>>, messageId?: string): string {
+  return JSON.stringify({
+    type: "assistant",
+    message: { ...(messageId === undefined ? {} : { id: messageId }), content },
+  });
+}
+
+function skillCall(skillLabel: string): Record<string, unknown> {
+  return { type: "tool_use", name: "Skill", input: { command: skillLabel } };
 }
 
 describe("createClaudeLane", () => {
@@ -376,6 +383,35 @@ describe("observeClaudeOutput", () => {
     expect(observeClaudeOutput(stdout).invokedSkills).toStrictEqual(["demo:auto-skill"]);
   });
 
+  // The trigger decision is the first assistant message with Skill calls; a later Skill message
+  // that lands before the runner's stop takes effect is workflow behavior. Recorded 2026-09-24 on
+  // Claude Code 2.1.281 (tdd documentation-only-change): stream-json emits each content block of
+  // one message as its own assistant event under the shared message id, with tool results between
+  // them.
+  it("keeps only the Skill calls of the first assistant message that has any", () => {
+    const stdout = [
+      assistantEvent([{ type: "text", text: "Looking around first." }], "msg_0"),
+      assistantEvent([skillCall("demo:auto-skill")], "msg_1"),
+      JSON.stringify({ type: "user", message: { content: [{ type: "tool_result" }] } }),
+      assistantEvent([skillCall("demo:helper-skill")], "msg_1"),
+      assistantEvent([skillCall("demo:other-skill")], "msg_2"),
+    ].join("\n");
+
+    expect(observeClaudeOutput(stdout).invokedSkills).toStrictEqual([
+      "demo:auto-skill",
+      "demo:helper-skill",
+    ]);
+  });
+
+  it("keeps only the first Skill event when assistant events carry no message id", () => {
+    const stdout = [
+      assistantEvent([skillCall("demo:auto-skill")]),
+      assistantEvent([skillCall("demo:other-skill")]),
+    ].join("\n");
+
+    expect(observeClaudeOutput(stdout).invokedSkills).toStrictEqual(["demo:auto-skill"]);
+  });
+
   it.each([
     [
       "reconnaissance paired with narration and text mentioning a label",
@@ -408,7 +444,9 @@ describe("observeClaudeOutput", () => {
     ],
     ["a non-read tool call", 1, [[{ type: "tool_use", name: "Bash", input: { command: "pwd" } }]]],
   ])("gives %s a decision count of %i", (_label, decisionItemCount, messages) => {
-    const observations = observeClaudeOutput(messages.map(assistantEvent).join("\n"));
+    const observations = observeClaudeOutput(
+      messages.map((content) => assistantEvent(content)).join("\n"),
+    );
 
     expect(observations.decisionItemCount).toBe(decisionItemCount);
     // Neither text naming a label nor a read of it is a Skill tool call.

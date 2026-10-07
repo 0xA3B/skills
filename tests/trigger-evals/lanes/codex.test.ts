@@ -16,6 +16,7 @@ import type {
   StreamingCliResult,
 } from "../../../src/trigger-evals/lanes/exec.js";
 import { createRuntimeResources } from "../../../src/trigger-evals/runtime.js";
+import { shouldStopEarly } from "../../../src/trigger-evals/verdict.js";
 import {
   agentMessageEvent,
   commandExecutionEvent,
@@ -892,21 +893,60 @@ describe("observeCodexOutput", () => {
     expect(observed.unclassifiedSkillAccess).toMatch(/SKILL|skills|plugins|\.agents/);
   });
 
-  it("marks a skill-file read pending until an assistant message follows it", () => {
-    const readExtra = commandExecutionEvent(
-      "cat /deploy/plugins/demo/skills/auto-skill-extra/SKILL.md",
-    );
-    const readTarget = commandExecutionEvent(`cat ${cachePath}/SKILL.md`);
+  // The trigger decision is the first command that loads a staged skill. Recorded 2026-10-04 on
+  // gpt-6.1-sol (optimize-trigger not-triggering-report): after loading the target, Codex read the
+  // skill it was asked to tune as data.
+  const extraPath = "/deploy/plugins/demo/skills/auto-skill-extra/SKILL.md";
+  const readExtra = commandExecutionEvent(`cat ${extraPath}`);
+  const readTarget = commandExecutionEvent(`cat ${cachePath}/SKILL.md`);
+  const unclassifiedRead = commandExecutionEvent(`awk 'NR < 50' ${extraPath}`);
+  it.each([
+    { name: "a load in a later command", commands: [readTarget, readExtra], unclassified: false },
+    {
+      name: "an unclassified access in a later command",
+      commands: [readTarget, unclassifiedRead],
+      unclassified: false,
+    },
+    {
+      name: "an unclassified access before the load",
+      commands: [unclassifiedRead, readTarget],
+      unclassified: true,
+    },
+    {
+      name: "an unclassified access inside the loading command",
+      commands: [commandExecutionEvent(`cat ${cachePath}/SKILL.md; awk 'NR < 50' ${extraPath}`)],
+      unclassified: true,
+    },
+    // A command that names a staged skill file without loading it leaves the decision open.
+    {
+      name: "a content search of a skill file before the load",
+      commands: [commandExecutionEvent(`rg -n 'name' ${extraPath}`), readTarget],
+      unclassified: false,
+    },
+    {
+      name: "a failed read before the load",
+      commands: [
+        commandExecutionEvent(`cat ${extraPath}`, {
+          status: "failed",
+          exitCode: 1,
+          output: `cat: ${extraPath}: No such file or directory\n`,
+        }),
+        readTarget,
+      ],
+      unclassified: false,
+    },
+  ])(
+    "decides the trigger decision from the first loading command given $name",
+    ({ commands, unclassified }) => {
+      const observed = observe(commands.join("\n"));
 
-    // A helper skill read first, then the workflow skill: both are attributed once the reads settle.
-    const pending = observe(readExtra);
-    expect(pending.pendingReads).toBe(true);
-    const settled = observe([readExtra, readTarget, agentMessageEvent("Loaded both.")].join("\n"));
-    expect(settled.pendingReads).toBe(false);
-    // Read order, not staging order: the report and wrong-skill selection preserve it.
-    expect(settled.invokedSkills).toStrictEqual(["demo:auto-skill-extra", "demo:auto-skill"]);
-    // A message before the read does not settle it.
-    expect(observe([agentMessageEvent("Looking."), readTarget].join("\n")).pendingReads).toBe(true);
+      expect(observed.invokedSkills).toStrictEqual(["demo:auto-skill"]);
+      expect(observed.unclassifiedSkillAccess !== undefined).toBe(unclassified);
+    },
+  );
+
+  it("stops the run at the first load, without waiting for an assistant message", () => {
+    expect(shouldStopEarly(observe(readExtra), CODEX_SKIP_DECISION_ITEM_BUDGET)).toBe(true);
   });
 
   // A command's exit status covers its last segment, so the output decides whether a read in a
@@ -1057,7 +1097,6 @@ describe("observeCodexOutput", () => {
     const observed = observe(commandExecutionEvent(command, outcome));
 
     expect(observed.invokedSkills).toStrictEqual(loaded ? ["demo:auto-skill"] : []);
-    expect(observed.pendingReads).toBe(loaded ? true : undefined);
     expect(observed.unclassifiedSkillAccess !== undefined).toBe(unclassified);
     expect(observed.decisionItemCount).toBe(1);
   });

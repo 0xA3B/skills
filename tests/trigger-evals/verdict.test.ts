@@ -4,7 +4,6 @@ import type { CaseObservations, CliRunResult } from "../../src/trigger-evals/lan
 import {
   buildCaseResult,
   type CaseVerdictOptions,
-  SKIP_DECISION_ITEM_BUDGET,
   dropDependencyLoads,
   shouldStopEarly,
 } from "../../src/trigger-evals/verdict.js";
@@ -43,28 +42,6 @@ describe("shouldStopEarly", () => {
   it.each<[string, Partial<CaseObservations>, number | undefined, boolean]>([
     ["stops on a skill tool use", { signal: "stream-skill-tool-use" }, undefined, true],
     ["stops on a skill-file read", { signal: "command-skill-read" }, undefined, true],
-    [
-      "stops on a settled skill-file read",
-      { signal: "command-skill-read", pendingReads: false },
-      undefined,
-      true,
-    ],
-    [
-      "keeps streaming while a skill-file read has not settled at an assistant message",
-      { signal: "command-skill-read", pendingReads: true },
-      undefined,
-      false,
-    ],
-    [
-      "stops an unsettled skill-file read at the decision-item budget",
-      {
-        signal: "command-skill-read",
-        pendingReads: true,
-        decisionItemCount: SKIP_DECISION_ITEM_BUDGET,
-      },
-      undefined,
-      true,
-    ],
     ["keeps streaming below the decision-item budget", { decisionItemCount: 4 }, undefined, false],
     ["stops at the decision-item budget", { decisionItemCount: 5 }, undefined, true],
     // A lane can raise the budget when its items include reconnaissance it cannot separate.

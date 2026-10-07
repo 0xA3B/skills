@@ -81,8 +81,9 @@ export type InvocationSignal = "command-skill-read" | "stream-skill-tool-use" | 
 // classification consumes them without knowing any agent's stream format.
 export type CaseObservations = {
   signal: InvocationSignal;
-  // Labels of skills whose invocation was detected, in detection order. May name skills other
-  // than the target; attribution to target vs wrong skill happens in the verdict.
+  // Labels of the skills in the trigger decision, in detection order. May name skills other than
+  // the target; attribution to target vs wrong skill happens in the verdict. Later invocations are
+  // workflow behavior and stay out.
   invokedSkills: string[];
   hasActivity: boolean;
   // Lane-specific events that show the agent moved beyond reasoning or typed reconnaissance toward
@@ -98,13 +99,9 @@ export type CaseObservations = {
   // The agent runtime's own report that the turn failed (an API error, a dropped stream), quoted
   // from the lane's terminal error event. Such a run never reached a settled trigger decision.
   errorSignal?: string;
-  // True while a skill-file read is the latest signal and no assistant message has completed
-  // since: the agent may still be loading further skills before it speaks, so the invocation set
-  // is not yet attributable. Lanes without a read signal leave it undefined.
-  pendingReads?: boolean;
-  // Commands that named a staged skill file in a form the lane can classify neither as a load nor
-  // as an inspection, or that failed after a load without showing whether the load ran, one per
-  // line. Such a command may or may not have invoked the skill, so the verdict trusts neither
-  // reading of the run.
+  // Commands up to and including the trigger decision that named a staged skill file in a form the
+  // lane can classify neither as a load nor as an inspection, or that failed after a load without
+  // showing whether the load ran, one per line. Such a command may or may not have invoked the
+  // skill, so the verdict trusts neither reading of the run.
   unclassifiedSkillAccess?: string;
 };
