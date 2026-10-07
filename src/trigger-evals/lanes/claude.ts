@@ -103,6 +103,7 @@ async function writeClaudeEvalSettings(workspacePath: string): Promise<void> {
 // reconnaissance do not show that Claude declined a skill, so they do not consume the skip budget.
 export function observeClaudeOutput(stdout: string): CaseObservations {
   const invokedSkills: string[] = [];
+  let decisionMessageId: string | undefined;
   let hasActivity = false;
   let decisionItemCount = 0;
   let sawInitEvent = false;
@@ -141,7 +142,20 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
       decisionItemCount += 1;
     }
 
-    invokedSkills.push(...listSkillToolUseTargets(event));
+    // The first assistant message with Skill calls is the trigger decision; a later one can land
+    // before the runner's stop takes effect, and it is workflow behavior. stream-json emits each
+    // content block as its own assistant event under the shared message id, so the decision keeps
+    // every event of that message, or only the first event when it carries no id.
+    const skillTargets = listSkillToolUseTargets(event);
+    if (skillTargets.length > 0) {
+      const messageId = assistantMessageId(event);
+      if (invokedSkills.length === 0) {
+        decisionMessageId = messageId;
+        invokedSkills.push(...skillTargets);
+      } else if (messageId !== undefined && messageId === decisionMessageId) {
+        invokedSkills.push(...skillTargets);
+      }
+    }
   }
 
   return {
@@ -223,6 +237,12 @@ function listSkillToolUseTargets(event: Record<string, unknown>): string[] {
   }
 
   return skillLabels;
+}
+
+function assistantMessageId(event: Record<string, unknown>): string | undefined {
+  const message = event["message"];
+  const id = isRecord(message) ? message["id"] : undefined;
+  return typeof id === "string" && id.length > 0 ? id : undefined;
 }
 
 type ClaudeExecOptions = CaseExecuteOptions & {

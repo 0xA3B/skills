@@ -259,9 +259,8 @@ cases where loaded repository instructions should affect the trigger boundary, s
   git identity and signing disabled, so the machine's git configuration cannot affect a run.
 - The committed `description` remains the trigger surface under test. Staged skill copies are
   byte-identical to the committed skills on both lanes.
-- The runner stops the agent CLI once it observes the invocation signal, except on Codex while a
-  skill-file read is pending until the next assistant message, so positive cases do not need to
-  finish the requested workflow.
+- The runner stops the agent CLI at the trigger decision, so positive cases do not need to finish
+  the requested workflow.
 - Negative cases stop early too: once the lane's budget of decision-bearing items completes without
   an invocation signal, the run is stopped and classified as a clean skip. The Claude lane allows
   five items and counts text-only assistant turns and non-read tool calls; thinking and `Read`,
@@ -269,21 +268,21 @@ cases where loaded repository instructions should affect the trigger boundary, s
   every non-reasoning completed item, because its generic command events do not reliably distinguish
   read-only reconnaissance and the model inspects a seeded workspace before it loads a skill.
 - Codex has no skill tool or skill event, so on Codex a successful command that prints a staged
-  `SKILL.md` from its first line is the invocation. `src/trigger-evals/lanes/skill-reads.ts` owns
-  the load and inspection forms; a command naming a staged `SKILL.md` in another form is reported as
-  ERROR, and classifying that form is a harness attribution change. A whole-file read made to answer
-  a question about a skill still counts, so read `events.jsonl` before tuning a conceptual case that
-  fails only on Codex.
-- A skill loaded in the same run as a skill whose fixture lists it under `applies` is a dependency
-  load of that skill's workflow, not a second trigger decision, and the verdict drops it whatever
-  the read order; two skills that apply each other both stay invocations. The case line lists the
-  dropped loads after `dependency loads`.
+  `SKILL.md` from its first line is the invocation signal. `src/trigger-evals/lanes/skill-reads.ts`
+  owns the load and inspection forms; through the trigger decision, a command naming a staged
+  `SKILL.md` in another form is reported as ERROR, and classifying that form is a harness
+  attribution change. A whole-file read made to answer a question about a skill still counts, so
+  read `events.jsonl` before tuning a conceptual case that fails only on Codex.
+- A skill loaded in the same trigger decision as a skill whose fixture lists it under `applies` is a
+  dependency load of that skill's workflow, and the verdict drops it whatever the read order; two
+  skills that apply each other both stay invocations. The case line lists the dropped loads after
+  `dependency loads`.
 - Every staged skill keeps its real invocation policy, and the lane watches each implicitly
   invokable staged skill, so invoking the wrong skill is a distinct, attributable observation. A
   `wrong-skill` result names a plugin skill as `<plugin>:<skill>` and a repo-local sibling by its
-  bare skill name. It fails an invoke case — even when the target also fires, because simultaneous
-  invocation is itself trigger-contract overlap — and is surfaced on passing skip cases too, because
-  either direction exposes overlap between loaded skills.
+  bare skill name. It fails an invoke case — even when the target fires in the same trigger
+  decision, because simultaneous invocation is itself trigger-contract overlap — and is surfaced on
+  passing skip cases too, because either direction exposes overlap between loaded skills.
 - On Claude Code, the runner launches `claude -p` with a read-only tool surface and classifies
   invocation from Skill tool events in the stream-json output. Plugin skills load from the staged
   plugin copy via `--plugin-dir`; repo-local skills load from the staged `.claude/skills/` copy.

@@ -14,8 +14,8 @@ export type TriggerCaseResult = {
   // True when the target skill was invoked, regardless of whether another staged skill also
   // fired; simultaneous firings are recorded separately in wrongSkill.
   invoked: boolean;
-  // Every distinct staged skill whose invocation was detected, in detection order, minus the
-  // dependency loads below.
+  // Every distinct staged skill in the trigger decision, in detection order, minus the dependency
+  // loads below.
   invokedSkills: string[];
   // Detected skills the verdict attributed to another detected skill's workflow because that
   // skill applies them (dropDependencyLoads). Kept for the report; they carry no decision.
@@ -50,18 +50,15 @@ export type TriggerCaseResult = {
 // reconnaissance it cannot identify sets its own budget on LaneRun.skipDecisionItemBudget.
 export const SKIP_DECISION_ITEM_BUDGET = 5;
 
-// Any invocation — target or wrong skill — settles the trigger decision, so the run stops, except
-// while skill-file reads are still pending: an agent that reads a helper skill before the workflow
-// skill would otherwise be stopped after the first read and misattributed. The decision-item
-// budget still bounds a run whose reads never settle.
+// The first invocation signal — target or wrong skill — is the trigger decision, so the run stops
+// there. Codex once waited for its next message so a helper read before the workflow skill would
+// be attributed, but no recorded run read a helper first, and the wait counted skills a workflow
+// read as data as second firings.
 export function shouldStopEarly(
   observations: CaseObservations,
   skipDecisionItemBudget: number = SKIP_DECISION_ITEM_BUDGET,
 ): boolean {
-  return (
-    (observations.signal !== "none" && observations.pendingReads !== true) ||
-    observations.decisionItemCount >= skipDecisionItemBudget
-  );
+  return observations.signal !== "none" || observations.decisionItemCount >= skipDecisionItemBudget;
 }
 
 export type CaseVerdictOptions = {
@@ -78,10 +75,10 @@ export type CaseVerdictOptions = {
 };
 
 // Drops every detected skill that another detected skill applies: the agent loaded it while
-// applying that skill, so it carries no trigger decision of its own. Read order does not decide,
-// because an agent that has announced a workflow may read the helper it applies first. Two skills
-// that apply each other both keep their decisions, and a longer cycle that would drop every
-// detected skill keeps them all, so an observed invocation never reports no skill at all.
+// applying that skill, so it is a dependency load, not a separate invocation. Read order does not
+// decide, because one command can name the helper before the workflow skill. Two skills that
+// apply each other both keep their decisions, and a longer cycle that would drop every detected
+// skill keeps them all, so an observed invocation never reports no skill at all.
 export function dropDependencyLoads(
   invokedSkills: readonly string[],
   skillDependencies: ReadonlyMap<string, ReadonlySet<string>>,
@@ -115,10 +112,10 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   // A routing assertion tightens a skip case: the target must not fire and the named alternate
   // must be the only skill that fires. Nothing firing, a different skill, or the target alongside
   // the alternate all fail. The explicit !invoked keeps a label equal to the target from passing.
-  // "Only" is bounded by the observation window: the run stops at the first invocation signal, so
-  // a later firing goes unobserved. On the Codex read path the window extends while skill-file
-  // reads are pending, until the agent's next message. Skills fired in one event are all seen.
-  // Invoke cases carry the same bound for wrong-skill detection.
+  // "Only" is bounded by the trigger decision: the run stops at the first invocation signal, and a
+  // later firing is workflow behavior. A Claude message's later Skill blocks count only when they
+  // reach the output before the stop takes effect. Invoke cases carry the same bound for
+  // wrong-skill detection.
   const matchedExpectation =
     testCase.expect === "invoke"
       ? invoked && wrongSkill === undefined

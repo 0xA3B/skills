@@ -205,9 +205,11 @@ async function refuseShadowingSkillFiles(
 }
 
 // Single pass over the JSONL events for agent activity, completed decision items (reasoning items
-// are excluded because they arrive before the model has committed to acting), and the staged
-// skill files each command loads. Load order is preserved for reporting and for the
-// verdict's wrong-skill selection; the dependency rule itself is order-free.
+// are excluded because they arrive before the model has committed to acting), and the trigger
+// decision: the staged skills loaded by the first command that loads any. Later commands are
+// workflow behavior, such as a skill the workflow reads as data, so neither their loads nor their
+// unclassified accesses count. Load order within the command is preserved for reporting and for
+// the verdict's wrong-skill selection; the dependency rule itself is order-free.
 export function observeCodexOutput(
   output: StreamingCliOutput,
   invocableSkills: readonly InvocableSkill[],
@@ -217,8 +219,6 @@ export function observeCodexOutput(
   let errorSignal: string | undefined;
   const loads: string[] = [];
   const unclassified: string[] = [];
-  let lastSkillReadItem = -1;
-  let lastMessageItem = -1;
   for (const event of parseJsonlEvents(output.stdout)) {
     if (!isRecord(event)) {
       continue;
@@ -242,11 +242,8 @@ export function observeCodexOutput(
     if (item["type"] !== "reasoning") {
       decisionItemCount += 1;
     }
-    if (item["type"] === "agent_message") {
-      lastMessageItem = decisionItemCount;
-    }
     const command = item["type"] === "command_execution" ? item["command"] : undefined;
-    if (typeof command !== "string") {
+    if (typeof command !== "string" || loads.length > 0) {
       continue;
     }
     const accesses = classifySkillFileAccesses(command, invocableSkills);
@@ -275,7 +272,6 @@ export function observeCodexOutput(
         unclassified.push(`${command} (nothing shows that the load of ${skillLabel} ran)`);
         continue;
       }
-      lastSkillReadItem = decisionItemCount;
       if (!loads.includes(skillLabel)) {
         loads.push(skillLabel);
       }
@@ -289,12 +285,7 @@ export function observeCodexOutput(
     ...(unclassified.length === 0 ? {} : { unclassifiedSkillAccess: unclassified.join("\n") }),
   };
   if (loads.length > 0) {
-    return {
-      ...base,
-      signal: "command-skill-read",
-      invokedSkills: loads,
-      pendingReads: lastSkillReadItem > lastMessageItem,
-    };
+    return { ...base, signal: "command-skill-read", invokedSkills: loads };
   }
 
   return { ...base, signal: "none", invokedSkills: [] };
