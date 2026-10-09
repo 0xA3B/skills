@@ -49,59 +49,66 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    independent steps or recovery from a transient error. A wrong turn on those paths fails loudly,
    and the agent can recover from it.
 
-3. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
+3. **Name the stops.** Name each point where the agent stops for the user: an irreversible or
+   outward-facing action the request has not authorized, or a decision only the user can make. Place
+   each stop after the reversible work that makes the decision concrete, so the user approves a
+   reviewable result rather than a plan. State the actions the workflow authorizes, so the agent
+   does not stop to ask for them. Between named stops, the agent carries the work through to its
+   completion criterion.
+
+4. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
    changing the behavior is a one-place edit. A meaning stated twice costs double maintenance and
    reads as twice as important. Repeat terms; never repeat definitions. When a delivery boundary
    requires a copy, keep one source authoritative and govern the copy as a derived artifact.
 
-4. **Use one term per concept.** Pick one name for each thing and repeat it exactly. Synonyms read
+5. **Use one term per concept.** Pick one name for each thing and repeat it exactly. Synonyms read
    as different things. If a file says "the service" in one rule and "the daemon" in another, split
    or merge until each concept has one name.
 
-5. **Inline what every path needs; disclose the rest.** Keep material every reader of the file needs
+6. **Inline what every path needs; disclose the rest.** Keep material every reader of the file needs
    in the file. Move material only some branches reach into a separate file behind a pointer. If the
    agent misses a needed reference, sharpen the pointer's wording before inlining the material — the
    wording, not the target, decides whether the pointer fires.
 
-6. **Write pointers as routing predicates.** A pointer — a skill description or a line naming
+7. **Write pointers as routing predicates.** A pointer — a skill description or a line naming
    another document — decides when its material is reached. Use the shape "Use when [triggers]. Do
    not use for [exclusions]." Name concrete artifacts and verbs, not topics, and keep one trigger
    per distinct branch.
 
-7. **Write imperatives with a named actor.** "Run `make test` before you commit", not "tests should
+8. **Write imperatives with a named actor.** "Run `make test` before you commit", not "tests should
    be run". Passive voice hides who acts and when the rule fires.
 
-8. **Put the condition before the instruction.** "If the branch is `main`, create a branch first",
+9. **Put the condition before the instruction.** "If the branch is `main`, create a branch first",
    not "Create a branch first if the branch is `main`". The condition scopes the action before the
    action is read.
 
-9. **Frame rules positively.** State the behavior you want; naming forbidden behavior makes it more
-   available, and the prohibition half-reads as an instruction to do the thing. When you must
-   prohibit, state the replacement: "Use the `logger` module for output; `print` is allowed only in
-   `scripts/`", not "Do not use print statements".
+10. **Frame rules positively.** State the behavior you want; naming forbidden behavior makes it more
+    available, and the prohibition half-reads as an instruction to do the thing. When you must
+    prohibit, state the replacement: "Use the `logger` module for output; `print` is allowed only in
+    `scripts/`", not "Do not use print statements".
 
-10. **Make every rule auditable.** Name the condition, actor, action, and observable evidence or
+11. **Make every rule auditable.** Name the condition, actor, action, and observable evidence or
     terminal state. A reviewer must be able to determine which branch applies and verify compliance
     from the diff, command output, or resulting state. In a condition or completion criterion,
     replace an undefined judgment with an observable predicate or a named user decision; a path that
     degrees of freedom leaves to the agent needs no predicate beyond its completion criterion.
 
-11. **End steps on checkable, demanding completion criteria.** For workflow documents, each step
+12. **End steps on checkable, demanding completion criteria.** For workflow documents, each step
     ends on the condition that tells the agent the work is done. "Every modified model accounted
     for" forces thorough work; "produce a change list" does not. If the agent finishes a step early,
     sharpen the bound before restructuring the workflow.
 
-12. **Order rules by importance.** Boundaries and safety rules first, workflow rules next, style
+13. **Order rules by importance.** Boundaries and safety rules first, workflow rules next, style
     preferences last. Early rules get more weight than late ones.
 
-13. **Resolve every pronoun.** Replace a bare "this", "it", or "they" with its noun when the
+14. **Resolve every pronoun.** Replace a bare "this", "it", or "they" with its noun when the
     antecedent is more than one sentence away or when two candidates exist.
 
-14. **Prefer one example over three rules.** For anything format-sensitive — commit messages, file
+15. **Prefer one example over three rules.** For anything format-sensitive — commit messages, file
     layouts, output shapes — show one correct example and, when the wrong shape is common, one
     labeled counter-example. Agents imitate examples more reliably than they apply rules.
 
-15. **Anchor repeated concepts with leading words.** When several sentences restate one concept,
+16. **Anchor repeated concepts with leading words.** When several sentences restate one concept,
     collapse them into a compact term the model already holds (tracer bullet, tight loop, frontier)
     and repeat the term exactly. A word too weak to change behavior is a no-op; choose a stronger
     word, not more sentences.

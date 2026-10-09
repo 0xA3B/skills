@@ -14,6 +14,10 @@ For each changed or added line, ask:
       script, and say to follow it as written? (degrees of freedom)
 - [ ] If the line binds a path, is the path fragile? If a wrong turn fails loudly and the agent can
       recover, would a goal and a default do? (degrees of freedom)
+- [ ] If the line stops for the user, does it guard an irreversible or outward-facing action the
+      request has not authorized, or a decision only the user can make, and does it come after the
+      reversible work that makes the decision concrete? If the line asks first anywhere else, would
+      authorizing the action do? (name the stops)
 - [ ] Does the line state a meaning that already has a home elsewhere in the file, its references,
       another skill, or an authoritative source? (one source of truth per meaning)
 - [ ] If a target cannot load the authoritative source, does the derived artifact or its closest
