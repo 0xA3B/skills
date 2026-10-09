@@ -89,3 +89,7 @@ report it to the user instead of installing it. Read the outcome from the final 
 - `1`: unresolved threads follow in the output; triage each one.
 - `6`: the script could not read the pull request; retry once, then return `blocked`.
 ```
+
+The example is correct because it tells the agent to run the script instead of assembling the poll,
+gives the one run need with its reason, routes a missing declared tool to the user, and maps every
+exit code to a next step; the script name and the exit code numbers are incidental.

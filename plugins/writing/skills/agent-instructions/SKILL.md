@@ -115,7 +115,9 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 
 15. **Prefer one example over three rules.** For anything format-sensitive — commit messages, file
     layouts, output shapes — show one correct example and, when the wrong shape is common, one
-    labeled counter-example. Agents imitate examples more reliably than they apply rules.
+    labeled counter-example. Follow the correct example with one sentence naming what makes it
+    correct, so the agent copies those features and not incidental ones. Agents imitate examples
+    more reliably than they apply rules.
 
 16. **Anchor repeated concepts with leading words.** When several sentences restate one concept,
     collapse them into a compact term the model already holds (tracer bullet, tight loop, frontier)

@@ -47,6 +47,8 @@ For each changed or added line, ask:
 - [ ] If the line ends a step, can the agent tell done from not-done, and does the bound demand
       enough legwork? (checkable, demanding completion criteria)
 - [ ] Is it placed according to its importance, not appended at the end? (order rules by importance)
+- [ ] If the line adds an example, does one sentence name what makes it correct? (prefer one example
+      over three rules)
 
 For a skill that applies another skill, ask:
 
