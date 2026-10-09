@@ -1,17 +1,13 @@
 ---
 name: agent-instructions
 description: >-
-  Use when creating, editing, tightening, or reviewing files that instruct agents — CLAUDE.md,
-  AGENTS.md, SKILL.md, agent definition files, or system-prompt fragments — including reviewing a
-  supplied diff to such a file for instruction quality, and before writing the prompt that
-  dispatches a sub-agent or delegated task. Provides the house style for unambiguous, auditable
-  instructions, the document mechanics, and guidance for one-shot sub-agent prompts. Do not use as
-  the entry point for reviewing a session's own changes before a commit or PR, which a review
-  workflow owns and applies this skill inside; for READMEs or other documentation
-  (technical-writing); for code comments, commit messages, or chat responses; for maintaining a
-  terminology section's terms, aliases, or relationships; for conceptual questions about instruction
-  files; or for implementation requests the session codes directly, even when the program is an
-  agent; delegating implementation to a sub-agent falls under the dispatch trigger.
+  Use when creating, editing, tightening, or reviewing files that instruct agents — AGENTS.md,
+  CLAUDE.md, SKILL.md and its bundled scripts, agent definitions, or system-prompt fragments —
+  including a supplied diff to one, and when handing any task to a sub-agent or background agent,
+  however small, before writing its prompt. Do not use as the entry point for reviewing the
+  session's own changes, which a review workflow owns; for READMEs or other docs
+  (technical-writing); for a terminology section's entries; for conceptual questions about
+  instruction files; or for other code the session writes itself, even when the program is an agent.
 license: MIT
 metadata:
   original_author: Alex Baker

@@ -61,14 +61,6 @@ cases:
     expect: invoke
     rationale: The user is asking to author a one-shot sub-agent prompt, which the skill owns.
 
-  - id: delegate-task-to-subagent
-    prompt: >-
-      Delegate the flaky-test investigation to a background agent and have it report what it finds.
-    expect: invoke
-    rationale:
-      Dispatching a sub-agent requires writing its task prompt, and the skill applies before
-      prompting a sub-agent.
-
   - id: delegate-implementation
     prompt: >-
       Have a sub-agent implement the /health endpoint and report back with the diff.
@@ -76,6 +68,51 @@ cases:
     rationale:
       Delegated implementation dispatches a sub-agent, so the skill applies before writing its task
       prompt.
+
+  - id: one-line-dispatch
+    prompt: >-
+      Have a background agent find which file defines the test command and report the path.
+    expect: invoke
+    rationale:
+      The dispatch trigger has no size threshold; a one-line lookup still needs a task prompt that
+      carries its context and return contract. The Claude lane has no dispatch tool, so the skill
+      must load from the request itself, before the agent finds it cannot dispatch.
+
+  - id: review-bundled-script
+    prompt: >-
+      Check whether skills/release/scripts/check-changelog.sh, the script our release skill bundles,
+      will run on macOS as well as Linux.
+    workspace_files:
+      skills/release/SKILL.md: |
+        ---
+        name: release
+        description: Cut a release of this package. Use when the user asks to release or tag a version.
+        ---
+
+        # Release
+
+        1. Run `scripts/check-changelog.sh`; if it exits nonzero, stop and report its output.
+        2. Bump the version with `npm version <patch|minor|major>`.
+        3. Push the tag and publish with `npm publish`.
+      skills/release/scripts/check-changelog.sh: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        last_tag=$(git describe --tags --abbrev=0)
+        mapfile -t subjects < <(git log --format=%s "$last_tag"..HEAD)
+        tagged=$(date -d "$(git log -1 --format=%cI "$last_tag")" +%s)
+        newest=$(grep -m1 -oP '^## \K\d+\.\d+\.\d+' CHANGELOG.md)
+        echo "tag=$last_tag newest=$newest commits=${#subjects[@]} tagged=$tagged"
+    expect: invoke
+    rationale:
+      The prompt touches no SKILL.md, so only the bundled-scripts trigger can claim it. A script a
+      skill bundles binds a fragile path, and the skill owns the script's contract and portability.
+
+  - id: repo-script
+    prompt: >-
+      Add a script under scripts/ that bumps the version in package.json and creates the git tag.
+    expect: skip
+    rationale:
+      A repository script that no skill bundles is ordinary implementation, not agent instructions.
 
   - id: human-readme
     prompt: >-
