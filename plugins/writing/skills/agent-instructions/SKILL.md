@@ -177,8 +177,8 @@ rules in place of clarification.
 When auditing a diff to an instruction file, or sweeping a whole file for stale or redundant lines,
 work through [review-checklist.md](references/review-checklist.md). Instruction files grow by
 accretion, and every existing rule must keep earning its place. Treat the audit as done when every
-changed line has answered its checklist questions, and the file's net rule count is equal or lower —
-or each addition named the failure it prevents.
+line in scope — each changed line of a diff, or each line of a swept file — has answered its
+checklist questions.
 
 ## Examples
 

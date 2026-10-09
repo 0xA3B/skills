@@ -1,9 +1,9 @@
 # Review checklist
 
 Audit questions for a diff to an instruction file, and for periodic sweeps of a whole file. Each
-question names the rule it applies from `SKILL.md`.
+question names the rule or reference section it applies.
 
-For each changed or added line, ask:
+For each changed or added line, or each line of a swept file, ask:
 
 - [ ] Which failure does this rule prevent? (spend the budget deliberately)
 - [ ] Is the net rule count equal or lower than before? If higher, what was considered for removal?
@@ -53,17 +53,21 @@ For each changed or added line, ask:
 - [ ] If the line ends a step, can the agent tell done from not-done, and does the criterion demand
       enough legwork? (checkable, demanding completion criteria)
 - [ ] Is it placed according to its importance, not appended at the end? (order rules by importance)
+- [ ] Does every bare "this", "it", or "they" have one candidate antecedent, no more than one
+      sentence away? (resolve every pronoun)
 - [ ] If the line adds an example, does one sentence name what makes it correct? (prefer one example
       over three rules)
+- [ ] If several sentences restate one concept, does one compact term carry it, repeated exactly?
+      (anchor repeated concepts with leading words)
 
 For a skill that applies another skill, ask:
 
 - [ ] Does the orchestrating skill own the authority envelope, sequence, stopping conditions, and
       terminal outcome while the supporting skill produces and verifies its artifact, or applies its
-      discipline, within that authority?
+      discipline, within that authority? (composing skills)
 - [ ] Does the orchestrating skill pass inputs and constraints instead of copying the supporting
       skill's guidance? If the supporting skill is optional, does the fallback contain only behavior
-      required to reach a safe terminal outcome?
+      required to reach a safe terminal outcome? (composing skills)
 
 For a skill that bundles a script, ask:
 
