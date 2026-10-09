@@ -5,8 +5,9 @@ layered standard for technical artifacts, and a house style for files that instr
 
 An agent can invoke all three skills implicitly: `prose` when a session composes or edits prose,
 `technical-writing` when it writes or revises technical artifacts, and `agent-instructions` when it
-writes or revises agent-facing instruction files or sub-agent prompts. The skills layer: `prose` is
-the base style, and the other two override it for the artifacts they own.
+writes or revises agent-facing instruction files, the scripts a skill bundles, or sub-agent prompts.
+The skills layer: `prose` is the base style, and the other two override it for the artifacts they
+own.
 
 ## Skills
 

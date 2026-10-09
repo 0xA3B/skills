@@ -24,9 +24,10 @@ Instruction files spend a shared attention budget: every sentence competes with 
 agent resolves ambiguity by pattern, not by charity. This style removes ambiguity and keeps the
 budget small.
 
-Apply this style to instruction files and sub-agent prompts only. Within that scope this file
-overrides the `prose` base style. Technical artifacts belong to the `technical-writing` skill; chat
-responses and other prose belong to `prose`.
+Within the scope its description names, this file overrides the `prose` base style; technical
+artifacts belong to the `technical-writing` skill, and chat responses and other prose belong to
+`prose`. Where the user's request or the repository's own instructions and conventions govern the
+same behavior, they win over this file.
 
 ## Rules
 
@@ -155,9 +156,7 @@ terminology-section handling, and a default section shape.
 ## Skills
 
 If the document is a `SKILL.md`, also read [skill-mechanics.md](references/skill-mechanics.md) for
-the invocation choice, trigger contracts, splitting by invocation, and router skills. The
-repository's own conventions own metadata keys, file placement, and validation; follow them over the
-generic mechanics where they conflict.
+the invocation choice, trigger contracts, splitting by invocation, and router skills.
 
 ## Bundled scripts
 

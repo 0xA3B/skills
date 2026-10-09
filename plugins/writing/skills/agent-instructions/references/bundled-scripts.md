@@ -3,8 +3,7 @@
 What changes when a skill ships executable code: when to bundle a script, the script's contract and
 dependencies, and the instruction that runs it. A bundled script leaves the agent the fewest degrees
 of freedom: the agent runs the bound path instead of assembling it, and only the script's output
-costs context. The repository's own conventions own file placement, permissions, and tests; follow
-them over this file where they conflict.
+costs context.
 
 ## When to bundle
 

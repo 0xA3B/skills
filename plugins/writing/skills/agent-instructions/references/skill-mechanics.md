@@ -2,9 +2,7 @@
 
 What changes when the document is a skill: the invocation choice, the trigger contract, and router
 skills. Everything else about writing the body is the universal guidance in `SKILL.md`,
-[document-mechanics.md](document-mechanics.md), and [line-mechanics.md](line-mechanics.md). The
-repository's own conventions own metadata keys, file placement, versioning, and validation; follow
-them over this file where they conflict.
+[document-mechanics.md](document-mechanics.md), and [line-mechanics.md](line-mechanics.md).
 
 ## Invocation
 
