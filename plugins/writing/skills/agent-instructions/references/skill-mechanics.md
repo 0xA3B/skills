@@ -12,10 +12,9 @@ Two postures, trading the two loads:
 
 - A **model-invoked skill** keeps a model-facing description, so the agent can load it autonomously
   and another skill can direct the model to it. The user keeps reach too — model-invocation adds
-  agent discovery, never removes the human's. The description is the skill's top-level context
-  pointer, always loaded: permanent context load in exchange for discoverability. A model-invoked
-  skill whose content is all reference is also a home for shared reference, because other skills can
-  reach it.
+  agent discovery, never removes the human's. The description is the skill's top-level pointer,
+  always loaded: permanent context load in exchange for discoverability. A model-invoked skill whose
+  content is all reference is also a home for shared reference, because other skills can reach it.
 - A **manual-only skill** is reached only by explicit user invocation. Zero context load, but the
   human is the index that must remember it exists — cognitive load. No other skill can fire it;
   reference a manual-only skill from another document only as a hand off that recommends the

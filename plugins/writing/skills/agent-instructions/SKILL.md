@@ -66,12 +66,13 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    as different things. If a file says "the service" in one rule and "the daemon" in another, split
    or merge until each concept has one name.
 
-6. **Inline what every path needs; disclose the rest.** Keep material every reader of the file needs
-   in the file. Move material only some branches reach into a separate file behind a pointer. If the
-   agent misses a needed reference, sharpen the pointer's wording before inlining the material — the
-   wording, not the target, decides whether the pointer fires. Point to each disclosed file from the
-   entry document, the `SKILL.md` or instruction file the agent loads first. An agent may skip a
-   file reached only through another disclosed file, or read it partway.
+6. **Inline what every branch needs; disclose the rest.** Keep material every branch of the file
+   needs in the file. Move material only some branches reach into a separate file behind a pointer.
+   If the agent misses a needed reference, sharpen the pointer's wording before inlining the
+   material — the wording, not the target, decides whether the pointer fires. Point to each
+   disclosed reference from the entry document, the `SKILL.md` or instruction file the agent loads
+   first. An agent may skip a reference reached only through another disclosed reference, or read it
+   partway.
 
 7. **Write pointers as routing predicates.** A pointer — a skill description or a line naming
    another document — decides when its material is reached. Use the shape "Use when [triggers]. Do
@@ -102,7 +103,7 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 
 12. **End steps on checkable, demanding completion criteria.** Each step ends on the condition that
     tells the agent the work is done. "Every modified model accounted for" forces thorough work;
-    "produce a change list" does not. If the agent finishes a step early, sharpen the bound before
+    "produce a change list" does not. If premature completion appears, sharpen the criterion before
     restructuring the workflow.
 
 13. **Order rules by importance.** Boundaries and safety rules first, workflow rules next, style
@@ -112,10 +113,10 @@ Ordered by importance. When rules conflict, the earlier rule wins.
     antecedent is more than one sentence away or when two candidates exist.
 
 15. **Prefer one example over three rules.** For anything format-sensitive — commit messages, file
-    layouts, output shapes — show one correct example and, when the wrong shape is common, one
-    labeled counter-example. Follow the correct example with one sentence naming what makes it
-    correct, so the agent copies those features and not incidental ones. Agents imitate examples
-    more reliably than they apply rules.
+    layouts, output shapes — show one correct example and, when the agent produces the wrong shape
+    by default, one labeled counter-example. Follow the correct example with one sentence naming
+    what makes it correct, so the agent copies those features and not incidental ones. Agents
+    imitate examples more reliably than they apply rules.
 
 16. **Anchor repeated concepts with leading words.** When several sentences restate one concept,
     collapse them into a compact term, one the model already holds when one exists (tracer bullet,
@@ -136,7 +137,7 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 
 When you create a document, split or merge documents, move material between files, or decide what
 stays always-loaded, read [document-mechanics.md](references/document-mechanics.md) for the two
-loads, context pointers, the information hierarchy, derived instruction copies, and splitting.
+loads, pointers, the information hierarchy, derived instruction copies, and splitting.
 
 ## Line decisions
 
@@ -173,11 +174,11 @@ rules in place of clarification.
 
 ## Review
 
-When auditing a diff to an instruction file, or sweeping a whole file for sediment, work through
-[review-checklist.md](references/review-checklist.md). Instruction files grow by accretion, and
-every existing rule must keep earning its place. Treat the audit as done when every changed line has
-answered its checklist questions, and the file's net rule count is equal or lower — or each addition
-named the failure it prevents.
+When auditing a diff to an instruction file, or sweeping a whole file for stale or redundant lines,
+work through [review-checklist.md](references/review-checklist.md). Instruction files grow by
+accretion, and every existing rule must keep earning its place. Treat the audit as done when every
+changed line has answered its checklist questions, and the file's net rule count is equal or lower —
+or each addition named the failure it prevents.
 
 ## Examples
 

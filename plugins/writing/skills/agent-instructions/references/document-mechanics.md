@@ -1,6 +1,6 @@
 # Document mechanics
 
-Structural mechanics for documents agents consume: the two loads, context pointers, the information
+Structural mechanics for documents agents consume: the two loads, pointers, the information
 hierarchy, derived instruction copies, and splitting. Read this file when creating a document,
 splitting or merging documents, moving material between files, or deciding what stays always-loaded.
 The sentence-level rules live in `SKILL.md`, and [line-mechanics.md](line-mechanics.md) owns the
@@ -20,16 +20,15 @@ Every document and pointer spends one of two budgets:
 Material reached only through a pointer escapes context load at the price of the pointer's own line.
 Material with no pointer at all rides entirely on cognitive load.
 
-## Context pointers
+## Pointers
 
-A **context pointer** is wording held in context that names out-of-context material and states when
-to read it. A skill description is one; a line in `AGENTS.md` naming a document is the same object.
-The pointer's wording, not its target, decides when the agent reaches the material — and how
-reliably.
+A pointer is held in context and names material outside it. A skill description is one; a line in
+`AGENTS.md` naming a document is the same object. The pointer's wording, not its target, decides
+when the agent reaches the material — and how reliably.
 
 A pointer does two jobs: state what the material is, and list the **branches** that should trigger
-reading it (a branch is a distinct case the document handles, so different runs take different paths
-through it). An always-loaded pointer earns harder pruning than the body it points to:
+reading it (a branch is a distinct case the document handles, so different runs take different
+branches through it). An always-loaded pointer earns harder pruning than the body it points to:
 
 - Front-load the leading word; the pointer is where it does its triggering work.
 - Keep one trigger per branch. Synonyms that rename a single branch are one branch written twice;
@@ -45,8 +44,8 @@ ranked by how immediately the agent needs it:
 1. **In-file step** — the primary tier: what the agent does, in order.
 2. **In-file reference** — consulted on demand. A flat peer set (every rule of a review on one rung)
    is a fine arrangement, not a smell.
-3. **Disclosed reference** — a separate file reached through a context pointer, loaded only when the
-   pointer fires.
+3. **Disclosed reference** — a separate file reached through a pointer, loaded only when the pointer
+   fires.
 
 Push too little down and the top bloats; push too much and needed material hides. Branching is the
 cleanest test: inline what every branch needs, and disclose what only some branches reach. When a
@@ -60,7 +59,7 @@ different failures, same cure in a one-source-of-truth pass.
 
 **Sprawl** is a document too long even when every line is live and unique. Attention thins across
 the excess. Cure sprawl with the ladder: disclose reference behind pointers, and split by branch or
-sequence so each path carries only what it needs.
+sequence so each branch carries only what it needs.
 
 ## Derived instruction copies
 
@@ -81,10 +80,10 @@ truth:
 Splitting one document into two spends one of the two loads, so split only when the cut earns it:
 
 - **By sequence** — split a run of steps only when a step's completion criterion stays fuzzy after
-  sharpening and you observe the agent rushing it toward the visible later steps. Hiding works only
-  across a real context boundary, a hand off or a sub-agent dispatch; an inline reference leaves the
-  later steps in context and clears nothing. Merging sequences has the reverse cost: it exposes each
-  step to what follows.
+  sharpening and you observe premature completion on it. Hiding works only across a real context
+  boundary, a hand off or a sub-agent dispatch; an inline reference leaves the later steps in
+  context and clears nothing. Merging sequences has the reverse cost: it exposes each step to what
+  follows.
 - **By invocation** — skill-specific; see [skill-mechanics.md](skill-mechanics.md).
 - **By length** — keep a disclosed reference under 100 lines. Agents often read a long file in a
   preview or in chunks, such as its first 80 or 240 lines, and act on the part they saw. When a

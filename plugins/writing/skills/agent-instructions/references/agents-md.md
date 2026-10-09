@@ -19,8 +19,8 @@ the material governs:
    pointer: it fires on any work in the subtree with no wording to sharpen, and it cannot fire
    outside the subtree. Judge placement by where the work happens, not where the topic's files sit —
    material a session needs while working elsewhere in the repository does not belong on this rung.
-3. **Disclosed reference** — a plain file behind a context pointer, for material scoped to a task
-   rather than a place. The pointer rules apply in full.
+3. **Disclosed reference** — a plain file behind a pointer, for material scoped to a task rather
+   than a place. The pointer rules apply in full.
 
 Terminology shows the ladder's use: a term anchors shared language only while it is loaded, so its
 rung decides its reach. Keep terms the whole repository speaks in the root file; move terms spoken

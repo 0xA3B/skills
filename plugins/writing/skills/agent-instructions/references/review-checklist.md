@@ -31,9 +31,10 @@ For each changed or added line, ask:
       governing instruction use it? (derived instruction copies)
 - [ ] Does it introduce a second name for an existing concept? (one term per concept)
 - [ ] Does every branch of the document need this line, or does it belong behind a pointer? (inline
-      what every path needs)
-- [ ] If the line points to a disclosed file, does the entry document point to that file too, so no
-      file is reached only through another disclosed file? (inline what every path needs)
+      what every branch needs)
+- [ ] If the line points to a disclosed reference, does the entry document point to that reference
+      too, so no reference is reached only through another disclosed reference? (inline what every
+      branch needs)
 - [ ] If the change leaves a disclosed reference over 100 lines, was it trimmed, split along
       distinct branches with a pointer to each part from the entry document, or opened with a
       contents list? (splitting by length)
@@ -49,7 +50,7 @@ For each changed or added line, ask:
       meaning of an evaluative term? (make every rule auditable)
 - [ ] Does the rule name evidence or a terminal state that verifies compliance from the diff,
       command output, or resulting state? (make every rule auditable)
-- [ ] If the line ends a step, can the agent tell done from not-done, and does the bound demand
+- [ ] If the line ends a step, can the agent tell done from not-done, and does the criterion demand
       enough legwork? (checkable, demanding completion criteria)
 - [ ] Is it placed according to its importance, not appended at the end? (order rules by importance)
 - [ ] If the line adds an example, does one sentence name what makes it correct? (prefer one example

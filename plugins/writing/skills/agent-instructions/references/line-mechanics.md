@@ -34,8 +34,8 @@ Form carries meaning for an agent; choose the form that encodes the intent:
   prose.
 - Make every command block run as pasted: mark placeholders in one consistent form and define each
   near its first use. The agent executes commands verbatim.
-- Write timeless text. "Currently", "new", and references to the change that introduced a rule are
-  sediment the moment they land.
+- Write timeless text. "Currently", "new", and references to the change that introduced a rule go
+  stale the moment they land.
 
 ## Leading words
 
