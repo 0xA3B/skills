@@ -100,6 +100,11 @@ Splitting one document into two spends one of the two loads, so split only when 
 - **By sequence** — split a run of steps where the visible later steps tempt the agent to rush the
   current one. Merging sequences has the reverse cost: it exposes each step to what follows.
 - **By invocation** — skill-specific; see [skill-mechanics.md](skill-mechanics.md).
+- **By length** — keep a disclosed reference under 100 lines. Agents often read a long file in a
+  preview or in chunks, such as its first 80 or 240 lines, and act on the part they saw. When a
+  reference runs longer, trim it first. If it still runs longer and its parts serve distinct
+  branches, split it along them and point to each part from the entry document. If every reader
+  needs the whole file, open it with a contents list that names its sections in heading order.
 
 ## Formatting
 

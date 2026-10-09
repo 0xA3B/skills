@@ -34,6 +34,9 @@ For each changed or added line, ask:
       what every path needs)
 - [ ] If the line points to a disclosed file, does the entry document point to that file too, so no
       file is reached only through another disclosed file? (inline what every path needs)
+- [ ] If the change leaves a disclosed reference over 100 lines, was it trimmed, split along
+      distinct branches with a pointer to each part from the entry document, or opened with a
+      contents list? (splitting by length)
 - [ ] If the line is a pointer, does its wording name the triggers and exclusions? (pointers as
       routing predicates)
 - [ ] Is the actor named and the verb imperative? (imperatives with a named actor)
