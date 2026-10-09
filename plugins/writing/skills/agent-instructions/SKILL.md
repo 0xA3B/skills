@@ -32,14 +32,7 @@ responses and other prose belong to `prose`.
 
 Ordered by importance. When rules conflict, the earlier rule wins.
 
-1. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding a
-   rule, name the failure it prevents; if you cannot, do not add it. Delete rules that tooling
-   already enforces (linters, hooks, CI). The environment is a source of truth too: a rule that
-   restates `package.json` scripts, config files, or the directory layout is a cache of a cheap
-   lookup, and it goes stale. Cache only what no file confesses — the unwritten convention, the
-   reason behind a choice, the gotcha.
-
-2. **Set degrees of freedom by the cost of a wrong path.** Completion criteria bind every step's
+1. **Set degrees of freedom by the cost of a wrong path.** Completion criteria bind every step's
    outcome. This rule decides how tightly to bind the path to it. A path is fragile when a wrong
    turn would cross an authority boundary, change state outside the run, or fail silently behind a
    passing status. A path is also fragile when an observed run already took a wrong turn on it. For
@@ -48,12 +41,19 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    independent steps or recovery from a transient error. A wrong turn on those paths fails loudly,
    and the agent can recover from it.
 
-3. **Name the stops.** Name each point where the agent stops for the user: an irreversible or
+2. **Name the stops.** Name each point where the agent stops for the user: an irreversible or
    outward-facing action the request has not authorized, or a decision only the user can make. Place
    each stop after the reversible work that makes the decision concrete, so the user approves a
    reviewable result rather than a plan. State the actions the workflow authorizes, so the agent
    does not stop to ask for them. Between named stops, the agent carries the work through to its
    completion criterion.
+
+3. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding a
+   rule, name the failure it prevents; if you cannot, do not add it. Delete rules that tooling
+   already enforces (linters, hooks, CI). The environment is a source of truth too: a rule that
+   restates `package.json` scripts, config files, the directory layout, or `--help` output is a
+   cache of a cheap lookup, and it goes stale. Cache only what no file confesses — the unwritten
+   convention, the reason behind a choice, the gotcha.
 
 4. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
    changing the behavior is a one-place edit. A meaning stated twice costs double maintenance and

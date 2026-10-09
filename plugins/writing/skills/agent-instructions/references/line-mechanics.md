@@ -65,10 +65,6 @@ you believe in" → the loop goes _red_ on the bug, or it does not).
   maintenance and tokens, and inflates the meaning's apparent rank. When a delivery boundary
   requires a copy, apply the derived-instruction rules in
   [document-mechanics.md](document-mechanics.md) instead of treating the copy as a peer authority.
-- The **environment** is a source of truth too — `package.json` scripts, config files, the directory
-  layout, `--help` output. A document that restates it is a **cache**: a copy of a lookup, earning
-  its load only when the lookup is expensive. Cache what the agent cannot find by looking; leave
-  one-file lookups to the environment, where they cannot go stale.
 - Check every line for **relevance**: does it still bear on what the document does? A line loses
   relevance by never bearing on the task or by going stale as the world changes. Without a pruning
   discipline the default fate is **sediment**: stale layers that settle because adding feels safe
