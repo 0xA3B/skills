@@ -76,9 +76,10 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    partway.
 
 7. **Write pointers as routing predicates.** A pointer — a skill description or a line naming
-   another document — decides when its material is reached. Use the shape "Use when [triggers]. Do
-   not use for [exclusions]." Name concrete artifacts and verbs, not topics, and keep one trigger
-   per distinct branch.
+   another document — decides when its material is reached. Write its triggers in the shape "Use
+   when [triggers]", and add "Do not use for [exclusions]" where a sibling pointer or skill should
+   take a request this one also matches. Name concrete artifacts and verbs, not topics, and keep one
+   trigger per distinct branch.
 
 8. **Write imperatives with a named actor.** "Run `make test` before you commit", not "tests should
    be run". Passive voice hides who acts and when the rule fires.
@@ -156,7 +157,8 @@ terminology-section handling, and a default section shape.
 ## Skills
 
 If the document is a `SKILL.md`, also read [skill-mechanics.md](references/skill-mechanics.md) for
-the invocation choice, trigger contracts, splitting by invocation, and router skills.
+the invocation choice, composing skills, trigger contracts, splitting by mode and by invocation, and
+router skills.
 
 ## Bundled scripts
 
@@ -168,8 +170,8 @@ contract and dependencies, and the instruction that runs it.
 
 If the document is a prompt for a sub-agent — a one-shot task dispatch rather than a durable file —
 read [subagent-prompts.md](references/subagent-prompts.md) for what changes when the instructions
-live for a single dispatch: the context the prompt must carry, the return contract, and decision
-rules in place of clarification.
+live for a single dispatch: the context the prompt must carry, the return contract, decision rules
+in place of clarification, and parallel dispatches.
 
 ## Review
 

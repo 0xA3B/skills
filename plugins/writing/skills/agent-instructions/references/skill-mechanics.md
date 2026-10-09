@@ -1,8 +1,9 @@
 # Skill mechanics
 
-What changes when the document is a skill: the invocation choice, the trigger contract, and router
-skills. Everything else about writing the body is the universal guidance in `SKILL.md`,
-[document-mechanics.md](document-mechanics.md), and [line-mechanics.md](line-mechanics.md).
+What changes when the document is a skill: the invocation choice, composing skills, the trigger
+contract, splitting by mode and by invocation, and router skills. Everything else about writing the
+body is the universal guidance in `SKILL.md`, [document-mechanics.md](document-mechanics.md), and
+[line-mechanics.md](line-mechanics.md).
 
 ## Invocation
 
