@@ -135,11 +135,6 @@ Hunt for passages a leading word can retire: a triad spelled out at three sites 
 deterministic, low-overhead" → a _tight_ loop), a fuzzy gate that becomes a binary state ("a loop
 you believe in" → the loop goes _red_ on the bug, or it does not).
 
-**Negation** is the failure mode beside this lever: steering by prohibition drags the forbidden
-behavior into context and makes it more available, not less. State the positive target so the banned
-behavior is never spoken. A prohibition earns its place only as a hard guardrail you cannot phrase
-positively — and even then, pair it with the positive target.
-
 ## Pruning
 
 - Keep each meaning in a **single source of truth**: one authoritative home, so changing the
@@ -156,11 +151,12 @@ positively — and even then, pair it with the positive target.
   discipline the default fate is **sediment**: stale layers that settle because adding feels safe
   and removing feels risky.
 - Hunt **no-ops** sentence by sentence: an instruction the model already obeys by default pays load
-  to say nothing. The test — does it change behavior versus the default? — is model-relative: two
-  people disagreeing about a no-op disagree about the default, and settle it by running the
-  document, not by debate. When a sentence fails, delete the whole sentence. The same test grades
-  leading words: a word too weak to beat the default is a no-op, and the fix is a stronger word, not
-  a different technique.
+  to say nothing. The test — does it move behavior from the default toward the target? — is
+  model-relative: two people disagreeing about a no-op disagree about the default, and settle it by
+  running the document, not by debate. A rule that pushes the same way as the default fails the test
+  by overshooting, as a reminder to test does on a model that already tests. When a sentence fails,
+  delete the whole sentence. The same test grades leading words: a word too weak to beat the default
+  is a no-op, and the fix is a stronger word, not a different technique.
 - The exception is an **anchor rule**: a rule the model would follow by default that still settles a
   recurring question or documents a convention reviews hold changes against. Judge deletions by
   "does this settle a question that recurs?", not only "would the model comply without it?".

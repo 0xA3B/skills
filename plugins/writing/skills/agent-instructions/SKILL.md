@@ -17,6 +17,9 @@ metadata:
   original_author: Alex Baker
   mechanics_adapted_from: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/productivity/writing-for-agents
   upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
+  upstream_divergence: >-
+    allows a prohibition that names a specific default pattern with its replacement, and drops the
+    claim that naming a behavior makes it more available; upstream allows only a hard guardrail
 ---
 
 # Agent instructions
@@ -82,10 +85,14 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    not "Create a branch first if the branch is `main`". The condition scopes the action before the
    action is read.
 
-10. **Frame rules positively.** State the behavior you want; naming forbidden behavior makes it more
-    available, and the prohibition half-reads as an instruction to do the thing. When you must
-    prohibit, state the replacement: "Use the `logger` module for output; `print` is allowed only in
-    `scripts/`", not "Do not use print statements".
+10. **State the target and when it applies.** Write the behavior you want with its condition: "Use a
+    list when the items are parallel", not "Avoid bullet points". A rule written to push against one
+    model's default overshoots when the default moves. Defaults also differ between models: one
+    under-formats where another over-formats. Let the condition carry the force instead of capitals
+    or words like "critical" and "important". Prohibit only a specific pattern the agent produces by
+    default, and name the replacement: "Use the `logger` module for output; `print` is allowed only
+    in `scripts/`", not "Do not use print statements". A vague prohibition such as "avoid a generic
+    look" trades one default for another.
 
 11. **Make every rule auditable.** Name the condition, actor, action, and observable evidence or
     terminal state. A reviewer must be able to determine which branch applies and verify compliance

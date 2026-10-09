@@ -34,7 +34,10 @@ For each changed or added line, ask:
       routing predicates)
 - [ ] Is the actor named and the verb imperative? (imperatives with a named actor)
 - [ ] If conditional, does the condition come first? (condition before instruction)
-- [ ] If it prohibits, does it state the replacement behavior? (frame rules positively)
+- [ ] Does the line state the behavior it wants and when it applies, with no capitals or intensity
+      words carrying the force? (state the target and when it applies)
+- [ ] If it prohibits, does it name a specific pattern the agent produces by default, and the
+      replacement? (state the target and when it applies)
 - [ ] Can the agent determine which branch applies from observable conditions without inventing the
       meaning of an evaluative term? (make every rule auditable)
 - [ ] Does the rule name evidence or a terminal state that verifies compliance from the diff,
