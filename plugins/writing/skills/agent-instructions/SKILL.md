@@ -73,7 +73,9 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 6. **Inline what every path needs; disclose the rest.** Keep material every reader of the file needs
    in the file. Move material only some branches reach into a separate file behind a pointer. If the
    agent misses a needed reference, sharpen the pointer's wording before inlining the material — the
-   wording, not the target, decides whether the pointer fires.
+   wording, not the target, decides whether the pointer fires. Point to each disclosed file from the
+   entry document, the `SKILL.md` or instruction file the agent loads first. An agent may skip a
+   file reached only through another disclosed file, or read it partway.
 
 7. **Write pointers as routing predicates.** A pointer — a skill description or a line naming
    another document — decides when its material is reached. Use the shape "Use when [triggers]. Do
