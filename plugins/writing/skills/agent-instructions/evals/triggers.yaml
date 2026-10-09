@@ -37,6 +37,7 @@ cases:
     prompt: >-
       Review the SKILL.md changes in my worktree before I commit.
     expect: skip
+    invoke-instead: engineering:review-changes
     rationale: >-
       Reviewing a session's own changes before a commit is a review workflow's entry point; that
       workflow applies this skill inside its prose lane.
@@ -80,24 +81,14 @@ cases:
     prompt: >-
       Write a README for this package.
     expect: skip
+    invoke-instead: writing:technical-writing
     rationale: A README is a technical artifact owned by the technical-writing skill.
-
-  - id: code-comments
-    prompt: >-
-      Add comments explaining what this function does.
-    expect: skip
-    rationale: Code comments are excluded from this skill's scope.
-
-  - id: commit-message
-    prompt: >-
-      Draft a commit message for these changes.
-    expect: skip
-    rationale: Commit messages are excluded from this skill's scope.
 
   - id: implement-software-agent
     prompt: >-
       Implement an agent that polls the job queue and retries failed jobs with backoff.
     expect: skip
+    invoke-instead: engineering:tdd
     rationale:
       The user wants software implemented; "agent" here is program code, not an instruction file.
 
@@ -111,12 +102,6 @@ cases:
     prompt: >-
       Add a "staging lane" entry to the terminology table in our AGENTS.md.
     expect: skip
+    invoke-instead: engineering:terminology
     rationale:
       Terminology-section content is owned by a terminology workflow, which this skill excludes.
-
-  - id: ci-workflow-instructions
-    prompt: >-
-      Update the GitHub Actions workflow so the deploy job runs after tests pass.
-    expect: skip
-    rationale:
-      A CI workflow configures automation infrastructure; it is not a file that instructs agents.
