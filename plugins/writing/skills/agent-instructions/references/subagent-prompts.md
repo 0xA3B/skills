@@ -1,13 +1,11 @@
 # Sub-agent prompts
 
-A sub-agent prompt is instructions with a one-dispatch lifetime. The house style in `SKILL.md` still
-applies — imperatives with a named actor, conditions before instructions, targets stated with when
-they apply, testable rules, one example over three rules, resolved pronouns — but the structural
-mechanics and pruning do not: there is nothing to prune, no disclosure hierarchy, and no second
-reader to keep a source of truth for. What replaces them is the dispatch boundary. By default a
-sub-agent starts with an empty context, cannot ask a follow-up question, and reports back through a
-single final message. Every rule in this file exists because one of those three facts makes an
-otherwise-fine prompt fail.
+A sub-agent prompt is instructions with a one-dispatch lifetime. The rules in `SKILL.md` still
+apply. The document mechanics do not: a prompt that lives for one dispatch has nothing to prune, no
+disclosure hierarchy, and no second copy to keep in sync. What replaces them is the dispatch
+boundary. By default a sub-agent starts with an empty context, cannot ask a follow-up question, and
+reports back through a single final message. Every rule in this file exists because one of those
+three facts makes an otherwise-fine prompt fail.
 
 Some harnesses can instead fork the parent conversation into the sub-agent. When the dispatch is a
 fork, the sub-agent already holds the session context: skip the context-carrying rules below and

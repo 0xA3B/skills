@@ -25,8 +25,7 @@ Material with no pointer at all rides entirely on cognitive load.
 A **context pointer** is wording held in context that names out-of-context material and states when
 to read it. A skill description is one; a line in `AGENTS.md` naming a document is the same object.
 The pointer's wording, not its target, decides when the agent reaches the material — and how
-reliably. A must-read target behind a weakly worded pointer is a variance bug: sharpen the wording
-first, and inline the material only if sharpening fails.
+reliably.
 
 A pointer does two jobs: state what the material is, and list the **branches** that should trigger
 reading it (a branch is a distinct case the document handles, so different runs take different paths
@@ -57,7 +56,7 @@ them a coin flip.
 **Co-location** decides what sits beside a piece once its rung is chosen: keep a concept's
 definition, rules, and caveats under one heading, so reading one part brings its neighbors.
 Scattering fragments one meaning across many places; duplication repeats one meaning in two places —
-different failures, same cure in a one-home-per-meaning pass.
+different failures, same cure in a one-source-of-truth pass.
 
 **Sprawl** is a document too long even when every line is live and unique. Attention thins across
 the excess. Cure sprawl with the ladder: disclose reference behind pointers, and split by branch or
@@ -81,8 +80,11 @@ truth:
 
 Splitting one document into two spends one of the two loads, so split only when the cut earns it:
 
-- **By sequence** — split a run of steps where the visible later steps tempt the agent to rush the
-  current one. Merging sequences has the reverse cost: it exposes each step to what follows.
+- **By sequence** — split a run of steps only when a step's completion criterion stays fuzzy after
+  sharpening and you observe the agent rushing it toward the visible later steps. Hiding works only
+  across a real context boundary, a hand off or a sub-agent dispatch; an inline reference leaves the
+  later steps in context and clears nothing. Merging sequences has the reverse cost: it exposes each
+  step to what follows.
 - **By invocation** — skill-specific; see [skill-mechanics.md](skill-mechanics.md).
 - **By length** — keep a disclosed reference under 100 lines. Agents often read a long file in a
   preview or in chunks, such as its first 80 or 240 lines, and act on the part they saw. When a

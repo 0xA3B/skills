@@ -45,13 +45,8 @@ workflow's safe terminal outcome; do not duplicate the supporting skill's comple
 ## Trigger contracts
 
 The description of a model-invoked skill is the trigger contract that decides when it fires. Apply
-the pointer rules from `SKILL.md` and document-mechanics in full:
-
-- Use the routing-predicate shape: "Use when [triggers]. Do not use for [exclusions]." Name concrete
-  artifacts and verbs, not topics.
-- Keep one trigger per distinct branch; collapse synonyms that rename a single branch.
-- Front-load the leading words your prompts actually use.
-- Cut identity the body already carries.
+the pointer rules from `SKILL.md` and document-mechanics in full, and front-load the leading words
+your prompts actually use.
 
 When the repository has trigger tooling, validate positive and negative cases on every supported
 agent before treating a description change as done.

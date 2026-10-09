@@ -100,10 +100,10 @@ Ordered by importance. When rules conflict, the earlier rule wins.
     replace an undefined judgment with an observable predicate or a named user decision; a path that
     degrees of freedom leaves to the agent needs no predicate beyond its completion criterion.
 
-12. **End steps on checkable, demanding completion criteria.** For workflow documents, each step
-    ends on the condition that tells the agent the work is done. "Every modified model accounted
-    for" forces thorough work; "produce a change list" does not. If the agent finishes a step early,
-    sharpen the bound before restructuring the workflow.
+12. **End steps on checkable, demanding completion criteria.** Each step ends on the condition that
+    tells the agent the work is done. "Every modified model accounted for" forces thorough work;
+    "produce a change list" does not. If the agent finishes a step early, sharpen the bound before
+    restructuring the workflow.
 
 13. **Order rules by importance.** Boundaries and safety rules first, workflow rules next, style
     preferences last. Early rules get more weight than late ones.
@@ -118,9 +118,9 @@ Ordered by importance. When rules conflict, the earlier rule wins.
     more reliably than they apply rules.
 
 16. **Anchor repeated concepts with leading words.** When several sentences restate one concept,
-    collapse them into a compact term the model already holds (tracer bullet, tight loop, frontier)
-    and repeat the term exactly. A word too weak to change behavior is a no-op; choose a stronger
-    word, not more sentences.
+    collapse them into a compact term, one the model already holds when one exists (tracer bullet,
+    tight loop, frontier), and repeat the term exactly. A word too weak to change behavior is a
+    no-op; choose a stronger word, not more sentences.
 
 ## What not to optimize or remove
 
