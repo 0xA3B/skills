@@ -139,9 +139,15 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 ## Structural decisions
 
 When you create a document, split or merge documents, move material between files, or decide what
-stays always-loaded, read [document-mechanics.md](references/document-mechanics.md) for the
-mechanics: the two loads, the information hierarchy, completion criteria, splitting, leading words,
-and pruning.
+stays always-loaded, read [document-mechanics.md](references/document-mechanics.md) for the two
+loads, context pointers, the information hierarchy, derived instruction copies, and splitting.
+
+## Line decisions
+
+When you write a workflow's steps, choose the form of a list, table, heading, or command block,
+anchor a repeated concept, or sweep a document for lines to cut, read
+[line-mechanics.md](references/line-mechanics.md) for completion criteria, formatting, leading
+words, and pruning.
 
 ## Repository instruction files
 

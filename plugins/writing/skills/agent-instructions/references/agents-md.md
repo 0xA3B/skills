@@ -3,8 +3,8 @@
 What changes when the document is a repository instruction file — an `AGENTS.md` or `CLAUDE.md`:
 loading is scope-driven, not trigger-driven. The harness decides when the file loads from where it
 sits, so placement does the work that pointer wording does for other reference. Everything else
-about writing the file is the universal guidance in `SKILL.md` and
-[document-mechanics.md](document-mechanics.md).
+about writing the file is the universal guidance in `SKILL.md`,
+[document-mechanics.md](document-mechanics.md), and [line-mechanics.md](line-mechanics.md).
 
 ## The scope ladder
 

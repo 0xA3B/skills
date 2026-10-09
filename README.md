@@ -160,7 +160,7 @@ repository rather than on a user's project.
 ### `writing`
 
 These skills govern the prose agents produce, from chat responses to documentation to instruction
-files. The document-mechanics guidance comes from Matt Pocock's MIT-licensed
+files. The document-mechanics and line-mechanics guidance comes from Matt Pocock's MIT-licensed
 [`mattpocock/skills`](https://github.com/mattpocock/skills) repository, and the slop-pattern catalog
 and document-mode layers are adapted from Cursor's
 [`cursor/plugins`](https://github.com/cursor/plugins) repository, with attribution recorded in each
