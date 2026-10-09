@@ -72,10 +72,9 @@ you believe in" → the loop goes _red_ on the bug, or it does not).
 - Hunt **no-ops** sentence by sentence: an instruction the model already obeys by default pays load
   to say nothing. The test — does it move behavior from the default toward the target? — is
   model-relative: two people disagreeing about a no-op disagree about the default, and settle it by
-  running the document, not by debate. A rule that pushes the same way as the default fails the test
-  by overshooting, as a reminder to test does on a model that already tests. When a sentence fails,
-  delete the whole sentence. The same test grades leading words: a word too weak to beat the default
-  is a no-op, and the fix is a stronger word, not a different technique.
+  running the document, not by debate. When a sentence fails, delete the whole sentence. The same
+  test grades leading words: a word too weak to beat the default is a no-op, and the fix is a
+  stronger word, not a different technique.
 - The exception is an **anchor rule**: a rule the model would follow by default that still settles a
   recurring question or documents a convention reviews hold changes against. Judge deletions by
   "does this settle a question that recurs?", not only "would the model comply without it?".
