@@ -20,6 +20,8 @@ For each changed or added line, ask:
       authorizing the action do? (name the stops)
 - [ ] Does the line state a meaning that already has a home elsewhere in the file, its references,
       another skill, or an authoritative source? (one source of truth per meaning)
+- [ ] If the user's request, repository instructions, or another skill can govern the same behavior,
+      does the document state which one wins? (one source of truth per meaning)
 - [ ] If a target cannot load the authoritative source, does the derived artifact or its closest
       governing instruction file name that source and the target constraint, and does the copy
       contain only behavior whose trigger can occur on the target? (derived instruction copies)

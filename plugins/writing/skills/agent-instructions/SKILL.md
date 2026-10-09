@@ -62,7 +62,9 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 4. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
    changing the behavior is a one-place edit. A meaning stated twice costs double maintenance and
    reads as twice as important. Repeat terms; never repeat definitions. When a delivery boundary
-   requires a copy, keep one source authoritative and govern the copy as a derived artifact.
+   requires a copy, keep one source authoritative and govern the copy as a derived artifact. When
+   another instruction source can govern the same behavior — the user's request, repository
+   instructions, another skill — state which one wins.
 
 5. **Use one term per concept.** Pick one name for each thing and repeat it exactly. Synonyms read
    as different things. If a file says "the service" in one rule and "the daemon" in another, split
