@@ -45,6 +45,9 @@ The final message is the only channel back; work not reported is work lost.
 - Say what the sub-agent must return: the format, the fields, and the granularity. "Return a list of
   findings, each with file, line, and a one-sentence defect statement" is a contract; "report back"
   is not.
+- Ask for the evidence behind each result and, where it helps, a short explanation, instead of the
+  sub-agent's reasoning written out. Claude models can decline a prompt that asks them to reproduce
+  their reasoning.
 - Say what to leave out of the report when the raw material is large — file dumps, full logs,
   intermediate steps — so the answer survives the trip.
 - For machine-consumed results, show the exact output shape once as an example rather than
