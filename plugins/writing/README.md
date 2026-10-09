@@ -18,7 +18,7 @@ the base style, and the other two override it for the artifacts they own.
   collaborative comments.
 - `agent-instructions`: House style and document mechanics for files and prompts that instruct
   agents — `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, agent definitions, system-prompt fragments, and
-  sub-agent task prompts.
+  sub-agent task prompts — and for the scripts a skill bundles.
 
 ## Prose output style
 

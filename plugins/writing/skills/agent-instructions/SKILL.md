@@ -136,6 +136,12 @@ the invocation choice, trigger contracts, splitting by invocation, and router sk
 repository's own conventions own metadata keys, file placement, and validation; follow them over the
 generic mechanics where they conflict.
 
+## Bundled scripts
+
+If a skill bundles a script, or a fragile path takes several commands, parsing, or timing, read
+[bundled-scripts.md](references/bundled-scripts.md) for when to bundle a script, the script's
+contract and dependencies, and the instruction that runs it.
+
 ## Sub-agent prompts
 
 If the document is a prompt for a sub-agent — a one-shot task dispatch rather than a durable file —

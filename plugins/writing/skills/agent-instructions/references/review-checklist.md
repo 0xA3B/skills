@@ -48,6 +48,17 @@ For a skill that applies another skill, ask:
       skill's guidance? If the supporting skill is optional, does the fallback contain only behavior
       required to reach a safe terminal outcome?
 
+For a skill that bundles a script, ask:
+
+- [ ] Does each pointer state the script's mode, and does each run instruction give the command
+      line, the run's needs, the missing-dependency route, and the next step for every outcome?
+      (bundled scripts)
+- [ ] Does the script give every outcome that changes the workflow's next step its own exit code,
+      keep errors apart from negative results, and give each default its reason? (bundled scripts)
+- [ ] Does the script add a dependency beyond the common tools only when the workflow requires it or
+      no common tool fits, declare each one, and check each declared tool at its start? (bundled
+      scripts)
+
 For each deleted or removal-candidate line, ask:
 
 - [ ] Is the behavior it required now enforced by tooling, or covered by another rule? Name which.

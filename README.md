@@ -175,7 +175,8 @@ skill's Agent Skills frontmatter metadata.
   change descriptions, issue and ticket descriptions, and collaborative comments.
 - [`writing:agent-instructions`](./plugins/writing/skills/agent-instructions/): House style and
   document mechanics for files and prompts that instruct agents — `AGENTS.md`, `CLAUDE.md`,
-  `SKILL.md`, agent definitions, system-prompt fragments, and sub-agent task prompts.
+  `SKILL.md`, agent definitions, system-prompt fragments, and sub-agent task prompts — and for the
+  scripts a skill bundles.
 
 The writing plugin also ships a `prose` output style for Claude Code that applies the `prose`
 skill's chat-response guidance from the system prompt on every turn. For chat apps without access to
