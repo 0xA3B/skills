@@ -73,6 +73,7 @@ cases:
     prompt: >-
       Tighten our AGENTS.md; it has grown bloated and agents miss the important rules.
     expect: skip
+    invoke-instead: writing:agent-instructions
     rationale:
       General instruction-file editing is owned by an instruction-writing skill, not terminology.
 
