@@ -19,8 +19,8 @@ Two postures, trading the two loads:
   reference a manual-only skill from another document only as a hand off that recommends the
   explicit invocation.
 
-Pick model-invocation only when the agent must reach the skill on its own, or another skill must. If
-a skill only ever fires by hand, make it manual-only and pay no context load.
+If neither the agent nor another skill must reach a skill on its own, make it manual-only and pay no
+context load; otherwise make it model-invoked.
 
 Shared reference that two manual-only skills both need can live in neither: push it to a plain file
 outside the skill system that both point at.
@@ -37,40 +37,38 @@ axis:
 
 Pass the supporting skill the task inputs, repository constraints, and required outcome. Point to
 its instructions instead of copying them into the orchestrating skill. If the supporting skill may
-be absent, either stop with a hand off or keep only the fallback behavior required to reach the
-workflow's safe terminal outcome; do not duplicate the supporting skill's complete guidance.
+be absent, either stop with a hand off or keep only the fallback behavior required to reach one of
+the workflow's terminal outcomes.
 
 ## Trigger contracts
 
 The description of a model-invoked skill is the trigger contract that decides when it fires. Apply
-the pointer rules from `SKILL.md` and document-mechanics in full, and front-load the leading words
-your prompts actually use.
+the pointer rules from `SKILL.md` and document-mechanics in full, and front-load the words users
+type when they ask for the skill's work.
 
-When the repository has trigger tooling, validate positive and negative cases on every supported
-agent before treating a description change as done.
+When the repository has trigger tooling, run the skill's positive and negative trigger cases on
+every supported agent, and treat a description change as done when every case passes.
 
 ## Splitting by mode
 
-When a skill runs one of several mutually exclusive workflows per invocation — create vs update vs
-review — each mode's steps, formats, and final-response shape are conditional detail: only one mode
-is live in any run. Move each mode into its own reference file, keep the rules every mode shares in
-`SKILL.md`, and route with a per-mode pointer predicate that names which file to read for which
-request. When one mode can flow into another, end its reference with a pointer to the next mode's
-file.
+When a skill runs one of several mutually exclusive modes per invocation — create vs update vs
+review — only one mode is live in any run. If each mode owns a substantial body of exclusive
+instructions — its own steps, formats, and final-response shape — move each mode into its own
+reference file, keep the rules every mode shares in `SKILL.md`, and route with a per-mode pointer
+predicate that names which file to read for which request. When one mode can flow into another, end
+the earlier mode's reference with a pointer to the later mode's file.
 
-Split only when each mode owns a substantial body of exclusive instructions. Modes that share one
-workflow spine and differ by a stopping point, a parameter, or a small delta stay inline as branch
-rules — splitting them either duplicates the spine in every file or yields references too thin to
-earn the pointer hop.
+Keep modes that share one workflow spine and differ by a stopping point, a parameter, or a small
+delta inline as branch rules. Splitting them either duplicates the spine in every file or yields
+references too thin to earn the pointer hop.
 
 ## Splitting by invocation
 
-Split off a model-invoked skill when a distinct leading word should trigger it on its own — a
-trigger word you actually use in prompts — or when another skill must reach it. The new skill's
-always-loaded description must be worth its load.
+When a distinct leading word, one users type in prompts, should trigger part of a skill on its own,
+or another skill must reach that part, split the part off as a model-invoked skill.
 
 ## Router skills
 
-When manual-only skills multiply past what the human remembers, add one manual-only **router skill**
-that names the others and when to reach for each, so the human remembers one skill instead of many.
-A router can only recommend; nothing but the human can fire a manual-only skill.
+When the user reports losing track of which manual-only skill to run, add one manual-only **router
+skill** that names the others and when to reach for each, so the user remembers one skill instead of
+many.

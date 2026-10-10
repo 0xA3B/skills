@@ -21,8 +21,7 @@ metadata:
 # Agent instructions
 
 Instruction files spend a shared attention budget: every sentence competes with every other, and the
-agent resolves ambiguity by pattern, not by charity. This style removes ambiguity and keeps the
-budget small.
+agent resolves ambiguity by pattern, not by charity.
 
 Within the scope its description names, this file overrides the `prose` base style; technical
 artifacts belong to the `technical-writing` skill, and chat responses and other prose belong to
@@ -34,20 +33,20 @@ same behavior, they win over this file.
 Ordered by importance. When rules conflict, the earlier rule wins.
 
 1. **Set degrees of freedom by the cost of a wrong path.** Completion criteria bind every step's
-   outcome. This rule decides how tightly to bind the path to it. A path is fragile when a wrong
-   turn would cross an authority boundary, change state outside the run, or fail silently behind a
-   passing status. A path is also fragile when an observed run already took a wrong turn on it. For
-   a fragile path, give an exact command, a fixed order, or a bundled script, and say to follow it
-   as written. Leave every other path to the agent with a goal and a default, such as the order of
-   independent steps or recovery from a transient error. A wrong turn on those paths fails loudly,
-   and the agent can recover from it.
+   outcome. This rule decides how tightly to bind the path to that outcome. A path is fragile when a
+   wrong turn would cross an authority boundary, change state outside the run, or fail silently
+   behind a passing status. A path is also fragile when an observed run already took a wrong turn on
+   it. For a fragile path, give an exact command, a fixed order, or a bundled script, and say to
+   follow it as written. Leave every other path to the agent with a goal and a default, such as the
+   order of independent steps or recovery from a transient error. A wrong turn on those paths fails
+   loudly, and the agent can recover from it.
 
 2. **Name the stops.** Name each point where the agent stops for the user: an irreversible or
    outward-facing action the request has not authorized, or a decision only the user can make. Place
    each stop after the reversible work that makes the decision concrete, so the user approves a
-   reviewable result rather than a plan. State the actions the workflow authorizes, so the agent
-   does not stop to ask for them. Between named stops, the agent carries the work through to its
-   completion criterion.
+   reviewable result rather than a plan. State the actions the workflow authorizes, so that between
+   named stops the agent carries the work through to its completion criterion instead of stopping to
+   ask.
 
 3. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding a
    rule, name the failure it prevents; if you cannot, do not add it. Delete rules that tooling
@@ -77,24 +76,24 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 
 7. **Write pointers as routing predicates.** A pointer — a skill description or a line naming
    another document — decides when its material is reached. Write its triggers in the shape "Use
-   when [triggers]", and add "Do not use for [exclusions]" where a sibling pointer or skill should
-   take a request this one also matches. Name concrete artifacts and verbs, not topics, and keep one
+   when [triggers]". Where a sibling pointer or skill should take a request this one also matches,
+   add "Do not use for [exclusions]". Name concrete artifacts and verbs, not topics, and keep one
    trigger per distinct branch.
 
-8. **Write imperatives with a named actor.** "Run `make test` before you commit", not "tests should
+8. **Write imperatives with a named actor.** "Before you commit, run `make test`", not "tests should
    be run". Passive voice hides who acts and when the rule fires.
 
 9. **Put the condition before the instruction.** "If the branch is `main`, create a branch first",
    not "Create a branch first if the branch is `main`". The condition scopes the action before the
    action is read.
 
-10. **State the target and when it applies.** Write the behavior you want with its condition: "Use a
-    list when the items are parallel", not "Avoid bullet points". A rule written to push against one
-    model's default overshoots when the default moves. Defaults also differ between models: one
+10. **State the target and when it applies.** Write the behavior you want with its condition: "When
+    the items are parallel, use a list", not "Avoid bullet points". A rule written to push against
+    one model's default overshoots when the default moves. Defaults also differ between models: one
     under-formats where another over-formats. Let the condition carry the force instead of capitals
     or words like "critical" and "important". Prohibit only a specific pattern the agent produces by
-    default, and name the replacement: "Use the `logger` module for output; `print` is allowed only
-    in `scripts/`", not "Do not use print statements". A vague prohibition such as "avoid a generic
+    default, and name the replacement: "Use the `logger` module for output; use `print` only in
+    `scripts/`", not "Do not use print statements". A vague prohibition such as "avoid a generic
     look" trades one default for another.
 
 11. **Make every rule auditable.** Name the condition, actor, action, and observable evidence or
@@ -104,15 +103,15 @@ Ordered by importance. When rules conflict, the earlier rule wins.
     degrees of freedom leaves to the agent needs no predicate beyond its completion criterion.
 
 12. **End steps on checkable, demanding completion criteria.** Each step ends on the condition that
-    tells the agent the work is done. "Every modified model accounted for" forces thorough work;
-    "produce a change list" does not. If premature completion appears, sharpen the criterion before
-    restructuring the workflow.
+    tells the agent the work is done. "Every modified model accounted for" covers every case and can
+    be checked; any list satisfies "produce a change list". If premature completion appears, sharpen
+    the criterion before restructuring the workflow.
 
 13. **Order rules by importance.** Boundaries and safety rules first, workflow rules next, style
     preferences last. Early rules get more weight than late ones.
 
-14. **Resolve every pronoun.** Replace a bare "this", "it", or "they" with its noun when the
-    antecedent is more than one sentence away or when two candidates exist.
+14. **Resolve every pronoun.** When a bare "this", "it", or "they" has its antecedent more than one
+    sentence away, or has two candidates, replace the pronoun with its noun.
 
 15. **Prefer one example over three rules.** For anything format-sensitive — commit messages, file
     layouts, output shapes — show one correct example and, when the agent produces the wrong shape
@@ -121,9 +120,9 @@ Ordered by importance. When rules conflict, the earlier rule wins.
     imitate examples more reliably than they apply rules.
 
 16. **Anchor repeated concepts with leading words.** When several sentences restate one concept,
-    collapse them into a compact term, one the model already holds when one exists (tracer bullet,
-    tight loop, frontier), and repeat the term exactly. A word too weak to change behavior is a
-    no-op; choose a stronger word, not more sentences.
+    collapse them into one compact term and repeat the term exactly. When the model already holds a
+    fitting term (tracer bullet, tight loop, frontier), choose that one. A word too weak to change
+    behavior is a no-op; choose a stronger word, not more sentences.
 
 ## What not to optimize or remove
 
@@ -176,19 +175,20 @@ in place of clarification, and parallel dispatches.
 ## Review
 
 When auditing a diff to an instruction file, or sweeping a whole file for stale or redundant lines,
-work through [review-checklist.md](references/review-checklist.md). Instruction files grow by
-accretion, and every existing rule must keep earning its place. Treat the audit as done when every
-line in scope — each changed line of a diff, or each line of a swept file — has answered its
-checklist questions.
+work through [review-checklist.md](references/review-checklist.md). Treat the audit as done when
+every line in scope — each changed line of a diff, or each line of a swept file — has answered its
+checklist questions, and the report names what it checked and found clean.
 
 ## Examples
 
-Bad, then good:
+Bad, then good, then what makes the good version correct:
 
-- "The tests should be run regularly." → "Run `make test` before you commit."
 - "Be careful with database migrations." → "If a change adds a migration, run `make migrate-dry` and
-  paste the output into the PR description."
+  paste the output into the PR description." The good version opens on its condition and names a
+  command and evidence a reviewer can check.
 - "Avoid committing secrets. This is very important." → "Store secrets in 1Password and reference
-  them via `op://` URIs. Files matching `.env*` stay untracked."
-- Description, bad: "A skill for helping with documentation quality." → Good: "Use when writing or
-  editing files under `docs/`. Do not use for code comments, README badges, or chat responses."
+  them with `op://` URIs. Keep files matching `.env*` untracked." The good version names the
+  practice to follow instead of the one to avoid, and no intensity word carries the force.
+- "A skill for helping with documentation quality." → "Use when writing or editing files under
+  `docs/`. Do not use for the generated API reference under `docs/api/`." The good description names
+  artifacts and verbs, and excludes only a request its trigger also matches.

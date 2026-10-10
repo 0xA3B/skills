@@ -1,10 +1,9 @@
 # Document mechanics
 
 Structural mechanics for documents agents consume: the two loads, pointers, the information
-hierarchy, derived instruction copies, and splitting. Read this file when creating a document,
-splitting or merging documents, moving material between files, or deciding what stays always-loaded.
-The sentence-level rules live in `SKILL.md`, and [line-mechanics.md](line-mechanics.md) owns the
-lines inside a document; this file owns the decisions about documents.
+hierarchy, derived instruction copies, and splitting. The sentence-level rules live in `SKILL.md`,
+and [line-mechanics.md](line-mechanics.md) owns the lines inside a document; this file owns the
+decisions about documents.
 
 ## The two loads
 
@@ -15,15 +14,16 @@ Every document and pointer spends one of two budgets:
   it fires.
 - **Cognitive load** — the cost on the human: which documents exist and when to reach for each. The
   human is the index. Cognitive load is not a cost to minimize — it is the price of human agency.
-  Spend it where human judgment matters; remove it where it does not.
+  Where reaching the material is a decision only the user can make, spend cognitive load; elsewhere,
+  remove it with a pointer.
 
 Material reached only through a pointer escapes context load at the price of the pointer's own line.
 Material with no pointer at all rides entirely on cognitive load.
 
 ## Pointers
 
-A pointer is held in context and names material outside it. A skill description is one; a line in
-`AGENTS.md` naming a document is the same object. The pointer's wording, not its target, decides
+A pointer is held in context and names material outside context. A skill description is one; a line
+in `AGENTS.md` naming a document is the same object. The pointer's wording, not its target, decides
 when the agent reaches the material — and how reliably.
 
 A pointer does two jobs: state what the material is, and list the **branches** that should trigger
@@ -42,8 +42,8 @@ A document mixes two content types — **steps** (the ordered actions the agent 
 ranked by how immediately the agent needs it:
 
 1. **In-file step** — the primary tier: what the agent does, in order.
-2. **In-file reference** — consulted on demand. A flat peer set (every rule of a review on one rung)
-   is a fine arrangement, not a smell.
+2. **In-file reference** — material in the file that the agent consults on demand. A flat peer set
+   (every rule of a review on one rung) is a fine arrangement, not a smell.
 3. **Disclosed reference** — a separate file reached through a pointer, loaded only when the pointer
    fires.
 
@@ -70,20 +70,19 @@ truth:
 - Name the authoritative source and the target constraint that requires the copy in the derived
   artifact or its closest governing instruction file.
 - Copy only behavior whose trigger can occur on the target.
-- Define when the copy must be synchronized and any measurable target invariant that applies, such
-  as a character limit.
+- In the same place, define when an edit to the authoritative source requires updating the copy, and
+  any measurable target invariant that applies, such as a character limit.
 - When an existing formatter, generator, or check can enforce the relationship, use it instead of
   relying only on a reminder.
 
 ## Splitting
 
-Splitting one document into two spends one of the two loads, so split only when the cut earns it:
+Splitting one document into two spends one of the two loads. Split only on one of these grounds:
 
-- **By sequence** — split a run of steps only when a step's completion criterion stays fuzzy after
-  sharpening and you observe premature completion on it. Hiding works only across a real context
-  boundary, a hand off or a sub-agent dispatch; an inline reference leaves the later steps in
-  context and clears nothing. Merging sequences has the reverse cost: it exposes each step to what
-  follows.
+- **By sequence** — if you observe premature completion on a step after sharpening its completion
+  criterion, split the run of steps at that step. Hiding works only across a real context boundary,
+  a hand off or a sub-agent dispatch; an inline reference leaves the later steps in context and
+  clears nothing. Merging sequences has the reverse cost: it exposes each step to what follows.
 - **By invocation** — skill-specific; see [skill-mechanics.md](skill-mechanics.md).
 - **By length** — keep a disclosed reference under 100 lines. Agents often read a long file in a
   preview or in chunks, such as its first 80 or 240 lines, and act on the part they saw. When a

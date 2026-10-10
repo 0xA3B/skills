@@ -1,19 +1,18 @@
 # Line mechanics
 
 Mechanics for the lines inside a document agents consume: completion criteria, formatting, leading
-words, and pruning. Read this file when writing a workflow's steps, choosing the form of a list,
-table, heading, or command block, anchoring a repeated concept, or sweeping a document for lines to
-cut. The sentence-level rules live in `SKILL.md`, and [document-mechanics.md](document-mechanics.md)
-owns the decisions about documents; this file owns the lines inside them.
+words, and pruning. The sentence-level rules live in `SKILL.md`, and
+[document-mechanics.md](document-mechanics.md) owns the decisions about documents; this file owns
+the lines inside them.
 
 ## Completion criteria
 
 Two properties make a completion criterion a lever:
 
-- **Clarity** — can the agent tell done from not-done? A vague criterion ("understanding reached")
-  invites **premature completion**: ending the step early because the visible later steps pull
-  attention forward. Sharpen the criterion first — a local, cheap edit. Splitting the sequence is
-  the second defense, under "Splitting" in [document-mechanics.md](document-mechanics.md).
+- **Clarity** — whether the agent can tell done from not-done. A vague criterion ("understanding
+  reached") invites **premature completion**: ending the step early because the visible later steps
+  pull attention forward. Sharpen the criterion first — a local, cheap edit. Splitting the sequence
+  is the second defense, under "Splitting" in [document-mechanics.md](document-mechanics.md).
 - **Demand** — how much the criterion requires. Demand is not step-bound: "every rule applied" binds
   a body of flat reference the same way "every step done" binds a sequence, which is how an
   all-reference document still carries an exhaustiveness bar.
@@ -54,12 +53,12 @@ you believe in" → the loop goes _red_ on the bug, or it does not).
 
 ## Pruning
 
-- Check every line for **relevance**: does it still bear on what the document does? A line loses
-  relevance by never bearing on the task or by going stale as the world changes. Without a pruning
-  discipline the default fate is **sediment**: stale layers that settle because adding feels safe
-  and removing feels risky.
+- Check every line for **relevance**: does it still bear on what the document does? Delete a line
+  that does not. A line loses relevance by never bearing on the task or by going stale as the world
+  changes. Without a pruning discipline the default fate is **sediment**: stale layers that settle
+  because adding feels safe and removing feels risky.
 - Hunt **no-ops** sentence by sentence: an instruction the model already obeys by default pays load
   to say nothing. The test — does it move behavior from the default toward the target? — is
   model-relative: two people disagreeing about a no-op disagree about the default, and settle it by
-  running the document, not by debate. When a sentence fails, delete the whole sentence.
-- The exception is an **anchor rule**, as "What not to optimize or remove" in `SKILL.md` defines it.
+  running the document, not by debate. When a sentence fails and is not an **anchor rule**, as "What
+  not to optimize or remove" in `SKILL.md` defines it, delete the whole sentence.

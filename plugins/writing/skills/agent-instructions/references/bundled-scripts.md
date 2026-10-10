@@ -31,16 +31,16 @@ costs context.
 
 ## Dependencies
 
-- Write against the common tools a stock macOS or Linux developer machine ships: `sh` or `bash`,
-  `grep`, `sed`, `awk`, and `jq`. Prefer a common tool over a faster or richer one: `bash` over
-  `zsh` or `fish`, `grep` over `rg`. Add another dependency only when the workflow already requires
-  it, such as `gh`, or when no common tool fits. Declare each one in the script's header and in the
-  instruction that runs the script.
+- Write against the common tools: `sh` or `bash`, `grep`, `sed`, `awk`, and `jq`. Prefer a common
+  tool over a faster or richer one: `bash` over `zsh` or `fish`, `grep` over `rg`. Add another
+  dependency only when the workflow already requires it, such as `gh`, or when no common tool fits.
+  Declare each one in the script's header and in the instruction that runs the script.
 - Write shell that runs on bash 3.2, the version stock macOS ships, and use only the options BSD and
   GNU tools share. The script then runs on macOS and Linux whichever versions come first on `PATH`.
-  Leave out associative arrays, `mapfile`, `grep -P`, and the date-parsing options of `date`. Do
-  date arithmetic in `jq`, and edit files in place through a temporary file or with an attached
-  backup suffix (`sed -i.bak`).
+  Leave out associative arrays, `mapfile`, `grep -P`, and the date-parsing options of `date`. Use
+  `jq` for lookups and date arithmetic, a `while read` loop for reading lines, and `grep -E` for
+  patterns, and edit files in place through a temporary file or with an attached backup suffix
+  (`sed -i.bak`).
 - Choose the language by the work: shell when the script mostly sequences CLI calls, Python when it
   parses structured data beyond what `jq` filters handle or carries state across many branches.
 - Write a Python script as a PEP 723 script that uv runs, and use the standard library where it
@@ -53,10 +53,12 @@ costs context.
   # ///
   ```
 
-  Give `requires-python` a lower bound only, so uv can use an installed interpreter that satisfies
-  it. A third-party package resolves at run time on the user's machine, outside any lockfile, and
-  needs network access a sandbox may block; when one is necessary, list it under `dependencies` with
-  the bounds of the version range you tested.
+  `--script` makes uv read the file as a PEP 723 script whatever its extension, and `--quiet` keeps
+  uv's own output out of what the agent reads; the version number is incidental. Give
+  `requires-python` a lower bound only, so uv can use an installed interpreter that satisfies it. A
+  third-party package resolves at run time on the user's machine, outside any lockfile, and needs
+  network access a sandbox may block; when one is necessary, list it under `dependencies` with the
+  bounds of the version range you tested.
 
 - Check each declared tool at the start of the script, and exit naming any that is missing, so the
   failure is not reported as a later step's error. Common tools need no check, and uv installs a PEP
@@ -80,9 +82,10 @@ separate commands, and state:
 
 ```markdown
 Wait for the review with `<skill-dir>/scripts/poll.sh <pr-number>` instead of polling with separate
-`gh` calls, where `<skill-dir>` is the directory holding this `SKILL.md`. Run it unsandboxed,
-because `gh` reads credentials from the keyring. The script needs `gh`; if it is missing, stop and
-report it to the user instead of installing it. Read the outcome from the final `exit=` line:
+`gh` calls, where `<skill-dir>` is the directory holding this `SKILL.md` and `<pr-number>` is the
+pull request's number. Run it unsandboxed, because `gh` reads credentials from the keyring. The
+script needs `gh`; if it is missing, stop and report it to the user instead of installing it. Read
+the outcome from the final `exit=` line:
 
 - `0`: the review is clean; classify the reviewer `approved`.
 - `1`: unresolved threads follow in the output; triage each one.

@@ -2,15 +2,13 @@
 
 A sub-agent prompt is instructions with a one-dispatch lifetime. The rules in `SKILL.md` still
 apply. The document mechanics do not: a prompt that lives for one dispatch has nothing to prune, no
-disclosure hierarchy, and no second copy to keep in sync. What replaces them is the dispatch
-boundary. By default a sub-agent starts with an empty context, cannot ask a follow-up question, and
-reports back through a single final message. Every rule in this file exists because one of those
-three facts makes an otherwise-fine prompt fail.
+disclosure hierarchy, and no second copy to keep in sync. By default a sub-agent starts with an
+empty context, cannot ask a follow-up question, and reports back through a single final message.
 
 Some harnesses can instead fork the parent conversation into the sub-agent. When the dispatch is a
-fork, the sub-agent already holds the session context: skip the context-carrying rules below and
-keep the return contract, the decision rules, and the scope bounds. When you cannot tell which model
-applies, assume fresh context.
+fork, the sub-agent already holds the session context: skip stating the facts and conventions it
+already holds, and apply every other rule in this file. When you cannot tell whether the dispatch is
+a fork, assume an empty context.
 
 ## Carry the context
 
@@ -35,7 +33,9 @@ the files already read.
   </review_comment id="q7k2">
   ```
 
-  The random id keeps text inside the block from closing it early.
+  The tag named for its source and the same id on both tags make the example correct: text inside
+  the block cannot guess the id, so that text cannot close the block early. Generate a new id for
+  each dispatch; `q7k2` is incidental.
 
 ## State the return contract
 
@@ -47,7 +47,7 @@ The final message is the only channel back; work not reported is work lost.
 - Ask for the evidence behind each result and, where it helps, a short explanation, instead of the
   sub-agent's reasoning written out. Claude models can decline a prompt that asks them to reproduce
   their reasoning.
-- Say what to leave out of the report when the raw material is large — file dumps, full logs,
+- When the raw material is large, say what to leave out of the report — file dumps, full logs,
   intermediate steps — so the answer survives the trip.
 - For machine-consumed results, show the exact output shape once as an example rather than
   describing it.
@@ -62,9 +62,9 @@ The sub-agent cannot ask, so ambiguity becomes a guess.
 - End on a completion criterion that is checkable and demanding, exactly as `SKILL.md` requires for
   workflow steps: "every caller of the renamed function updated and the build passing", not "update
   the callers".
-- Bound the scope: name what the sub-agent must not touch, and whether the task is read-only. A
-  sub-agent that discovers adjacent problems should report them, not fix them, unless the prompt
-  says otherwise.
+- Bound the scope: name what the sub-agent must not touch, and whether the task is read-only. Unless
+  the task includes fixing adjacent problems, tell the sub-agent to report the adjacent problems it
+  finds instead of fixing them.
 
 ## Parallel dispatches
 
