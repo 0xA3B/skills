@@ -43,10 +43,11 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 
 2. **Name the stops.** Name each point where the agent stops for the user: an irreversible or
    outward-facing action the request has not authorized, or a decision only the user can make. Place
-   each stop after the reversible work that makes the decision concrete, so the user approves a
-   reviewable result rather than a plan. State the actions the workflow authorizes, so that between
-   named stops the agent carries the work through to its completion criterion instead of stopping to
-   ask.
+   each stop after the reversible work that makes the decision concrete. When the agent can propose
+   the answer, such as the version a changelog implies, have it do that work with its proposal, so
+   the user approves the result rather than a plan. State the actions the workflow authorizes, so
+   that between named stops the agent carries the work through to its completion criterion instead
+   of stopping to ask.
 
 3. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding a
    rule, name the failure it prevents, in the rule or in the change that adds it; if you cannot, do
