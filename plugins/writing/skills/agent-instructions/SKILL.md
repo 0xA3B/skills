@@ -49,11 +49,11 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    ask.
 
 3. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding a
-   rule, name the failure it prevents; if you cannot, do not add it. Delete rules that tooling
-   already enforces (linters, hooks, CI). The environment is a source of truth too: a rule that
-   restates `package.json` scripts, config files, the directory layout, or `--help` output is a
-   cache of a cheap lookup, and it goes stale. Cache only what no file confesses — the unwritten
-   convention, the reason behind a choice, the gotcha.
+   rule, name the failure it prevents, in the rule or in the change that adds it; if you cannot, do
+   not add it. Delete rules that tooling already enforces (linters, hooks, CI). The environment is a
+   source of truth too: a rule that restates `package.json` scripts, config files, the directory
+   layout, or `--help` output is a cache of a cheap lookup, and it goes stale. Cache only what no
+   file confesses — the unwritten convention, the reason behind a choice, the gotcha.
 
 4. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
    changing the behavior is a one-place edit. A meaning stated twice costs double maintenance and
@@ -85,22 +85,25 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 
 9. **Put the condition before the instruction.** "If the branch is `main`, create a branch first",
    not "Create a branch first if the branch is `main`". The condition scopes the action before the
-   action is read.
+   action is read. When the condition limits an action, also name what to do otherwise: "In
+   `legacy/`, run `npm`; elsewhere, run `pnpm`", not "Run `npm` only in `legacy/`", which leaves the
+   other branch to inference.
 
 10. **State the target and when it applies.** Write the behavior you want with its condition: "When
-    the items are parallel, use a list", not "Avoid bullet points". A rule written to push against
-    one model's default overshoots when the default moves. Defaults also differ between models: one
-    under-formats where another over-formats. Let the condition carry the force instead of capitals
-    or words like "critical" and "important". Prohibit only a specific pattern the agent produces by
-    default, and name the replacement: "Use the `logger` module for output; use `print` only in
-    `scripts/`", not "Do not use print statements". A vague prohibition such as "avoid a generic
-    look" trades one default for another.
+    the items are parallel, use a list; otherwise write prose", not "Avoid bullet points". A rule
+    written to push against one model's default overshoots when the default moves. Defaults also
+    differ between models: one under-formats where another over-formats. Let the condition carry the
+    force instead of capitals or words like "critical" and "important". When you write a
+    prohibition, name a specific pattern the agent produces by default and its replacement: "In
+    `scripts/`, write output with `print`; elsewhere, use the `logger` module instead", not "Do not
+    use print statements". A vague prohibition such as "avoid a generic look" trades one default for
+    another.
 
 11. **Make every rule auditable.** Name the condition, actor, action, and observable evidence or
-    terminal state. A reviewer must be able to determine which branch applies and verify compliance
-    from the diff, command output, or resulting state. In a condition or completion criterion,
-    replace an undefined judgment with an observable predicate or a named user decision; a path that
-    degrees of freedom leaves to the agent needs no predicate beyond its completion criterion.
+    terminal state, so a reviewer can verify compliance from the diff, command output, or resulting
+    state. In a completion criterion, or a condition that guards a fragile path, replace an
+    undefined judgment with an observable predicate or a named user decision. A condition on any
+    other path can leave the judgment to the agent.
 
 12. **End steps on checkable, demanding completion criteria.** Each step ends on the condition that
     tells the agent the work is done. "Every modified model accounted for" covers every case and can

@@ -32,9 +32,10 @@ costs context.
 ## Dependencies
 
 - Write against the common tools: `sh` or `bash`, `grep`, `sed`, `awk`, and `jq`. Prefer a common
-  tool over a faster or richer one: `bash` over `zsh` or `fish`, `grep` over `rg`. Add another
-  dependency only when the workflow already requires it, such as `gh`, or when no common tool fits.
-  Declare each one in the script's header and in the instruction that runs the script.
+  tool over a faster or richer one: `bash` over `zsh` or `fish`, `grep` over `rg`. When the workflow
+  already requires another tool, such as `gh`, or no common tool fits, add that dependency;
+  otherwise use the common tools. Declare each added dependency in the script's header and in the
+  instruction that runs the script.
 - Write shell that runs on bash 3.2, the version stock macOS ships, and use only the options BSD and
   GNU tools share. The script then runs on macOS and Linux whichever versions come first on `PATH`.
   Leave out associative arrays, `mapfile`, `grep -P`, and the date-parsing options of `date`. Use

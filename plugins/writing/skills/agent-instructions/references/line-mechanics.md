@@ -23,14 +23,14 @@ The strongest criteria are both checkable and exhaustive.
 
 Form carries meaning for an agent; choose the form that encodes the intent:
 
-- Use a numbered list only when order matters. A numbered list reads as a sequence to execute; a
-  bulleted list reads as rules that all apply.
+- When order matters, use a numbered list; otherwise use bullets. A numbered list reads as a
+  sequence to execute; a bulleted list reads as rules that all apply.
 - Keep list items parallel in structure; the model continues the pattern it sees.
 - Use sentence case in headings and do not skip heading levels — the same heading convention the
   sibling technical-writing skill applies to human-facing artifacts, so both file families read
   alike.
-- Use a table only for rows that share the same attributes; keep cells short and put explanation in
-  prose.
+- When the rows share the same attributes, use a table, keep its cells short, and put explanation in
+  prose; otherwise use a list.
 - Make every command block run as pasted: mark placeholders in one consistent form and define each
   near its first use. The agent executes commands verbatim.
 - Write timeless text. "Currently", "new", and references to the change that introduced a rule go

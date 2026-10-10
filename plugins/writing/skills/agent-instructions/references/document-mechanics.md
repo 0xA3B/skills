@@ -77,7 +77,8 @@ truth:
 
 ## Splitting
 
-Splitting one document into two spends one of the two loads. Split only on one of these grounds:
+Splitting one document into two spends one of the two loads. When one of these grounds applies,
+split; otherwise keep the document whole:
 
 - **By sequence** — if you observe premature completion on a step after sharpening its completion
   criterion, split the run of steps at that step. Hiding works only across a real context boundary,

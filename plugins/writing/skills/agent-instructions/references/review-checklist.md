@@ -42,13 +42,15 @@ For each changed or added line, or each line of a swept file, ask:
       sibling pointer or skill should take a request this one also matches? (pointers as routing
       predicates)
 - [ ] Is the actor named and the verb imperative? (imperatives with a named actor)
-- [ ] If the line is conditional, does the condition come first? (condition before instruction)
+- [ ] If the line is conditional, does the condition come first? If the condition limits an action,
+      does the line say what to do otherwise? (condition before instruction)
 - [ ] Does the line state the behavior it wants and when that behavior applies, with no capitals or
       intensity words carrying the force? (state the target and when it applies)
 - [ ] If the line prohibits, does it name a specific pattern the agent produces by default, and the
       replacement? (state the target and when it applies)
-- [ ] Can the agent determine which branch applies from observable conditions without inventing the
-      meaning of an evaluative term? (make every rule auditable)
+- [ ] If the line is a completion criterion, or a condition that guards a fragile path, can the
+      agent tell whether it holds without inventing the meaning of an evaluative term? (make every
+      rule auditable)
 - [ ] Does the rule name evidence or a terminal state that verifies compliance from the diff,
       command output, or resulting state? (make every rule auditable)
 - [ ] If the line ends a step, can the agent tell done from not-done, and does the criterion cover

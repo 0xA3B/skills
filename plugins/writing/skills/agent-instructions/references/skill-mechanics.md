@@ -43,8 +43,9 @@ the workflow's terminal outcomes.
 ## Trigger contracts
 
 The description of a model-invoked skill is the trigger contract that decides when it fires. Apply
-the pointer rules from `SKILL.md` and document-mechanics in full, and front-load the words users
-type when they ask for the skill's work.
+"Write pointers as routing predicates" from `SKILL.md` and "Pointers" in
+[document-mechanics.md](document-mechanics.md) in full, and front-load the words users type when
+they ask for the skill's work.
 
 When the repository has trigger tooling, run the skill's positive and negative trigger cases on
 every supported agent, and treat a description change as done when every case passes.

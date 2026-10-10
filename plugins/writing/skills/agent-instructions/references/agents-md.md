@@ -38,9 +38,10 @@ maintained files for one scope drift into two sources of truth.
 
 A model-invoked skill's description is already always-loaded context. An instruction-file line that
 restates what the skill does or when it fires is a second copy competing with the first; the
-duplication rule applies across surfaces, not just within a file. Name a model-invoked skill in an
-instruction file only to bind it to repository-specific scope the description cannot carry: which
-section it governs, which conventions override it, or which of its options this repository fixes.
+duplication rule applies across surfaces, not just within a file. When the repository binds a
+model-invoked skill to scope its description cannot carry — which section it governs, which
+conventions override it, or which of its options this repository fixes — name the skill in the
+instruction file with that scope; otherwise leave the skill unnamed.
 
 ## Terminology sections
 
