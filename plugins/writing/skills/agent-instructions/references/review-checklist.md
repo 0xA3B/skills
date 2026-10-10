@@ -81,9 +81,9 @@ For a skill that bundles a script, ask:
       (bundled scripts)
 - [ ] Does the script give every outcome that changes the workflow's next step its own exit code,
       keep errors apart from negative results, and give each default its reason? (bundled scripts)
-- [ ] Does the script add a dependency beyond the common tools only when the workflow requires that
-      dependency or no common tool fits, declare each one, and check each declared tool at the
-      script's start? (bundled scripts)
+- [ ] Does the script add a dependency beyond `sh`, `bash`, and the POSIX utilities only when the
+      workflow requires that dependency or no POSIX utility fits, declare each one, and check each
+      declared tool at the script's start? (bundled scripts)
 
 For each deleted or removal-candidate line, ask:
 

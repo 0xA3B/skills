@@ -31,11 +31,10 @@ costs context.
 
 ## Dependencies
 
-- Write against the common tools: `sh` or `bash`, `grep`, `sed`, `awk`, and `jq`. Prefer a common
-  tool over a faster or richer one: `bash` over `zsh` or `fish`, `grep` over `rg`. When the workflow
-  already requires another tool, such as `gh`, or no common tool fits, add that dependency;
-  otherwise use the common tools. Declare each added dependency in the script's header and in the
-  instruction that runs the script.
+- When the workflow already requires a tool, such as `gh`, or no POSIX utility fits the work, as
+  with `jq` for JSON, add that tool and declare it in the script's header and in the instruction
+  that runs the script. Otherwise use `sh` or `bash` and the POSIX utilities, such as `grep`, `sed`,
+  `awk`, `sort`, and `find`, over a faster or richer tool: `bash` over `zsh`, `grep` over `rg`.
 - Write shell that runs on bash 3.2, the version stock macOS ships, and use only the options BSD and
   GNU tools share. The script then runs on macOS and Linux whichever versions come first on `PATH`.
   Leave out associative arrays, `mapfile`, `grep -P`, and the date-parsing options of `date`. Use
@@ -62,8 +61,8 @@ costs context.
   bounds of the version range you tested.
 
 - Check each declared tool at the start of the script, and exit naming any that is missing, so the
-  failure is not reported as a later step's error. Common tools need no check, and uv installs a PEP
-  723 script's packages before the script starts.
+  failure is not reported as a later step's error. `sh`, `bash`, and the POSIX utilities need no
+  check, and uv installs a PEP 723 script's packages before the script starts.
 
 ## The instruction that runs it
 
