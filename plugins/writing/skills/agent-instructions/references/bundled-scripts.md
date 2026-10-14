@@ -1,9 +1,7 @@
 # Bundled scripts
 
-What changes when a skill ships executable code: when to bundle a script, the script's contract and
-dependencies, and the instruction that runs it. A bundled script leaves the agent the fewest degrees
-of freedom: the agent runs the bound path instead of assembling it, and only the script's output
-costs context.
+Guidance for a skill's executable code: when to bundle, the contract and dependencies, and the run
+instruction. The script binds the path; the agent acts on its output instead of assembling commands.
 
 ## When to bundle
 
@@ -20,8 +18,10 @@ costs context.
 - Put the contract in the script's header comment: usage, arguments, environment overrides,
   defaults, and outcomes. Give each default the reason or workflow concept it derives from — "11
   polls span the ten-minute response timeout", not a bare `11`.
-- Give every outcome that changes the workflow's next step its own exit code, and print the code as
-  the last output line, so a captured log carries it.
+- Distinguish every outcome that changes the workflow's next step with a separate exit code or a
+  structured status, a named status in structured output. When the workflow routes by exit code,
+  print the code as the last output line, so a captured log carries it; a structured status already
+  travels in the output.
 - Keep an error apart from a negative result. When the script cannot run a step or read a source,
   exit with a code no clean or empty result uses and a message naming what failed. Handle what the
   script can decide itself, such as pagination or rechecking state that may have moved; never
@@ -45,8 +45,9 @@ costs context.
   refuses or replaces a symlink.
 - Choose the language by the work: when the script parses structured data beyond what `jq` filters
   handle or carries state across many branches, write Python; otherwise write shell.
-- Write a Python script as a PEP 723 script that uv runs, and use the standard library where it
-  fits. uv is then a dependency the instruction declares.
+- Write a Python script as a PEP 723 script that uv runs, so every skill invokes Python the same
+  way, and use the standard library where it fits. Declare uv in the instruction that runs the
+  script; the shebang declares it in the header.
 
   ```python
   #!/usr/bin/env -S uv run --quiet --script
@@ -80,8 +81,8 @@ separate commands, and state:
   command-scoped runner, such as `uv run --script`, `uv run --with`, or `npm exec --package`, leaves
   the global environment unchanged and needs no approval. A global install changes state outside the
   run, so this route is a fragile path;
-- the next step for each outcome. Map outcomes to steps here, and leave the mechanics to the
-  script's header.
+- the next step for each outcome, identified by its exit code or structured status. Leave mechanics
+  to the script's header.
 
 ```markdown
 Wait for the review with `<skill-dir>/scripts/poll.sh <pr-number>` instead of polling with separate

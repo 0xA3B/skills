@@ -34,8 +34,9 @@ the files already read.
   </review_comment id="q7k2">
   ```
 
-  The tag named for its source and the same id on both tags make the example correct: text inside
-  the block cannot guess the id, so that text cannot close the block early. Generate a new id for
+  The tag named for its source and the same id on both tags make the example correct: the text
+  inside was written before the id existed, so it can match the closing tag only by chance. The tags
+  mark the text as data for the model; they do not enforce the trust boundary. Generate a new id for
   each dispatch; `q7k2` is incidental.
 
 ## State the return contract

@@ -35,23 +35,28 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 1. **Set degrees of freedom by the cost of a wrong path.** Completion criteria bind every step's
    outcome. This rule decides how tightly to bind the path to that outcome. A path is fragile when a
    wrong turn would cross an authority boundary, change state outside the run, or fail silently
-   behind a passing status. A path is also fragile when an observed run already took a wrong turn on
-   it. For a fragile path, give an exact command, a fixed order, or a bundled script, and say to
-   follow it as written. Leave every other path, such as the order of independent steps or recovery
-   from a transient error, to the agent with a goal and a default. A wrong turn on those paths fails
-   loudly, and the agent can recover from it.
+   behind a passing status. A path is also fragile when an observed wrong turn recurs after the
+   wording or example behind it was fixed. After a first observed wrong turn on any other path, fix
+   that wording or example. For a fragile path, give an exact command, a fixed order, or a bundled
+   script, and say to follow it as written. Leave every other path, such as the order of independent
+   steps or recovery from a transient error, to the agent with a goal and a default. On those paths,
+   a wrong turn fails loudly and the agent can recover from it.
 
 2. **Name the stops.** Name each point where the agent stops for the user: an irreversible or
-   outward-facing action the request has not authorized, or a decision only the user can make. Place
-   each stop after the reversible work that makes the decision concrete. When the agent can propose
-   the answer, such as the version a changelog implies, have it do that work with its proposal, so
-   the user approves the result rather than a plan. State the actions the workflow authorizes, so
-   that between named stops the agent carries the work through to its completion criterion instead
-   of stopping to ask.
+   outward-facing action the request has not authorized, or a decision only the user can make. Count
+   authorization already supplied in the request or conversation, and ask only for the missing
+   decision or authority. Place each necessary stop after the authorized reversible work that makes
+   the decision concrete. When the agent can propose the answer, have it prepare the authorized
+   reversible result with that proposal before asking. For a proposed version, prepare the version
+   bump and changelog diff before asking the user to confirm the version. Preparing that result does
+   not itself require another approval. State which actions an invocation authorizes and under which
+   request, so that between named stops the agent carries the work through to its completion
+   criterion instead of stopping to ask.
 
 3. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding a
    rule, name the failure it prevents, in the rule or in the change that adds it; if you cannot, do
-   not add it. Delete rules that tooling already enforces (linters, hooks, CI). The environment is a
+   not add it. Delete explanations and reminders that tooling makes redundant. Keep instructions
+   that determine when a check runs or how its result gates the workflow. The environment is a
    source of truth too: a rule that restates `package.json` scripts, config files, the directory
    layout, or `--help` output is a cache of a cheap lookup, and it goes stale. Cache only what no
    file confesses — the unwritten convention, the reason behind a choice, the gotcha. Write timeless

@@ -24,7 +24,9 @@ the material governs:
 
 The root file and the directory-scoped files on the path to the working directory load together, so
 budget them together. Keep that chain under 32 KiB, measured with `wc -c`: Codex reads only the
-first 32 KiB of it by default (`project_doc_max_bytes`), and the rest never reaches the agent.
+first 32 KiB of it by default (`project_doc_max_bytes`), and the rest never reaches the agent. A
+local setting can raise that limit on one machine; keep shared guidance within the default, because
+Codex reads only that much on other contributors' machines.
 
 Terminology shows the ladder's use: a term anchors shared language only while it is loaded, so its
 rung decides its reach. Keep terms the whole repository speaks in the root file; move terms spoken
