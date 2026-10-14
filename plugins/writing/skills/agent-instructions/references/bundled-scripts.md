@@ -11,8 +11,8 @@ costs context.
   parsing, pagination, or timing. Each run that assembles the path is another chance to assemble it
   wrong; an observed run that did is the strongest reason to bundle.
 - Keep a fragile path that one command covers in the instructions as an exact command line.
-- For a batch or destructive step, have the agent write its plan to a file and validate the plan
-  with a script before applying it. A passing validator run is the step's completion criterion; make
+- For a batch or destructive step on a fragile path, have the agent write its plan to a file and
+  validate the plan with a script before applying it. A passing validator run gates the apply; make
   each validator error name the fix, such as the valid values for a field it rejects.
 
 ## The script's contract
@@ -38,11 +38,13 @@ costs context.
 - Write shell that runs on bash 3.2, the version stock macOS ships, and use only the options BSD and
   GNU tools share. The script then runs on macOS and Linux whichever versions come first on `PATH`.
   Leave out associative arrays, `mapfile`, `grep -P`, and the date-parsing options of `date`. Use
-  `jq` for lookups and date arithmetic, a `while read` loop for reading lines, and `grep -E` for
-  patterns, and edit files in place through a temporary file or with an attached backup suffix
-  (`sed -i.bak`).
-- Choose the language by the work: shell when the script mostly sequences CLI calls, Python when it
-  parses structured data beyond what `jq` filters handle or carries state across many branches.
+  `awk` for lookups, `jq` for date arithmetic, `while IFS= read -r line || [ -n "$line" ]` for
+  reading lines, and `grep -E` with bracket classes such as `[0-9]` for patterns. To edit a file in
+  place, write a temporary file and copy it back with `cat "$tmp" > "$file"`, which keeps the file's
+  mode and symlinks. Moving the temporary file over the original drops the mode, and `sed -i`
+  refuses or replaces a symlink.
+- Choose the language by the work: when the script parses structured data beyond what `jq` filters
+  handle or carries state across many branches, write Python; otherwise write shell.
 - Write a Python script as a PEP 723 script that uv runs, and use the standard library where it
   fits. uv is then a dependency the instruction declares.
 
@@ -56,9 +58,9 @@ costs context.
   `--script` makes uv read the file as a PEP 723 script whatever its extension, and `--quiet` keeps
   uv's own output out of what the agent reads; the version number is incidental. Give
   `requires-python` a lower bound only, so uv can use an installed interpreter that satisfies it. A
-  third-party package resolves at run time on the user's machine, outside any lockfile, and needs
-  network access a sandbox may block; when one is necessary, list it under `dependencies` with the
-  bounds of the version range you tested.
+  third-party package installs at run time on the user's machine and needs network access a sandbox
+  may block; when one is necessary, list it under `dependencies` with the bounds of the version
+  range you tested.
 
 - Check each declared tool at the start of the script, and exit naming any that is missing, so the
   failure is not reported as a later step's error. `sh`, `bash`, and the POSIX utilities need no
@@ -74,9 +76,10 @@ separate commands, and state:
 - what the run needs and why, such as network access, credentials outside the sandbox, or the
   foreground;
 - the route for a missing dependency: stop and report it to the user, and install nothing into the
-  global environment without the user's approval. A command-scoped runner that leaves the global
-  environment unchanged, such as `uv run --script`, `uv run --with`, or `npm exec --package`, needs
-  no approval. A global install changes state outside the run, so this route is a fragile path;
+  global environment without the user's approval. A command line that already runs through a
+  command-scoped runner, such as `uv run --script`, `uv run --with`, or `npm exec --package`, leaves
+  the global environment unchanged and needs no approval. A global install changes state outside the
+  run, so this route is a fragile path;
 - the next step for each outcome. Map outcomes to steps here, and leave the mechanics to the
   script's header.
 
