@@ -38,6 +38,9 @@ For each changed or added line, or each line of a swept file, ask:
 - [ ] If the change leaves a disclosed reference over 100 lines, was it trimmed, split along
       distinct branches with a pointer to each part from the entry document, or opened with a
       contents list? (splitting by length)
+- [ ] If the change grows a repository instruction file, do the root file and the directory-scoped
+      files on the path to each working directory stay under 32 KiB combined, measured with `wc -c`?
+      (the scope ladder)
 - [ ] If the line is a pointer, does its wording name its triggers, and its exclusions where a
       sibling pointer or skill should take a request this one also matches? (pointers as routing
       predicates)

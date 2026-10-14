@@ -22,6 +22,10 @@ the material governs:
 3. **Disclosed reference** — a plain file behind a pointer, for material scoped to a task rather
    than a place.
 
+The root file and the directory-scoped files on the path to the working directory load together, so
+budget them together. Keep that chain under 32 KiB, measured with `wc -c`: Codex reads only the
+first 32 KiB of it by default (`project_doc_max_bytes`), and the rest never reaches the agent.
+
 Terminology shows the ladder's use: a term anchors shared language only while it is loaded, so its
 rung decides its reach. Keep terms the whole repository speaks in the root file; move terms spoken
 only while working under one directory into that directory's instruction file; keep a term needed
