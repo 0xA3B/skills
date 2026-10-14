@@ -11,13 +11,10 @@ Two properties make a completion criterion a lever:
 
 - **Clarity** — whether the agent can tell done from not-done. A vague criterion ("understanding
   reached") invites **premature completion**: ending the step early because the visible later steps
-  pull attention forward. Sharpen the criterion first — a local, cheap edit. Splitting the sequence
-  is the second defense, under "Splitting" in [document-mechanics.md](document-mechanics.md).
+  pull attention forward.
 - **Demand** — how much the criterion requires. Demand is not step-bound: "every rule applied" binds
   a body of flat reference the same way "every step done" binds a sequence, which is how an
   all-reference document still carries an exhaustiveness bar.
-
-The strongest criteria are both checkable and exhaustive.
 
 ## Formatting
 
@@ -33,14 +30,12 @@ Form carries meaning for an agent; choose the form that encodes the intent:
   prose; otherwise use a list.
 - Make every command block run as pasted: mark placeholders in one consistent form and define each
   near its first use. The agent executes commands verbatim.
-- Write timeless text. "Currently", "new", and references to the change that introduced a rule go
-  stale the moment they land.
 
 ## Leading words
 
 A leading word, repeated as a token and never as a sentence, anchors a region of behavior in the
 fewest tokens by recruiting priors the model already holds. A coined word recruits no priors — you
-pay in definition tokens what a pretrained word gives free; reach for an existing word first.
+pay in definition tokens what a pretrained word gives free.
 
 A leading word anchors twice. In the body, execution: the agent reaches for the same behavior every
 time the word appears. In a pointer, invocation: when the same word lives in your prompts, your

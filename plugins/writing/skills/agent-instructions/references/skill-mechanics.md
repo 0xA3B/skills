@@ -48,7 +48,8 @@ The description of a model-invoked skill is the trigger contract that decides wh
 they ask for the skill's work.
 
 When the repository has trigger tooling, run the skill's positive and negative trigger cases on
-every supported agent, and treat a description change as done when every case passes.
+every supported agent, and treat a description change as done when every case passes; otherwise
+treat it as done when the description follows the pointer rules above.
 
 ## Splitting by mode
 

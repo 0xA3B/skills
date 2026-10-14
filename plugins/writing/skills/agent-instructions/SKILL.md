@@ -37,8 +37,8 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    wrong turn would cross an authority boundary, change state outside the run, or fail silently
    behind a passing status. A path is also fragile when an observed run already took a wrong turn on
    it. For a fragile path, give an exact command, a fixed order, or a bundled script, and say to
-   follow it as written. Leave every other path to the agent with a goal and a default, such as the
-   order of independent steps or recovery from a transient error. A wrong turn on those paths fails
+   follow it as written. Leave every other path, such as the order of independent steps or recovery
+   from a transient error, to the agent with a goal and a default. A wrong turn on those paths fails
    loudly, and the agent can recover from it.
 
 2. **Name the stops.** Name each point where the agent stops for the user: an irreversible or
@@ -54,7 +54,9 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    not add it. Delete rules that tooling already enforces (linters, hooks, CI). The environment is a
    source of truth too: a rule that restates `package.json` scripts, config files, the directory
    layout, or `--help` output is a cache of a cheap lookup, and it goes stale. Cache only what no
-   file confesses — the unwritten convention, the reason behind a choice, the gotcha.
+   file confesses — the unwritten convention, the reason behind a choice, the gotcha. Write timeless
+   text: "currently", "new", and references to the change that introduced a rule go stale the moment
+   they land.
 
 4. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
    changing the behavior is a one-place edit. A meaning stated twice costs double maintenance and
@@ -72,14 +74,15 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    If the agent misses a needed reference, sharpen the pointer's wording before inlining the
    material — the wording, not the target, decides whether the pointer fires. Point to each
    disclosed reference from the entry document, the `SKILL.md` or instruction file the agent loads
-   first. An agent may skip a reference reached only through another disclosed reference, or read it
-   partway.
+   first. An agent may skip or only preview a reference reached only through another disclosed
+   reference.
 
 7. **Write pointers as routing predicates.** A pointer — a skill description or a line naming
    another document — decides when its material is reached. Write its triggers in the shape "Use
-   when [triggers]". Where a sibling pointer or skill should take a request this one also matches,
-   add "Do not use for [exclusions]". Name concrete artifacts and verbs, not topics, and keep one
-   trigger per distinct branch.
+   when [triggers]". Where the triggers also match a request this pointer should not take, such as
+   one a sibling pointer or skill should take, add "Do not use for [exclusions]"; otherwise end at
+   the triggers. Name concrete artifacts and verbs, not topics, and keep one trigger per distinct
+   branch.
 
 8. **Write imperatives with a named actor.** "Before you commit, run `make test`", not "tests should
    be run". Passive voice hides who acts and when the rule fires.
@@ -180,8 +183,8 @@ in place of clarification, and parallel dispatches.
 
 When auditing a diff to an instruction file, or sweeping a whole file for stale or redundant lines,
 work through [review-checklist.md](references/review-checklist.md). Treat the audit as done when
-every line in scope — each changed line of a diff, or each line of a swept file — has answered its
-checklist questions, and the report names what it checked and found clean.
+every line in scope — each added, changed, or deleted line of a diff, or each line of a swept file —
+has answered its checklist questions, and the report names what it checked and found clean.
 
 ## Examples
 

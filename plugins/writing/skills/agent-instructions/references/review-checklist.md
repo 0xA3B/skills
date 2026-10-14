@@ -1,7 +1,8 @@
 # Review checklist
 
-Audit questions for a diff to an instruction file, and for periodic sweeps of a whole file. Each
-question names the rule or reference section it applies.
+Audit questions for a diff to an instruction file or a sweep of a whole file: first for each changed
+or added line, then for a skill that applies another skill, a skill that bundles a script, and each
+deleted line. Each question names the rule or reference section it applies.
 
 For each changed or added line, or each line of a swept file, ask:
 
@@ -35,15 +36,14 @@ For each changed or added line, or each line of a swept file, ask:
 - [ ] If the line points to a disclosed reference, does the entry document point to that reference
       too, so no reference is reached only through another disclosed reference? (inline what every
       branch needs)
-- [ ] If the change leaves a disclosed reference over 100 lines, was it trimmed, split along
+- [ ] If the change leaves a disclosed reference over 100 lines after trimming, was it split along
       distinct branches with a pointer to each part from the entry document, or opened with a
       contents list? (splitting by length)
 - [ ] If the change grows a repository instruction file, do the root file and the directory-scoped
       files on the path to each working directory stay under 32 KiB combined, measured with `wc -c`?
       (the scope ladder)
-- [ ] If the line is a pointer, does its wording name its triggers, and its exclusions where a
-      sibling pointer or skill should take a request this one also matches? (pointers as routing
-      predicates)
+- [ ] If the line is a pointer, does its wording name its triggers, and its exclusions where the
+      triggers also match a request the pointer should not take? (pointers as routing predicates)
 - [ ] Is the actor named and the verb imperative? (imperatives with a named actor)
 - [ ] If the line is conditional, does the condition come first? If the condition limits an action,
       does the line say what to do otherwise? (condition before instruction)
