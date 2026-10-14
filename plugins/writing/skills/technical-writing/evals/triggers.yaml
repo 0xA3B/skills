@@ -143,6 +143,7 @@ cases:
       AGENTS.md: |
         # Project instructions
     expect: skip
+    invoke-instead: writing:agent-instructions
     rationale: Agent instruction files are owned by the agent-instructions skill.
 
   - id: skill-md-diff-review

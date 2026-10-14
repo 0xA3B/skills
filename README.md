@@ -160,7 +160,7 @@ repository rather than on a user's project.
 ### `writing`
 
 These skills govern the prose agents produce, from chat responses to documentation to instruction
-files. The document-mechanics guidance comes from Matt Pocock's MIT-licensed
+files. The document-mechanics and line-mechanics guidance comes from Matt Pocock's MIT-licensed
 [`mattpocock/skills`](https://github.com/mattpocock/skills) repository, and the slop-pattern catalog
 and document-mode layers are adapted from Cursor's
 [`cursor/plugins`](https://github.com/cursor/plugins) repository, with attribution recorded in each
@@ -175,7 +175,8 @@ skill's Agent Skills frontmatter metadata.
   change descriptions, issue and ticket descriptions, and collaborative comments.
 - [`writing:agent-instructions`](./plugins/writing/skills/agent-instructions/): House style and
   document mechanics for files and prompts that instruct agents — `AGENTS.md`, `CLAUDE.md`,
-  `SKILL.md`, agent definitions, system-prompt fragments, and sub-agent task prompts.
+  `SKILL.md`, agent definitions, system-prompt fragments, and sub-agent task prompts — and for the
+  scripts a skill bundles.
 
 The writing plugin also ships a `prose` output style for Claude Code that applies the `prose`
 skill's chat-response guidance from the system prompt on every turn. For chat apps without access to
