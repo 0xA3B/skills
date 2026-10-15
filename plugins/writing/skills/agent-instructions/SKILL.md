@@ -192,8 +192,8 @@ in place of clarification, and parallel dispatches.
 
 When auditing a diff to an instruction file, or sweeping a whole file for stale or redundant lines,
 work through [review-checklist.md](references/review-checklist.md). Treat the audit as done when
-every line in scope — each added, changed, or deleted line of a diff, or each line of a swept file —
-has answered its checklist questions, and the report names what it checked and found clean.
+every checklist section has been answered at the scope it names, and the report names what it
+checked and found clean.
 
 ## Examples
 
