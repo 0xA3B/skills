@@ -40,8 +40,10 @@ instruction. The script binds the path; the agent acts on its output instead of 
   `awk` for lookups, `jq` for date arithmetic, `while IFS= read -r line || [ -n "$line" ]` for
   reading lines, and `grep -E` with bracket classes such as `[0-9]` for patterns. To edit a file in
   place, write a temporary file and copy it back with `cat "$tmp" > "$file"`, which keeps the file's
-  mode and symlinks. Moving the temporary file over the original drops the mode, and `sed -i`
-  refuses or replaces a symlink.
+  mode and symlinks, unlike `mv` or `sed -i`. A failed copy-back leaves the file truncated, so first
+  copy the original aside with `cp "$file" "$orig"`, stopping if that fails. If the copy-back fails,
+  restore with `cat "$orig" > "$file"` and exit with an error either way, naming `$orig` when the
+  restore fails. Delete `$orig`, even in a trap, only after the copy-back or the restore succeeds.
 - Choose the language by the work: when the script parses structured data beyond what `jq` filters
   handle or carries state across many branches, write Python; otherwise write shell.
 - Write a Python script as a PEP 723 script that uv runs, so every skill invokes Python the same
