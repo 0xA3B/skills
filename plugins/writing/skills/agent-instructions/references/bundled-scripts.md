@@ -6,8 +6,7 @@ instruction. The script binds the path; the agent acts on its output instead of 
 ## When to bundle
 
 - Bundle a script for a fragile path the agent would otherwise assemble from several commands,
-  parsing, pagination, or timing. Each run that assembles the path is another chance to assemble it
-  wrong; an observed run that did is the strongest reason to bundle.
+  parsing, pagination, or timing. Each run that assembles the path can assemble it wrong.
 - Keep a fragile path that one command covers in the instructions as an exact command line.
 - For a batch or destructive step on a fragile path, have the agent write its plan to a file and
   validate the plan with a script before applying it. A passing validator run gates the apply; make
