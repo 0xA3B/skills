@@ -39,9 +39,9 @@ commit messages follow the repository's commit convention.
 For a collaborative comment, start after its technical substance and disposition are settled.
 Verifying, triaging, or deciding how to handle existing feedback is outside this skill's scope.
 
-Also apply the `prose` skill's slop patterns to every artifact this file governs. This file restates
-the sentence rules it shares with `prose`, so it stands alone when it loads without the base; where
-the two files conflict on a sentence, this file wins.
+Also apply the "Patterns to remove" section of the `prose` skill to every artifact this file
+governs. This file restates the sentence rules it shares with `prose`, so it stands alone when it
+loads without the base; where the two files conflict on a sentence, this file wins.
 
 The project's own style guide, templates, and neighboring-file conventions win over this file. When
 editing an existing artifact, make the smallest change that satisfies the request, preserve its
