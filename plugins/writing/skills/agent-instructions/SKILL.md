@@ -34,24 +34,28 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 
 1. **Set degrees of freedom by the cost of a wrong path.** Completion criteria bind every step's
    outcome. This rule decides how tightly to bind the path to that outcome. A path is fragile when a
-   wrong turn would cross an authority boundary, change state outside the run, or fail silently
-   behind a passing status. A path is also fragile when an observed wrong turn recurs after the
-   wording or example behind it was fixed. After a first observed wrong turn on any other path, fix
-   that wording or example. For a fragile path, give an exact command, a fixed order, or a bundled
-   script, and say to follow it as written. Leave every other path, such as the order of independent
-   steps or recovery from a transient error, to the agent with a goal and a default. On those paths,
-   a wrong turn fails loudly and the agent can recover from it.
+   wrong turn would take a side effect the authority envelope does not authorize, change state
+   outside the run, or fail silently behind a passing status. When you revise a path because a run
+   took a wrong turn on it, check whether an earlier change fixed the wording or example behind the
+   same wrong turn. If one did, treat the path as fragile; otherwise fix that wording or example.
+   For a fragile path, give an exact command, a fixed order, or a bundled script, and say to follow
+   it as written. Leave every other path, such as the order of independent steps or recovery from a
+   transient error, to the agent with a goal and a default. On those paths, a wrong turn fails
+   loudly and the agent can recover from it.
 
-2. **Name the stops.** Name each point where the agent stops for the user: an irreversible or
-   outward-facing action the request has not authorized, or a decision only the user can make. Count
-   authorization already supplied in the request or conversation, and ask only for the missing
-   decision or authority. Place each necessary stop after the authorized reversible work that makes
-   the decision concrete. When the agent can propose the answer, have it prepare the authorized
-   reversible result with that proposal before asking. For a proposed version, prepare the version
-   bump and changelog diff before asking the user to confirm the version. Preparing that result does
-   not itself require another approval. State which actions an invocation authorizes and under which
-   request, so that between named stops the agent carries the work through to its completion
-   criterion instead of stopping to ask.
+2. **State the authority envelope.** When a workflow can take side effects, its authority envelope
+   places each side effect the workflow could take in one class. Allowed side effects are what the
+   request that starts the workflow authorizes, usually the workflow's purpose: asking to merge a
+   pull request authorizes the merge. The agent takes them without asking and carries the work
+   through to its completion criterion. Boundaries are side effects the workflow never takes; name
+   the hand off or report that replaces each. A checkpoint holds a side effect for the user's
+   approval: one beyond the request's authority, or outward-facing output whose errors no check the
+   agent can run would catch. A decision only the user can make is also a checkpoint. Place each
+   checkpoint after the reversible work that makes it concrete, with the agent's proposal attached
+   when the agent can make one, and state what the agent does with approval and without it,
+   including when no user can answer. A reply at a checkpoint grants only what the checkpoint asked.
+   A workflow that can take no side effects still names a checkpoint for each decision only the user
+   can make.
 
 3. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding a
    rule, name the failure it prevents, in the rule or in the change that adds it; if you cannot, do

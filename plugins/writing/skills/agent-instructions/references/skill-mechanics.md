@@ -30,10 +30,10 @@ outside the skill system that both point at.
 When one skill applies another model-invoked skill during the same workflow, assign ownership by
 axis:
 
-- The orchestrating skill owns the authority envelope: whether and when mutation is allowed, the
-  workflow sequence, stopping conditions, and terminal outcome.
+- The orchestrating skill owns the authority envelope, the workflow sequence, and the terminal
+  outcome.
 - The supporting skill owns producing and verifying its artifact, or applying its discipline, within
-  the authority passed by the orchestrating skill.
+  the orchestrating skill's authority envelope.
 
 Pass the supporting skill the task inputs, repository constraints, and required outcome. Point to
 its instructions instead of copying them into the orchestrating skill. If the supporting skill may
