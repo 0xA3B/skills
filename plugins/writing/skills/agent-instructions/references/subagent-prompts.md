@@ -50,8 +50,13 @@ The final message is the only channel back; work not reported is work lost.
 - Ask for the evidence behind each result and, where it helps, a short explanation, instead of the
   sub-agent's reasoning written out. Claude models can decline a prompt that asks them to reproduce
   their reasoning.
-- When the raw material is large, say what to leave out of the report — file dumps, full logs,
-  intermediate steps — so the answer survives the trip.
+- Size the final message, with the reasoning that produces it, to fit in one response: the harness
+  caps each response's output, and a sub-agent that runs past the cap loses the response instead of
+  reporting. Say what to leave out of the report — file dumps, full logs, intermediate steps, and a
+  line for every item that passed where a count would do. When the report would still be long, such
+  as an audit with an answer per item, and the workflow's authority envelope allows writing a file,
+  have the sub-agent append each result to a file the prompt names as it goes, so each write ends a
+  response; otherwise split the items across parallel dispatches.
 - For machine-consumed results, show the exact output shape once as an example rather than
   describing it.
 
