@@ -57,15 +57,15 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    A workflow that can take no side effects still names a checkpoint for each decision only the user
    can make.
 
-3. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding a
-   rule, name the failure it prevents, in the rule or in the change that adds it; if you cannot, do
-   not add it. Delete explanations and reminders that tooling makes redundant. Keep instructions
-   that determine when a check runs or how its result gates the workflow. The environment is a
-   source of truth too: a rule that restates `package.json` scripts, config files, the directory
-   layout, or `--help` output is a cache of a cheap lookup, and it goes stale. Cache only what no
-   file confesses — the unwritten convention, the reason behind a choice, the gotcha. Write timeless
-   text: "currently", "new", and references to the change that introduced a rule go stale the moment
-   they land.
+3. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding or
+   changing a rule, name the failure the edit prevents, in the rule or in the change that makes it;
+   if you cannot, do not make the edit. Delete explanations and reminders that tooling makes
+   redundant. Keep instructions that determine when a check runs or how its result gates the
+   workflow. The environment is a source of truth too: a rule that restates `package.json` scripts,
+   config files, the directory layout, or `--help` output is a cache of a cheap lookup, and it goes
+   stale. Cache only what no file confesses — the unwritten convention, the reason behind a choice,
+   the gotcha. Write timeless text: "currently", "new", and references to the change that introduced
+   a rule go stale the moment they land.
 
 4. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
    changing the behavior is a one-place edit. A meaning stated twice costs double maintenance and
