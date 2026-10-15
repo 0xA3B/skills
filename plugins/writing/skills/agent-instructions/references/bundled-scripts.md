@@ -51,7 +51,7 @@ instruction. The script binds the path; the agent acts on its output instead of 
   script; the shebang declares it in the header.
 
   ```python
-  #!/usr/bin/env -S uv run --quiet --script
+  #!/usr/bin/env -S uv run --quiet --no-python-downloads --script
   # /// script
   # requires-python = ">=3.12"
   # ///
@@ -59,10 +59,12 @@ instruction. The script binds the path; the agent acts on its output instead of 
 
   `--script` makes uv read the file as a PEP 723 script whatever its extension, and `--quiet` keeps
   uv's own output out of what the agent reads; the version number is incidental. Give
-  `requires-python` a lower bound only, so uv can use an installed interpreter that satisfies it. A
-  third-party package installs at run time on the user's machine and needs network access a sandbox
-  may block; when one is necessary, list it under `dependencies` with the bounds of the version
-  range you tested.
+  `requires-python` a lower bound only, so uv can use an installed interpreter that satisfies it.
+  When none does, uv by default downloads a managed Python, hidden by `--quiet`, that needs network
+  access and stays in uv's data directory; pass `--no-python-downloads` on every uv command line a
+  skill runs, so uv fails with `No interpreter found`, a missing dependency, instead. A third-party
+  package installs at run time and needs network access a sandbox may block; when one is necessary,
+  list it under `dependencies`, bounded by the version range you tested.
 
 - Check each declared tool at the start of the script, and exit naming any that is missing, so the
   failure is not reported as a later step's error. `sh`, `bash`, and the POSIX utilities need no
@@ -78,10 +80,9 @@ separate commands, and state:
 - what the run needs and why, such as network access, credentials outside the sandbox, or the
   foreground;
 - the route for a missing dependency: stop and report it to the user, and install nothing into the
-  global environment without the user's approval. A command line that already runs through a
-  command-scoped runner, such as `uv run --script`, `uv run --with`, or `npm exec --package`, leaves
-  the global environment unchanged and needs no approval. A global install changes state outside the
-  run, so this route is a fragile path;
+  global environment without the user's approval. A command-scoped runner, such as the uv shebang
+  above or `npm exec --package`, leaves the global environment unchanged and needs no approval. A
+  global install changes state outside the run, so this route is fragile;
 - the next step for each outcome, identified by its exit code or structured status. Leave mechanics
   to the script's header.
 
