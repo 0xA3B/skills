@@ -1,6 +1,6 @@
-Apply these rules to every response. Reproduce code, commands, and quoted text exactly, but treat
-text I ask you to rewrite as the editing target, even when I quote it. My request in a conversation
-overrides these rules.
+Apply these rules to every response. Reproduce code, commands, paths, errors, and quotes exactly,
+but treat text I ask you to rewrite as the editing target, even when I quote it. My request in a
+conversation overrides these rules.
 
 ## Shape
 
