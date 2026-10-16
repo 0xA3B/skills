@@ -30,9 +30,9 @@ machine-written. This file removes them.
 This file is the base style for all prose. When a more specific writing skill governs the text, its
 rules override this file for that text: `technical-writing` for technical artifacts,
 `agent-instructions` for files and prompts that instruct agents. Chat responses, including responses
-about those artifacts, stay governed by this file plus
-[chat-responses.md](references/chat-responses.md). Commit messages follow the repository's commit
-convention.
+about those artifacts, stay governed by this file. The user's request overrides this file and
+chat-responses.md. A repository's conventions, such as its commit convention, override it for the
+artifacts they govern, and a workflow skill's report format overrides it for that skill's reports.
 
 Reproduce code, identifiers, file paths, commands, error messages, and quoted text exactly. They are
 outside this style. Text the user supplies for rewriting is the editing target, not protected
@@ -45,8 +45,8 @@ quotation, even when it arrives in quotation marks or a block quote.
   separate point or makes the reader backtrack. Keep the punctuation when it preserves a useful
   relationship or natural rhythm without reducing clarity.
 - Give each paragraph one idea, and start a new paragraph when the topic shifts. Within a paragraph,
-  mix short and long sentences so the prose does not run as one dense block. A short sentence is
-  still a whole sentence, not a fragment for effect.
+  mix short and long sentences so the rhythm does not flatten. A short sentence is still a whole
+  sentence, not a fragment for effect.
 - Use the active voice and name the actor: "the loader parses the file", not "the file is parsed".
   Passive voice is acceptable where the actor is unknown or beside the point.
 - Choose the plain word: "use", not "utilize"; "help", not "facilitate". Keep the precise technical
@@ -56,17 +56,19 @@ quotation, even when it arrives in quotation marks or a block quote.
 - Put the condition before the action, so the reader can skip what does not apply.
 - Make every "it", "they", and "this" point at one obvious thing. Repeat the noun when in doubt.
 - Be specific. Name the mechanism or the number: "a column rename fails the build", not "schema
-  changes can cause issues". If a sentence could appear unchanged in another project's text, it says
-  nothing about this one. Cut it.
-- State an uncertainty once, concretely, near the claim it qualifies: "I did not run this" is
-  useful; "this may not work" is not.
+  changes can cause issues". If a sentence could appear unchanged in someone else's text, make it
+  specific to this one or cut it.
+- State an uncertainty once, concretely, near the claim it qualifies, and say why it is uncertain:
+  "I did not run this" is useful; "this may not work" is not.
 - When summarizing a document or discussion, restate it in your own words. Put any phrase copied
   from the source in quotation marks, and keep each quotation short.
 
 ## Patterns to remove
 
-Scan for these, rewrite while preserving meaning, then reread once asking "what still reads as
-machine-written?"
+Look for these during the self-check below, and rewrite each one you find while preserving meaning.
+The examples show each pattern's shape, not a complete list: apply the fix to similar phrasing, and
+keep a phrase that is already the plain, precise way to say the thing, such as an established
+technical term like "bottleneck".
 
 ### Mannered prose
 
@@ -94,6 +96,8 @@ forms:
 - **Invented compound labels.** A hyphenated coinage such as "exact-head checks" or "editorial-row
   layout" makes the reader decode a term nobody defined. State the relationship with plain verbs and
   prepositions: "checks that run against the exact head commit".
+- **Difficulty judgments.** "Just", "simply", "easily", and "obviously" misjudge how hard something
+  is for the reader. Delete them.
 
 ### Formulas
 
@@ -131,14 +135,14 @@ forms:
 
 ## Chat responses
 
-When writing or reviewing a chat response or conversational reply, apply
-[chat-responses.md](references/chat-responses.md) on top of this file. It owns response shape,
-layout, closing next steps, length calibration, and evidence conduct.
+When writing or reviewing a chat response, apply [chat-responses.md](references/chat-responses.md)
+on top of this file. It owns response shape, layout, closing next steps, brevity limits, and
+evidence conduct.
 
 ## Self-check
 
 Read the finished text once and fix every hit: punctuation that hides a separate point or makes the
-reader backtrack; a paragraph that carries two ideas or runs as one dense block; a mannered phrase
-where a literal one is available; a word or formula from the patterns above; a hedge that does not
-name what is uncertain; a sentence that could appear unchanged in someone else's text; structure
-that decorates instead of organizes.
+reader backtrack; a paragraph that carries two ideas or never varies its sentence length; a mannered
+phrase where a literal one is available; a word or formula from the patterns above; a hedge that
+does not name what is uncertain; a sentence that could appear unchanged in someone else's text;
+structure that decorates instead of organizes; anything else that still reads as machine-written.

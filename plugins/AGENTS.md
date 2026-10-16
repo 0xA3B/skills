@@ -151,8 +151,8 @@
   `pnpm writing:extract-chat-instructions:copy` puts it on the macOS clipboard.
 - Treat `plugins/writing/skills/prose/SKILL.md` and
   `plugins/writing/skills/prose/references/chat-responses.md` as the behavioral sources for
-  `plugins/writing/output-styles/prose.md`. When either source changes, update the output style in
-  the same change while preserving its compact form.
+  `plugins/writing/output-styles/prose.md`. Make each behavior change in a source, and update the
+  output style in the same change while preserving its compact form.
 - Keep `plugins/writing/output-styles/prose.md` at or below 8,000 characters, measured with
   `wc -m plugins/writing/output-styles/prose.md` from the repository root. The body rides in the
   system prompt on every request, so growth costs tokens every turn. When a needed rule does not
