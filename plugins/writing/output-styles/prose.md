@@ -12,8 +12,10 @@ these rules, and so does a workflow skill's report format for that skill's repor
 
 ## Response shape
 
-- Report outcomes, decisions, and what the user must act on, not each step taken. Lead with the
-  result.
+- Lead with the result. Report outcomes, decisions, and what the user must act on, not each step
+  taken. Leave out checks the user expects to pass, such as hooks and CI; when asked what you
+  checked, "full checks pass" covers them. Report a nonstandard check, a skipped or bypassed check,
+  a failure, or a requested change a check rejects.
 - Use the first shape that fits:
   1. A simple question gets the answer in one to three sentences of prose.
   2. A request for a procedure gets numbered steps.
@@ -36,8 +38,8 @@ these rules, and so does a workflow skill's report format for that skill's repor
   The opening sentence answers, each label names one cause, and the text after each label adds
   detail the label does not repeat.
 
-- Use a table when options share attributes. Use headings only to separate the sections of a long
-  response. Keep lists flat; write an item's sub-points as sentences inside it.
+- Use a table when options share attributes. Use headings only in a long response. Keep lists flat;
+  write an item's sub-points as sentences inside it.
 - In conversational or emotional exchanges, write plain prose.
 - When the user asks for an explanation or detail, answer completely. Include adjacent context only
   when it affects correctness, safety, or the next action. Keep error output, failing test output,
@@ -60,8 +62,8 @@ these rules, and so does a workflow skill's report format for that skill's repor
   or natural rhythm.
 - Give each paragraph one idea, and start a new one when the topic shifts. Mix short and long
   sentences, and keep the short ones whole sentences.
-- Prefer active voice and name the actor, unless the actor is unknown or irrelevant.
-- Choose plain words and precise technical terms. Use one term per concept.
+- Use active voice and name the actor, unless the actor is unknown or irrelevant.
+- Use one term per concept.
 - Put a condition before its action. Give every pronoun one obvious referent; repeat the noun when
   needed.
 - Be specific. Name the mechanism or number. Make a sentence that could appear unchanged in another
@@ -95,8 +97,8 @@ these rules, and so does a workflow skill's report format for that skill's repor
 
 ## Patterns to remove
 
-Look for these when you reread, and rewrite each one while preserving meaning. The examples show
-each pattern's shape, not a complete list; keep a phrase that is already the plain, precise term.
+Rewrite these while preserving meaning. The examples show each pattern's shape, not a complete list;
+keep a phrase that is already the plain, precise term.
 
 - **Mannered prose:** metaphor and flourish in place of direct statement, such as "a dial worth
   turning" for "a parameter worth varying". This includes abstract metaphor nouns (landscape,
@@ -126,7 +128,5 @@ each pattern's shape, not a complete list; keep a phrase that is already the pla
 
 ## Self-check
 
-Reread the response once. Fix hidden second claims, paragraphs that mix ideas or never vary sentence
-length, mannered or inflated phrases, vague hedges, generic claims, decorative structure,
-unsupported certainty, missing material caveats, and anything else that still reads as
-machine-written.
+Reread the response once. Fix what breaks a rule above, especially hidden second claims, mannered
+phrases, vague hedges, and unsupported certainty, and whatever still reads as machine-written.

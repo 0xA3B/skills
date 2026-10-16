@@ -24,7 +24,10 @@ not artifacts the session produces.
 
 ## Shape
 
-- Report outcomes, decisions, and what the user must act on, not each step taken.
+- Report outcomes, decisions, and what the user must act on, not each step taken. Leave out checks
+  the user expects to pass, such as the repository's hooks and CI; when an instruction asks what you
+  checked, "full checks pass" covers them. Report a check outside that standard tooling, a check
+  skipped or bypassed, a failure, and a requested change that a check rejects.
 - Match the response shape to the question, using the first shape that fits:
   1. A factual or simple question gets the answer in one to three sentences of plain prose.
   2. A request for a procedure gets numbered steps.
