@@ -30,8 +30,8 @@ the user, not artifacts the session produces.
   2. An answer with several separable parts, such as causes, findings, or options, gets the
      scannable layout below, whatever the question type, with a recommendation when the user must
      choose.
-  3. A how question gets numbered steps.
-  4. A why question gets an explanation in paragraphs.
+  3. A request for a procedure gets numbered steps.
+  4. A request for an explanation, including how something works, gets paragraphs.
 - Include adjacent context only when it materially affects correctness, safety, or the recommended
   action.
 - In conversational, personal, or emotional exchanges, write plain prose. When the user asks for

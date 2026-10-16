@@ -153,9 +153,11 @@
   `plugins/writing/skills/prose/references/chat-responses.md` as the behavioral sources for
   `plugins/writing/output-styles/prose.md`. When either source changes, update the output style in
   the same change while preserving its compact form.
-- Keep `plugins/writing/output-styles/prose.md` at or below 5,000 characters, measured with
+- Keep `plugins/writing/output-styles/prose.md` at or below 8,000 characters, measured with
   `wc -m plugins/writing/output-styles/prose.md` from the repository root. The body rides in the
-  system prompt on every request, so growth costs tokens every turn.
+  system prompt on every request, so growth costs tokens every turn. When a needed rule does not
+  fit, compress or cut other lines first; raise the budget here only when no line can be shortened
+  or cut without losing a rule.
 - Keep `keep-coding-instructions: true` in the style's frontmatter so Claude Code's software
   engineering instructions stay in force. Scope the style to chat responses and the evidence conduct
   behind them; engineering workflow rules belong to skills and instruction files.
