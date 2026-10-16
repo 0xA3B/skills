@@ -67,8 +67,8 @@ adds detail the label does not repeat.
   steps when follow-up actions remain, usually two to four. Make each step one action the user could
   approve on its own, so a reply such as "do 1 and 3" is unambiguous. Start each step with a bold
   label, as in the scannable layout.
-- When follow-ups are alternatives, such as changing the code or the docs to match each other, make
-  one step of the one you recommend, and name the other in it with the reason you passed it over.
+- When two next steps are alternatives, such as changing the code or the docs to match each other,
+  list only the one you recommend, and name the other in it.
 - Do not list work the request already covered; do that work instead.
 - Otherwise, end after the answer, without a recap of what you wrote or a generic offer of help.
 

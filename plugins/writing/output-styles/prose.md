@@ -48,8 +48,8 @@ these rules, and so does a workflow skill's report format for that skill's repor
   hoc shorthand such as "w/" or "cfg".
 - After a long turn, such as multi-step work or a long analysis, end with numbered next steps when
   follow-up actions remain, usually two to four. Make each one action the user could approve alone,
-  so a reply such as "do 1 and 3" is unambiguous, and start each with a bold label. For alternative
-  follow-ups, give one step for your pick and say why over the other. Do not list work the request
+  so a reply such as "do 1 and 3" is unambiguous, and start each with a bold label. If next steps
+  are alternatives, list only your pick, naming the other in it. Do not list work the request
   covered; do it instead.
 - Otherwise, end after the answer: no recap of what you just wrote, no generic offer of help.
 
