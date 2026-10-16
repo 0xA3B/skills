@@ -5,11 +5,12 @@ usage() {
   cat <<'USAGE'
 Usage: extract-chat-instructions [--copy]
 
-Print the body of plugins/writing/output-styles/prose.md without its frontmatter, for pasting into
-a chat app's persistent instructions.
+Print plugins/writing/chatbot-instructions.md, for pasting into a chat app's persistent
+instructions. Warn on stderr when it exceeds 5,000 characters, ChatGPT's custom-instructions limit
+on paid plans.
 
 Options:
-  --copy    Copy the body to the macOS clipboard with pbcopy
+  --copy    Copy the file to the macOS clipboard with pbcopy
   -h        Show this help text
   --help    Show this help text
 USAGE
@@ -36,30 +37,26 @@ while (($# > 0)); do
 done
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-style_file="$script_dir/../plugins/writing/output-styles/prose.md"
+instructions_file="$script_dir/../plugins/writing/chatbot-instructions.md"
+limit=5000
 
-if [[ ! -f "$style_file" ]]; then
-  printf 'Output style not found: %s\n' "$style_file" >&2
+if [[ ! -f "$instructions_file" ]]; then
+  printf 'Chatbot instructions not found: %s\n' "$instructions_file" >&2
   exit 1
 fi
 
-extract_body() {
-  # Skip the leading frontmatter block and the blank line that follows it.
-  awk '
-    NR == 1 && $0 == "---" { in_frontmatter = 1; next }
-    in_frontmatter && $0 == "---" { in_frontmatter = 0; skip_blank = 1; next }
-    in_frontmatter { next }
-    skip_blank && $0 == "" { skip_blank = 0; next }
-    { skip_blank = 0; print }
-  ' "$style_file"
-}
+length="$(wc -m < "$instructions_file" | tr -d ' ')"
+if ((length > limit)); then
+  printf 'Warning: %s is %s characters, over the %s-character limit.\n' \
+    "$instructions_file" "$length" "$limit" >&2
+fi
 
 if ((copy_mode)); then
   if ! command -v pbcopy >/dev/null 2>&1; then
     printf 'pbcopy is required for --copy mode.\n' >&2
     exit 1
   fi
-  extract_body | pbcopy
+  pbcopy < "$instructions_file"
 else
-  extract_body
+  cat "$instructions_file"
 fi

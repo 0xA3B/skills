@@ -28,10 +28,13 @@ skill's base style and chat-response rules from the system prompt. Set `outputSt
 settings file, or pick it under **Output style** in `/config`. The style keeps Claude Code's
 software engineering instructions in force.
 
-For chat apps without access to installed skills, copy the body of
-[`output-styles/prose.md`](output-styles/prose.md) below its frontmatter into their persistent
-instructions. From a checkout of this repository, `pnpm writing:extract-chat-instructions:copy` puts
-the body on the macOS clipboard.
+For chat apps without access to installed skills, such as claude.ai and ChatGPT, paste
+[`chatbot-instructions.md`](chatbot-instructions.md) into their persistent instructions. On
+claude.ai, open Settings and paste it into Instructions for Claude. On ChatGPT, paste it into custom
+instructions. The file stays within the 5,000 characters ChatGPT allows on paid plans; on Free and
+Go plans, which allow 1,500, paste only the opening paragraph and the sections you want most. From a
+checkout of this repository, `pnpm writing:extract-chat-instructions:copy` puts the file on the
+macOS clipboard.
 
 For agents without output styles, such as Codex, add a pointer line to your user memory (for example
 `AGENTS.md`): "Apply the writing:prose skill to chat responses." A similar pointer makes sub-agent
