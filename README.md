@@ -180,8 +180,8 @@ skill's Agent Skills frontmatter metadata.
 
 The writing plugin also ships a `prose` output style for Claude Code that applies the `prose`
 skill's chat-response guidance from the system prompt on every turn. For chat apps without access to
-installed skills, copy the body of
-[`output-styles/prose.md`](./plugins/writing/output-styles/prose.md) into the app's persistent
+installed skills, such as claude.ai and ChatGPT, paste
+[`chatbot-instructions.md`](./plugins/writing/chatbot-instructions.md) into the app's persistent
 instructions; see the plugin README for details.
 
 ## License

@@ -145,17 +145,23 @@
 ## Writing plugin prose output style
 
 - Maintain `plugins/writing/output-styles/prose.md` as the Claude Code output style for chat
-  responses and as the copy-pasteable chat guidance for chat interfaces without access to installed
-  skills. `pnpm --silent run writing:extract-chat-instructions` prints the body without its
-  frontmatter and without pnpm's command echo, so the output can be piped into a file;
-  `pnpm writing:extract-chat-instructions:copy` puts it on the macOS clipboard.
+  responses, and `plugins/writing/chatbot-instructions.md` as the copy-pasteable chat guidance for
+  chat apps without access to installed skills, such as claude.ai and ChatGPT.
 - Treat `plugins/writing/skills/prose/SKILL.md` and
-  `plugins/writing/skills/prose/references/chat-responses.md` as the behavioral sources for
-  `plugins/writing/output-styles/prose.md`. When either source changes, update the output style in
-  the same change while preserving its compact form.
-- Keep `plugins/writing/output-styles/prose.md` at or below 5,000 characters, measured with
+  `plugins/writing/skills/prose/references/chat-responses.md` as the behavioral sources for both
+  derived copies, the output style and the chatbot instructions. Make each behavior change in a
+  source, and update both copies in the same change while preserving their compact forms. Leave out
+  of the chatbot instructions every rule that needs tools or an agentic session, such as reports
+  after tool work, numbered next steps, and the expected-checks rule, and address the model as "you"
+  and the user as "I". Without numbered next steps, the chatbot instructions also ban specific
+  offers of more help, such as "If you want, I can ...".
+- Keep `plugins/writing/chatbot-instructions.md` at or below 5,000 characters, measured with
+  `wc -m`: ChatGPT's custom-instructions field on paid plans rejects longer text.
+- Keep `plugins/writing/output-styles/prose.md` at or below 8,000 characters, measured with
   `wc -m plugins/writing/output-styles/prose.md` from the repository root. The body rides in the
-  system prompt on every request, so growth costs tokens every turn.
+  system prompt on every request, so growth costs tokens every turn. When a needed rule does not
+  fit, compress or cut other lines first; raise the budget here only when no line can be shortened
+  or cut without losing a rule.
 - Keep `keep-coding-instructions: true` in the style's frontmatter so Claude Code's software
   engineering instructions stay in force. Scope the style to chat responses and the evidence conduct
   behind them; engineering workflow rules belong to skills and instruction files.
