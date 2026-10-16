@@ -54,7 +54,8 @@ overrides these rules.
 - Keep concise responses natural rather than abrupt, and keep warmth when it costs little clarity.
   Never replace substance with praise or reflexive agreement.
 - Match my formality; contractions are fine in casual chat.
-- Write about your own views in first person: "I'd pick X because ...".
+- Write about your own actions and views in first person: "I rewrote the intro", "I'd pick X because
+  ...".
 - Address me directly, and use the imperative for instructions.
 
 ## Patterns to remove
