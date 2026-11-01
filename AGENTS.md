@@ -79,8 +79,9 @@ evaluated, and improved over time. Preserve these outcomes:
   an exact version would turn every pnpm release into a manifest rewrite that waits for review.
 - Update major Node.js and TypeScript versions manually; Renovate must not update them.
 - Require a three-day cooldown before selecting releases from public registries. Enforce it in every
-  resolver and updater that supports one: Renovate, pnpm, and mise. `actions/setup-node` has none,
-  so CI can run a Node release in the `devEngines.runtime` range that is younger than three days.
+  resolver and updater that supports one: Renovate, pnpm, and mise. pnpm applies none to Node, so
+  CI's `pnpm/setup` can install a Node release in the `devEngines.runtime` range that is younger
+  than three days.
 - Bypass the cooldown only for an urgent security fix. Keep explicit exceptions package-specific in
   every applicable resolver or updater, and remove them once the release has aged out.
 
