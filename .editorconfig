@@ -8,6 +8,10 @@ indent_size = 2
 insert_final_newline = true
 max_line_length = 100
 trim_trailing_whitespace = true
+# shfmt: indent case arms under their case statement, and keep binary operators such as `|` and
+# `&&` at the start of a continued line.
+switch_case_indent = true
+binary_next_line = true
 
 [*.{md,markdown}]
 trim_trailing_whitespace = false

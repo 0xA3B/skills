@@ -14,6 +14,7 @@
 #
 # `capture` prints its value back to the terminal, where the agent reads it — so
 # capture observations, and leave signing in to the user as a `step`.
+# shellcheck disable=SC2154 # capture assigns each VAR by name.
 
 set -euo pipefail
 
@@ -24,9 +25,9 @@ step() {
 
 capture() {
   local var="$1" question="$2" answer
-  printf '\n>>> %s\n' "$question"
+  printf '\n>>> %s\n' "${question}"
   read -r -p "    > " answer
-  printf -v "$var" '%s' "$answer"
+  printf -v "${var}" '%s' "${answer}"
 }
 
 # --- edit below ---------------------------------------------------------
@@ -40,5 +41,5 @@ capture ERROR_MSG "Paste the error message (or 'none'):"
 # --- edit above ---------------------------------------------------------
 
 printf '\n--- Captured ---\n'
-printf 'ERRORED=%s\n' "$ERRORED"
-printf 'ERROR_MSG=%s\n' "$ERROR_MSG"
+printf 'ERRORED=%s\n' "${ERRORED}"
+printf 'ERROR_MSG=%s\n' "${ERROR_MSG}"

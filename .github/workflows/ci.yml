@@ -24,13 +24,18 @@ jobs:
           # with origin/main and refuse a shallow clone.
           fetch-depth: 0
 
-      # Installs the pnpm release pnpm-lock.yaml locks and the Node release devEngines.runtime
-      # selects, then runs a frozen install.
-      - name: Set up pnpm, Node.js, and dependencies
-        uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+      # mise installs shfmt and ShellCheck, which pnpm/setup does not, with Node.js and pnpm at the
+      # releases mise.lock pins; see docs/adr/0003-mise-installs-and-locks-the-toolchain.md. The
+      # action puts those tools on PATH for later steps, so they run without `mise exec --`.
+      - name: Set up tools
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
-          cache: true
-          require-lockfile: true
+          # Without a version, the action installs the newest mise release with no three-day
+          # cooldown; Renovate updates this input.
+          version: 2026.10.22
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Run checks
         run: pnpm check

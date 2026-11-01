@@ -37,18 +37,18 @@ while (($# > 0)); do
 done
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-instructions_file="$script_dir/../plugins/writing/chatbot-instructions.md"
+instructions_file="${script_dir}/../plugins/writing/chatbot-instructions.md"
 limit=5000
 
-if [[ ! -f "$instructions_file" ]]; then
-  printf 'Chatbot instructions not found: %s\n' "$instructions_file" >&2
+if [[ ! -f "${instructions_file}" ]]; then
+  printf 'Chatbot instructions not found: %s\n' "${instructions_file}" >&2
   exit 1
 fi
 
-length="$(wc -m < "$instructions_file" | tr -d ' ')"
+length="$(wc -m <"${instructions_file}" | tr -d ' ')"
 if ((length > limit)); then
   printf 'Warning: %s is %s characters, over the %s-character limit.\n' \
-    "$instructions_file" "$length" "$limit" >&2
+    "${instructions_file}" "${length}" "${limit}" >&2
 fi
 
 if ((copy_mode)); then
@@ -56,7 +56,7 @@ if ((copy_mode)); then
     printf 'pbcopy is required for --copy mode.\n' >&2
     exit 1
   fi
-  pbcopy < "$instructions_file"
+  pbcopy <"${instructions_file}"
 else
-  cat "$instructions_file"
+  cat "${instructions_file}"
 fi

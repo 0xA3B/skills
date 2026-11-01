@@ -51,19 +51,19 @@ fail() {
 }
 
 # A shallow history can cut the range short while every command succeeds.
-if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+if [[ "$(git rev-parse --is-shallow-repository)" = true ]]; then
   fail "the repository is a shallow clone; run git fetch --unshallow and retry."
 fi
-git rev-parse --verify --quiet --end-of-options "$base^{commit}" >/dev/null \
-  || fail "base ref \"$base\" does not exist; fetch it or pass --base <ref>."
-merge_base="$(git merge-base --end-of-options "$base" HEAD)" \
-  || fail "HEAD shares no history with base ref \"$base\"."
+git rev-parse --verify --quiet --end-of-options "${base}^{commit}" >/dev/null \
+  || fail "base ref \"${base}\" does not exist; fetch it or pass --base <ref>."
+merge_base="$(git merge-base --end-of-options "${base}" HEAD)" \
+  || fail "HEAD shares no history with base ref \"${base}\"."
 
 # commitlint rejects a range whose ends are the same commit.
-if [ "$(git rev-list --count "$merge_base..HEAD")" -eq 0 ]; then
-  echo "Commit lint: no commits since the merge base with $base."
+if [[ "$(git rev-list --count "${merge_base}..HEAD")" -eq 0 ]]; then
+  echo "Commit lint: no commits since the merge base with ${base}."
   exit 0
 fi
 
 root="$(git rev-parse --show-toplevel)"
-exec "$root/node_modules/.bin/commitlint" --verbose --from "$merge_base" --to HEAD
+exec "${root}/node_modules/.bin/commitlint" --verbose --from "${merge_base}" --to HEAD
