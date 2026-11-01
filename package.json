@@ -28,20 +28,20 @@
     "writing:extract-chat-instructions:copy": "./scripts/extract-chat-instructions --copy"
   },
   "devDependencies": {
-    "@commitlint/cli": "*",
-    "@commitlint/config-conventional": "*",
-    "@types/node": "^26.0.0",
-    "@types/shell-quote": "*",
-    "husky": "*",
-    "lint-staged": "*",
-    "oxfmt": "*",
-    "oxlint": "*",
-    "shell-quote": "*",
-    "tsx": "*",
-    "typescript": "^6.0.0",
-    "vite": "*",
-    "vitest": "*",
-    "yaml": "*"
+    "@commitlint/cli": "<22",
+    "@commitlint/config-conventional": "<22",
+    "@types/node": "<27",
+    "@types/shell-quote": "<2",
+    "husky": "<10",
+    "lint-staged": "<18",
+    "oxfmt": "<1",
+    "oxlint": "<2",
+    "shell-quote": "<2",
+    "tsx": "<5",
+    "typescript": "<7",
+    "vite": "<9",
+    "vitest": "<6",
+    "yaml": "<3"
   },
   "lint-staged": {
     "*.{js,mjs,jsx,ts,tsx}": [
@@ -83,8 +83,16 @@
       ]
     }
   },
-  "engines": {
-    "node": "^26.0.0"
-  },
-  "packageManager": "pnpm@12.8.2"
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12",
+      "onFail": "download"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "26",
+      "onFail": "error"
+    }
+  }
 }
