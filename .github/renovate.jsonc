@@ -1,81 +1,100 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":semanticCommits"],
+  // Pin GitHub Actions to digests, so an automerged update runs the code its CI run tested even if
+  // the release tag later moves.
+  "extends": ["config:recommended", ":semanticCommits", "helpers:pinGitHubActionDigests"],
   "timezone": "America/New_York",
-  // Create regular update branches Friday midnight through 9:59 AM Eastern.
+  // Fridays, midnight–9:59 AM Eastern.
   "schedule": ["* 0-9 * * 5"],
+  // Match the pnpm and mise cooldowns.
   "minimumReleaseAge": "3 days",
-  // Preserve unbounded manifest entries by updating only the lockfile.
+  // Update in-range versions only in the lockfile. A release outside a bound moves the bound; the
+  // reviewed exception below holds those PRs for release-note review.
   "rangeStrategy": "update-lockfile",
+  // Keep PR checks current with main.
   "rebaseWhen": "behind-base-branch",
   "automergeType": "pr",
   "automergeStrategy": "squash",
   "labels": ["dependencies"],
   // Workspace seeds under evals/seeds are staged fixture projects, not dependencies of this repo.
   "ignorePaths": ["**/node_modules/**", "**/bower_components/**", "evals/seeds/**"],
+  // Lockfile maintenance is the only automated path for in-range pnpm releases, so it runs weekly
+  // and automerges once CI passes.
   "lockFileMaintenance": {
     "enabled": true,
-    // Refresh the lockfile on the first Saturday of each month, midnight through 9:59 AM Eastern.
-    "schedule": ["* 0-9 1-7 * 6"]
+    // Saturdays, midnight–9:59 AM Eastern.
+    "schedule": ["* 0-9 * * 6"],
+    // pnpm enforces the cooldown on every resolution it selects, including its own version.
+    "minimumReleaseAge": null,
+    "automerge": true
   },
-  // Allow vulnerability alerts to bypass release-age cooldowns.
+  // Bypass Renovate cooldowns for security fixes.
   "vulnerabilityAlerts": {
     "minimumReleaseAge": null,
     "labels": ["dependencies", "security"]
   },
   "packageRules": [
+    // Automerge by default, since CI catches breaking releases. The reviewed exception below holds
+    // updates that rewrite a dependency entry in package.json.
     {
-      "description": "Group npm dependency updates",
-      "matchManagers": ["npm"],
-      "groupName": "npm dependencies"
-    },
-    {
-      "description": "Automerge stable npm patch updates after the seven-day cooldown and CI passes",
-      "matchManagers": ["npm"],
-      "matchCurrentVersion": "!/^0/",
-      "matchUpdateTypes": ["patch"],
-      "groupName": "npm stable patch dependencies",
-      // Give unattended updates more time to stabilize than reviewed updates.
-      // Friday-only runs turn seven days into an effective 7–14-day delay.
-      "minimumReleaseAge": "7 days",
+      "description": "Automerge in-range npm and GitHub Actions updates",
+      "matchManagers": ["npm", "github-actions"],
+      "groupName": "automerged dependencies",
       "automerge": true
     },
+    // Reviewed exception.
     {
-      "description": "Separate major npm dependency updates",
+      "description": "Review updates that rewrite a manifest version",
+      // An in-range update changes only the lockfile and keeps the manifest value. An update that
+      // moves a bound or an exact pin, or that replaces a package, waits for review, and the reviewer
+      // reads the release notes for that release. GitHub Actions pin exact versions that every update
+      // rewrites, so this rule leaves them out and they stay automerged. Clear the group so a
+      // reviewed PR cannot hold back the automerged group.
       "matchManagers": ["npm"],
+      "matchJsonata": ["newValue != currentValue or updateType = 'replacement'"],
+      "groupName": null,
+      "automerge": false
+    },
+    {
+      "description": "Keep commitlint majors in one PR",
+      // The CLI and its config release together, and the reviewed exception above clears their group.
+      "matchPackageNames": ["@commitlint/**"],
       "matchUpdateTypes": ["major"],
-      "groupName": "npm major dependencies"
+      "groupName": "commitlint"
     },
+    // Lockfile maintenance.
     {
-      "description": "Group GitHub Actions updates",
-      "matchManagers": ["github-actions"],
-      "groupName": "github actions"
+      "description": "Keep lockfile maintenance in one PR",
+      // Clear the group names set above. Renovate otherwise opens one
+      // `lock-file-maintenance-<group>` PR per group.
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "groupName": null
     },
+    // Keep disabled updates last so they take precedence.
     {
-      "description": "Keep the Node.js runtime version manual",
-      "matchManagers": ["nodenv"],
+      "description": "Take in-range pnpm releases through lockfile maintenance",
+      // Renovate's in-range lockfile update runs `pnpm update --no-save pnpm@<version>`, which fails
+      // with ERR_PNPM_UPDATE_VERSION_ON_INDIRECT_DEP because pnpm is not a dependency. Lockfile
+      // maintenance regenerates the lockfile, and pnpm then locks the running pnpm, or the newest
+      // in-range release when the running one is inside the cooldown. A new pnpm major still opens
+      // a PR that moves the range.
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devEngines.packageManager"],
+      "matchUpdateTypes": ["minor", "patch"],
       "enabled": false
     },
     {
-      "description": "Keep TypeScript and Node.js type major updates manual",
+      "description": "Keep TypeScript and Node.js type majors manual",
       "matchManagers": ["npm"],
       "matchPackageNames": ["typescript", "@types/node"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     },
     {
-      "description": "Keep the Node.js engine range manual",
+      "description": "Keep the Node.js runtime range manual",
       "matchManagers": ["npm"],
-      "matchDepTypes": ["engines"],
+      "matchDepTypes": ["devEngines.runtime"],
       "enabled": false
-    },
-    {
-      "description": "Keep lockfile maintenance separate and let pnpm enforce the cooldown",
-      // pnpm enforces the cooldown while regenerating the lockfile.
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["lockFileMaintenance"],
-      "groupName": null,
-      "minimumReleaseAge": null
     }
   ]
 }

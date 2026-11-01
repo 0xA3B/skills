@@ -1,4 +1,5 @@
 [settings]
-# Take node from .node-version and pnpm from package.json#packageManager, so mise provides the
-# pinned pnpm instead of a global one that pnpm would try to switch away from at startup.
+# Take node and pnpm from package.json#devEngines, so their versions have one declared source. mise
+# installs a pnpm release in the range, and pnpm then switches to the release pnpm-lock.yaml locks.
 idiomatic_version_file_enable_tools = ["node", "pnpm"]
+minimum_release_age = "3d"

@@ -40,8 +40,7 @@ evaluated, and improved over time. Preserve these outcomes:
   sibling modules import each other directly and are private to production code outside the
   directory. Register each sub-package in the `no-restricted-imports` patterns in `.oxlintrc.json`;
   tests may import private modules.
-- `.node-version` is the canonical Node version; `package.json#packageManager` is the canonical pnpm
-  version.
+- `package.json#devEngines` is the canonical source of the Node and pnpm versions.
 - When a command relies on a runtime tool managed by mise, run it with `mise exec --` in
   non-interactive shells.
 - Use the `package.json` script surface for validation and formatting instead of raw tool commands.
@@ -60,21 +59,28 @@ evaluated, and improved over time. Preserve these outcomes:
 
 - Prefer built-in or standard-library capabilities when they fit the problem; otherwise prefer
   widely adopted, well-maintained ecosystem-standard packages over custom implementations.
-- Treat `package.json` as a compatibility manifest. Leave direct dependencies without version
-  constraints by default; add constraints only for documented compatibility or security
-  requirements.
-- Use lower bounds for required features or to exclude vulnerable older releases, upper bounds for
-  intentionally deferred incompatibilities, exclusions for known-bad releases, and exact pins only
-  when no version range is acceptable. Use the least restrictive constraint that expresses the
-  requirement, and remove it when the requirement ends.
+- Treat `package.json` as a compatibility manifest. Bound each direct dependency below its next
+  major release, such as `<22`, and a 0.x dependency below 1, such as `<1`. Weekly automerged
+  lockfile maintenance resolves an unbounded dependency to its newest release, majors included.
+- Beyond those bounds, use lower bounds for required features or to exclude vulnerable older
+  releases, tighter upper bounds for intentionally deferred incompatibilities, exclusions for
+  known-bad releases, and exact pins only when no version range is acceptable. Use the least
+  restrictive constraint that expresses the requirement, and remove it when the requirement ends.
 - When a transitive dependency must be constrained, use the owning package manager's constraint or
   override mechanism. Do not declare it as a direct dependency solely to control its resolved
   version.
 - Treat `pnpm-lock.yaml` as the exact tested resolution. Let Renovate perform routine lockfile
-  refreshes; regenerate it locally when a requested dependency change requires a new resolution.
+  refreshes; regenerate the lockfile locally when a requested dependency change requires a new
+  resolution.
+- Before merging a Renovate PR that rewrites a dependency entry in `package.json`, read the release
+  notes of each release it adopts; Renovate automerges every other update once CI passes.
+- Declare pnpm in `devEngines.packageManager` as a major range such as `12`, not an exact version.
+  pnpm locks the release it selects, so in-range pnpm releases arrive through lockfile maintenance;
+  an exact version would turn every pnpm release into a manifest rewrite that waits for review.
 - Update major Node.js and TypeScript versions manually; Renovate must not update them.
 - Require a three-day cooldown before selecting releases from public registries. Enforce it in every
-  resolver and updater that can select those releases.
+  resolver and updater that supports one: Renovate, pnpm, and mise. `actions/setup-node` has none,
+  so CI can run a Node release in the `devEngines.runtime` range that is younger than three days.
 - Bypass the cooldown only for an urgent security fix. Keep explicit exceptions package-specific in
   every applicable resolver or updater, and remove them once the release has aged out.
 
