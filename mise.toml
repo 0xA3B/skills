@@ -1,5 +1,13 @@
 [settings]
-# Take node and pnpm from package.json#devEngines, so their versions have one declared source. mise
-# installs a pnpm release in the range, and pnpm then switches to the release pnpm-lock.yaml locks.
+# Take node and pnpm ranges from package.json#devEngines, so each has one declared source, and lock
+# the exact releases in mise.lock. devEngines.packageManager sets `onFail: "ignore"`, so pnpm leaves
+# its own version out of pnpm-lock.yaml instead of locking a second pin that can drift. See
+# docs/adr/0003-mise-installs-and-locks-the-toolchain.md.
 idiomatic_version_file_enable_tools = ["node", "pnpm"]
+lockfile = true
 minimum_release_age = "3d"
+
+# Track the latest release and let CI catch breaking changes; mise.lock pins the exact release.
+[tools]
+shellcheck = "latest"
+shfmt = "latest"

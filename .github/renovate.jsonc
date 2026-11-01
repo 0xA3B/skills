@@ -18,13 +18,13 @@
   "labels": ["dependencies"],
   // Workspace seeds under evals/seeds are staged fixture projects, not dependencies of this repo.
   "ignorePaths": ["**/node_modules/**", "**/bower_components/**", "evals/seeds/**"],
-  // Lockfile maintenance is the only automated path for in-range pnpm releases, so it runs weekly
-  // and automerges once CI passes.
+  // Lockfile maintenance is the only automated path for in-range Node.js, pnpm, and mise tool
+  // releases, which mise.lock pins, so it runs weekly and automerges once CI passes.
   "lockFileMaintenance": {
     "enabled": true,
     // Saturdays, midnight–9:59 AM Eastern.
     "schedule": ["* 0-9 * * 6"],
-    // pnpm enforces the cooldown on every resolution it selects, including its own version.
+    // pnpm and mise enforce the cooldown on every resolution they select.
     "minimumReleaseAge": null,
     "automerge": true
   },
@@ -35,10 +35,10 @@
   },
   "packageRules": [
     // Automerge by default, since CI catches breaking releases. The reviewed exception below holds
-    // updates that rewrite a dependency entry in package.json.
+    // updates that rewrite a dependency entry in package.json or mise.toml.
     {
-      "description": "Automerge in-range npm and GitHub Actions updates",
-      "matchManagers": ["npm", "github-actions"],
+      "description": "Automerge in-range npm, mise, and GitHub Actions updates",
+      "matchManagers": ["npm", "mise", "github-actions"],
       "groupName": "automerged dependencies",
       "automerge": true
     },
@@ -50,7 +50,7 @@
       // reads the release notes for that release. GitHub Actions pin exact versions that every update
       // rewrites, so this rule leaves them out and they stay automerged. Clear the group so a
       // reviewed PR cannot hold back the automerged group.
-      "matchManagers": ["npm"],
+      "matchManagers": ["npm", "mise"],
       "matchJsonata": ["newValue != currentValue or updateType = 'replacement'"],
       "groupName": null,
       "automerge": false
@@ -75,9 +75,8 @@
       "description": "Take in-range pnpm releases through lockfile maintenance",
       // Renovate's in-range lockfile update runs `pnpm update --no-save pnpm@<version>`, which fails
       // with ERR_PNPM_UPDATE_VERSION_ON_INDIRECT_DEP because pnpm is not a dependency. Lockfile
-      // maintenance regenerates the lockfile, and pnpm then locks the running pnpm, or the newest
-      // in-range release when the running one is inside the cooldown. A new pnpm major still opens
-      // a PR that moves the range.
+      // maintenance refreshes mise.lock, which pins the newest in-range pnpm release outside the
+      // cooldown. A new pnpm major still opens a PR that moves the range.
       "matchManagers": ["npm"],
       "matchDepTypes": ["devEngines.packageManager"],
       "matchUpdateTypes": ["minor", "patch"],
