@@ -654,8 +654,7 @@ function parseAccepted(command: string): Segment[] | string {
       skipNext = true;
       continue;
     }
-    // shell-quote reads `>|` as `>` then `|`; the `|` does not start a pipe.
-    if (token.op === "<" || (token.op === "|" && operatorOf(tokens[index - 1]) === ">")) {
+    if (token.op === "<") {
       continue;
     }
     if (!JOIN_OPERATORS.has(token.op)) {
@@ -791,14 +790,10 @@ function redirectsStdout(
   if (fd === "2") {
     return false;
   }
-  if (op === ">" || op === ">>") {
+  if (op === ">" || op === ">>" || op === ">|") {
     return true;
   }
   return op === ">&" && !(typeof target === "string" && /^\d+$/.test(target));
-}
-
-function operatorOf(token: ParseEntry | undefined): string | undefined {
-  return typeof token === "object" && "op" in token ? token.op : undefined;
 }
 
 function escapeRegExp(value: string): string {
