@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm lint:plugins && pnpm lint:plugin-versions && pnpm lint:commits",
+    "check": "pnpm format:check && pnpm format:shell:check && pnpm lint && pnpm lint:shell && pnpm typecheck && pnpm test && pnpm lint:plugins && pnpm lint:plugin-versions && pnpm lint:commits",
     "eval:trigger": "node --import tsx src/trigger-evals/cli.ts",
     "eval:trigger:marketplace": "node --import tsx src/trigger-evals/cli.ts --marketplace",
     "eval:trigger:plugin": "node --import tsx src/trigger-evals/cli.ts --plugin",
@@ -11,6 +11,8 @@
     "format:check": "oxfmt --check",
     "format:local": "oxfmt .local/*.md .local/*/*.md --write --no-error-on-unmatched-pattern",
     "format:local:check": "oxfmt .local/*.md .local/*/*.md --check --no-error-on-unmatched-pattern",
+    "format:shell": "git ls-files -z | xargs -0 shfmt -f=0 | xargs -0 shfmt --write",
+    "format:shell:check": "git ls-files -z | xargs -0 shfmt -f=0 | xargs -0 shfmt --diff",
     "install:clean": "pnpm ci",
     "install:frozen": "pnpm install --frozen-lockfile",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives",
@@ -18,6 +20,7 @@
     "lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix",
     "lint:plugin-versions": "node --import tsx src/plugin-versions/cli.ts",
     "lint:plugins": "node --import tsx src/lint-plugins/cli.ts",
+    "lint:shell": "git ls-files -z | xargs -0 shfmt -f=0 | xargs -0 shellcheck",
     "lint:staged": "lint-staged",
     "prepare": "husky",
     "test": "vitest run",
@@ -48,7 +51,11 @@
       "pnpm exec oxlint --deny-warnings --report-unused-disable-directives --fix",
       "pnpm exec oxfmt --write"
     ],
-    "*.{json,jsonc,yaml,yml,md}": "pnpm exec oxfmt --write --no-error-on-unmatched-pattern"
+    "*.{json,jsonc,yaml,yml,md}": "pnpm exec oxfmt --write --no-error-on-unmatched-pattern",
+    "{*.sh,**/*.sh,scripts/*,.husky/*}": [
+      "shfmt --write",
+      "shellcheck"
+    ]
   },
   "commitlint": {
     "extends": [

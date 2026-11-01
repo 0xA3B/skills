@@ -46,6 +46,8 @@ evaluated, and improved over time. Preserve these outcomes:
   non-interactive shells.
 - Use the `package.json` script surface for validation and formatting instead of raw tool commands.
 - Use `pnpm run check` as the default full local gate.
+- Configure shfmt through `.editorconfig` only. shfmt ignores `.editorconfig` when it receives any
+  parser or printer flag, such as `-i`, `-ci`, or `-s`, so pass none.
 - Use the smallest relevant targeted script when narrowing validation.
 - Keep `check`-suffixed scripts non-mutating.
 - Before changing an area, read the decision records under `docs/adr/` that touch it, and record a
