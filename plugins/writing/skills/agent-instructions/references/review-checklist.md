@@ -15,9 +15,15 @@ Once per document:
 - [ ] If the change leaves a disclosed reference over 100 lines after trimming, was it split along
       distinct branches with a pointer to each part from the entry document, or, when every reader
       needs the whole file, opened with a contents list? (splitting by length)
-- [ ] If the change grows a repository instruction file, do the root file and the directory-scoped
-      files on the path to each working directory stay under 32 KiB combined, measured with `wc -c`?
-      (the scope ladder)
+- [ ] If the change grows the root `AGENTS.md`, does the file stay at or under its byte limit,
+      measured with `wc -c`? (root byte limit)
+- [ ] If the change adds, moves, or removes a nested `AGENTS.md`, does the root file's index list
+      exactly the nested files that exist, each with a path predicate, and does each existing nested
+      file, and no removed one, have a sibling `CLAUDE.md` that imports `@AGENTS.md`? (nested index,
+      composition across agents)
+- [ ] Does the change add a table to the document's own structure, or a swept file keep one, where a
+      list of entries would carry the same attributes? If a table stays, is table formatting
+      disabled for it through the formatter the project configures? (formatting)
 
 ## Instructions
 

@@ -166,8 +166,8 @@ words, and pruning.
 ## Repository instruction files
 
 If the document is an `AGENTS.md` or `CLAUDE.md`, also read [agents-md.md](references/agents-md.md)
-for the scope ladder, composition across agents, the installed-skill duplication rule,
-terminology-section handling, and a default section shape.
+for the scope ladder, loading and the root byte limit, composition across agents, the
+installed-skill duplication rule, terminology-section handling, and a default section shape.
 
 ## Skills
 

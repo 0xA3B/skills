@@ -26,8 +26,13 @@ Form carries meaning for an agent; choose the form that encodes the intent:
 - Use sentence case in headings and do not skip heading levels — the same heading convention the
   sibling technical-writing skill applies to human-facing artifacts, so both file families read
   alike.
-- When the rows share the same attributes, use a table, keep its cells short, and put explanation in
-  prose; otherwise use a list.
+- When entries share the same attributes, write each entry as one list item, with its name in bold
+  and the attributes in a fixed order, such as `- **Term**: definition. Aliases to avoid: alias.` A
+  table costs more tokens than the list: formatters pad every column to its widest cell, and the
+  agent pays for the padding on every load. If a document keeps a table, disable table formatting
+  for it through the formatter the project configures, if any. This rule governs the document's own
+  structure; when the document specifies output the agent produces, such as a report table, specify
+  the form that output needs.
 - Make every command block run as pasted: mark placeholders in one consistent form and define each
   near its first use. The agent executes commands verbatim.
 
