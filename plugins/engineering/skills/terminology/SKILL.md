@@ -60,21 +60,25 @@ the work that speaks it happens:
 - If a term is spoken only while working under one directory, keep it in that directory's
   `AGENTS.md`.
 - If a term is spoken only inside one workflow, leave it to that workflow's own documents and skip
-  the table entry.
+  the entry.
 
 Judge placement by where the work happens, not where the topic's files sit.
 
 ## Section structure
 
-- Keep one table by default. Use grouped tables only when the domain is large enough that one table
-  hurts scanability.
+- Write each term as one list item: `- **Term**: Definition. Aliases to avoid: alias, alias.` Omit
+  the `Aliases to avoid:` clause when the term has none. The bold name first, the one-sentence
+  definition, and the alias clause last make the entry correct. A table holds the same entries in
+  more bytes, because formatters pad every column to its widest cell.
+- Keep one list by default. Group terms under subheadings only when the domain is large enough that
+  one list hurts scanability.
 - Resolve each ambiguity with a canonical term, an alias to avoid, a sharper definition, or a
   relationship. Add a permanent "Flagged ambiguities" section only for an ambiguity the project
   intentionally leaves unresolved.
 
 ## Term rules
 
-- A term earns its row by resolving an ambiguity, canonicalizing an alias, or fixing a non-obvious
+- A term earns its entry by resolving an ambiguity, canonicalizing an alias, or fixing a non-obvious
   relationship; skip terms no one confuses.
 - Skip entries whose definition restates an always-loaded surface, such as an installed skill's
   description or another section of the same file; skip relationships that restate workflow behavior
