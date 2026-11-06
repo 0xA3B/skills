@@ -2,8 +2,8 @@
 
 What changes when the document is a repository instruction file — an `AGENTS.md` or `CLAUDE.md`:
 loading is scope-driven, not trigger-driven. The harness decides when the file loads from where it
-sits, so placement does the work that pointer wording does for other reference. Everything else
-about writing the file is the universal guidance in `SKILL.md`,
+sits, so placement does most of the work that pointer wording does for other reference. Everything
+else about writing the file is the universal guidance in `SKILL.md`,
 [document-mechanics.md](document-mechanics.md), and [line-mechanics.md](line-mechanics.md).
 
 ## The scope ladder
@@ -13,32 +13,38 @@ the material governs:
 
 1. **Root instruction file** — always loaded, every session, no gate. Each line taxes every turn, so
    the disclosure test becomes "does every session need this line?", not "does every branch?".
-2. **Directory-scoped instruction file** — an `AGENTS.md` in a subdirectory, loaded when the session
-   works under that directory. This is progressive disclosure with a path trigger instead of a
-   pointer: it fires on any work in the subtree with no wording to sharpen, and it cannot fire
-   outside the subtree. Judge placement by where the work happens, not where the topic's files sit:
-   put material a session needs while working elsewhere in the repository in the root file or behind
-   a pointer.
+2. **Directory-scoped instruction file** — an `AGENTS.md` in a subdirectory, for material only work
+   under that directory needs: progressive disclosure with a path trigger, as "Loading" describes.
+   Judge placement by where the work happens, not where the topic's files sit: put material a
+   session needs while working elsewhere in the repository in the root file or behind a pointer.
 3. **Disclosed reference** — a plain file behind a pointer, for material scoped to a task rather
    than a place.
 
-The root file and the directory-scoped files on the path to the working directory load together, so
-budget them together. Keep that chain under 32 KiB, measured with `wc -c`: Codex reads only the
-first 32 KiB of it by default (`project_doc_max_bytes`), and the rest never reaches the agent. A
-local setting can raise that limit on one machine; keep shared guidance within the default, because
-Codex reads only that much on other contributors' machines.
+## Loading
 
-Terminology shows the ladder's use: a term anchors shared language only while it is loaded, so its
-rung decides its reach. Keep terms the whole repository speaks in the root file; move terms spoken
-only while working under one directory into that directory's instruction file; keep a term needed
-only inside one workflow in that workflow's own document.
+Claude Code loads the root `CLAUDE.md` into every session, and a nested `CLAUDE.md` when the session
+reads a file in its directory. Codex loads only the `AGENTS.md` files from the repository root down
+to the session's starting directory, and nothing tells its agent to look for nested files. Assume
+Codex sessions start at the repository root, so Codex loads only the root `AGENTS.md` on its own:
+
+- **Root byte limit.** Codex cuts the files it loads at `project_doc_max_bytes` without telling the
+  agent. Measure the root `AGENTS.md` with `wc -c`. If the repository's `.codex/config.toml` sets
+  `project_doc_max_bytes` below 32,768, keep the file at or under that value; otherwise keep it at
+  or under 32,768 bytes, the Codex default. Ignore a higher project value: Codex applies
+  `.codex/config.toml` only in a trusted project. When the root file does not fit, move material
+  down the scope ladder.
+- **Nested index.** In the root `AGENTS.md`, list exactly the nested `AGENTS.md` files that exist,
+  each with a path predicate, such as "Before reading or editing files under `plugins/`, read
+  `plugins/AGENTS.md`." Without an index entry, nothing directs a Codex session to read a nested
+  file.
 
 ## Composition across agents
 
 Keep one canonical instruction file per scope. When two agents read different filenames, make one
 file canonical and have the other import it — for example, `AGENTS.md` as canonical with a sibling
 `CLAUDE.md` containing `@AGENTS.md` plus only the guidance that is agent-specific. Two independently
-maintained files for one scope drift into two sources of truth.
+maintained files for one scope drift into two sources of truth. Give each nested `AGENTS.md` such a
+sibling `CLAUDE.md` as well: Claude Code loads a nested `CLAUDE.md`, not a nested `AGENTS.md`.
 
 ## Installed skills
 
@@ -71,6 +77,10 @@ judged against.
 
 What kind of repository this is, what lives where, and the ownership boundaries.
 
+## Nested instructions
+
+- Before reading or editing files under `<directory>/`, read `<directory>/AGENTS.md`.
+
 ## Project conventions
 
 Testable imperatives: commands, paths, and thresholds.
@@ -84,6 +94,7 @@ How dependencies are chosen, constrained, and updated.
 Durable domain terms. When a terminology workflow governs this section, name it here.
 ```
 
-The skeleton works because Purpose lists the outcomes changes are judged against, Project
-conventions holds only testable imperatives, and Terminology names the workflow that governs it; the
-section names, their order, and the full set are incidental.
+The skeleton works because Purpose lists the outcomes changes are judged against, Nested
+instructions routes Codex to every nested file, Project conventions holds only testable imperatives,
+and Terminology names the workflow that governs it; the section names, their order, and the full set
+are incidental.
