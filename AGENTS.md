@@ -200,7 +200,7 @@ Change this section, and the Terminology section of a nested `AGENTS.md`, throug
   applying skill is a dependency load, not a separate invocation. A hand-off target is not an
   applied skill. Aliases to avoid: dependency, mention.
 - **Plugin linter**: The local validator behind `pnpm lint:plugins`, covering marketplace, manifest,
-  skill, and metadata consistency. Aliases to avoid: validator.
+  skill, metadata, and instruction-file consistency. Aliases to avoid: validator.
 - **Review lane**: A focused review pass over the same target with one intent, such as code review,
   simplification, codebase design, API/seam review, test review, spec adherence, or prose review.
   Aliases to avoid: review scope.
