@@ -6,6 +6,7 @@ import {
   type ValidationOptions,
 } from "./diagnostics.js";
 import { isDirectory, readdirNames } from "./files.js";
+import { validateInstructionFiles } from "./instruction-files.js";
 import { printDiagnostics } from "./output.js";
 import { validatePluginRepository, type PluginRepository } from "./repository.js";
 import { validateSkill, validateSkillsForPlugin } from "./skills/index.js";
@@ -34,6 +35,7 @@ export async function lintPlugins(options: ValidationOptions = {}): Promise<Lint
     );
   }
   const repoLocalSkillCount = await validateRepoLocalSkills(context, repository);
+  await validateInstructionFiles(context);
 
   return {
     catalog,

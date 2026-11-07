@@ -3,38 +3,34 @@
 ## Plugin rules
 
 - Plugin names use lowercase kebab-case and match the plugin directory name.
-- Every plugin ships a portable manifest, `plugin.json` at the plugin root, that conforms to Agent
-  Plugins 1.0.0. The schema is closed, so client-specific data goes under `extensions`. The portable
-  manifest is authoritative: a field a target extension duplicates must match it exactly.
-- Plugins target both Claude Code and Codex by default. A plugin targets an agent by shipping that
-  agent's target extension and marketplace entry, and the linter rejects either without the other;
-  omit both to keep a plugin single-agent (for example, `claude-in-codex` is Codex-only because it
-  exists to drive Claude Code from Codex).
-- Codex-targeted plugins carry the Codex extension, `extensions.com.openai` in the portable manifest
-  with the `interface` block, and an entry in `.agents/plugins/marketplace.json`. This repository
-  keeps Codex settings only in the Codex extension, so a `.codex-plugin/` directory is a lint error.
-- Claude-targeted plugins carry the Claude extension, `.claude-plugin/plugin.json`, and an entry in
-  `.claude-plugin/marketplace.json`.
+- Every plugin ships a portable manifest that conforms to Agent Plugins 1.0.0. The schema is closed,
+  so client-specific data goes under `extensions`. A field a target extension duplicates must match
+  the portable manifest exactly.
+- Plugins target both Claude Code and Codex by default. The linter rejects a target extension
+  without its marketplace entry, and an entry without its extension; omit both to keep a plugin
+  single-agent. For example, `claude-in-codex` is Codex-only because it exists to drive Claude Code
+  from Codex.
+- Keep Codex settings only in the Codex extension, including its required `interface` block; a
+  `.codex-plugin/` directory is a lint error.
 - Keep skills under `skills/` at the plugin root. Agent Plugins clients and Claude Code both
   discover that directory, so no manifest names it. Leave the `skills` field unset in the Claude
   extension; the field adds extra skill paths instead of replacing the default.
 - When adding or renaming a plugin, keep the marketplace entries, plugin directory, and manifest
   `name` values aligned across every targeted agent.
-- When adding a plugin, also create its `plugin:<plugin-name>` label by hand in the marketplace
-  repository's issue tracker; `meta:submit-skill-feedback` applies feedback labels but never creates
-  them.
+- When adding a plugin, also create its `plugin:<plugin-name>` label by hand in this repository's
+  issue tracker; `meta:submit-skill-feedback` applies feedback labels but never creates them.
 
 ## Default prompt policy
 
 - Keep plugin-level `interface.defaultPrompt` to three prompts or fewer; Codex UI surfaces only the
   first three prompts.
-- Use plugin-level prompts to highlight the most useful or interesting entry points, not every skill
-  in the plugin.
-- Use concise action wording that fits the UI prompt card.
+- Spend plugin-level prompts on the most useful or interesting entry points, not on every skill in
+  the plugin.
+- Word every default prompt as a concise action that fits the UI prompt card.
 - When the target skill is manual-only, include an explicit `$plugin-name:skill-name` callout in
-  plugin-level prompts and in skill-level `interface.default_prompt`. Natural-language prompts are
-  acceptable for implicitly invokable skills when the trigger contract is clear, though explicit
-  callouts are still fine when they improve determinism.
+  plugin-level prompts and in skill-level `interface.default_prompt`. For an implicitly invokable
+  skill with a clear trigger contract, a natural-language prompt is enough; you may add the callout
+  when it improves determinism.
 
 ## Plugin version policy
 
@@ -66,8 +62,8 @@
   later change needs a larger bump (for example patch to minor), instead of stacking bumps. When
   more than one skill rename, removal, or retirement is planned for a plugin, make them on one
   branch so they share one major bump.
-- In the same change, apply every version bump to the portable manifest. If the plugin ships a
-  Claude extension, bump its version to match.
+- Apply each version bump to the portable manifest, and to the Claude extension when the plugin
+  ships one, in the same change.
 
 ## Skill rules
 
@@ -77,7 +73,8 @@
 - Use `SKILL.md` for runtime instructions and Agent Skills frontmatter. Claude Code-specific
   frontmatter keys (`disable-model-invocation`, `user-invocable`, `when_to_use`, `argument-hint`,
   and the rest of the official frontmatter reference) are allowed because Codex ignores unsupported
-  keys; skill bodies stay shared.
+  keys. Keep the instructions below the frontmatter agent-agnostic, and put target-specific behavior
+  in the metadata surfaces.
 - Keep `allowed-tools`, `disallowed-tools`, and `paths` as space- or comma-delimited strings, not
   YAML lists, so the frontmatter stays portable across Agent Skills consumers.
 - Do not use the `arguments` frontmatter key. It powers Claude-only `$name` substitution in the
@@ -92,16 +89,14 @@
   command. Never combine it with `disable-model-invocation: true`; the linter rejects the pairing
   (`claude-skill/uninvocable`).
 - Name a skill for the workflow it runs or the artifact class it governs, and make the bare name
-  stand alone without the plugin prefix; harnesses differ in whether they display the namespaced
-  form. The namespaced form `plugin-name:skill-name` may inform judgment, but when the two readings
-  conflict, the stand-alone reading wins.
-- Default workflow skills the user runs as a command to an imperative verb phrase (`commit`,
-  `diagnose`). Compact workflow names (`handoff`, `wayfinder`) are acceptable when they cannot be
-  read as a background discipline.
-- Name discipline skills for the artifact class or practice they govern (`agent-instructions`,
-  `receiving-feedback`), whatever their invocation posture. Invocation posture is declared in
-  frontmatter, not encoded in the name; a discipline skill may be user-invocable when explicit
-  invocation is useful.
+  stand alone without the plugin prefix: harnesses differ in whether they display the namespaced
+  form `plugin-name:skill-name`, and when the two readings conflict, the bare reading wins.
+- Name a workflow skill the user runs as a command with an imperative verb phrase (`commit`,
+  `diagnose`) by default, or with a compact workflow name (`handoff`, `wayfinder`) when that name
+  cannot be read as a background discipline.
+- Name a discipline skill for the artifact class or practice it governs (`agent-instructions`,
+  `receiving-feedback`). Frontmatter declares invocation posture, so the name does not encode it,
+  and a discipline skill may be user-invocable when explicit invocation is useful.
 - A skill adapted from an upstream source may keep the upstream name to preserve its identity, even
   when that name departs from the imperative default.
 - Use `agents/openai.yaml` for Codex UI metadata and Codex invocation policy. Do not add other Codex
@@ -129,8 +124,6 @@
 
 ## Skill authoring baseline
 
-- Keep skill bodies agent-agnostic; use the repository's metadata surfaces for target-specific
-  behavior.
 - For plugin skills, use repository-local workflows and validators. Use `add-skill` to create a
   plugin skill, `writing:agent-instructions` for skill-body quality, and `pnpm lint:plugins` for
   repository validation; do not use generic skill scaffolding or validators.
@@ -184,5 +177,3 @@
   contracts, widen the selection instead of the staging:
   `pnpm eval:trigger:plugin -- plugins/<plugin>` runs every trigger eval in the plugin, and
   `pnpm eval:trigger:marketplace` runs every trigger eval in the catalog.
-- When Markdown, JSON, YAML, or TypeScript files changed, run `pnpm format:check`.
-- When TypeScript validation tooling changed, run `pnpm lint` and `pnpm typecheck`.

@@ -6,10 +6,9 @@ This repository maintains reusable AI-agent skills and workflow guidance that ca
 evaluated, and improved over time. Preserve these outcomes:
 
 - Skill instructions remain portable, durable, and useful across agent sessions.
-- Plugin distribution stays valid for both Claude Code and Codex through plugin bundles under
-  `plugins/` and the marketplace catalogs under `.claude-plugin/marketplace.json` (Claude Code) and
-  `.agents/plugins/marketplace.json` (Codex). Every bundle is also a valid Agent Plugins 1.0.0
-  package, so clients that read that standard can load it.
+- Plugin distribution stays valid for both Claude Code and Codex through the plugins under
+  `plugins/` and their marketplace catalogs, and every plugin is also a valid Agent Plugins 1.0.0
+  package that clients of that standard can load.
 - Repository-local validation catches broken portable manifests, target extensions, skill metadata,
   and trigger behavior before skills are published or reused.
 - Documentation explains how to use and maintain the skills without duplicating temporary workflow
@@ -17,11 +16,8 @@ evaluated, and improved over time. Preserve these outcomes:
 
 ## Repository model
 
-- This is a skills repository first; Claude Code and Codex plugins are the current distribution
-  formats.
-- Keep plugin packaging under `plugins/`. Every plugin ships a portable manifest (`plugin.json`,
-  Agent Plugins 1.0.0). Agent-specific metadata lives in target extensions and in per-skill
-  `agents/openai.yaml`; skill bodies stay agent-agnostic.
+- This is a skills repository first. Keep its plugin packaging, the distribution format for Claude
+  Code and Codex, under `plugins/`.
 - Keep repo-local maintenance workflows under `.agents/skills/`; the `.claude/skills` symlink
   exposes them to Claude Code sessions in this checkout.
 - Keep generated eval output and local working artifacts under `.local/`, not tracked project state.
@@ -30,30 +26,31 @@ evaluated, and improved over time. Preserve these outcomes:
   merges; the add script installs the branch's dependencies there, so hooks and checks run there as
   in the main checkout.
 
+## Nested instructions
+
+`AGENTS.md` is the canonical agent guidance for its directory. Give each `AGENTS.md` a sibling
+`CLAUDE.md` that imports `@AGENTS.md` and may add only Claude-specific guidance that doesn't belong
+in `AGENTS.md`. When you add, move, or remove a nested `AGENTS.md`, update this list:
+
+- Before reading or editing files under `plugins/`, read `plugins/AGENTS.md`.
+- Before reading or editing files under `src/` or `tests/`, read `src/AGENTS.md`.
+
 ## Project conventions
 
 - Use Conventional Commits.
 - Keep repository tests under `tests/`, grouped by subsystem; workspace seed tests stay with their
   seeds.
-- Group modules under `src/` into a sub-package directory only when the group has callers outside it
-  and a smaller public seam than its parts. The sub-package's `index.ts` only re-exports; its
-  sibling modules import each other directly and are private to production code outside the
-  directory. Register each sub-package in the `no-restricted-imports` patterns in `.oxlintrc.json`;
-  tests may import private modules.
-- Declare the Node.js and pnpm ranges only in `package.json#devEngines`, and every other
-  mise-managed tool in `mise.toml` `[tools]`; mise installs each at the release `mise.lock` pins.
 - When a command relies on a runtime tool managed by mise, run it with `mise exec --` in
   non-interactive shells.
-- Use the `package.json` script surface for validation and formatting instead of raw tool commands.
-- Use `pnpm run check` as the default full local gate.
+- Validate and format through the `package.json` scripts, not raw tool commands. Run
+  `pnpm run check` as the default full local gate. When you narrow validation, run the smallest
+  relevant targeted scripts: `pnpm format:check` after changing Markdown, JSON, YAML, or TypeScript
+  files, and `pnpm lint` and `pnpm typecheck` after changing TypeScript files.
+- Keep `check`-suffixed scripts non-mutating.
 - Configure shfmt through `.editorconfig` only. shfmt ignores `.editorconfig` when it receives any
   parser or printer flag, such as `-i`, `-ci`, or `-s`, so pass none.
-- Use the smallest relevant targeted script when narrowing validation.
-- Keep `check`-suffixed scripts non-mutating.
 - Before changing an area, read the decision records under `docs/adr/` that touch it, and record a
   choice that is hard to reverse there, following `docs/adr/README.md`.
-- Treat `AGENTS.md` as canonical agent guidance; sibling `CLAUDE.md` files must import `@AGENTS.md`
-  and may add Claude-specific guidance only when it doesn't belong in `AGENTS.md`.
 - When using a plugin skill maintained in this repository, follow its working-tree `SKILL.md` as the
   current workflow authority. The installed marketplace copy may be stale until the plugin is
   reinstalled.
@@ -78,6 +75,10 @@ evaluated, and improved over time. Preserve these outcomes:
 - Before merging a Renovate PR that rewrites a dependency entry in `package.json` or a version in
   `mise.toml`, read the release notes of each release it adopts; Renovate automerges every other
   update once CI passes.
+- Declare the Node.js and pnpm ranges only in `package.json#devEngines`, and every other
+  mise-managed tool in `mise.toml` `[tools]`; mise installs each at the release `mise.lock` pins.
+- Write a version range that mise reads, including the `devEngines` ranges, as a prefix such as
+  `26`, not a caret or comparison range such as `^26.12.1`; mise ignores `mise.lock` for those.
 - Declare pnpm in `devEngines.packageManager` as a major range such as `12` with `onFail: "ignore"`.
   Any other `onFail` value makes pnpm lock its own version in `pnpm-lock.yaml`, a second pin that
   drifts from `mise.lock`. An exact version would receive no in-range updates, because Renovate
@@ -86,13 +87,11 @@ evaluated, and improved over time. Preserve these outcomes:
   before Renovate's lockfile maintenance, run `mise lock --bump`. To defer a specific tool
   incompatibility, pin the tool to an exact version and restore `latest` once the incompatibility is
   fixed; Renovate holds each PR that moves the pin for review.
-- Write a version range that mise reads, including the `devEngines` ranges, as a prefix such as
-  `26`, not a caret or comparison range such as `^26.12.1`; mise ignores `mise.lock` for those.
 - Update major Node.js and TypeScript versions manually; Renovate must not update them.
-- Require a three-day cooldown before selecting releases from public registries. Enforce it in every
-  resolver and updater that supports one: Renovate, pnpm, and mise.
-- Bypass the cooldown only for an urgent security fix. Keep explicit exceptions package-specific in
-  every applicable resolver or updater, and remove them once the release has aged out.
+- Require a three-day cooldown before selecting releases from public registries, in every resolver
+  and updater that supports one: Renovate, pnpm, and mise. Bypass the cooldown only for an urgent
+  security fix, with a package-specific exception in each applicable resolver or updater, and remove
+  the exception once the release has aged out.
 
 ## Code Review Rules
 
@@ -110,9 +109,6 @@ Every reviewer of a change here applies these rules, plus the `## Code Review Ru
   a defect that yields a wrong result under a passing status, changes or leaks state outside the
   run, or breaks the tool's normal use; report every other defect there as a note. Scripts bundled
   under `plugins/` are plugin content, not repository tooling.
-- In the Codex skill-read classifier (`src/trigger-evals/lanes/skill-reads.ts`), report a shell form
-  as a finding only when a recorded Codex run used it. Report a form derived from shell syntax as a
-  note, even when its failure is silent: observed Codex commands set the classifier's scope.
 - When a tooling change reproduces external state, such as a repository copy, and a finding concerns
   a case the reproduction does not support, recommend that the tool refuse that case with a visible
   error rather than reproduce it, and state whether the finding asks for refusal or reproduction.
@@ -126,68 +122,111 @@ Every reviewer of a change here applies these rules, plus the `## Code Review Ru
 
 ## Terminology
 
-Use this section for durable domain terms that should guide future work in this repository. Add or
-update entries when a term becomes stable during adversarial review, architecture review, or
-implementation.
+Change this section, and the Terminology section of a nested `AGENTS.md`, through
+`engineering:terminology`.
 
-| Term                         | Definition                                                                                                                                                                                                                                                                                                                            | Aliases to Avoid                         |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| **Skills repository**        | This repository, which maintains reusable agent skills and publishes the current Claude Code and Codex distribution surfaces.                                                                                                                                                                                                         | plugin repo, package                     |
-| **Plugin target**            | An agent a plugin ships to (Claude Code or Codex), declared by shipping that agent's target extension and marketplace entry.                                                                                                                                                                                                          | platform, harness                        |
-| **Marketplace**              | A per-target marketplace distribution surface exposed by this repository.                                                                                                                                                                                                                                                             | skills repository                        |
-| **Marketplace catalog**      | The root list of plugins a marketplace exposes: `.claude-plugin/marketplace.json` for Claude Code, `.agents/plugins/marketplace.json` for Codex.                                                                                                                                                                                      | manifest, registry                       |
-| **Plugin**                   | A distributable bundle under `plugins/<plugin-name>/` with one portable manifest and one target extension per plugin target.                                                                                                                                                                                                          | skill pack                               |
-| **Portable manifest**        | `plugin.json` at the plugin root: the Agent Plugins 1.0.0 manifest every plugin ships, and the authoritative source for every field a target extension duplicates.                                                                                                                                                                    | plugin manifest, root manifest           |
-| **Target extension**         | The per-target plugin metadata a plugin ships for one plugin target: the Codex extension or the Claude extension.                                                                                                                                                                                                                     | plugin manifest, overlay                 |
-| **Codex extension**          | The `extensions.com.openai` object of the portable manifest, carrying the Codex-specific plugin metadata: `interface`, plus `apps` or `hooks` when a plugin needs them.                                                                                                                                                               | `.codex-plugin`, Codex manifest, overlay |
-| **Claude extension**         | `.claude-plugin/plugin.json`, the only manifest Claude Code reads; its duplicated fields must equal the portable manifest.                                                                                                                                                                                                            | Claude manifest                          |
-| **Marketplace entry**        | One plugin listing inside a marketplace catalog.                                                                                                                                                                                                                                                                                      | portable manifest, target extension      |
-| **Plugin skill**             | A shipped skill under `plugins/<plugin>/skills/<skill>/`.                                                                                                                                                                                                                                                                             | repo-local skill                         |
-| **Plugin version**           | The version in the portable manifest, matched by the Claude extension, used for install, cache, and compatibility decisions.                                                                                                                                                                                                          | package version                          |
-| **Shipped content**          | Every tracked file under `plugins/<plugin>/` except trigger fixtures under `skills/<skill>/evals/`, which install with the plugin but never change its behavior.                                                                                                                                                                      | plugin files                             |
-| **Plugin version check**     | The git-range check behind `pnpm lint:plugin-versions`: each plugin whose shipped content changed since the merge base with `origin/main` must carry exactly one patch, minor, or major increment.                                                                                                                                    | version lint                             |
-| **Repo-local skill**         | A maintenance workflow under `.agents/skills/` used only while working in this checkout.                                                                                                                                                                                                                                              | plugin skill                             |
-| **Retired skill**            | A skill removed from every plugin and kept unchanged under `retired/<plugin>/<skill>/` with an index entry, for later review.                                                                                                                                                                                                         | deprecated skill, archive                |
-| **Skill body**               | `SKILL.md`, the runtime instructions and frontmatter for a skill.                                                                                                                                                                                                                                                                     | metadata, prompt metadata                |
-| **Codex UI metadata**        | `agents/openai.yaml`, the skill-level display metadata and invocation policy for Codex.                                                                                                                                                                                                                                               | skill frontmatter                        |
-| **Invocation policy**        | The paired settings deciding whether an agent may load a skill automatically: `allow_implicit_invocation` (Codex, `agents/openai.yaml`) and `disable-model-invocation` (Claude Code, `SKILL.md` frontmatter).                                                                                                                         | trigger policy                           |
-| **Invocation policy parity** | The linter-enforced rule that a skill's Codex and Claude Code invocation policies express the same decision.                                                                                                                                                                                                                          | policy sync                              |
-| **Manual-only skill**        | A skill with `allow_implicit_invocation: false` and `disable-model-invocation: true`; it should be invoked explicitly by the user.                                                                                                                                                                                                    | disabled skill                           |
-| **Implicit invocation**      | An agent automatically loading a skill because the user prompt matches the skill description.                                                                                                                                                                                                                                         | auto-trigger                             |
-| **Hand off**                 | A workflow boundary where the current skill stops, summarizes transfer context, and recommends the next skill. When that skill is implicitly invokable, the agent continues into it only if the user's request already asked for its outcome or for a later outcome that requires it; a hand off to a manual-only skill always stops. | auto-invoke, delegate                    |
-| **Trigger fixture**          | A committed YAML file of positive and negative cases used to evaluate implicit invocation behavior.                                                                                                                                                                                                                                   | skill test                               |
-| **Workspace seed**           | Committed project content under `evals/seeds/<name>/`, copied into a case workspace and initialized as a git repository before the agent runs.                                                                                                                                                                                        | scaffold, checkout, fixture workspace    |
-| **Routing assertion**        | The `invoke-instead` check on a skip case: the named alternate must be the only skill that fires.                                                                                                                                                                                                                                     | route-to, redirect                       |
-| **Dependent case**           | A skip case in another skill's fixture whose routing assertion names the target skill.                                                                                                                                                                                                                                                | dependency                               |
-| **Seeded case**              | A trigger fixture case whose resolved workspace names a given workspace seed.                                                                                                                                                                                                                                                         | seed dependent, dependent case           |
-| **Trigger eval**             | A development-only run that checks whether one plugin or repo-local skill invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code).                                                                                                                                                                  | validation gate                          |
-| **Attempt**                  | One execution of one trigger fixture case within a trigger eval, numbered from 1; `--repeat <n>` runs n attempts of each selected case.                                                                                                                                                                                               | repeat, iteration, trial                 |
-| **Eval lane**                | The per-agent adapter a trigger eval runs through, owning that agent's staging, case execution, and invocation observations. Distinct from a **Review lane**, which is a focused review pass.                                                                                                                                         | review lane, harness                     |
-| **Invocation signal**        | The observed evidence that the agent invoked a staged skill: a Codex command that prints a staged skill file from its first line, or a Claude Code assistant message with Skill tool calls.                                                                                                                                           | telemetry, canary                        |
-| **Trigger decision**         | An attempt's first invocation signal and the staged skills it loads; later loads are workflow behavior outside the trigger decision.                                                                                                                                                                                                  | observation window                       |
-| **Applied skill**            | A skill that another skill's workflow loads in one of its steps, declared under `applies` in the applying skill's trigger fixture; its load in the same trigger decision as the applying skill is a dependency load, not a separate invocation. A hand-off target is not an applied skill.                                            | dependency, mention                      |
-| **Plugin linter**            | The local validator behind `pnpm lint:plugins`, covering marketplace, manifest, skill, and metadata consistency.                                                                                                                                                                                                                      | validator                                |
-| **Review lane**              | A focused review pass over the same target with one intent, such as code review, simplification, codebase design, API/seam review, test review, spec adherence, or prose review.                                                                                                                                                      | review scope                             |
-| **Decision map**             | The tracker-neutral output of Wayfinder: a destination, known ground, decision-sized chunks, dependencies, frontier, unresolved fog, and excluded scope.                                                                                                                                                                              | ticket list, spec                        |
-| **Decision record**          | One recorded choice that is hard to reverse, surprising without context, and a real trade-off, kept as a file under `docs/adr/` with its context and reason.                                                                                                                                                                          | ADR issue, design doc, decision label    |
-| **Candidate**                | Pending work a workflow proposed and set aside until a stated revisit trigger fires, recorded with its evidence as a `candidate:<kind>` issue or a scratch file.                                                                                                                                                                      | deferred finding, backlog item, decision |
-| **Frontier**                 | The items whose prerequisites are already settled and that are useful to work next: chunks on a Decision map in wayfinder, open questions in a grill-me round, acceptance criteria in a tdd round.                                                                                                                                    | backlog                                  |
-| **Diagnostic**               | A structured plugin-linter finding with a code, file, message, and pointer.                                                                                                                                                                                                                                                           | error string                             |
-| **Validation context**       | The shared lint-run state passed through plugin-linter checks instead of module-level mutable globals.                                                                                                                                                                                                                                | globals                                  |
-| **Metadata surface**         | Any file that exposes plugin or skill metadata and must stay aligned with adjacent surfaces.                                                                                                                                                                                                                                          | docs                                     |
-| **Default prompt**           | A suggested prompt shown by Codex for invoking a plugin or skill.                                                                                                                                                                                                                                                                     | description                              |
-| **Trigger contract**         | The `description` text that defines when a skill should be implicitly invoked.                                                                                                                                                                                                                                                        | skill summary                            |
+- **Skills repository**: This repository, which maintains reusable agent skills and publishes them
+  through one marketplace catalog per plugin target. Aliases to avoid: plugin repo, package.
+- **Plugin target**: An agent a plugin ships to (Claude Code or Codex), declared by shipping that
+  agent's target extension and marketplace entry. Aliases to avoid: platform, harness.
+- **Marketplace catalog**: The root list of plugins this repository exposes to one plugin target as
+  its marketplace: `.claude-plugin/marketplace.json` for Claude Code,
+  `.agents/plugins/marketplace.json` for Codex. Aliases to avoid: manifest, registry, skills
+  repository.
+- **Plugin**: A distributable bundle under `plugins/<plugin-name>/` with one portable manifest and
+  one target extension per plugin target. Aliases to avoid: skill pack.
+- **Portable manifest**: `plugin.json` at the plugin root: the Agent Plugins 1.0.0 manifest every
+  plugin ships, and the authoritative source for every field a target extension duplicates. Aliases
+  to avoid: plugin manifest, root manifest.
+- **Target extension**: The per-target plugin metadata a plugin ships for one plugin target: the
+  Codex extension or the Claude extension. Aliases to avoid: plugin manifest, overlay.
+- **Codex extension**: The `extensions.com.openai` object of the portable manifest, carrying the
+  Codex-specific plugin metadata: `interface`, plus `apps` or `hooks` when a plugin needs them.
+  Aliases to avoid: `.codex-plugin`, Codex manifest, overlay.
+- **Claude extension**: `.claude-plugin/plugin.json`, the only manifest Claude Code reads; its
+  duplicated fields must equal the portable manifest. Aliases to avoid: Claude manifest.
+- **Marketplace entry**: One plugin listing inside a marketplace catalog. Aliases to avoid: portable
+  manifest, target extension.
+- **Plugin skill**: A shipped skill under `plugins/<plugin>/skills/<skill>/`. Aliases to avoid:
+  repo-local skill.
+- **Shipped content**: Every tracked file under `plugins/<plugin>/` except trigger fixtures under
+  `skills/<skill>/evals/`, which install with the plugin but never change its behavior. Aliases to
+  avoid: plugin files.
+- **Repo-local skill**: A maintenance workflow under `.agents/skills/` used only while working in
+  this checkout. Aliases to avoid: plugin skill.
+- **Retired skill**: A skill removed from every plugin and kept unchanged under
+  `retired/<plugin>/<skill>/` with an index entry, for later review. Aliases to avoid: deprecated
+  skill, archive.
+- **Codex UI metadata**: `agents/openai.yaml`, the skill-level display metadata and invocation
+  policy for Codex. Aliases to avoid: skill frontmatter.
+- **Invocation policy**: The paired settings deciding whether an agent may load a skill
+  automatically: `allow_implicit_invocation` (Codex, `agents/openai.yaml`) and
+  `disable-model-invocation` (Claude Code, `SKILL.md` frontmatter). Aliases to avoid: trigger
+  policy.
+- **Manual-only skill**: A skill with `allow_implicit_invocation: false` and
+  `disable-model-invocation: true`; it should be invoked explicitly by the user. Aliases to avoid:
+  disabled skill.
+- **Implicit invocation**: An agent automatically loading a skill because the user prompt matches
+  the skill description. Aliases to avoid: auto-trigger.
+- **Hand off**: A workflow boundary where the current skill stops, summarizes transfer context, and
+  recommends the next skill. When that skill is implicitly invokable, the agent continues into it
+  only if the user's request already asked for its outcome or for a later outcome that requires it;
+  a hand off to a manual-only skill always stops. Aliases to avoid: auto-invoke, delegate.
+- **Trigger fixture**: A committed YAML file of positive and negative cases used to evaluate
+  implicit invocation behavior. Aliases to avoid: skill test.
+- **Workspace seed**: Committed project content under `evals/seeds/<name>/`, copied into a case
+  workspace and initialized as a git repository before the agent runs. Aliases to avoid: scaffold,
+  checkout, fixture workspace.
+- **Routing assertion**: The `invoke-instead` check on a skip case: the named alternate must be the
+  only skill that fires. Aliases to avoid: route-to, redirect.
+- **Dependent case**: A skip case in another skill's fixture whose routing assertion names the
+  target skill. Aliases to avoid: dependency.
+- **Seeded case**: A trigger fixture case whose resolved workspace names a given workspace seed.
+  Aliases to avoid: seed dependent, dependent case.
+- **Trigger eval**: A development-only run that checks whether one plugin or repo-local skill
+  invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code). Aliases
+  to avoid: validation gate.
+- **Attempt**: One execution of one trigger fixture case within a trigger eval, numbered from 1;
+  `--repeat <n>` runs n attempts of each selected case. Aliases to avoid: repeat, iteration, trial.
+- **Eval lane**: The per-agent adapter a trigger eval runs through, owning that agent's staging,
+  case execution, and invocation observations. Aliases to avoid: review lane, harness.
+- **Invocation signal**: The observed evidence that the agent invoked a staged skill: a Codex
+  command that prints a staged skill file from its first line, or a Claude Code assistant message
+  with Skill tool calls. Aliases to avoid: telemetry, canary.
+- **Trigger decision**: An attempt's first invocation signal and the staged skills it loads; later
+  loads are workflow behavior outside the trigger decision. Aliases to avoid: observation window.
+- **Applied skill**: A skill that another skill's workflow loads in one of its steps, declared under
+  `applies` in the applying skill's trigger fixture; its load in the same trigger decision as the
+  applying skill is a dependency load, not a separate invocation. A hand-off target is not an
+  applied skill. Aliases to avoid: dependency, mention.
+- **Plugin linter**: The local validator behind `pnpm lint:plugins`, covering marketplace, manifest,
+  skill, metadata, and instruction-file consistency. Aliases to avoid: validator.
+- **Review lane**: A focused review pass over the same target with one intent, such as code review,
+  simplification, codebase design, API/seam review, test review, spec adherence, or prose review.
+  Aliases to avoid: review scope.
+- **Decision record**: One recorded choice that is hard to reverse, surprising without context, and
+  a real trade-off, kept as a file under `docs/adr/` with its context and reason. Aliases to avoid:
+  ADR issue, design doc, decision label.
+- **Candidate**: Pending work a workflow proposed and set aside until a stated revisit trigger
+  fires, recorded with its evidence as a `candidate:<kind>` issue or a scratch file. Aliases to
+  avoid: deferred finding, backlog item, decision.
+- **Frontier**: The items whose prerequisites are already settled and that are useful to work next:
+  chunks on a wayfinder decision map, open questions in a grill-me round, acceptance criteria in a
+  tdd round. Aliases to avoid: backlog.
+- **Metadata surface**: Any file that exposes plugin or skill metadata and must stay aligned with
+  adjacent surfaces. Aliases to avoid: docs.
+- **Trigger contract**: The `description` text that defines when a skill should be implicitly
+  invoked. Aliases to avoid: skill summary.
 
 Relationships:
 
-- The repository exposes one **Marketplace** per **Plugin target**.
-- A **Marketplace** contains one **Marketplace catalog**.
+- The repository exposes one **Marketplace catalog** per **Plugin target**.
 - A **Marketplace catalog** contains one or more **Marketplace entries**.
 - A **Marketplace entry** points to one **Plugin**.
 - A **Plugin** owns one **Portable manifest**, one **Target extension** per **Plugin target**, and
   zero or more **Plugin skills**.
 - A **Target extension** is either the **Codex extension** or the **Claude extension**.
-- A **Plugin skill** owns one **Skill body**, plus one **Codex UI metadata** file when the plugin
+- A **Plugin skill** owns one `SKILL.md`, plus one **Codex UI metadata** file when the plugin
   targets Codex.
 - A **Plugin skill** becomes a **Retired skill** when it leaves its **Plugin**.
 - A **Trigger eval** runs **Trigger fixtures** against one implicitly invokable **Plugin skill** or
@@ -202,8 +241,6 @@ Relationships:
 - A **Trigger fixture** skip case carries zero or one **Routing assertion**; the cases whose
   **Routing assertion** names a skill are that skill's **Dependent cases**.
 - A **Trigger fixture** lists zero or more **Applied skills** of its skill.
-- **Plugin linter** checks are local and deterministic; the **Plugin version check** reads git
-  history, so it runs as its own command instead of a **Plugin linter** rule.
 - A **Candidate** closes when its implementation lands, when a **Decision record** declines it, or
   with a stated invalidation reason.
 - A **Candidate** joins the **Frontier** of a codebase pass once its revisit trigger fires.

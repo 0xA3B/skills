@@ -35,6 +35,9 @@ importers:
       shell-quote:
         specifier: <2
         version: 1.12.0
+      smol-toml:
+        specifier: <2
+        version: 1.9.1
       tsx:
         specifier: <5
         version: 4.23.15
@@ -1024,6 +1027,10 @@ packages:
     resolution: {integrity: sha512-PcByqNyT/38F2kDNi006HAMRJaULuBzq/FOsw3qdZvX/GA9W/jamDaRskgHjubHiftXK5sIFxLNkvrXUwcof6Q==}
     engines: {node: '>= 0.4'}
 
+  smol-toml@1.9.1:
+    resolution: {integrity: sha512-j7WyPdf0CJoutMzMoPLF/bVXHtKZIT9Rb4eGeEbWw8X2t5oirjPgpL+OpaENZrILYaXqYwnVH+qgUwVbl+pUJQ==}
+    engines: {node: '>= 18'}
+
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
@@ -1907,6 +1914,8 @@ snapshots:
   semver@7.8.6: {}
 
   shell-quote@1.12.0: {}
+
+  smol-toml@1.9.1: {}
 
   source-map-js@1.2.2: {}
 

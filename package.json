@@ -40,6 +40,7 @@
     "oxfmt": "<1",
     "oxlint": "<2",
     "shell-quote": "<2",
+    "smol-toml": "<2",
     "tsx": "<5",
     "typescript": "<7",
     "vite": "<9",
