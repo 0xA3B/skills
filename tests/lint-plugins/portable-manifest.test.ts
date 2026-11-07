@@ -313,8 +313,8 @@ describe("portable manifest validation", () => {
     });
   });
 
-  // Repository decision (plugins/AGENTS.md): a Codex-targeted plugin carries the Codex extension
-  // "with the interface block", and the extension alone already makes the plugin Codex-targeted.
+  // Repository decision (plugins/AGENTS.md): the Codex extension carries "its required `interface`
+  // block", and the extension alone already makes the plugin Codex-targeted.
   it("requires the Codex interface block", async () => {
     await withTempRepo(async (repoRoot) => {
       await writeJson(
