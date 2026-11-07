@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Poll the GitHub Codex review adapter on a pull request until it gives a terminal signal for the
-# current head, then dump every unresolved review thread in full. GITHUB-CODEX.md maps the exit
+# current head, then dump every unresolved thread Codex opened in full. GITHUB-CODEX.md maps the exit
 # codes to the skill's states; the defaults below are the login and summary marker it names.
 #
 # Usage: poll-codex.sh <pr-number-or-url> [interval-seconds] [max-polls]
@@ -21,9 +21,10 @@
 # both timestamps for that case. The head is re-read after every terminal dump so a push during the
 # wait exits 3 instead of classifying the old head.
 #
-# Exit codes: 0 completed review with no unresolved threads; 1 completed with unresolved threads;
-#             2 the connector reported an error for the head; 3 the head changed; 4 no
-#             acknowledgment within ACK_POLLS intervals; 5 max polls reached; 6 observation failure.
+# Exit codes: 0 completed review with no unresolved Codex threads; 1 completed with unresolved
+#             Codex threads; 2 the connector reported an error for the head; 3 the head changed;
+#             4 no acknowledgment within ACK_POLLS intervals; 5 max polls reached; 6 observation
+#             failure.
 # Run unsandboxed in the foreground (gh needs the keyring). To keep a log and the exit code:
 #   poll-codex.sh 123 > .local/poll.log; rc=$?; cat .local/poll.log
 set -u -o pipefail
@@ -92,24 +93,29 @@ completed_at() { # ISO timestamp from the Completed line, or empty
   sed -n 's/.*datetime="\([^"]*\)".*/\1/p' <<<"$1"
 }
 dump() {
-  echo "=== unresolved review threads (head ${HEAD})"
-  local threads
+  echo "=== unresolved Codex review threads (head ${HEAD})"
+  local all threads
+  # One line of JSON per unresolved thread from any reviewer; the PR-state line counts them all,
+  # because merge readiness depends on every thread.
   # shellcheck disable=SC2016 # $owner, $name, $num, and $endCursor are GraphQL variables.
-  threads="$(gh api graphql --paginate -F owner="${REPO%/*}" -F name="${REPO#*/}" -F num="${NUM}" -f query='
+  all="$(gh api graphql --paginate -F owner="${REPO%/*}" -F name="${REPO#*/}" -F num="${NUM}" -f query='
     query($owner:String!,$name:String!,$num:Int!,$endCursor:String){ repository(owner:$owner,name:$name){
       pullRequest(number:$num){ reviewThreads(first:100, after:$endCursor){
         pageInfo{ hasNextPage endCursor }
         nodes{ id isResolved isOutdated path line
           comments(first:100){ totalCount nodes{ databaseId author{login} createdAt body } } } } } } }' \
-    --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved|not)
-          | "--- thread \(.id) \(.path):\(.line) outdated=\(.isOutdated)",
-            (.comments.nodes[] | "[\(.author.login) \(.createdAt) comment=\(.databaseId)]\n\(.body)\n"),
-            (select(.comments.totalCount > (.comments.nodes | length))
-              | "truncated: the thread has \(.comments.totalCount) comments; the dump shows the first \(.comments.nodes | length)\n")')" \
+    --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved|not) | tojson')" \
     || observe "review threads"
+  # Codex's findings are the threads it opened. GraphQL names the author without the REST "[bot]".
+  threads="$(jq -r --arg login "${BOT%\[bot\]}" 'select(.comments.nodes[0].author.login == $login)
+    | "--- thread \(.id) \(.path):\(.line) outdated=\(.isOutdated)",
+      (.comments.nodes[] | "[\(.author.login) \(.createdAt) comment=\(.databaseId)]\n\(.body)\n"),
+      (select(.comments.totalCount > (.comments.nodes | length))
+        | "truncated: the thread has \(.comments.totalCount) comments; the dump shows the first \(.comments.nodes | length)\n")' \
+    <<<"${all}")" || observe "review thread filter"
+  OPEN="$(grep -c '^--- thread ' <<<"${threads}" || true)"
   local open
-  open="$(grep -c '^--- thread ' <<<"${threads}" || true)"
-  OPEN="${open}"
+  open="$(grep -c . <<<"${all}" || true)"
   [[ -n "${threads}" ]] && printf '%s\n' "${threads}"
   echo "=== pr state (unresolved threads: ${open})"
   local state
