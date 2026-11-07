@@ -119,12 +119,29 @@ describe("poll-codex.sh", () => {
     expect(stdout).toContain("thumbs=1");
   });
 
+  it("exits 0 on a clean Codex review when another reviewer left an unresolved thread", async () => {
+    const scenario = await recordedClean();
+    Object.assign(
+      scenario.snapshots[0] ?? {},
+      withThreads([thread("PRRT_copilot", "copilot-pull-request-reviewer", "A Copilot finding.")]),
+    );
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).not.toContain("A Copilot finding.");
+    expect(stdout).toContain("=== pr state (unresolved threads: 1)");
+  });
+
   it("exits 1 and dumps the thread when Codex left a finding", async () => {
     const scenario = await recordedClean();
     Object.assign(
       scenario.snapshots[0] ?? {},
       reactions(),
-      withThreads([thread("PRRT_codex", "chatgpt-codex-connector", "A Codex finding.")]),
+      withThreads([
+        thread("PRRT_codex", "chatgpt-codex-connector", "A Codex finding."),
+        thread("PRRT_copilot", "copilot-pull-request-reviewer", "A Copilot finding."),
+      ]),
     );
 
     const { exitCode, stdout } = await poll(scenario);
@@ -132,6 +149,8 @@ describe("poll-codex.sh", () => {
     expect(exitCode).toBe(1);
     expect(stdout).toContain("--- thread PRRT_codex");
     expect(stdout).toContain("A Codex finding.");
+    expect(stdout).not.toContain("A Copilot finding.");
+    expect(stdout).toContain("=== pr state (unresolved threads: 2)");
   });
 
   it("waits through a running review for the late 👍 of a clean one", async () => {
