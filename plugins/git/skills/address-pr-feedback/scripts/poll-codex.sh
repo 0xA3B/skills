@@ -10,7 +10,7 @@
 #   REPO       forge-side base repository as owner/name (default: the URL argument, else the
 #              checkout's remote)
 #
-# Acknowledgment of a head is the summary comment's Running line naming that head; a 👀 reaction
+# Acknowledgment of a head is the summary table's Running row naming that head; a 👀 reaction
 # counts only when created after the head was published and no summary row names the head,
 # because the connector does not re-create it for a re-pushed head and may leave a stale one. The
 # clean signal is a 👍 reaction created at or after
@@ -75,10 +75,12 @@ head_still() { # exit 3 when the head moved since the script started
 finish() {
   head_still
   exit "$1"
-}                # every terminal exit re-reads the head after the dump
-summary_line() { # the summary comment's status line, or empty; fails on a gh error
+} # every terminal exit re-reads the head after the dump
+# The summary comment's first table row with a status, or empty; fails on a gh error. Only a table
+# row names the commit: the comment's <details> header repeats the status without it.
+summary_line() {
   gh api --paginate "repos/${REPO}/issues/${NUM}/comments" \
-    --jq ".[] | select(.user.login==\"${BOT}\" and (.body|contains(\"${MARK}\"))) | .body | split(\"\n\") | map(select(test(\"Running|Completed|Something|Failed\"))) | .[0] // \"\"" \
+    --jq ".[] | select(.user.login==\"${BOT}\" and (.body|contains(\"${MARK}\"))) | .body | split(\"\n\") | map(select(startswith(\"|\") and test(\"Running|Completed|Something|Failed\"))) | .[0] // \"\"" \
     | tail -1
 }
 reaction_count() { # $1 = content, $2 = earliest created_at (ISO) or empty; sums every page
