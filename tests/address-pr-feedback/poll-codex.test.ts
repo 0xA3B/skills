@@ -1,20 +1,9 @@
-import { execFile } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { promisify } from "node:util";
-
 import { describe, expect, it } from "vitest";
 
-const execFileAsync = promisify(execFile);
-const here = import.meta.dirname;
-const script = path.resolve(
-  here,
-  "../../plugins/git/skills/address-pr-feedback/scripts/poll-codex.sh",
-);
+import { pollScript, recorded, replay, type Scenario, type Snapshot } from "./replay.js";
 
-type Snapshot = Record<string, unknown>;
-type Scenario = { snapshots: Snapshot[] };
+const script = pollScript("poll-codex.sh");
+
 type Thread = {
   id: string;
   isResolved: boolean;
@@ -29,7 +18,7 @@ type Thread = {
 
 // Recorded from #293 with `record-poll`: a completed Codex review of 66b91ba with its 👍.
 async function recordedClean(): Promise<Scenario> {
-  return JSON.parse(await readFile(path.join(here, "fixtures/codex-clean.json"), "utf8"));
+  return recorded("codex-clean.json");
 }
 
 function thread(id: string, login: string, body: string): Thread {
@@ -73,41 +62,8 @@ function reactions(...items: [content: string, createdAt: string][]): Snapshot {
   };
 }
 
-// Runs poll-codex.sh against the fake gh. The stub sleep advances the scenario one snapshot.
 async function poll(scenario: Scenario): Promise<{ exitCode: number; stdout: string }> {
-  const work = await mkdtemp(path.join(tmpdir(), "poll-codex-"));
-  try {
-    const bin = path.join(work, "bin");
-    await mkdir(bin);
-    await writeFile(path.join(work, "scenario.json"), JSON.stringify(scenario));
-    await writeFile(
-      path.join(bin, "gh"),
-      `#!/bin/sh\nexec node "${path.join(here, "fake-gh.mjs")}" "$@"\n`,
-    );
-    await writeFile(
-      path.join(bin, "sleep"),
-      '#!/bin/sh\nn=$(cat "$FAKE_GH_DIR/clock" 2>/dev/null || echo 0)\necho $((n + 1)) >"$FAKE_GH_DIR/clock"\n',
-    );
-    await chmod(path.join(bin, "gh"), 0o755);
-    await chmod(path.join(bin, "sleep"), 0o755);
-    const { FAKE_GH_REAL: _real, ...env } = process.env;
-    try {
-      const { stdout } = await execFileAsync(script, ["293", "60", "3"], {
-        env: {
-          ...env,
-          FAKE_GH_DIR: work,
-          PATH: `${bin}${path.delimiter}${env["PATH"] ?? ""}`,
-          REPO: "0xA3B/skills",
-        },
-      });
-      return { exitCode: 0, stdout };
-    } catch (caught: unknown) {
-      const failure = caught as { code: number; stdout: string; stderr: string };
-      return { exitCode: failure.code, stdout: failure.stdout + failure.stderr };
-    }
-  } finally {
-    await rm(work, { force: true, recursive: true });
-  }
+  return replay(script, scenario, ["293", "60", "3"]);
 }
 
 describe("poll-codex.sh", () => {

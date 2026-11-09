@@ -22,6 +22,14 @@ if (!dir) {
 const args = process.argv.slice(2);
 const real = process.env["FAKE_GH_REAL"];
 
+// The timeline events poll-copilot.sh reads; recording drops the rest.
+const TIMELINE_EVENTS = new Set([
+  "automatic_base_change_succeeded",
+  "base_ref_changed",
+  "ready_for_review",
+  "review_requested",
+]);
+
 const { key, filter, passArgs } = parseCall(args);
 const scenarioPath = path.join(dir, "scenario.json");
 const scenario = readScenario();
@@ -129,22 +137,28 @@ function parseCall(callArgs) {
   }
   if (command === "api" && subcommand !== undefined) {
     const endpoint = subcommand.split("?")[0];
-    if (/\/commits\/[0-9a-f]+$/u.test(endpoint)) {
-      return { key: "commit", filter: jq, passArgs: passed };
-    }
-    if (/\/issues\/\d+\/comments$/u.test(endpoint)) {
-      return { key: "issueComments", filter: jq, passArgs: passed };
-    }
-    if (/\/issues\/\d+\/reactions$/u.test(endpoint)) {
-      return { key: "reactions", filter: jq, passArgs: passed };
+    const keys = [
+      [/\/commits\/[0-9a-f]+$/u, "commit"],
+      [/\/commits\/[0-9a-f]+\/check-suites$/u, "checkSuites"],
+      [/\/issues\/\d+\/comments$/u, "issueComments"],
+      [/\/issues\/\d+\/reactions$/u, "reactions"],
+      [/\/issues\/\d+\/timeline$/u, "timeline"],
+      [/\/pulls\/\d+\/reviews$/u, "reviews"],
+      // A branch name can contain slashes, and the scripts pass it unencoded.
+      [/\/rules\/branches\/.+$/u, "rules"],
+    ];
+    for (const [pattern, endpointKey] of keys) {
+      if (pattern.test(endpoint)) {
+        return { key: endpointKey, filter: jq, passArgs: passed };
+      }
     }
   }
   return fail(`no fixture key for: gh ${callArgs.join(" ")}`);
 }
 
 // Run the real gh without the filter. A paginated call is slurped so its pages arrive as one JSON
-// array; REST pages are flattened, and a multi-page GraphQL result is refused because replay
-// serves one page.
+// array; array pages are flattened, and a multi-page object result, such as GraphQL or check
+// suites, is refused because replay serves one page.
 function record(realArgs) {
   const paginated = realArgs.includes("--paginate");
   const output = execFileSync(real, paginated ? [...realArgs, "--slurp"] : realArgs, {
@@ -159,7 +173,7 @@ function record(realArgs) {
     return parsed.flat();
   }
   if (parsed.length !== 1) {
-    return fail(`cannot record a ${parsed.length}-page GraphQL result: gh ${realArgs.join(" ")}`);
+    return fail(`cannot record a ${parsed.length}-page object result: gh ${realArgs.join(" ")}`);
   }
   return parsed[0];
 }
@@ -175,6 +189,34 @@ function trim(fixtureKey, value) {
       }));
     case "issueComments":
       return value.map((comment) => ({ body: comment.body, user: { login: comment.user?.login } }));
+    case "timeline":
+      return value
+        .filter((item) => TIMELINE_EVENTS.has(item.event))
+        .map((item) => ({
+          event: item.event,
+          created_at: item.created_at,
+          ...(item.requested_reviewer
+            ? { requested_reviewer: { login: item.requested_reviewer.login } }
+            : {}),
+        }));
+    case "reviews":
+      return value.map((review) => ({
+        id: review.id,
+        user: { login: review.user?.login },
+        state: review.state,
+        commit_id: review.commit_id,
+        submitted_at: review.submitted_at,
+        body: review.body,
+      }));
+    case "checkSuites":
+      return {
+        check_suites: value.check_suites.map((suite) => ({
+          head_branch: suite.head_branch,
+          created_at: suite.created_at,
+        })),
+      };
+    case "rules":
+      return value.map((rule) => ({ type: rule.type, parameters: rule.parameters }));
     case "commit":
       return { commit: { committer: { date: value.commit?.committer?.date } } };
     case "pr":

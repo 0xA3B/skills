@@ -1,0 +1,88 @@
+{
+  "snapshots": [
+    {
+      "pr": {
+        "baseRefName": "main",
+        "createdAt": "2026-11-07T03:39:03Z",
+        "headRefName": "fix/poll-codex-own-threads",
+        "headRefOid": "be6fd0c04f15c2173f26fd2d7e9582e8447a4e21",
+        "isDraft": false,
+        "state": "MERGED"
+      },
+      "commit": {
+        "commit": {
+          "committer": {
+            "date": "2026-11-07T03:38:34Z"
+          }
+        }
+      },
+      "checkSuites": {
+        "check_suites": [
+          {
+            "head_branch": "fix/poll-codex-own-threads",
+            "created_at": "2026-11-07T03:38:47Z"
+          },
+          {
+            "head_branch": "fix/poll-codex-own-threads",
+            "created_at": "2026-11-07T03:38:47Z"
+          },
+          {
+            "head_branch": "fix/poll-codex-own-threads",
+            "created_at": "2026-11-07T03:39:06Z"
+          },
+          {
+            "head_branch": "fix/poll-codex-own-threads",
+            "created_at": "2026-11-07T03:39:14Z"
+          }
+        ]
+      },
+      "forcePushes": {
+        "data": {
+          "repository": {
+            "pullRequest": {
+              "timelineItems": {
+                "nodes": []
+              }
+            }
+          }
+        }
+      },
+      "timeline": [
+        {
+          "event": "review_requested",
+          "created_at": "2026-11-07T03:39:05Z",
+          "requested_reviewer": {
+            "login": "Copilot"
+          }
+        }
+      ],
+      "reviews": [
+        {
+          "id": 5809849941,
+          "user": {
+            "login": "copilot-pull-request-reviewer[bot]"
+          },
+          "state": "COMMENTED",
+          "commit_id": "be6fd0c04f15c2173f26fd2d7e9582e8447a4e21",
+          "submitted_at": "2026-11-07T03:41:55Z",
+          "body": "<!-- ccr-overview-v2 -->\n\n### 🟢 Approval recommended\n\nThe supplied review status identifies no active issues remaining in the polling changes and accompanying tests, fixtures, documentation, and version updates.\n\n**No open issues** 🎉\n\n<details>\n<summary><strong>What changed in this PR</strong></summary>\n\nThis pull request updates Codex polling to count only unresolved threads opened by Codex, adds an offline replay harness with fixtures and tests, documents the revised exit-code behavior, and bumps the Git plugin version to 3.11.3.\n\n**Changes:**\n- Filter Codex findings while retaining the total unresolved-thread count for pull-request state.\n- Add replay, recording, fixtures, and tests for polling scenarios.\n- Update Codex documentation and synchronize plugin versions.\n- **Moderate issue:** `record-poll` does not propagate recorder or observation failures, allowing incomplete fixtures to appear successful.\n\nThis pull request requires changes.\n\n| File | Summary |\r\n|---|---|\r\n| `tests/​address-pr-feedback/​record-poll` | Records poll-script GitHub responses as replay fixtures. |\r\n| `tests/​address-pr-feedback/​poll-codex.test.ts` | Adds regression tests for Codex polling behavior. |\r\n| `tests/​address-pr-feedback/​fixtures/​codex-clean.json` | Provides the recorded clean-review fixture. |\r\n| `tests/​address-pr-feedback/​fake-gh.mjs` | Replays and records mapped `gh` calls with fixture snapshots. |\r\n| `plugins/​git/​skills/​address-pr-feedback/​scripts/​poll-codex.sh` | Counts and dumps only unresolved Codex-authored threads. |\r\n| `plugins/​git/​skills/​address-pr-feedback/​references/​GITHUB-CODEX.md` | Documents the narrower clean and finding exit-code semantics. |\r\n| `plugins/​git/​plugin.json` | Bumps the portable Git plugin version to 3.11.3. |\r\n| `plugins/​git/​.claude-plugin/​plugin.json` | Keeps the Claude extension version aligned at 3.11.3. |\n</details>\n\n<sub>Review effort: Lite</sub>"
+        }
+      ],
+      "reviewThreads": {
+        "data": {
+          "repository": {
+            "pullRequest": {
+              "reviewThreads": {
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": null
+                },
+                "nodes": []
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
