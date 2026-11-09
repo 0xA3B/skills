@@ -98,16 +98,52 @@ describe("poll-copilot.sh", () => {
     expect(stdout).not.toContain("A Codex finding.");
   });
 
-  it("exits 2 when Copilot reports that it could not review the head", async () => {
+  // Openings of review bodies Copilot posted on public pull requests in place of a review.
+  it.each([
+    "Copilot was unable to review this pull request because the user who requested the review has insufficient remaining quota.",
+    "Copilot was unable to review this pull request because there is no eligible user to bill.",
+    "Copilot was unable to review this pull request due to rate limiting. Please try again later.",
+    "Copilot encountered an error and was unable to review this pull request. You can try again by re-requesting a review.",
+    "Copilot encountered an error: Your billing is not configured or you have Copilot licenses from multiple standalone organizations or enterprises.",
+    "Copilot wasn't able to review this pull request because it exceeds the maximum number of files (300).",
+    "Copilot wasn't able to review any files in this pull request. Copilot's per-file or total diff limits were exceeded.",
+    "Copilot couldn’t review any files in this pull request.",
+    // Wordings the pattern accepted before the public sample; no body in the sample used them.
+    "Copilot could not review this pull request.",
+    "Copilot couldn't review this pull request.",
+  ])("exits 2 when the review body says Copilot could not review: %s", async (body) => {
     const scenario = await recordedClean();
-    first(scenario)["reviews"] = [
-      review(scenario, { body: "Copilot could not review this pull request: quota exceeded." }),
-    ];
+    first(scenario)["reviews"] = [review(scenario, { body })];
 
     const { exitCode, stdout } = await poll(scenario);
 
     expect(exitCode).toBe(2);
     expect(stdout).toContain("Copilot could not review this head");
+  });
+
+  // A note above a completed review's overview limits that review; the review still counts.
+  it.each([
+    "> [!NOTE]\n> Copilot was unable to complete this review at the selected tier due to model policy or plan restrictions.\n\n<!-- ccr-overview-v2 -->\n\n### 🟢 Approval recommended",
+    "> [!NOTE]\n> Copilot was unable to run its full agentic suite in this review.\n\n<!-- ccr-overview-v2 -->\n\n### 🟢 Approval recommended",
+  ])("treats a completed review with a limiting note as completed: %s", async (body) => {
+    const scenario = await recordedClean();
+    first(scenario)["reviews"] = [review(scenario, { body })];
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("no unresolved Copilot threads");
+  });
+
+  it("matches only an apostrophe between couldn and t", async () => {
+    const scenario = await recordedClean();
+    first(scenario)["reviews"] = [
+      review(scenario, { body: "Copilot couldnXt review this pull request." }),
+    ];
+
+    const { exitCode } = await poll(scenario);
+
+    expect(exitCode).toBe(0);
   });
 
   it("waits after a review request for the review of the head", async () => {
