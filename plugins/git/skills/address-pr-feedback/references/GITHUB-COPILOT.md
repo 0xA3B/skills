@@ -91,9 +91,11 @@ evidence for any repeated claim. The label alone neither validates nor invalidat
 Treat each suppressed item as a body-only finding and record its disposition in a pull-request
 comment.
 
-A current-head review whose body states that Copilot could not review, such as a quota limit or an
-error, is adapter activity but not a completed response: classify the adapter `blocked` with the
-stated cause, and let the user decide whether to re-request or proceed on the other adapters.
+A current-head review whose body opens by stating that Copilot could not review, such as a quota,
+billing, or size limit or an error, is adapter activity but not a completed response: classify the
+adapter `blocked` with the stated cause, and let the user decide whether to re-request or proceed on
+the other adapters. A review whose body opens with a note that Copilot could not use the selected
+tier or its full suite, followed by the review overview, is a completed response.
 
 Treat any other current-head `COMMENTED` review as a completed response and triage its review body
 and inline comments. This adapter's terminal clean signal, with no unresolved Copilot threads in

@@ -32,7 +32,8 @@
 #
 # Exit codes: 0 completed review of the head with no unresolved Copilot threads;
 #             1 completed review of the head with unresolved Copilot threads (dumped);
-#             2 Copilot reported that it could not review (quota or error); 3 the head changed;
+#             2 Copilot reported that it could not review (a quota, billing, or size limit, or an
+#               error); 3 the head changed;
 #             4 the configuration should review the head but no acknowledgment came within
 #               ACK_POLLS intervals; 5 max polls reached after acknowledgment;
 #             6 observation failure;
@@ -200,7 +201,11 @@ REV="$(head_review "${R}")"
 echo "review id=$(jq -r .id <<<"${REV}") state=$(jq -r .state <<<"${REV}") submitted=$(jq -r .submitted_at <<<"${REV}")"
 echo "--- review body"
 jq -r .body <<<"${REV}"
-if jq -e '.body | test("^\\s*Copilot\\b[^\\n.]{0,80}\\b(unable to|could not|couldn'"'"'t) review"; "i")' \
+# A body that opens by saying Copilot could not review replaces the review: a quota, billing,
+# eligibility, rate, or size limit, or an error. A note that opens a completed review, such as one
+# saying Copilot could not use the selected tier, is followed by the overview and does not match.
+# `[\u0027\u2019]` matches a straight or a curly apostrophe.
+if jq -e '.body | test("^\\s*Copilot\\b[^\\n.]{0,80}\\b(unable to|could not|couldn[\u0027\u2019]t|wasn[\u0027\u2019]t able to) review|^\\s*Copilot encountered an error\\b"; "i")' \
   <<<"${REV}" >/dev/null; then
   echo "Copilot could not review this head"
   finish 2
