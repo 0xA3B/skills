@@ -8,7 +8,8 @@
 #     tests/address-pr-feedback/fixtures/codex-clean.json \
 #     plugins/git/skills/address-pr-feedback/scripts/poll-codex.sh 293 60 3
 # Run unsandboxed: the real gh needs the keyring. The fixture holds public pull-request data
-# trimmed to the fields the scripts read; review it before committing.
+# trimmed to the fields the scripts read; review it before committing. Exits with the script's
+# status, so a recording whose run ended in an observation failure (6) does not pass as clean.
 set -euo pipefail
 out="${1:?fixture path}"
 script="${2:?poll script}"
@@ -28,3 +29,4 @@ rc=0
 FAKE_GH_DIR="${work}" FAKE_GH_REAL="${real_gh}" PATH="${work}/bin:${PATH}" "${script}" "$@" || rc=$?
 cp "${work}/scenario.json" "${out}"
 echo "recorded ${out}; the script exited ${rc}"
+exit "${rc}"
