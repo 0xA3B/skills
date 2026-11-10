@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { pollScript, recorded, replay, type Scenario, type Snapshot } from "./replay.js";
+import {
+  pollScript,
+  recorded,
+  replay,
+  runWithoutTools,
+  type Scenario,
+  type Snapshot,
+} from "./replay.js";
 
 const script = pollScript("poll-copilot.sh");
 
@@ -67,9 +74,14 @@ function unacknowledged(scenario: Scenario, extra: Snapshot = {}): Scenario {
   return { snapshots: [{ ...first(scenario), timeline: [], reviews: [], ...extra }] };
 }
 
-async function poll(scenario: Scenario): Promise<{ exitCode: number; stdout: string }> {
-  return replay(script, scenario, ["294", "60", "3"]);
+async function poll(
+  scenario: Scenario,
+  env: Record<string, string> = {},
+): Promise<{ exitCode: number; stdout: string }> {
+  return replay(script, scenario, ["294", "60", "3"], env);
 }
+
+const EARLIER_HEAD = "1".repeat(40);
 
 describe("poll-copilot.sh", () => {
   it("exits 0 on a completed review of the head with no Copilot threads", async () => {
@@ -292,5 +304,150 @@ describe("poll-copilot.sh", () => {
 
     expect(exitCode).toBe(4);
     expect(stdout).toContain("the pull request first left draft at 2026-11-07T04:00:00Z");
+  });
+
+  it("waits for the forge to report the expected head before classifying", async () => {
+    const scenario = await recordedClean();
+    const pr = first(scenario)["pr"] as Snapshot;
+    const head = headOf(scenario);
+    scenario.snapshots = [{ ...first(scenario), pr: { ...pr, headRefOid: EARLIER_HEAD } }, { pr }];
+
+    const { exitCode, stdout } = await poll(scenario, { EXPECT_HEAD: head });
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain(`waiting for the forge to report ${head}`);
+    expect(stdout).toContain("no unresolved Copilot threads");
+  });
+
+  it("exits 6 when the forge reports no head while the script waits for the expected one", async () => {
+    const scenario = await recordedClean();
+    const pr = first(scenario)["pr"] as Snapshot;
+    scenario.snapshots = [{ ...first(scenario), pr: { ...pr, headRefOid: null } }];
+
+    const { exitCode, stdout } = await poll(scenario, { EXPECT_HEAD: EARLIER_HEAD });
+
+    expect(exitCode).toBe(6);
+    expect(stdout).toContain("observation failure: pr head");
+  });
+
+  it("exits 3 when the forge never reports the expected head", async () => {
+    const scenario = await recordedClean();
+
+    const { exitCode, stdout } = await poll(scenario, { EXPECT_HEAD: EARLIER_HEAD });
+
+    expect(exitCode).toBe(3);
+    expect(stdout).toContain(
+      `the forge reports ${headOf(scenario)}, not the expected ${EARLIER_HEAD}`,
+    );
+    expect(stdout).not.toContain("acknowledged");
+  });
+
+  it("exits 3 when the base changes during the wait", async () => {
+    const scenario = await recordedClean();
+    const pr = first(scenario)["pr"] as Snapshot;
+    scenario.snapshots = [
+      { ...first(scenario), reviews: [] },
+      { reviews: [review(scenario)], pr: { ...pr, baseRefName: "develop" } },
+    ];
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(3);
+    expect(stdout).toContain("base changed: develop");
+  });
+
+  // A base the forge fails to report is a failed observation, not a retarget.
+  it("exits 6 when the forge reports no base during the wait", async () => {
+    const scenario = await recordedClean();
+    const pr = first(scenario)["pr"] as Snapshot;
+    scenario.snapshots = [
+      { ...first(scenario), reviews: [] },
+      { reviews: [review(scenario)], pr: { ...pr, baseRefName: null } },
+    ];
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(6);
+    expect(stdout).toContain("observation failure: empty base");
+  });
+
+  // Timeline timestamps have one-second precision, so the request at 03:39:05Z cannot be placed
+  // after a retarget in the same second.
+  it("exits 9 when the head's review was requested in the same second as the retarget", async () => {
+    const scenario = await recordedClean();
+    const requests = first(scenario)["timeline"] as Snapshot[];
+    Object.assign(first(scenario), {
+      ...copilotRule({ review_on_push: true }),
+      timeline: [...requests, { event: "base_ref_changed", created_at: "2026-11-07T03:39:05Z" }],
+    });
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(9);
+    expect(stdout).not.toContain("no unresolved Copilot threads");
+  });
+
+  // A review of the diff against the old base says nothing about the diff against the new one.
+  it.each(["base_ref_changed", "automatic_base_change_succeeded"])(
+    "exits 9 when the head's review and its request predate a %s event",
+    async (event) => {
+      const scenario = await recordedClean();
+      const requests = first(scenario)["timeline"] as Snapshot[];
+      Object.assign(first(scenario), {
+        ...copilotRule({ review_on_push: true }),
+        timeline: [...requests, { event, created_at: "2026-11-07T04:00:00Z" }],
+      });
+
+      const { exitCode, stdout } = await poll(scenario);
+
+      expect(exitCode).toBe(9);
+      expect(stdout).toContain("was requested before the retarget at 2026-11-07T04:00:00Z");
+    },
+  );
+
+  // The review was requested at 03:39:05Z and submitted at 03:41:55Z, so it started on the old base.
+  it("exits 9 when the pull request is retargeted while the head's review runs", async () => {
+    const scenario = await recordedClean();
+    const requests = first(scenario)["timeline"] as Snapshot[];
+    Object.assign(first(scenario), {
+      ...copilotRule({ review_on_push: true }),
+      timeline: [...requests, { event: "base_ref_changed", created_at: "2026-11-07T03:40:00Z" }],
+    });
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(9);
+    expect(stdout).not.toContain("no unresolved Copilot threads");
+  });
+
+  // A request made after the retarget asks for a new review; the review that was already running
+  // still covered the old base.
+  it("does not count a review that started before a retarget when a later request follows it", async () => {
+    const scenario = await recordedClean();
+    const requests = first(scenario)["timeline"] as Snapshot[];
+    Object.assign(first(scenario), {
+      timeline: [
+        ...requests,
+        { event: "base_ref_changed", created_at: "2026-11-07T03:40:00Z" },
+        {
+          event: "review_requested",
+          created_at: "2026-11-07T03:45:00Z",
+          requested_reviewer: { login: "Copilot" },
+        },
+      ],
+    });
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(5);
+    expect(stdout).toContain("acknowledged; waiting for a review");
+    expect(stdout).not.toContain("no unresolved Copilot threads");
+  });
+
+  it("exits 6 and names the tool when gh is missing", async () => {
+    const { exitCode, stdout } = await runWithoutTools(script);
+
+    expect(exitCode).toBe(6);
+    expect(stdout).toContain("missing dependency: gh");
   });
 });

@@ -122,6 +122,17 @@ Poll once per minute. Each adapter defines which signals count as acknowledgment
 findings, and current-head approval; when its reference ships a polling script, run that script as
 the reference directs instead of assembling the poll from separate commands.
 
+Run a polling script so that its final `exit=` line reaches you. When the agent's harness re-invokes
+the agent after a background command exits, run the script in the background. Otherwise run it in
+the foreground with the command timeout set above its longest run: two poll budgets of
+`interval-seconds` times `max-polls`, plus the acknowledgment window. When the harness caps the
+timeout below that, pass a smaller `max-polls`, rerun on exit `5`, and count every run toward the
+response timeout. Run the script unsandboxed, because `gh` reads credentials from the keyring. After
+a push, set `EXPECT_HEAD` to the full pushed SHA: the forge can report the earlier head for minutes,
+and the script then waits for the pushed head instead of classifying the earlier one. The scripts
+need `gh` and `jq`; when the output names a missing dependency, stop and report it to the user
+instead of installing it.
+
 Before starting or advancing either timer, prove that the observation channel can fetch a
 known-present change-request field such as the current source head. Treat a command error or an
 unexpectedly missing field as an observation failure, not inactivity. Retry one plausibly transient
@@ -216,11 +227,11 @@ session-only counters or assumptions.
 
 ## Completion and hand off
 
-Report the current source head, active adapters, rounds completed, feedback dispositions, thread
-resolution, required CI state, and one terminal status per adapter. When more than three rounds
-completed, add the round trend: findings per round, findings whose mechanism repeated an earlier
-round, and each round's fix size in changed lines, so the user can judge whether a further
-invocation would pay.
+Report the current source head and target branch, active adapters, rounds completed, feedback
+dispositions, thread resolution, required CI state, and one terminal status per adapter. When more
+than three rounds completed, add the round trend: findings per round, findings whose mechanism
+repeated an earlier round, and each round's fix size in changed lines, so the user can judge whether
+a further invocation would pay.
 
 When every active adapter is `approved`, stop and recommend `git:merge-pr` next; continue into it
 only when the user's request asked to merge the change request.

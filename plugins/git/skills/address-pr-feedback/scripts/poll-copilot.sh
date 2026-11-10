@@ -9,6 +9,11 @@
 #   ACK_POLLS  intervals to wait for acknowledgment of the head (default 2, the acknowledgment window)
 #   REPO       forge-side base repository as owner/name (default: the URL argument, else the
 #              checkout's remote)
+#   EXPECT_HEAD  full SHA of the head the caller pushed. The forge can report the earlier head for
+#              minutes after a push, so the script waits up to max-polls intervals for the forge to
+#              report this head and exits 3 when it never does. Unset, the script classifies
+#              whatever head the forge reports.
+# Needs gh and jq.
 #
 # Observed activity outranks configuration: a Copilot review request created after the head was
 # published, or a Copilot review of the head, starts the wait whatever the rules say. Only when
@@ -28,20 +33,26 @@
 # cannot tell whether it was pushed after the retarget: it says so and waits for acknowledgment. The
 # rules cannot show a personal Copilot setting or a manual request, so before exiting 7 or 8 the
 # script waits until ACK_POLLS intervals have passed since the head reached the branch; the skill's
-# final observation catches a review that starts later.
+# final observation catches a review that starts later. A review or a review request older than the
+# last retarget belongs to the diff against the old base, so neither counts; when such a review of
+# the head exists and nothing newer acknowledges the head, the script exits 9. The API ties no
+# review to the request that started it, so one case still counts: a review that was running at the
+# retarget and is submitted after a new request made following the retarget.
 #
 # Exit codes: 0 completed review of the head with no unresolved Copilot threads;
 #             1 completed review of the head with unresolved Copilot threads (dumped);
 #             2 Copilot reported that it could not review (a quota, billing, or size limit, or an
-#               error); 3 the head changed;
+#               error); 3 the head or the base changed, or the forge never reported EXPECT_HEAD;
 #             4 the configuration should review the head but no acknowledgment came within
 #               ACK_POLLS intervals; 5 max polls reached after acknowledgment;
-#             6 observation failure;
+#             6 observation failure or a missing tool;
 #             7 the configuration does not review this pull request, Copilot never reviewed it, and
 #               no Copilot activity appeared within the acknowledgment window;
 #             8 the configuration does not review this head, and no Copilot activity appeared within
-#               the acknowledgment window; the last head Copilot reviewed is printed.
-# Run unsandboxed in the foreground (gh needs the keyring). To keep a log and the exit code:
+#               the acknowledgment window; the last head Copilot reviewed is printed;
+#             9 the head's only review predates the last retarget, and no Copilot activity followed
+#               the retarget within the acknowledgment window.
+# Run unsandboxed (gh needs the keyring). To keep a log and the exit code:
 #   poll-copilot.sh 123 > .local/poll.log; rc=$?; cat .local/poll.log
 set -u -o pipefail
 PR_ARG="${1:?pr number or url}"
@@ -50,6 +61,17 @@ MAX="${3:-11}"
 ACK_POLLS="${ACK_POLLS:-2}"
 BOT="copilot-pull-request-reviewer[bot]"
 trap 'echo "exit=$?"' EXIT
+for tool in gh jq; do
+  command -v "${tool}" >/dev/null 2>&1 || {
+    echo "missing dependency: ${tool}"
+    exit 6
+  }
+done
+EXPECT_HEAD="${EXPECT_HEAD:-}"
+if [[ -n "${EXPECT_HEAD}" ]] && ! [[ "${EXPECT_HEAD}" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "bad EXPECT_HEAD: ${EXPECT_HEAD} is not a full commit SHA"
+  exit 6
+fi
 NUM="${PR_ARG##*/}"
 [[ "${NUM}" =~ ^[1-9][0-9]*$ ]] || {
   echo "bad pr argument: ${PR_ARG}"
@@ -64,14 +86,27 @@ observe() {
   echo "observation failure: $1"
   exit 6
 }
-PR_JSON="$(gh pr view "${NUM}" --repo "${REPO}" --json headRefOid,headRefName,baseRefName,isDraft,createdAt,state)" \
-  || observe "pr view"
+read_pr() { gh pr view "${NUM}" --repo "${REPO}" --json headRefOid,headRefName,baseRefName,isDraft,createdAt,state; }
+PR_JSON="$(read_pr)" || observe "pr view"
 HEAD="$(jq -r .headRefOid <<<"${PR_JSON}")"
+for ((w = 0; ; w++)); do
+  [[ -n "${HEAD}" ]] && [[ "${HEAD}" != null ]] || observe "pr head"
+  [[ -z "${EXPECT_HEAD}" ]] || [[ "${HEAD}" = "${EXPECT_HEAD}" ]] && break
+  if [[ "${w}" -ge "${MAX}" ]]; then
+    echo "the forge reports ${HEAD}, not the expected ${EXPECT_HEAD}, after ${MAX} polls"
+    exit 3
+  fi
+  echo "waiting for the forge to report ${EXPECT_HEAD}; it reports ${HEAD}"
+  sleep "${INTERVAL}"
+  PR_JSON="$(read_pr)" || observe "pr view"
+  HEAD="$(jq -r .headRefOid <<<"${PR_JSON}")"
+done
 BASE="$(jq -r .baseRefName <<<"${PR_JSON}")"
 BRANCH="$(jq -r .headRefName <<<"${PR_JSON}")"
 DRAFT="$(jq -r .isDraft <<<"${PR_JSON}")"
 PR_AT="$(jq -r .createdAt <<<"${PR_JSON}")"
-[[ -n "${HEAD}" ]] && [[ "${HEAD}" != null ]] && [[ -n "${BASE}" ]] || observe "pr fields"
+[[ -n "${HEAD}" ]] && [[ "${HEAD}" != null ]] || observe "pr fields"
+[[ -n "${BASE}" ]] && [[ "${BASE}" != null ]] || observe "pr fields"
 COMMIT_AT="$(gh api "repos/${REPO}/commits/${HEAD}" --jq .commit.committer.date)" || observe "head commit"
 SUITE_AT="$(gh api --paginate "repos/${REPO}/commits/${HEAD}/check-suites" \
   | jq -r --arg b "${BRANCH}" '.check_suites[] | select(.head_branch == $b) | .created_at' | sort | sed -n 1p)" \
@@ -98,25 +133,49 @@ reviews() { # completed Copilot reviews: GITHUB-COPILOT.md defines no other stat
     --jq "[.[] | select(.user.login == \"${BOT}\" and (.state == \"COMMENTED\" or .state == \"APPROVED\"))]" \
     | jq -s 'add // []'
 }
-requested_after_head() { # count Copilot review requests created at or after the head was published
+# A review request or a review counts only when it follows both the head's publication and the
+# last retarget: an earlier one belongs to the diff against the old base. Timeline timestamps have
+# one-second precision, so a request in the same second as the retarget does not count either.
+FLOOR_AT="$(printf '%s\n' "${HEAD_AT}" "${RETARGET_AT}" | sort | tail -1)"
+requested_after_head() { # when Copilot was first requested at or after the floor, or empty
   gh api --paginate "repos/${REPO}/issues/${NUM}/timeline" \
     --jq ".[] | select(.event == \"review_requested\" and .requested_reviewer.login == \"Copilot\"
-      and .created_at >= \"${HEAD_AT}\") | .created_at" | wc -l | tr -d ' '
+      and .created_at >= \"${FLOOR_AT}\" and .created_at > \"${RETARGET_AT}\") | .created_at" | sort | sed -n 1p
 }
-head_still() {
-  local h
-  h="$(gh pr view "${NUM}" --repo "${REPO}" --json headRefOid -q .headRefOid)" || observe "head"
+head_still() { # exit 3 when the head or the base moved since the script started
+  local now h b
+  now="$(gh pr view "${NUM}" --repo "${REPO}" --json headRefOid,baseRefName \
+    -q '"\(.headRefOid) \(.baseRefName)"')" || observe "head and base"
+  h="${now%% *}"
+  b="${now#* }"
+  [[ -n "${h}" ]] && [[ "${h}" != null ]] || observe "empty head"
   [[ "${h}" = "${HEAD}" ]] || {
     echo "head changed: ${h}"
+    exit 3
+  }
+  [[ -n "${b}" ]] && [[ "${b}" != null ]] || observe "empty base"
+  [[ "${b}" = "${BASE}" ]] || {
+    echo "base changed: ${b}"
     exit 3
   }
 }
 finish() {
   head_still
   exit "$1"
-} # every terminal classification re-reads the head
-head_review() { jq -c --arg h "${HEAD}" '[.[] | select(.commit_id == $h)] | last // empty' <<<"$1"; }
-acked() { [[ -n "$(head_review "${R}")" ]] || [[ "${REQ}" != 0 ]]; }
+} # every terminal classification re-reads the head and the base
+# After a retarget, a review of the head counts only when it was submitted after a request that
+# itself followed the retarget: a review requested earlier started on the diff against the old
+# base, and a later request does not change what that review covered.
+head_review() { # the last review of the head that counts
+  jq -c --arg h "${HEAD}" --arg r "${RETARGET_AT}" --arg req "${REQ}" \
+    '[.[] | select(.commit_id == $h and ($r == "" or ($req != "" and .submitted_at >= $req)))]
+      | last // empty' <<<"$1"
+}
+stale_review_at() { # when the last review of the head was submitted, if no review of it counts
+  [[ -n "${RETARGET_AT}" ]] && [[ -z "$(head_review "$1")" ]] || return 0
+  jq -r --arg h "${HEAD}" '[.[] | select(.commit_id == $h)] | last | .submitted_at // empty' <<<"$1"
+}
+acked() { [[ -n "$(head_review "${R}")" ]] || [[ -n "${REQ}" ]]; }
 poll_ack() {
   sleep "${INTERVAL}"
   head_still
@@ -172,6 +231,11 @@ if ! acked; then
     done
   fi
   if ! acked; then
+    STALE_AT="$(stale_review_at "${R}")"
+    if [[ -n "${STALE_AT}" ]]; then
+      echo "the review of ${HEAD} submitted at ${STALE_AT} was requested before the retarget at ${RETARGET_AT}"
+      finish 9
+    fi
     if [[ "${expected}" = yes ]]; then
       echo "no acknowledgment of ${HEAD} within ${ACK_POLLS} interval(s)"
       finish 4
