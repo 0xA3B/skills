@@ -1,14 +1,12 @@
 ---
 name: tidy-history
 description: >-
-  Rewrite a topic branch's unmerged commits so each has one logical purpose, a sensible rollback
-  boundary, and a valid message, without changing the branch's final tree, then publish the result
-  with a lease. Use when the user asks to tidy or clean up branch history; to squash, fold, reorder,
-  split, reword, or amend existing commits, including amending working-tree changes into one; to
-  fold review fixes into the commits they correct; or when another git skill directs applying
-  git:tidy-history. Do not use for committing changes as new commits, rebasing a branch onto an
-  updated target, resolving conflicts, squash-merging a pull request, inspecting history, or
-  conceptual questions about rebasing.
+  Rewrite a topic branch's unmerged commits so each has one logical purpose and a valid message,
+  without changing the branch's final tree, then force-push the result with a lease. Use when the
+  user asks to tidy or clean up branch history; to squash, fold, reorder, split, reword, or amend
+  existing commits, including amending working-tree changes into one; or to fold review fixes into
+  the commits they correct. Do not use for rebasing a branch onto an updated target, resolving
+  conflicts, or questions about history or rebasing.
 license: MIT
 argument-hint: "[range|review|instructions]"
 ---
@@ -109,7 +107,7 @@ mode, the worktree is clean.
 
 ### 2. Plan
 
-Judge each commit in the range by `git:commit`'s partitioning rules and commit message policy. Plan
+Judge each commit in the range by `git:commit`'s partitioning rules and commit message rules. Plan
 these changes, each with a one-line reason:
 
 - **fold** a commit that corrects an earlier commit in the range, such as a review fix or a format
@@ -120,7 +118,7 @@ these changes, each with a one-line reason:
   instruction keeps separate;
 - **split** a commit that mixes units the partitioning rules separate;
 - **reorder** commits into dependency order when a fold or split needs it;
-- **reword** a message that misdescribes its commit or breaks the message policy;
+- **reword** a message that misdescribes its commit or breaks the message rules;
 - **drop** an empty commit.
 
 Follow an explicit user instruction about grouping, such as "squash these three into one", over the

@@ -1,12 +1,6 @@
-# Conventional commits reference
+# Conventional Commits reference
 
-Reference specification:
-
-- https://www.conventionalcommits.org/en/v1.0.0/#specification
-
-## Canonical message structure
-
-Conventional Commits 1.0.0 message format:
+Specification: <https://www.conventionalcommits.org/en/v1.0.0/#specification>
 
 ```text
 <type>[optional scope][!]: <description>
@@ -18,55 +12,48 @@ Conventional Commits 1.0.0 message format:
 
 ## Specification rules
 
-Apply these rules when constructing commit messages:
+1. Start the header with a `type`, then an optional `(scope)`, then an optional `!`, then `: ` and
+   the description.
+2. Start a body one blank line after the header.
+3. Start the footers one blank line after the body, or after the header when there is no body.
+4. Write each footer as a token, a separator (`: ` or ` #`), and a value. Replace spaces in a token
+   with `-`; `BREAKING CHANGE` is the one token allowed with a space, and `BREAKING-CHANGE` is its
+   synonym.
+5. A footer value may contain spaces and newlines; it ends where the next token and separator begin.
+6. Mark a breaking change with `!` in the header, a `BREAKING CHANGE: <description>` footer, or
+   both.
 
-1. Start the header with a `type`, then optional `(scope)`, then optional `!`, then `: `.
-2. Put the description immediately after `: ` and summarize the change in it.
-3. When you write a body, start it one blank line after the header.
-4. When you write footers, start the footer section one blank line after the body, or after the
-   header when no body is present.
-5. Write each footer as a token plus separator (`:<space>` or `<space>#`) and a value.
-6. Replace spaces in footer tokens with `-`; `BREAKING CHANGE` is the one token allowed as-is.
-7. Mark a breaking change with `!` in the header or a `BREAKING CHANGE: <description>` footer.
-8. Treat `BREAKING-CHANGE` as synonymous with `BREAKING CHANGE` in footer tokens.
-9. Footer values may contain spaces and newlines; a footer ends when the next valid footer
-   token/separator pair appears.
+## Default profile
 
-## Default commit profile
+Use this profile unless the repository documents its own:
 
-Use these stricter style conventions unless the current repository documents its own conventions:
+- **Header.** `type(scope): subject`, or `type: subject` when no scope fits. Keep it within 72
+  characters when practical.
+- **Type and scope.** Lowercase; the scope is a short noun with hyphens. Omit the scope for
+  cross-cutting work.
+- **Subject.** An imperative phrase that starts lowercase, except for an acronym or a proper noun
+  such as `HTTP` or `OAuth`, and ends without a period.
 
-| Rule    | Requirement                                                                        |
-| ------- | ---------------------------------------------------------------------------------- |
-| Header  | Use `type(scope): subject` unless no scope is needed                               |
-| Type    | Lowercase token                                                                    |
-| Scope   | Optional; short noun, lowercase with hyphens                                       |
-| Subject | Imperative phrase, no trailing period                                              |
-| Case    | Start lowercase; allow required casing for acronyms/proper nouns (`HTTP`, `OAuth`) |
-| Length  | Keep header <=72 chars when practical                                              |
-
-## Preferred types
+## Types
 
 | Type       | Use when                                                 |
 | ---------- | -------------------------------------------------------- |
-| `feat`     | Adding new functionality                                 |
+| `feat`     | Adding functionality                                     |
 | `fix`      | Fixing a bug                                             |
 | `docs`     | Documentation-only changes                               |
 | `refactor` | Code change that neither fixes a bug nor adds a feature  |
-| `test`     | Adding or modifying tests                                |
+| `test`     | Adding or changing tests                                 |
 | `perf`     | Performance improvement                                  |
 | `style`    | Formatting or style-only changes with no behavior change |
 | `build`    | Build system or external dependencies                    |
 | `ci`       | CI configuration changes                                 |
-| `chore`    | Maintenance tasks, tooling, config                       |
-| `revert`   | Reverting a previous commit                              |
+| `chore`    | Maintenance, tooling, or configuration                   |
+| `revert`   | Reverting an earlier commit                              |
 
-Additional types are allowed when they better describe intent and still follow the spec grammar.
-When multiple types could fit, prefer the most specific type and avoid defaulting to `chore`.
+Another type is allowed when it describes the intent better and follows the grammar. When several
+types fit, choose the most specific one over `chore`.
 
-## Breaking change guidance
-
-Use one of the following forms:
+## Breaking changes
 
 ```text
 feat(auth)!: require api token for admin endpoint
@@ -78,43 +65,23 @@ feat(auth): require api token for admin endpoint
 BREAKING CHANGE: admin endpoint now returns 401 when the token is missing
 ```
 
-When using `!`, the description should clearly summarize what broke. Include a
-`BREAKING CHANGE: ...` footer as well when tooling, release notes, or reviewers need structured
-detail.
+With `!`, the description states what broke. Add the footer as well when release tooling, release
+notes, or reviewers need the detail in a structured place.
 
-## Scope selection
+## Bodies and footers
 
-| Situation                   | Suggested scope                     |
-| --------------------------- | ----------------------------------- |
-| UI or frontend changes      | `ui` or `web`                       |
-| API or service behavior     | `api` or `service`                  |
-| CLI or script changes       | `cli` or `scripts`                  |
-| Data access or schema work  | `data` or `db`                      |
-| Auth or permissions work    | `auth`                              |
-| Test-only changes           | `test` or `e2e`                     |
-| Tooling, automation, config | `tooling`, `build`, `ci`, or `deps` |
-| Cross-cutting work          | omit scope                          |
+- Write a body when the reason, a constraint, a migration choice, a compatibility boundary, or a
+  deliberate omission would otherwise be lost.
+- When the repository defines no issue footer style, use `Refs: #123` or `Refs: PROJ-123` for a
+  commit with a durable relationship to the work, and `Closes: #123` only when the commit alone
+  resolves the issue and closing it from the commit is intended.
 
-Prefer short, human-readable scopes that make release notes and review history clearer.
+## Corrected examples
 
-## Body and footer preferences
-
-- Add a body when the reason, constraint, migration choice, compatibility boundary, or deliberate
-  omission would otherwise be lost. Explain why the change exists and what future maintainers must
-  preserve; do not inventory the diff.
-- Use a consistent issue footer style when the repository does not define one:
-  - `Refs: #123` or `Refs: PROJ-123` when the commit has a durable relationship to the work.
-  - `Closes: #123` only when the commit independently resolves the issue and commit-level closure is
-    intentional.
-- Keep issue and ticket identifiers out of the subject unless repository policy requires them. Do
-  not repeat a change request's overall reference on each commit.
-
-## Anti-patterns
-
-| Pattern                      | Problem                      | Fix                                       |
+| Message                      | Problem                      | Corrected                                 |
 | ---------------------------- | ---------------------------- | ----------------------------------------- |
 | `Fix stuff`                  | No type, vague subject       | `fix(api): handle null response`          |
 | `feat: Add Feature.`         | Capitalized, trailing period | `feat: add feature`                       |
-| `fix(auth): fixed the bug`   | Past tense                   | `fix(auth): handle expired token refresh` |
+| `fix(auth): fixed the bug`   | Past tense, names no result  | `fix(auth): handle expired token refresh` |
 | `feat(scope)! missing colon` | Invalid header grammar       | `feat(scope)!: describe change`           |
-| `BREAKING-CHANGE add api`    | Invalid footer format        | `BREAKING CHANGE: add api`                |
+| `BREAKING-CHANGE add api`    | Footer lacks its separator   | `BREAKING CHANGE: add api`                |
