@@ -75,8 +75,9 @@ cases:
     expect: invoke
     rationale:
       The dispatch trigger has no size threshold; a one-line lookup still needs a task prompt that
-      carries its context and return contract. The Claude lane has no dispatch tool, so the skill
-      must load from the request itself, before the agent finds it cannot dispatch.
+      carries its context and return contract. The Claude lane offers the Agent tool and counts only
+      main-thread Skill calls, so the skill must load before or with the dispatch, not inside the
+      dispatched sub-agent.
 
   - id: review-bundled-script
     prompt: >-

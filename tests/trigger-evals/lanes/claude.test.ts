@@ -61,6 +61,28 @@ function skillCall(skillLabel: string): Record<string, unknown> {
   return { type: "tool_use", name: "Skill", input: { command: skillLabel } };
 }
 
+const AGENT_CALL_ID = "toolu_agent";
+
+function agentCall(): Record<string, unknown> {
+  return {
+    type: "tool_use",
+    id: AGENT_CALL_ID,
+    name: "Agent",
+    input: { description: "Find the test command", prompt: "Find the file." },
+  };
+}
+
+// Recorded 2026-11-09 on Claude Code 2.1.321: a main-thread assistant event carries
+// parent_tool_use_id null, and a sub-agent's assistant and user events carry the id of the Agent
+// tool_use that dispatched it.
+function subAgentEvent(content: Array<Record<string, unknown>>, messageId?: string): string {
+  return JSON.stringify({
+    type: "assistant",
+    parent_tool_use_id: AGENT_CALL_ID,
+    message: { ...(messageId === undefined ? {} : { id: messageId }), content },
+  });
+}
+
 describe("createClaudeLane", () => {
   beforeEach(() => {
     spawnCalls.length = 0;
@@ -144,9 +166,10 @@ describe("createClaudeLane", () => {
     expect(call?.command).toBe("claude");
     expect(flagValues(call?.args, "--model")).toStrictEqual(["opus"]);
     expect(flagValues(call?.args, "--effort")).toStrictEqual(["medium"]);
-    // Only the workspace's project settings load, and the model gets the read-only tool surface.
+    // Only the workspace's project settings load, and the model gets the read-only tool surface
+    // plus the Agent tool, so a case can dispatch a sub-agent as a real session can.
     expect(flagValues(call?.args, "--setting-sources")).toStrictEqual(["project"]);
-    expect(flagValues(call?.args, "--tools")).toStrictEqual(["Skill,Read,Glob,Grep"]);
+    expect(flagValues(call?.args, "--tools")).toStrictEqual(["Skill,Read,Glob,Grep,Agent"]);
     expect(call?.args?.at(-1)).toBe("Invoke the skill.");
     const pluginDirs = flagValues(call?.args, "--plugin-dir");
     expect(pluginDirs.map((pluginDir) => path.basename(pluginDir))).toStrictEqual([
@@ -401,6 +424,44 @@ describe("observeClaudeOutput", () => {
       "demo:auto-skill",
       "demo:helper-skill",
     ]);
+  });
+
+  // The trigger decision belongs to the main thread: a sub-agent that loads a skill does so for
+  // the dispatched task, not for the case's prompt.
+  it("ignores Skill calls a dispatched sub-agent makes", () => {
+    const stdout = [
+      assistantEvent([agentCall()], "msg_main"),
+      subAgentEvent([skillCall("demo:auto-skill")], "msg_sub"),
+    ].join("\n");
+
+    const observations = observeClaudeOutput(stdout);
+
+    expect(observations.signal).toBe("none");
+    expect(observations.invokedSkills).toStrictEqual([]);
+  });
+
+  it("keeps a main-thread Skill call sent with or after a dispatch", () => {
+    const stdout = [
+      JSON.stringify({
+        type: "assistant",
+        parent_tool_use_id: null,
+        message: { id: "msg_main", content: [skillCall("demo:auto-skill"), agentCall()] },
+      }),
+      subAgentEvent([skillCall("demo:other-skill")], "msg_sub"),
+    ].join("\n");
+
+    expect(observeClaudeOutput(stdout).invokedSkills).toStrictEqual(["demo:auto-skill"]);
+  });
+
+  it("counts the main-thread Agent call as a decision item and no sub-agent event", () => {
+    const stdout = [
+      assistantEvent([agentCall()]),
+      subAgentEvent([{ type: "text", text: "Searching." }]),
+      subAgentEvent([{ type: "tool_use", name: "Agent", input: {} }]),
+      subAgentEvent([{ type: "text", text: "The path is package.json." }]),
+    ].join("\n");
+
+    expect(observeClaudeOutput(stdout).decisionItemCount).toBe(1);
   });
 
   it("keeps only the first Skill event when assistant events carry no message id", () => {
