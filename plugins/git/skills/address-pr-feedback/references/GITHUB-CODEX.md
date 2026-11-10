@@ -1,5 +1,8 @@
 # GitHub Codex review adapter
 
+Contents: Identity and selection, Initial review, Polling script, Findings and approval, Responses
+and thread resolution, Follow-up review.
+
 Use this adapter for Codex code review on GitHub. Its external protocol may change; when live
 behavior contradicts this reference, stop and report the observed difference instead of guessing.
 

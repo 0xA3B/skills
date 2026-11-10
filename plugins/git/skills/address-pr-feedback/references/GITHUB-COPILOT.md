@@ -1,5 +1,8 @@
 # GitHub Copilot review adapter
 
+Contents: Identity and selection, Polling script, Initial review, Findings and approval, Responses
+and thread resolution, Follow-up review.
+
 Use this adapter for GitHub Copilot code review on GitHub. Its external protocol may change; when
 live behavior contradicts this reference, stop and report the observed difference instead of
 guessing.
