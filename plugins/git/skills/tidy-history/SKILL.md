@@ -25,7 +25,7 @@ Finish in one of these states:
 - the rewritten branch ends on the exact tree it had before, sits on the same base, and is published
   with a lease when it has a published ref;
 - the history already meets the plan rules, and nothing was rewritten;
-- review mode reported the plan without rewriting;
+- review mode reported the plan, and each blocker fix mode would refuse on, without rewriting;
 - a precise refusal or blocker is reported, and the branch is at its pre-tidy head.
 
 ## Invariants
@@ -57,25 +57,31 @@ change", or when another skill applies this one in review mode.
 
 ## Refusals
 
-Refuse, naming the evidence, when:
+In any mode, refuse, naming the evidence, when:
 
 - a merge, rebase, cherry-pick, or revert is in progress;
+- the forge reports the branch's change request merged.
+
+In fix mode, also refuse, naming the evidence, when:
+
 - the branch is checked out in another worktree;
-- in fix mode, the backup ref `refs/tidy-history/<branch>` points at a commit the local head does
-  not contain, because it holds an earlier run's restore point;
-- in fix mode, the worktree has tracked changes the request does not cover, because the rebase needs
-  a clean worktree;
-- in fix mode, an ignored path from `git ls-files --others --ignored --exclude-standard --directory`
-  collides with a path a range commit touches, from
-  `git log --format= --name-only <base-commit>..HEAD`, or a path the intended changes touch, from
-  `git diff --name-only HEAD`: the paths are equal, or one is a directory containing the other.
-  Replaying those commits deletes or overwrites ignored files without warning;
+- the backup ref `refs/tidy-history/<branch>` points at a commit the local head does not contain,
+  because it holds an earlier run's restore point;
+- the worktree has tracked changes the request does not cover, because the rebase needs a clean
+  worktree;
+- an ignored path from `git ls-files --others --ignored --exclude-standard --directory` collides
+  with a path a range commit touches, from `git log --format= --name-only <base-commit>..HEAD`, or a
+  path the intended changes touch, from `git diff --name-only HEAD`: the paths are equal, or one is
+  a directory containing the other. Replaying those commits deletes or overwrites ignored files
+  without warning;
 - a commit in the range has an author email other than the one `git var GIT_AUTHOR_IDENT` reports;
 - the range contains a merge commit, because the rewrite would linearize commits the target owns;
 - another local branch, or a remote-tracking branch other than the published ref, contains a commit
   of the range, or the forge reports an open change request that targets the branch, because
-  rewriting would duplicate or orphan work another branch holds;
-- the forge reports the branch's change request merged.
+  rewriting would duplicate or orphan work another branch holds.
+
+Review mode rewrites nothing, so a fix-mode condition does not stop it: plan as usual, and list
+beside the plan each fix-mode condition that holds, as a blocker fix mode would refuse on.
 
 ## Workflow
 

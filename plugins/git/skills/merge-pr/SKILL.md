@@ -100,8 +100,10 @@ the `create-pr` hand off identifies a local artifact. Record matching paths and 
 crawling ignored trees; their presence does not block the rewrite.
 
 Unless the selected method is squash or the change request is already merged, apply
-`git:tidy-history` in review mode to the topic branch. When it plans any change, stop and recommend
-`git:tidy-history` followed by a `git:address-pr-feedback` round.
+`git:tidy-history` in review mode to the topic branch. When it plans any change, stop, name each
+blocker it listed, and recommend `git:tidy-history` followed by a `git:address-pr-feedback` round.
+When it plans no change, continue; a listed blocker guards a rewrite, which this merge does not
+perform.
 
 When merge commit is selected, preserve a repository-configured merge-message template. When squash
 creates a replacement commit, use the Conventional Commit change-request title as its subject and
