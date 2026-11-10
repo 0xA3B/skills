@@ -10,8 +10,8 @@ export type MarketplacePluginEntry = {
 };
 
 // Each agent installs from its own catalog, so marketplace-wide staging and enumeration must read
-// the catalog for the lane under evaluation: the two catalogs list different plugin sets (for
-// example claude-in-codex ships only on Codex) and use different source shapes.
+// the catalog for the lane under evaluation: the two catalogs can list different plugin sets (a
+// single-agent plugin ships in only one) and use different source shapes.
 export async function listMarketplacePlugins(
   repoRoot: string,
   agent: Agent,
