@@ -25,14 +25,17 @@ Finish in one of these states:
 - a required merge queue remains pending and no cleanup was attempted;
 - a precise forge, protection, conflict, permission, or local-state blocker is reported.
 
-This workflow is idempotent. When invoked for an already merged change request, skip merge execution
-and perform verification and remaining cleanup.
+This workflow is idempotent. When invoked for an already merged change request, including one that
+auto-merge or another person merged, skip merge execution and perform verification and remaining
+cleanup.
 
 ## Authority and boundaries
 
 An explicit invocation of this skill, or a user request that asks to merge the change request,
-authorizes a normal policy-compliant merge and verified branch cleanup; implicit invocation alone
-never authorizes a merge. That authorization does not extend to:
+authorizes a normal policy-compliant merge, verified branch cleanup, and deleting the change
+request's own working artifacts as Working artifacts directs; implicit invocation alone never
+authorizes a merge. A request for post-merge cleanup authorizes the cleanup and no merge: when the
+change request is not merged, report its state and stop. That authorization does not extend to:
 
 - administrative bypass of checks, approvals, branch protections, merge queues, or unresolved
   threads;
@@ -132,7 +135,8 @@ Do not infer success from a CLI exit code alone.
 
 After a rebase or squash merge, if ignored SHA references were recorded, read
 [IGNORED-SHA-REFERENCES.md](references/IGNORED-SHA-REFERENCES.md) before refreshing them. Leave
-every reference unchanged unless that procedure proves its replacement.
+every reference unchanged unless that procedure proves its replacement, and skip a file that Working
+artifacts deletes.
 
 ## Local cleanup
 
@@ -152,6 +156,24 @@ after proving:
 
 If any proof is missing, preserve the branch.
 
+## Working artifacts
+
+After the remote verification passes, delete the interim files this change request left in ignored
+locations: drafts of its description, commit messages, and issue or comment bodies, saved forge
+output such as an issue or pull-request JSON dump, and poll or CI logs. Anything that must outlive
+the merge belongs in a tracked file, an issue, or the change request itself.
+
+- Delete only a file that is ignored and untracked, and whose tie to this change request is shown:
+  its name or directory carries the change-request number or the topic branch name, or
+  `git:create-pr`, `git:address-pr-feedback`, or this session recorded writing it for this change
+  request.
+- Look in the scratch location the repository's instructions name and at the recorded paths. Leave
+  other ignored trees, such as dependency and build directories, unread.
+- For a file in that scratch location whose tie is not shown, and for a handoff document, note, or
+  prototype that may hold content recorded nowhere else, list the paths and ask the user once
+  whether to delete each, keep it, or first move its content to a tracked place. Without an answer,
+  keep the files and report them.
+
 ## Completion
 
 Report:
@@ -165,4 +187,5 @@ Report:
 - remote branch deletion and fetched target state;
 - ignored SHA references updated or left unresolved;
 - local target update and topic-branch deletion;
+- working artifacts deleted, and those kept or awaiting the user's decision;
 - every cleanup item left for a later invocation.

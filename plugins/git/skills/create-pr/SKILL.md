@@ -115,6 +115,10 @@ the effective diff, and the decisions that shaped the final solution:
 - Include validation evidence only when it adds information beyond required CI, such as manual
   behavior checks, local checks not represented in CI, checks not run, or known failures.
 
+Write the description's body file, and any other draft this workflow keeps on disk, in a directory
+named for the topic branch under the scratch location the repository's instructions name; without
+such a location, use the system temporary directory.
+
 After authoring:
 
 1. apply `git:tidy-history` to the topic branch against the resolved target; it keeps the validated
@@ -141,7 +145,7 @@ Report:
 - forge, change-request URL, source head, and target;
 - whether the request was created or reused;
 - expected merge method and any identity constraint;
-- ignored SHA references recorded for later cleanup;
+- ignored SHA references and working artifacts recorded for `git:merge-pr` cleanup;
 - commits created, history changes `git:tidy-history` made, and push mode used;
 - local validation and initial CI state;
 - blockers or pending work.
