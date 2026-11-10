@@ -80,7 +80,7 @@ cases:
       request another review after accepted fixes.
     expect: skip
     invoke-instead: git:address-pr-feedback
-    rationale: Existing automated review feedback belongs to address-pr-feedback.
+    rationale: Existing automated review feedback belongs to babysit-pr.
 
   - id: commit-only
     prompt: >-
@@ -104,3 +104,54 @@ cases:
         {"name":"example-app","scripts":{"check":"echo ok"}}
     expect: skip
     rationale: Validation without a request to create or refresh a change request is outside scope.
+
+  - id: commit-push-and-open-pr
+    prompt: >-
+      Go ahead and commit, push, and then create a PR.
+    workspace_files:
+      src/cache.ts: |
+        export const cacheTtlSeconds = 30;
+    expect: invoke
+    invoke-or:
+      - git:commit
+    rationale: >-
+      A chained request whose last outcome is the pull request; either owner may make the first
+      trigger decision.
+
+  - id: add-to-this-mr
+    prompt: >-
+      I fixed the typo in the README heading. Add it to this MR.
+    workspace_files:
+      README.md: |
+        # Example project
+    expect: invoke
+    invoke-or:
+      - git:commit
+    rationale: Adding a change to an open merge request refreshes it, without the word refresh.
+
+  - id: update-the-pr-after-change
+    prompt: >-
+      Bump the retry limit in src/client.ts to 5 and update the PR.
+    workspace_files:
+      src/client.ts: |
+        export const retryLimit = 3;
+    expect: invoke
+    invoke-or:
+      - git:commit
+    rationale: Updating the pull request after a change refreshes it.
+
+  - id: open-pr-short
+    prompt: >-
+      Open a PR for this branch.
+    workspace_files:
+      README.md: |
+        # Example project
+    expect: invoke
+    rationale: The short form real requests use.
+
+  - id: create-issues-not-pr
+    prompt: >-
+      Create a GitHub issue for each of these two feedback items, and do not start implementing yet:
+      the retry limit is too low, and the README lacks setup steps.
+    expect: skip
+    rationale: Filing issues publishes no branch.

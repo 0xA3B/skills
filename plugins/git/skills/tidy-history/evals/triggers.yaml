@@ -77,3 +77,15 @@ cases:
       What is the difference between fixup and squash in an interactive rebase?
     expect: skip
     rationale: A conceptual question does not ask to rewrite a branch.
+
+  - id: fold-and-force-push-lease
+    prompt: >-
+      Fold the fix commits and force push with lease.
+    expect: invoke
+    rationale: The terse form of folding review fixes.
+
+  - id: amend-into-unpushed-commit
+    prompt: >-
+      Amend the fix in src/server.js into the commit that added the server.
+    expect: invoke
+    rationale: The target is an earlier commit, not the last one.
