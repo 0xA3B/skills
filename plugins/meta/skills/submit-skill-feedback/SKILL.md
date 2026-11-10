@@ -140,6 +140,10 @@ Use this body shape; omit optional fields that do not affect the mechanism:
 **Suggested change:** <smallest portable remedy and preserved boundary>
 ```
 
+In the title and every body field, identify an instruction by its name or by quoting its text. A
+position number may follow the name, such as "the one-source-of-truth rule (rule 4)", but a number
+alone points at a different instruction once its list gains, loses, or reorders an item.
+
 ## Submit public feedback
 
 1. Show the exact new-issue and recurrence-comment drafts together. Create or comment on nothing
