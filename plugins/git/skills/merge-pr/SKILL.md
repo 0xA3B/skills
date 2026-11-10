@@ -161,15 +161,17 @@ locations: drafts of its description, commit messages, and issue or comment bodi
 output such as an issue or pull-request JSON dump, and poll or CI logs. Anything that must outlive
 the merge belongs in a tracked file, an issue, or the change request itself.
 
-- Delete only a file that is ignored and untracked, and whose tie to this change request is shown:
-  its name or directory carries the change-request number or the topic branch name, or
-  `git:create-pr`, `git:babysit-pr`, or this session recorded writing it for this change request.
+- Delete a file only when all of these hold: it is ignored and untracked, or it is a recorded path
+  under the system temporary directory; it is one of the kinds listed above; and its tie to this
+  change request is shown. The tie is shown when `git:create-pr`, `git:babysit-pr`, or this session
+  recorded writing the file for this change request, when the full topic branch name is a component
+  of its path, or when its name holds the change-request number as a whole number, such as
+  `pr-42-body.md` for change request 42 and not `pr-142.json`.
 - Look in the scratch location the repository's instructions name and at the recorded paths. Leave
   other ignored trees, such as dependency and build directories, unread.
-- For a file in that scratch location whose tie is not shown, and for a handoff document, note, or
-  prototype that may hold content recorded nowhere else, list the paths and ask the user once
-  whether to delete each, keep it, or first move its content to a tracked place. Without an answer,
-  keep the files and report them.
+- List every other file found there that looks related, and every handoff document, note, or
+  prototype even when its tie is shown, and ask the user once whether to delete each, keep it, or
+  first move its content to a tracked place. Without an answer, keep the files and report them.
 
 ## Completion
 
