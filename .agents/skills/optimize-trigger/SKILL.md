@@ -88,10 +88,18 @@ especially conceptual questions, adjacent workflows, or requests owned by a diff
 
 When the request in a skip case belongs to another implicitly invokable skill of the same kind, add
 a routing assertion: `invoke-instead: <label>` names that alternate, and the case passes only when
-the alternate is the only skill that fires. A plugin fixture names a plugin skill as
-`<plugin>:<skill>`; a repo-local fixture names a repo-local skill by its bare name. Otherwise leave
-the case a plain skip; `pnpm lint:plugins` rejects an alternate that is missing, manual-only, of the
-other kind, or absent from a plugin target the fixture's plugin ships on.
+the alternate is the only skill that fires.
+
+When a prompt chains outcomes that other implicitly invokable skills also own, such as "commit,
+push, and open a PR", write one compound case in the fixture of the skill whose workflow applies the
+others: `expect: invoke` with an `invoke-or:` list of the other owners. The case passes when the
+target or a listed skill makes the trigger decision and no other skill fires. A case runs no
+workflow, so it never shows a later load.
+
+Under both keys, a plugin fixture names a plugin skill as `<plugin>:<skill>` and a repo-local
+fixture names a repo-local skill by its bare name. `pnpm lint:plugins` rejects a named skill that is
+missing, manual-only, of the other kind, or absent from a plugin target the fixture's plugin ships
+on.
 
 When the skill's workflow applies another skill in a step, list its label under a top-level
 `applies:`. When a `wrong-skill` result names a skill the workflow applies, declare it there;
@@ -126,11 +134,8 @@ cases:
 Every seeded workspace is a git repository with no remote and one commit holding the seed, the
 `committed` files, and the evaluated agent's config surfaces; `staged` files are then added to the
 index and `workspace_files` stay unstaged. A seed's own `.gitignore` shapes the seed commit only;
-`committed` and `staged` files are always added. A seed holds plain project content: regular files
-and directories with no symlink and no `.git` at any depth. The harness owns `.git`, `.agents`, and
-`.claude`, rejects any fixture file path under those entries, and leaves a seed's `.agents` and
-`.claude` entries out of the copy. Fixture file paths are POSIX-style relative file paths. Without a
-`workspace` block, `workspace_files` alone writes plain files with no git repository.
+`committed` and `staged` files are always added. Without a `workspace` block, `workspace_files`
+alone writes plain files with no git repository.
 
 Seed ownership is one-way: tailor a case to a seed through the `committed`, `staged`, and
 `workspace_files` layers, and never edit a seed for one case.

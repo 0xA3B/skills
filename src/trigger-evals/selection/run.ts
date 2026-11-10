@@ -36,7 +36,8 @@ export type SelectionRunOptions = {
   repoRoot: string;
   selection: TriggerEvalSelection;
   agents: Agent[];
-  // Also run the dependent cases: routing assertions in other fixtures that name a selected skill.
+  // Also run the dependent cases: routing assertions and compound cases in other fixtures that
+  // name a selected skill.
   // A seed selection names no skill, so it ignores this; the CLI refuses the combination.
   withDependents?: boolean;
   evalOptions: SelectionEvalOptions;
@@ -44,7 +45,7 @@ export type SelectionRunOptions = {
   reporter: SelectionReporter;
 };
 
-// Runs the selection's suite on each agent in turn, then the dependent cases that route to it; a
+// Runs the selection's suite on each agent in turn, then the dependent cases that name it; a
 // seed selection runs the seed's seeded cases instead. Returns true only for a green run: false
 // when a case failed, a fixture a scan needed was unreadable, a suite or seed ran nothing on an
 // agent, or the run was aborted. An error that ends an eval ends the run and propagates.
@@ -64,7 +65,7 @@ export async function runSelection(options: SelectionRunOptions): Promise<boolea
       : { found: [], unreadableFixtures: [] };
   ok = reportUnreadableFixtures(reporter, unreadableFixtures, "dependent") && ok;
   if (options.withDependents === true && dependents.length === 0) {
-    reporter.info("No dependent cases route to the selected skills.");
+    reporter.info("No dependent cases name the selected skills.");
   }
 
   for (const agent of options.agents) {
@@ -133,7 +134,7 @@ async function runDependents(
   const { ok, tally } = await runOwnedCases(options, dependents, agent, {
     kind: "dependent",
     describe: (dependent) =>
-      `Dependent cases in ${dependent.label} routing to ${dependent.routesTo.join(", ")}: ${dependent.caseIds.join(", ")}.`,
+      `Dependent cases in ${dependent.label} naming ${dependent.namedSkills.join(", ")}: ${dependent.caseIds.join(", ")}.`,
   });
   if (tally.ran > 0) {
     options.reporter.info(`Dependent fixtures on ${agent}: ${tally.passed}/${tally.ran} passed.`);

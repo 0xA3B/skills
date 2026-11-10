@@ -66,9 +66,11 @@ export function formatCaseLines(attempts: TriggerCaseResult[]): string[] {
   const errors = statuses.filter((value) => value === "ERROR").length;
   const tally = `${passed}/${attempts.length} passed${errors === 0 ? "" : ` (${errors} error${errors === 1 ? "" : "s"})`}`;
   const expected =
-    first.invokeInstead === undefined
-      ? first.expect
-      : `${first.expect} with invoke-instead ${first.invokeInstead}`;
+    first.invokeInstead !== undefined
+      ? `${first.expect} with invoke-instead ${first.invokeInstead}`
+      : first.invokeOr !== undefined
+        ? `${first.expect} or ${first.invokeOr.join(", ")}`
+        : first.expect;
 
   const lines = [`- ${status} ${first.caseId}: ${tally}, expected ${expected}`];
   for (const attempt of attempts) {
@@ -116,6 +118,12 @@ function formatObserved(caseResult: TriggerCaseResult): string {
     const others = caseResult.invokedSkills.filter((label) => label !== alternate);
     const suffix = others.length === 0 ? "" : ` plus wrong-skill ${others.join(", ")}`;
     return `alternate ${alternate}${suffix} via ${caseResult.invocationSignal}`;
+  }
+
+  // Only a compound case leaves skills here: its listed skills made the decision without the
+  // target.
+  if (caseResult.invokedSkills.length > 0) {
+    return `invoke-or ${caseResult.invokedSkills.join(", ")} via ${caseResult.invocationSignal}`;
   }
 
   return formatSkip(caseResult.skipSignal);

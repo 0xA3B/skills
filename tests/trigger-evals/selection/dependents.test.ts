@@ -75,15 +75,38 @@ describe("findDependentFixtures", () => {
         skillPath: path.join("plugins", "demo", "skills", "auto-skill"),
         label: "demo:auto-skill",
         caseIds: ["route-to-target"],
-        routesTo: ["demo:target-skill"],
+        namedSkills: ["demo:target-skill"],
       },
       {
         skillPath: path.join("plugins", "other", "skills", "other-skill"),
         label: "other:other-skill",
         caseIds: ["first-route", "second-route"],
-        routesTo: ["demo:target-skill"],
+        namedSkills: ["demo:target-skill"],
       },
     ]);
+  });
+
+  // Tuning a skill that a compound case lists can change which skill makes that case's trigger
+  // decision, so the case is a dependent case of every skill it lists.
+  it("finds compound cases in other fixtures that list a selected skill", async () => {
+    const repoRoot = await writeDependentsFixture();
+    await writeSkillFiles(path.join(repoRoot, "plugins", "demo", "skills", "auto-skill"), {
+      fixture: triggerFixtureYaml([
+        { id: "compound", expect: "invoke", invokeOr: ["other:other-skill", "demo:target-skill"] },
+        { id: "unrelated-compound", expect: "invoke", invokeOr: ["other:other-skill"] },
+        { id: "plain-invoke", expect: "invoke" },
+        { id: "plain-skip", expect: "skip" },
+      ]),
+    });
+
+    const { found } = await findDependentFixtures(repoRoot, ["plugins/demo/skills/target-skill"]);
+
+    expect(found[0]).toStrictEqual({
+      skillPath: path.join("plugins", "demo", "skills", "auto-skill"),
+      label: "demo:auto-skill",
+      caseIds: ["compound"],
+      namedSkills: ["demo:target-skill"],
+    });
   });
 
   it("excludes fixtures owned by the selected skills because the suite already ran them", async () => {
@@ -107,7 +130,7 @@ describe("findDependentFixtures", () => {
         skillPath: path.join(".agents", "skills", "local-a"),
         label: "local-a",
         caseIds: ["route-to-local-b"],
-        routesTo: ["local-b"],
+        namedSkills: ["local-b"],
       },
     ]);
   });

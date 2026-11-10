@@ -517,7 +517,7 @@ describe("runSelection", () => {
       dependentResult?.results.map((caseResult) => [caseResult.caseId, caseResult.passed]),
     ).toStrictEqual([["routes-to-demo", true]]);
     expect(report.info).toStrictEqual([
-      "Dependent cases in other:other-skill routing to demo:auto-skill: routes-to-demo.",
+      "Dependent cases in other:other-skill naming demo:auto-skill: routes-to-demo.",
       "Dependent fixtures on codex: 1/1 passed.",
     ]);
   });
@@ -534,7 +534,7 @@ describe("runSelection", () => {
 
     expect(ok).toBe(true);
     expect(report.results).toHaveLength(1);
-    expect(report.info).toStrictEqual(["No dependent cases route to the selected skills."]);
+    expect(report.info).toStrictEqual(["No dependent cases name the selected skills."]);
   });
 
   it("cannot end green when a dependent case fails", async () => {
@@ -553,7 +553,7 @@ describe("runSelection", () => {
 
     expect(ok).toBe(false);
     expect(report.info).toStrictEqual([
-      "Dependent cases in other:other-skill routing to demo:auto-skill: routes-to-demo.",
+      "Dependent cases in other:other-skill naming demo:auto-skill: routes-to-demo.",
       "Dependent fixtures on codex: 0/1 passed.",
     ]);
     expect(report.errors).toStrictEqual([]);

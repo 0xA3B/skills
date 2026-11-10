@@ -44,6 +44,20 @@ cases:
 ${extraSkipKeys}`;
 }
 
+function fixtureWithInvokeOr(...labels: string[]): string {
+  return `version: 1
+cases:
+  - id: invoke-case
+    prompt: Do the thing and the other thing.
+    expect: invoke
+    invoke-or:
+${labels.map((label) => `      - ${label}`).join("\n")}
+  - id: skip-case
+    prompt: Do something else.
+    expect: skip
+`;
+}
+
 describe("validateTriggerFixture", () => {
   it("accepts a skill without a trigger fixture", async () => {
     await withTempRepo(async (repoRoot) => {
@@ -157,6 +171,73 @@ cases:
       await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
 
       expect(ruleIds(context)).toStrictEqual([]);
+    });
+  });
+
+  // A compound case's listed skills get the same cross-reference checks as an alternate.
+  it("accepts an invoke-or that names an implicitly invokable same-kind skill", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot);
+      await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
+      await writeText(
+        repoRoot,
+        `${HELLO_SKILL}/evals/triggers.yaml`,
+        fixtureWithInvokeOr("demo-plugin:auto"),
+      );
+      const context = createTestContext(repoRoot);
+
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+
+      expect(ruleIds(context)).toStrictEqual([]);
+    });
+  });
+
+  it("checks every invoke-or entry and points at the one that does not exist", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot);
+      await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
+      const fixturePath = await writeText(
+        repoRoot,
+        `${HELLO_SKILL}/evals/triggers.yaml`,
+        fixtureWithInvokeOr("demo-plugin:auto", "demo-plugin:nope"),
+      );
+      const context = createTestContext(repoRoot);
+
+      await lintFixture(context, path.join(repoRoot, HELLO_SKILL), bothTargets);
+
+      expect(context.diagnostics).toStrictEqual([
+        {
+          filePath: fixturePath,
+          message:
+            'invoke-or names "demo-plugin:nope", but plugins/demo-plugin/skills/nope has no SKILL.md.',
+          pointer: "/cases/0/invoke-or/1",
+          ruleId: "trigger-fixture/alternate-missing",
+        },
+      ]);
+    });
+  });
+
+  it("reports an invoke-or entry that names the fixture's own skill", async () => {
+    await withTempRepo(async (repoRoot) => {
+      await writeValidPluginRepo(repoRoot);
+      await writeSkill(repoRoot, { pluginName: "demo-plugin", name: "auto", implicit: true });
+      await writeText(
+        repoRoot,
+        "plugins/demo-plugin/skills/auto/evals/triggers.yaml",
+        fixtureWithInvokeOr("demo-plugin:auto"),
+      );
+      const context = createTestContext(repoRoot);
+
+      await lintFixture(
+        context,
+        path.join(repoRoot, "plugins/demo-plugin/skills/auto"),
+        bothTargets,
+      );
+
+      expect(ruleIds(context)).toStrictEqual(["trigger-fixture/alternate-self"]);
+      expect(diagnosticByRule(context, "trigger-fixture/alternate-self")?.message).toBe(
+        'invoke-or names "demo-plugin:auto", the fixture\'s own skill, which every invoke case already accepts.',
+      );
     });
   });
 

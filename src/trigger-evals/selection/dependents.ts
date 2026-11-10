@@ -13,10 +13,11 @@ import {
 import type { SkillSelection } from "./suite.js";
 
 // The dependent cases one fixture holds for a selection: skip cases whose routing assertion names
-// a selected skill. They live in another skill's fixture, so they run and report under that skill.
+// a selected skill, and compound cases that list one. They live in another skill's fixture, so
+// they run and report under that skill.
 export type DependentFixture = OwnedCases & {
-  // The selected skills those cases route to, in first-seen order.
-  routesTo: string[];
+  // The selected skills those cases name, in first-seen order.
+  namedSkills: string[];
 };
 
 // The skills a selection covers, as repo-relative paths. Routing assertions that name any of them
@@ -43,7 +44,7 @@ export async function listSelectedSkillPaths(
   return skillPaths;
 }
 
-// Scans every catalog plugin fixture and every repo-local fixture for cases routing to the selected
+// Scans every catalog plugin fixture and every repo-local fixture for cases that name the selected
 // skills. Fixtures owned by a selected skill are left out: the suite already ran them in full.
 export async function findDependentFixtures(
   repoRoot: string,
@@ -59,16 +60,22 @@ export async function findDependentFixtures(
 
   return scanFixtures(repoRoot, ownerPaths, (fixture, owner) => {
     const caseIds: string[] = [];
-    const routesTo: string[] = [];
+    const namedSkills: string[] = [];
     for (const testCase of fixture.cases) {
-      if (testCase.invokeInstead === undefined || !selectedLabels.has(testCase.invokeInstead)) {
+      const named = [
+        ...(testCase.invokeInstead === undefined ? [] : [testCase.invokeInstead]),
+        ...(testCase.invokeOr ?? []),
+      ].filter((label) => selectedLabels.has(label));
+      if (named.length === 0) {
         continue;
       }
       caseIds.push(testCase.id);
-      if (!routesTo.includes(testCase.invokeInstead)) {
-        routesTo.push(testCase.invokeInstead);
+      for (const label of named) {
+        if (!namedSkills.includes(label)) {
+          namedSkills.push(label);
+        }
       }
     }
-    return caseIds.length > 0 ? { ...owner, caseIds, routesTo } : undefined;
+    return caseIds.length > 0 ? { ...owner, caseIds, namedSkills } : undefined;
   });
 }
