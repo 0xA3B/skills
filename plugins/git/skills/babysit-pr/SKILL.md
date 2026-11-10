@@ -1,14 +1,12 @@
 ---
 name: babysit-pr
 description: >-
-  Drive automated-review feedback on an existing GitHub pull request to current-head approval or a
-  clearly reported exception. Use when the user asks to handle, address, or drive bot or automated
-  review feedback on a pull request through review rounds to approval, wait for or poll a review
-  bot, disposition and resolve its review threads, or take pushed fixes through the bot's next
-  review, including when the user asks to re-request that review. Do not use for reviewing the
-  session's own changes locally, human-only review comments, CI repair, creating or refreshing a
-  pull request, merging, or triaging findings delivered outside a pull request's automated review,
-  such as sub-agent or in-session review-agent findings.
+  Babysit a GitHub pull request (PR) through automated review: wait for review bots such as Codex or
+  Copilot, triage their findings, push fixes, reply to and resolve their threads, and repeat until
+  each bot approves the current head or an exception is reported. Use when the user asks to babysit
+  a PR, to handle, address, or drive bot or automated review feedback on one, to wait for or poll a
+  review bot, or to reply to and resolve its threads. Do not use for human review comments, CI
+  repair, GitLab merge requests, or findings from a local or sub-agent review.
 license: MIT
 argument-hint: "[change-request|adapters|instructions]"
 ---
@@ -208,7 +206,7 @@ one of them sits below the top consequence tier.
 After dispositioning a converged adapter's findings and pushing its permitted fixes:
 
 1. Stop its rounds, and continue rounds for adapters that have not converged.
-2. Classify it by the signal its last review earned under its adapter reference:
+2. Classify it by the signal its last review earned under its adapter reference,
    `resolved-with-exceptions` when that review gave no clean signal.
 3. Report the current source head, the earlier head its last review covered, and every disposition
    applied since that review, with the evidence for each rejection or deferral.

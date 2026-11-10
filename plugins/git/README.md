@@ -31,4 +31,4 @@ and report when a merge or a rebase would require it.
 - `babysit-pr`: Drive active automated-review adapters to current-head approval or a clearly
   reported exception.
 - `merge-pr`: Enforce forge-native merge gates, select a merge method, verify the remote merge, and
-  clean up local and remote branch state.
+  clean up local and remote branch state and the change request's leftover working files.

@@ -1,14 +1,11 @@
 ---
 name: commit
-description:
-  Creates git commits using Conventional Commit messages after reviewing current changes and
-  splitting logical units. Use when the user asks to commit current work, create commits, batch
-  commits, commit only a selected scope or subset of the changes, or run a fast commit workflow.
-  Also use when no repository commit convention is specified. Do not use for message-only drafting,
-  syntax validation, split guidance without commit execution, conceptual commit questions, history
-  inspection, amending or rewriting existing commits, user prompts or loaded repository instructions
-  that reject Conventional Commits or request Gitmoji or another commit-message standard, or
-  ordinary-language uses of "commit" such as committing to a plan.
+description: >-
+  Create git commits from the current changes, split into logical units, with messages in the
+  repository's convention and Conventional Commits by default. Use whenever creating a git commit:
+  when the user asks to commit, including as one step of a larger request such as "commit and push"
+  or "the tests pass, so commit", or to commit only part of the changes. Do not use for drafting a
+  message or a split plan without committing, or for questions about commits or history.
 license: MIT
 argument-hint: "[instructions]"
 ---

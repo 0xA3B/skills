@@ -1,12 +1,11 @@
 ---
 name: merge-pr
 description: >-
-  Merge a ready GitHub pull request or GitLab merge request and verify remote and local cleanup. Use
-  when the user asks to merge or land a specific pull request or merge request, including checking
-  forge merge gates, selecting the merge method, observing the merge, deleting branches, and
-  refreshing ignored SHA references. Do not use for merging one branch into another locally,
-  resolving merge conflicts, squashing or rewriting local history, merging code such as functions or
-  files, creating change requests, handling review feedback, or bypassing protections.
+  Merge a ready GitHub pull request (PR) or GitLab merge request (MR) through the forge, then verify
+  the merge and clean up its branches and leftover working files. Use when the user asks to merge or
+  land a specific PR or MR, or to do the post-merge cleanup of one that is already merged. Do not
+  use for merging one branch into another locally, resolving merge conflicts, merging code such as
+  functions, or questions about whether a PR is ready to merge.
 license: MIT
 argument-hint: "[change-request|instructions]"
 ---
