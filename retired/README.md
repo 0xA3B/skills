@@ -46,3 +46,24 @@ history holds the rest.
   harness's own artifact and preview surfaces, covers the cases it named.
 - Revisit when: a session needs the same report shape more than once, an HTML page with Mermaid
   diagrams that puts the decision payload first, and the harness has no native surface for it.
+
+### claude-in-codex/adversarial-review and claude-in-codex/using-claude-cli
+
+- Retired: 2026-11-09, last shipped in claude-in-codex 1.3.2. The whole plugin was retired with its
+  two skills.
+- Reason: the maintainer no longer installs the plugin and plans to rewrite most of it, so the open
+  feedback against it (#171, #172, #173, and #174) was closed instead of applied.
+- Absorbed by: no skill in this marketplace.
+- Depends on: `adversarial-review` applies `using-claude-cli` by name.
+- Revisit when: the rewrite that #145 plans starts. These skills hold the Claude Code CLI recipes,
+  the review output schema, and the copyable Codex subagent definition that the rewrite can start
+  from.
+
+### codex-in-claude/adversarial-review and codex-in-claude/using-codex-cli
+
+- Retired: 2026-11-09, last shipped in codex-in-claude 1.1.1. The whole plugin was retired with its
+  two skills and its `codex` subagent, kept at `retired/codex-in-claude/agents/codex.md`.
+- Reason: the same as for `claude-in-codex` above.
+- Absorbed by: no skill in this marketplace.
+- Depends on: `adversarial-review` and the `codex` subagent apply `using-codex-cli` by name.
+- Revisit when: the rewrite that #145 plans starts.

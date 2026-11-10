@@ -6,10 +6,6 @@
   },
   "plugins": [
     {
-      "name": "codex-in-claude",
-      "source": "./plugins/codex-in-claude"
-    },
-    {
       "name": "git",
       "source": "./plugins/git"
     },

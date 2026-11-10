@@ -8,8 +8,7 @@
   the portable manifest exactly.
 - Plugins target both Claude Code and Codex by default. The linter rejects a target extension
   without its marketplace entry, and an entry without its extension; omit both to keep a plugin
-  single-agent. For example, `claude-in-codex` is Codex-only because it exists to drive Claude Code
-  from Codex.
+  single-agent.
 - Keep Codex settings only in the Codex extension, including its required `interface` block; a
   `.codex-plugin/` directory is a lint error.
 - Keep skills under `skills/` at the plugin root. Agent Plugins clients and Claude Code both
@@ -119,6 +118,10 @@
 - A skill whose body and references move into another skill of the same plugin is merged, not
   retired: its content still ships and git history is its record, so it gets no `retired/` copy or
   index entry.
+- To retire a whole plugin, retire each of its skills as above, and move any other file a retired
+  skill names, such as an agent definition, to the same path under `retired/<plugin>/`. Then delete
+  the plugin directory, its marketplace entries, and its README section. Keep the
+  `plugin:<plugin-name>` label, because closed issues carry it.
 - Nothing under `retired/` ships: no manifest, no marketplace entry, and no linter or trigger-eval
   run covers it.
 

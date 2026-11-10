@@ -36,7 +36,6 @@ Add the marketplace inside Claude Code:
 Then install the plugins that you want:
 
 ```text
-/plugin install codex-in-claude@0xa3b-marketplace
 /plugin install git@0xa3b-marketplace
 /plugin install engineering@0xa3b-marketplace
 /plugin install writing@0xa3b-marketplace
@@ -46,36 +45,6 @@ Then install the plugins that you want:
 Update the marketplace later with `/plugin marketplace update 0xa3b-marketplace`.
 
 ## Plugins
-
-### `claude-in-codex`
-
-> Codex-only: this plugin exists to drive Claude Code from Codex, so this repository does not
-> publish it to the Claude Code marketplace.
-
-This plugin runs Claude Code from Codex for adversarial code review, feedback triage, and in-scope
-fixes.
-
-- [`claude-in-codex:adversarial-review`](./plugins/claude-in-codex/skills/adversarial-review/):
-  Invokes Claude Code as a review-scoped adversarial reviewer, triages findings as external
-  feedback, and applies accepted in-scope fixes for current working-tree changes.
-- [`claude-in-codex:using-claude-cli`](./plugins/claude-in-codex/skills/using-claude-cli/): Internal
-  contract for running the Claude Code CLI non-interactively, with prompting guidance and a copyable
-  `.codex/agents/claude.toml` proxy subagent definition.
-
-### `codex-in-claude`
-
-> Claude Code-only: this plugin exists to drive Codex from Claude Code, so this repository does not
-> publish it to the Codex marketplace.
-
-This plugin runs Codex from Claude Code for adversarial code review, feedback triage, and in-scope
-fixes. It also ships a `codex` subagent that delegates tasks to Codex.
-
-- [`codex-in-claude:adversarial-review`](./plugins/codex-in-claude/skills/adversarial-review/):
-  Invokes Codex as an adversarial reviewer at the user's configured sandbox and permission defaults,
-  triages findings as external feedback, and applies accepted in-scope fixes for current
-  working-tree changes.
-- [`codex-in-claude:using-codex-cli`](./plugins/codex-in-claude/skills/using-codex-cli/): Internal
-  contract for running the Codex CLI non-interactively, with GPT-5.5 prompting guidance.
 
 ### `git`
 
