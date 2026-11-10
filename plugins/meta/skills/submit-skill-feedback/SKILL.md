@@ -34,8 +34,8 @@ decide whether to encode, reroute, leave to discretion, wait, or reject it.
 1. Treat named skills as a closed list unless the user calls the list tentative, asks for omissions,
    or asks for `any` or `all` session-run skills. For an open list, review every in-scope
    session-run skill as a candidate, then retain only the skills that produce qualified feedback. If
-   neither the targets nor the intended scope is clear, list the in-scope session-run skills and ask
-   the user which to review.
+   neither the targets nor the intended scope is clear, review every in-scope session-run skill the
+   same way, and name that assumption in the report.
 2. For each target, record the plugin name and version from the manifest that supplied the skill
    instructions used in the run, plus the agent that ran them. If the marketplace has a newer
    version, compare the current instructions and record the current version only when it differs.
@@ -51,9 +51,6 @@ decide whether to encode, reroute, leave to discretion, wait, or reject it.
 ## Qualify feedback
 
 Reflect against the actual run and qualify each item independently:
-
-`No qualified feedback` is a valid successful result. When no item passes the gates below, report
-that outcome and stop without drafting or submitting anything.
 
 - **Observation:** Describe the exact decision or artifact in the run and what the session did
   instead. Mark the evidence `observed` when the behavior occurred or `speculative` when reflection
@@ -79,6 +76,9 @@ that outcome and stop without drafting or submitting anything.
 An abstract style opinion, temporal proximity to an active skill, or a run moment owned outside this
 marketplace does not qualify. Report why an item did not qualify instead of drafting it.
 
+`No qualified feedback` is a valid successful result. When no item passes the gates above, report
+that outcome and stop without drafting or submitting anything.
+
 ## Check recurrence
 
 For each qualified public item, search open and closed feedback issues for the target plugin,
@@ -91,9 +91,6 @@ observed skill, shared owner, and mechanism:
   holds.
 - If an issue is related but differs in mechanism, owner, or remedy, draft a separate issue and
   cross-link it when the relationship helps.
-
-Recurrence strengthens the evidence. It does not by itself prove that maintainers should change the
-skill.
 
 ## Protect run context
 
@@ -146,29 +143,33 @@ alone points at a different instruction once its list gains, loses, or reorders 
 
 ## Submit public feedback
 
-1. Show the exact new-issue and recurrence-comment drafts together. Create or comment on nothing
-   until the user confirms the batch.
+1. Show the exact new-issue and recurrence-comment drafts together, and wait for the user to confirm
+   the batch. With confirmation, continue with the confirmed drafts. Without it, or when no user can
+   answer, create and comment on nothing, and end with the drafts in the report.
 2. Immediately before writing, revalidate factual accuracy, instruction version, ownership,
-   recurrence status, and public redaction. If the evidence or text changed materially, show the
-   revised draft and request confirmation again.
+   recurrence status, and public redaction. If the revalidation changes a draft's text, return to
+   step 1 with the revised draft.
 3. Verify `gh auth status --active --hostname github.com` shows the user's marketplace account.
 4. Create each issue with `gh issue create --repo <repository>` and labels `feedback` and
-   `plugin:<plugin-name>`, or add the confirmed recurrence comment to its open issue.
+   `plugin:<plugin-name>`. Add each confirmed recurrence comment to its open issue with
+   `gh issue comment <issue-number> --repo <repository>`.
 5. The marketplace maintains labels by hand. If a label is missing, create the issue without that
    label and name the missing label in the report.
-6. Read back each created issue or comment. Correct a material publication alteration, then report
-   every URL.
+6. Read back each created issue or comment. When its body differs from the confirmed draft, edit it
+   to match. Then report every URL.
 
 ## Preserve local feedback
 
 For a private-source item, a public-source item the user requests locally, or a confirmed public
 draft that cannot be submitted:
 
-1. Use or create `.local/feedback/` only when `git check-ignore` confirms that the path is ignored.
-   Otherwise use another user-approved ignored directory; do not add a tracked feedback artifact.
+1. When `git check-ignore` confirms that `.local/feedback/` is ignored, use or create it. Otherwise,
+   ask the user for another directory, and use it only when `git check-ignore` confirms that it is
+   ignored; when the user names no such directory, report the item only in the current session.
 2. Save one Markdown file per item. Use `Status: Untriaged private feedback` for a private-source
    record, `Status: Untriaged local feedback` for a user-selected local record from a public source,
    or `Status: Draft for manual submission` for a blocked public submission. Include the target
    repository and intended labels only for the blocked public submission.
-3. Report the saved path and, for a blocked submission, the blocking reason. Never submit a local
-   record automatically in a later session.
+3. Report the saved path and, for a blocked submission, the blocking reason. When the user asks in a
+   later session to submit a local record, run Submit public feedback from step 1 with the record as
+   the draft.
