@@ -21,9 +21,10 @@ import type {
 } from "./lane.js";
 import { stageDeployment } from "./staging.js";
 
-// Read-only tool surface: trigger evals only observe whether the Skill tool fires, but the model
-// may need to inspect fixture workspace files before deciding.
-const EVAL_TOOLS = "Skill,Read,Glob,Grep";
+// Trigger evals only observe whether the Skill tool fires, but the model may need to inspect
+// fixture workspace files before deciding, and a real session can dispatch a sub-agent, so a
+// dispatch request meets the Agent tool instead of a surface that cannot honor it.
+const EVAL_TOOLS = "Skill,Read,Glob,Grep,Agent";
 
 type ClaudeLaneOptions = {
   configDir?: string;
@@ -113,7 +114,11 @@ export function observeClaudeOutput(stdout: string): CaseObservations {
   let errorSignal: string | undefined;
 
   for (const event of parseJsonlEvents(stdout)) {
-    if (!isRecord(event)) {
+    // The trigger decision and the decision-item budget belong to the main thread. A dispatched
+    // sub-agent's events carry the Agent tool_use id in parent_tool_use_id, and its Skill calls
+    // serve the dispatched task, not the case's prompt; the main thread's Agent call already
+    // counts as a decision item.
+    if (!isRecord(event) || isSubAgentEvent(event)) {
       continue;
     }
 
@@ -237,6 +242,13 @@ function listSkillToolUseTargets(event: Record<string, unknown>): string[] {
   }
 
   return skillLabels;
+}
+
+// Recorded 2026-11-09 on Claude Code 2.1.321: a sub-agent's assistant and user events carry the
+// dispatching Agent tool_use id in parent_tool_use_id, and main-thread events carry null.
+function isSubAgentEvent(event: Record<string, unknown>): boolean {
+  const parentToolUseId = event["parent_tool_use_id"];
+  return typeof parentToolUseId === "string" && parentToolUseId.length > 0;
 }
 
 function assistantMessageId(event: Record<string, unknown>): string | undefined {

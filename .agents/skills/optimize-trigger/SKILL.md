@@ -283,9 +283,12 @@ cases where loaded repository instructions should affect the trigger boundary, s
   bare skill name. It fails an invoke case — even when the target fires in the same trigger
   decision, because simultaneous invocation is itself trigger-contract overlap — and is surfaced on
   passing skip cases too, because either direction exposes overlap between loaded skills.
-- On Claude Code, the runner launches `claude -p` with a read-only tool surface and classifies
-  invocation from Skill tool events in the stream-json output. Plugin skills load from the staged
-  plugin copy via `--plugin-dir`; repo-local skills load from the staged `.claude/skills/` copy.
+- On Claude Code, the runner launches `claude -p` with the Skill tool, the read-only `Read`, `Glob`,
+  and `Grep` tools, and the Agent tool, and classifies invocation from the main thread's Skill tool
+  events in the stream-json output. A Skill call inside a dispatched sub-agent is not a trigger
+  decision, and the sub-agent's events consume no budget; the main thread's Agent call is one
+  decision-bearing item. Plugin skills load from the staged plugin copy via `--plugin-dir`;
+  repo-local skills load from the staged `.claude/skills/` copy.
 - Claude workspaces stage project-only `.claude/settings.json` with `disableBundledSkills: true` so
   bundled skills such as `code-review` do not compete with the target. The runner verifies the
   isolation at runtime: each Claude case checks the init event's `skills` list against the staged
