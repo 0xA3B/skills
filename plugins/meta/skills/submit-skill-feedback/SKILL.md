@@ -147,8 +147,9 @@ alone points at a different instruction once its list gains, loses, or reorders 
    the batch. With confirmation, continue with the confirmed drafts. Without it, or when no user can
    answer, create and comment on nothing, and end with the drafts in the report.
 2. Immediately before writing, revalidate factual accuracy, instruction version, ownership,
-   recurrence status, and public redaction. If the revalidation changes a draft's text, return to
-   step 1 with the revised draft.
+   recurrence status, and public redaction. If the revalidation changes a draft's text or its
+   destination, such as a recurrence comment whose issue has closed, return to step 1 with the
+   revised draft.
 3. Verify `gh auth status --active --hostname github.com` shows the user's marketplace account.
 4. Create each issue with `gh issue create --repo <repository>` and labels `feedback` and
    `plugin:<plugin-name>`. Add each confirmed recurrence comment to its open issue with
