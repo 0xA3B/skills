@@ -57,8 +57,8 @@ selection:
 - [GITHUB.md](references/GITHUB.md)
 - [GITLAB.md](references/GITLAB.md)
 
-This skill is adapter-blind. Adapter-specific outcomes belong to `address-pr-feedback` and its hand
-off. Enforce adapter approval only when the forge exposes it as a required check or approval.
+This skill is adapter-blind. Adapter-specific outcomes belong to `babysit-pr` and its hand off.
+Enforce adapter approval only when the forge exposes it as a required check or approval.
 
 ## Pre-merge gate
 
@@ -70,7 +70,7 @@ Before merging, require:
 - an open, non-draft change request, unless it is already merged;
 - a forge source head matching the local source head and, when the change request or its repository
   shows automated review activity, the reviewed head: the current source head and target branch the
-  last `git:address-pr-feedback` invocation reported with every adapter `approved` or
+  last `git:babysit-pr` invocation reported with every adapter `approved` or
   `resolved-with-exceptions`, or with another status the user explicitly accepted for that head and
   target branch after it was reported; a local review lane does not set it;
 - all required CI passing on that head;
@@ -86,10 +86,9 @@ error. Do not troubleshoot CI in this workflow.
 When target drift makes the branch unmergeable or requires new commits, stop and recommend invoking
 `git:create-pr` next.
 
-After any head change, recommend a `git:address-pr-feedback` round before returning to this skill;
-run that round only when the change request or its repository shows automated review activity and
-either this skill was explicitly invoked or the user's request asked for the review loop or for the
-merge.
+After any head change, recommend a `git:babysit-pr` round before returning to this skill; run that
+round only when the change request or its repository shows automated review activity and either this
+skill was explicitly invoked or the user's request asked for the review loop or for the merge.
 
 ## Merge method
 
@@ -104,9 +103,8 @@ crawling ignored trees; their presence does not block the rewrite.
 
 Unless the selected method is squash or the change request is already merged, apply
 `git:tidy-history` in review mode to the topic branch. When it plans any change, stop, name each
-blocker it listed, and recommend `git:tidy-history` followed by a `git:address-pr-feedback` round.
-When it plans no change, continue; a listed blocker guards a rewrite, which this merge does not
-perform.
+blocker it listed, and recommend `git:tidy-history` followed by a `git:babysit-pr` round. When it
+plans no change, continue; a listed blocker guards a rewrite, which this merge does not perform.
 
 When merge commit is selected, preserve a repository-configured merge-message template. When squash
 creates a replacement commit, use the Conventional Commit change-request title as its subject and
@@ -165,8 +163,7 @@ the merge belongs in a tracked file, an issue, or the change request itself.
 
 - Delete only a file that is ignored and untracked, and whose tie to this change request is shown:
   its name or directory carries the change-request number or the topic branch name, or
-  `git:create-pr`, `git:address-pr-feedback`, or this session recorded writing it for this change
-  request.
+  `git:create-pr`, `git:babysit-pr`, or this session recorded writing it for this change request.
 - Look in the scratch location the repository's instructions name and at the recorded paths. Leave
   other ignored trees, such as dependency and build directories, unread.
 - For a file in that scratch location whose tie is not shown, and for a handoff document, note, or

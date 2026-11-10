@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Record a poll script's GitHub reads from a real pull request as a replay fixture for the
-# address-pr-feedback poll tests. The script runs as usual, with real sleeps, while the fake gh
+# babysit-pr poll tests. The script runs as usual, with real sleeps, while the fake gh
 # passes each call to the real gh and saves one snapshot per elapsed sleep.
 #
 # Usage: record-poll <fixture.json> <poll-script> <script-args...>
-#   Example: REPO=0xA3B/skills tests/address-pr-feedback/record-poll \
-#     tests/address-pr-feedback/fixtures/codex-clean.json \
-#     plugins/git/skills/address-pr-feedback/scripts/poll-codex.sh 293 60 3
+#   Example: REPO=0xA3B/skills tests/babysit-pr/record-poll \
+#     tests/babysit-pr/fixtures/codex-clean.json \
+#     plugins/git/skills/babysit-pr/scripts/poll-codex.sh 293 60 3
 # Run unsandboxed: the real gh needs the keyring. The fixture holds public pull-request data
 # trimmed to the fields the scripts read; review it before committing. Exits with the script's
 # status, so a recording whose run ended in an observation failure (6) does not pass as clean.

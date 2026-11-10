@@ -79,7 +79,7 @@ cases:
       The automated reviewer left two findings on pull request 42. Work through those comments and
       request another review after accepted fixes.
     expect: skip
-    invoke-instead: git:address-pr-feedback
+    invoke-instead: git:babysit-pr
     rationale: Existing automated review feedback belongs to babysit-pr.
 
   - id: commit-only

@@ -70,7 +70,7 @@ cases:
     prompt: >-
       Codex left three findings on pull request 42. Work through them and request another review.
     expect: skip
-    invoke-instead: git:address-pr-feedback
+    invoke-instead: git:babysit-pr
     rationale: Automated review feedback belongs to babysit-pr.
 
   - id: conceptual-question

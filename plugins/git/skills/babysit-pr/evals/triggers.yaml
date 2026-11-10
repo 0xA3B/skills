@@ -2,6 +2,7 @@ version: 1
 applies:
   - engineering:receiving-feedback
   - git:commit
+  - writing:technical-writing
 workspace:
   seed: node-service
 cases:
@@ -72,3 +73,15 @@ cases:
       How do automated pull request reviewers like Codex decide what to flag?
     expect: skip
     rationale: A conceptual question does not ask to drive a review.
+
+  - id: reply-and-resolve-bot-findings
+    prompt: >-
+      Both Copilot findings on PR 42 are valid. Fix them, reply, and resolve the threads.
+    expect: invoke
+    rationale: The user has decided the dispositions and asks for the rest of the round.
+
+  - id: gitlab-mr-bot-review
+    prompt: >-
+      Handle the review bot's comments on my GitLab merge request and get it approved.
+    expect: skip
+    rationale: The skill ships GitHub adapters only.
