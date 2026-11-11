@@ -1,10 +1,22 @@
 #!/usr/bin/env node
-// A stand-in for `gh` that replays the GitHub responses a poll script reads, one snapshot per
+// A stand-in for `gh` that replays the GitHub responses a babysit-pr script reads, one snapshot per
 // elapsed `sleep`, or records them from the real `gh`. Both modes keep their state in FAKE_GH_DIR:
 // `scenario.json` holds `{ "snapshots": [ { "<key>": <data>, ... }, ... ] }`, and `clock` counts
 // the sleeps so far. Snapshot n holds only the keys that changed at clock n; a read at clock c sees
 // every key's latest value at or before c. `--jq` and `-q` filters run through `jq -r -c`, which
 // matches how `gh` prints a filter's strings raw.
+//
+// A GraphQL fixture may be an array of pages, each with its connection's `pageInfo`. Like `gh`, a
+// `--paginate` call whose query declares `$endCursor` and reads `hasNextPage` gets every page up to
+// the first without `"hasNextPage": true`, each filtered on its own; any other call gets the first.
+//
+// Writes, a GraphQL mutation or a POST to a review comment's reactions, are replayed only: each
+// appends `{ "call", "fields" }` to `writes.jsonl` in FAKE_GH_DIR, where `call` is the mutation
+// name or `POST <endpoint>`, and `fields` holds every `-f`/`-F` value except the query. A write
+// changes the `reviewThreads` fixture at the current clock the way GitHub would:
+// `addPullRequestReviewThreadReply` makes its body the thread's `lastComment`, and
+// `resolveReviewThread` sets `isResolved`. The fixture key `faults` maps a `call` to `"fail"`, which
+// exits 1 as `gh` does on an API error, or `"ignore"`, which answers but changes nothing.
 //
 // Replay: FAKE_GH_DIR=<dir> gh <args>
 // Record: FAKE_GH_DIR=<dir> FAKE_GH_REAL=<path to the real gh> gh <args>
@@ -12,7 +24,7 @@
 // A call the stub cannot map to a fixture key fails with a message naming the call, so a script
 // change that reads a new endpoint shows up as a failing test instead of an empty response.
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const dir = process.env["FAKE_GH_DIR"];
@@ -30,13 +42,18 @@ const TIMELINE_EVENTS = new Set([
   "review_requested",
 ]);
 
-const { key, filter, passArgs } = parseCall(args);
+const { key, filter, passArgs, query, fields, paginate, graphql, write } = parseCall(args);
 const scenarioPath = path.join(dir, "scenario.json");
 const scenario = readScenario();
 const clock = readClock();
 
 let data;
-if (real) {
+if (write !== undefined) {
+  if (real) {
+    fail(`refusing to record a write: gh ${args.join(" ")}`);
+  }
+  data = replayWrite(write);
+} else if (real) {
   data = trim(key, record(passArgs));
   const current = effective(clock)[key];
   if (JSON.stringify(current) !== JSON.stringify(data)) {
@@ -53,17 +70,84 @@ if (real) {
   }
 }
 
-if (filter === undefined) {
-  process.stdout.write(`${JSON.stringify(data)}\n`);
-} else {
+for (const page of pagesOf(data)) {
+  if (filter === undefined) {
+    process.stdout.write(`${JSON.stringify(page)}\n`);
+    continue;
+  }
   try {
     process.stdout.write(
-      execFileSync("jq", ["-r", "-c", filter], { input: JSON.stringify(data), encoding: "utf8" }),
+      execFileSync("jq", ["-r", "-c", filter], { input: JSON.stringify(page), encoding: "utf8" }),
     );
   } catch (jqError) {
     process.stderr.write(String(jqError.stderr ?? jqError));
     process.exit(1);
   }
+}
+
+// The pages `gh` would print for a GraphQL fixture stored as an array of pages.
+function pagesOf(value) {
+  if (!graphql || !Array.isArray(value)) {
+    return [value];
+  }
+  if (!paginate || !query.includes("$endCursor") || !query.includes("hasNextPage")) {
+    return value.slice(0, 1);
+  }
+  const served = [];
+  for (const page of value) {
+    served.push(page);
+    if (!JSON.stringify(page).includes('"hasNextPage":true')) {
+      break;
+    }
+  }
+  return served;
+}
+
+// Record a write, apply its effect unless a fault says otherwise, and return GitHub's answer.
+function replayWrite({ call, mutation }) {
+  appendFileSync(path.join(dir, "writes.jsonl"), `${JSON.stringify({ call, fields })}\n`);
+  const fault = effective(clock)["faults"]?.[call];
+  if (fault === "fail") {
+    fail(`injected failure for ${call}`);
+  }
+  if (fault !== undefined && fault !== "ignore") {
+    fail(`unknown fault "${fault}" for ${call}`);
+  }
+  if (fault === undefined && mutation !== undefined) {
+    applyToThread(mutation);
+  }
+  switch (mutation) {
+    case "addPullRequestReviewThreadReply":
+      return { data: { [mutation]: { comment: { id: "PRRC_fake" } } } };
+    case "resolveReviewThread":
+      return { data: { [mutation]: { thread: { isResolved: fault === undefined } } } };
+    case undefined:
+      return { content: fields["content"] };
+    default:
+      return fail(`no replay for mutation ${mutation}`);
+  }
+}
+
+// Change the thread a mutation names in the `reviewThreads` fixture, at the current clock.
+function applyToThread(mutation) {
+  const threads = structuredClone(effective(clock)["reviewThreads"]);
+  const pages = Array.isArray(threads) ? threads : [threads];
+  const thread = pages
+    .flatMap((page) => page?.data?.repository?.pullRequest?.reviewThreads?.nodes ?? [])
+    .find((candidate) => candidate.id === fields["threadId"]);
+  if (thread === undefined) {
+    fail(`${mutation}: no review thread ${fields["threadId"]} in the fixture`);
+  }
+  if (mutation === "addPullRequestReviewThreadReply") {
+    thread.lastComment = { nodes: [{ body: fields["body"] }] };
+  } else if (mutation === "resolveReviewThread") {
+    thread.isResolved = true;
+  }
+  while (scenario.snapshots.length <= clock) {
+    scenario.snapshots.push({});
+  }
+  scenario.snapshots[clock]["reviewThreads"] = threads;
+  writeFileSync(scenarioPath, `${JSON.stringify(scenario, null, 2)}\n`);
 }
 
 function fail(message) {
@@ -98,11 +182,14 @@ function effective(at) {
   return view;
 }
 
-// The fixture key for a call, its jq filter, and the arguments to pass to the real gh.
+// The fixture key or write for a call, its jq filter, its query and fields, and the arguments to
+// pass to the real gh.
 function parseCall(callArgs) {
   const passed = [];
   let jq;
-  let query = "";
+  let callQuery = "";
+  let method;
+  const callFields = {};
   const positional = [];
   for (let i = 0; i < callArgs.length; i++) {
     const arg = callArgs[i];
@@ -114,8 +201,15 @@ function parseCall(callArgs) {
     if (["-F", "-f", "--repo", "--json", "-X", "--method", "-H"].includes(arg)) {
       const value = callArgs[++i];
       passed.push(value);
-      if (value?.startsWith("query=")) {
-        query = value;
+      if (arg === "-X" || arg === "--method") {
+        method = value.toUpperCase();
+      } else if ((arg === "-f" || arg === "-F") && value?.includes("=")) {
+        const name = value.slice(0, value.indexOf("="));
+        if (name === "query") {
+          callQuery = value;
+        } else {
+          callFields[name] = value.slice(name.length + 1);
+        }
       }
       continue;
     }
@@ -123,17 +217,39 @@ function parseCall(callArgs) {
       positional.push(arg);
     }
   }
+  const call = {
+    filter: jq,
+    passArgs: passed,
+    query: callQuery,
+    fields: callFields,
+    paginate: passed.includes("--paginate"),
+    graphql: false,
+  };
   const [command, subcommand] = positional;
   if (command === "pr" && subcommand === "view") {
-    return { key: "pr", filter: jq, passArgs: passed };
+    return { ...call, key: "pr" };
   }
   if (command === "api" && subcommand === "graphql") {
-    if (query.includes("HEAD_REF_FORCE_PUSHED_EVENT")) {
-      return { key: "forcePushes", filter: jq, passArgs: passed };
+    call.graphql = true;
+    const mutation = /^query=\s*mutation\b[^{]*\{\s*(?<name>\w+)/u.exec(callQuery)?.groups?.name;
+    if (mutation !== undefined) {
+      return { ...call, write: { call: mutation, mutation } };
     }
-    if (query.includes("reviewThreads")) {
-      return { key: "reviewThreads", filter: jq, passArgs: passed };
+    if (callQuery.includes("HEAD_REF_FORCE_PUSHED_EVENT")) {
+      return { ...call, key: "forcePushes" };
     }
+    if (callQuery.includes("reviewThreads")) {
+      return { ...call, key: "reviewThreads" };
+    }
+  }
+  // `gh api` sends POST when it has fields and no method.
+  const sends = method ?? (Object.keys(callFields).length > 0 ? "POST" : "GET");
+  if (
+    command === "api" &&
+    sends === "POST" &&
+    /\/pulls\/comments\/\d+\/reactions$/u.test(subcommand)
+  ) {
+    return { ...call, write: { call: `POST ${subcommand}` } };
   }
   if (command === "api" && subcommand !== undefined) {
     const endpoint = subcommand.split("?")[0];
@@ -149,7 +265,7 @@ function parseCall(callArgs) {
     ];
     for (const [pattern, endpointKey] of keys) {
       if (pattern.test(endpoint)) {
-        return { key: endpointKey, filter: jq, passArgs: passed };
+        return { ...call, key: endpointKey };
       }
     }
   }
