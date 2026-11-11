@@ -10,12 +10,6 @@
 - Keep the plugin linter's checks local and deterministic; run a check that reads git history, such
   as the plugin version check, as its own command, not as a plugin linter rule.
 
-## Code Review Rules
-
-- In the Codex skill-read classifier (`src/trigger-evals/lanes/skill-reads.ts`), report a shell form
-  as a finding only when a recorded Codex run used it. Report a form derived from shell syntax as a
-  note, even when its failure is silent: observed Codex commands set the classifier's scope.
-
 ## Terminology
 
 - **Diagnostic**: A structured plugin-linter finding with a code, file, message, and pointer.
