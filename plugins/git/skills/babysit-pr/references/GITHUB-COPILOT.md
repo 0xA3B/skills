@@ -113,25 +113,11 @@ against the merge state.
 
 ## Responses and thread resolution
 
-Query the complete review-thread connection through `gh api graphql` and act through its mutations —
-`addPullRequestReviewThreadReply` to reply and `resolveReviewThread` to resolve, both fed by the
-thread `id` from that query. `gh` has no native subcommand for either action.
-
-Apply the shared feedback discipline before acting. After disposition:
-
-- react 👍 to an accepted finding and 👎 to a rejected finding when the inline comment offers that
-  feedback channel;
-- reply with the accepted fix and validation, or the technical evidence for rejection;
-- resolve the GitHub review thread only after the disposition is recorded;
-- verify the thread no longer appears in the pull request's unresolved review threads.
+Reply to, react to, and resolve threads as [GITHUB-THREADS.md](GITHUB-THREADS.md) directs.
 
 Replies preserve the disposition for human readers; Copilot code review does not consume or answer
 thread replies. A repeated finding in a later review is new adapter activity, but a rejected finding
 that returns without new evidence still stops the loop under `4. Stop rounds`.
-
-When a finding exists only in a review body and has no inline comment or thread, record its
-disposition in a pull-request comment that names the finding. Skip reaction and thread-resolution
-steps that have no target.
 
 ## Follow-up review
 

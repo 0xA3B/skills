@@ -92,8 +92,9 @@ Available adapters:
 - [GITHUB-CODEX.md](references/GITHUB-CODEX.md)
 - [GITHUB-COPILOT.md](references/GITHUB-COPILOT.md)
 
-Load the reference for every active adapter before polling. Stop precisely when the current forge or
-bot has no available adapter.
+Load the reference for every active adapter before polling, and
+[GITHUB-THREADS.md](references/GITHUB-THREADS.md) before the first reply, reaction, or thread
+resolution on GitHub. Stop precisely when the current forge or bot has no available adapter.
 
 ## Review loop
 
