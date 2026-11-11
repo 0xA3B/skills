@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Poll the GitHub Codex review adapter on a pull request until it gives a terminal signal for the
-# current head, then dump every unresolved thread Codex opened in full. GITHUB-CODEX.md maps the exit
+# current head, then dump every unresolved thread Codex opened in full and the body of each Codex
+# review of the head. GITHUB-CODEX.md maps the exit
 # codes to the skill's states; the defaults below are the login and summary marker it names.
 #
 # Usage: poll-codex.sh <pr-number-or-url> [interval-seconds] [max-polls]
@@ -166,6 +167,11 @@ dump() {
   local open
   open="$(grep -c . <<<"${all}" || true)"
   [[ -n "${threads}" ]] && printf '%s\n' "${threads}"
+  # A finding can exist only in a review body, so print the body of each Codex review of the head.
+  echo "=== Codex review bodies (head ${HEAD})"
+  gh api --paginate "repos/${REPO}/pulls/${NUM}/reviews" \
+    --jq ".[] | select(.user.login==\"${BOT}\" and .commit_id==\"${HEAD}\" and ((.body // \"\") != \"\"))
+      | \"--- review \(.id) \(.submitted_at)\", .body" || observe "reviews"
   echo "=== pr state (unresolved threads: ${open})"
   local state
   state="$(gh pr view "${NUM}" --repo "${REPO}" --json headRefOid,mergeStateStatus,statusCheckRollup \

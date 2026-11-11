@@ -114,6 +114,34 @@ describe("poll-codex.sh", () => {
     expect(stdout).toContain("=== pr state (unresolved threads: 1)");
   });
 
+  // A finding can exist only in a review body, which no thread carries.
+  it("dumps the body of each Codex review of the head", async () => {
+    const scenario = await recordedClean();
+    const review = (commit: string, login: string, body: string): Snapshot => ({
+      id: 1,
+      user: { login },
+      state: "COMMENTED",
+      commit_id: commit,
+      submitted_at: "2026-11-07T03:20:00Z",
+      body,
+    });
+    Object.assign(scenario.snapshots[0] ?? {}, {
+      reviews: [
+        review(RECORDED_HEAD, "chatgpt-codex-connector[bot]", "A body-only Codex finding."),
+        review(EARLIER_HEAD, "chatgpt-codex-connector[bot]", "A review of an earlier head."),
+        review(RECORDED_HEAD, "copilot-pull-request-reviewer[bot]", "A Copilot review body."),
+      ],
+    });
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain(`=== Codex review bodies (head ${RECORDED_HEAD})`);
+    expect(stdout).toContain("A body-only Codex finding.");
+    expect(stdout).not.toContain("A review of an earlier head.");
+    expect(stdout).not.toContain("A Copilot review body.");
+  });
+
   it("exits 1 and dumps the thread when Codex left a finding", async () => {
     const scenario = await recordedClean();
     Object.assign(

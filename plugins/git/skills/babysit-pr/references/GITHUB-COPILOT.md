@@ -52,19 +52,6 @@ activity. The event remains observable after GitHub consumes the request and rem
 
 ## Findings and approval
 
-Inspect:
-
-```text
-gh api --paginate repos/{owner}/{repo}/pulls/<pr>/reviews
-gh api --paginate repos/{owner}/{repo}/pulls/<pr>/comments
-gh api --paginate repos/{owner}/{repo}/pulls/<pr>/requested_reviewers
-gh api --paginate repos/{owner}/{repo}/issues/<pr>/timeline
-gh pr view <pr-url> --json headRefOid,mergeStateStatus,reviewDecision,statusCheckRollup
-```
-
-Use the pull request's resolved base owner and repository for `{owner}` and `{repo}`. Substitute the
-pull request number for `<pr>` and its full URL for `<pr-url>`.
-
 Copilot submits a pull-request review tied to a commit. Findings appear in the review body and
 inline review comments. Copilot's review body may list each finding in an overview with a severity
 badge, such as `High severity`; the inline comment carries none. The badge is the reviewer's claim
