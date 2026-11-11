@@ -3,11 +3,12 @@ name: agent-instructions
 description: >-
   Use when creating, editing, tightening, or reviewing files that instruct agents — AGENTS.md,
   CLAUDE.md, SKILL.md and its bundled scripts, agent definitions, or system-prompt fragments —
-  including a supplied diff to one, and when handing any task to a sub-agent or background agent,
-  however small, before writing its prompt. Do not use as the entry point for reviewing the
-  session's own changes, which a review workflow owns; for READMEs or other docs
-  (technical-writing); for a terminology section's entries; for conceptual questions about
-  instruction files; or for other code the session writes itself, even when the program is an agent.
+  including a supplied diff to one, and when the user asks for a sub-agent prompt as the
+  deliverable. Do not use to dispatch a sub-agent for a task, where the prompt is a means and not
+  the deliverable; as the entry point for reviewing the session's own changes, which a review
+  workflow owns; for READMEs or other docs (technical-writing); for a terminology section's entries;
+  for conceptual questions about instruction files; or for other code the session writes itself,
+  even when the program is an agent.
 license: MIT
 metadata:
   original_author: Alex Baker
@@ -35,13 +36,13 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 1. **Set degrees of freedom by the cost of a wrong path.** Completion criteria bind every step's
    outcome. This rule decides how tightly to bind the path to that outcome. A path is fragile when a
    wrong turn would take a side effect the authority envelope does not authorize, change state
-   outside the run, or fail silently behind a passing status. When you revise a path because a run
-   took a wrong turn on it, check whether an earlier change fixed the wording or example behind the
-   same wrong turn. If one did, treat the path as fragile; otherwise fix that wording or example.
-   For a fragile path, give an exact command, a fixed order, or a bundled script, and say to follow
-   it as written. Leave every other path, such as the order of independent steps or recovery from a
-   transient error, to the agent with a goal and a default. On those paths, a wrong turn fails
-   loudly and the agent can recover from it.
+   outside the run, or fail silently behind a passing status. For a fragile path, give an exact
+   command, a fixed order, or a bundled script, and say to follow it as written. Leave every other
+   path, such as the order of independent steps or recovery from a transient error, to the agent
+   with a goal and a default. On those paths, a wrong turn fails loudly and the agent can recover
+   from it. When you revise a path because a run took a wrong turn on it, check whether an earlier
+   change fixed the wording or example behind the same wrong turn. If one did, treat the path as
+   fragile; otherwise fix that wording or example.
 
 2. **State the authority envelope.** When a workflow can take side effects, its authority envelope
    places each side effect the workflow could take in one class. Allowed side effects are what the
@@ -59,13 +60,16 @@ Ordered by importance. When rules conflict, the earlier rule wins.
 
 3. **Spend the budget deliberately.** Prefer replacing a rule over appending one. Before adding or
    changing a rule, name the failure the edit prevents, in the rule or in the change that makes it;
-   if you cannot, do not make the edit. Delete explanations and reminders that tooling makes
-   redundant. Keep instructions that determine when a check runs or how its result gates the
-   workflow. The environment is a source of truth too: a rule that restates `package.json` scripts,
-   config files, the directory layout, or `--help` output is a cache of a cheap lookup, and it goes
-   stale. Cache only what no file confesses — the unwritten convention, the reason behind a choice,
-   the gotcha. Write timeless text: "currently", "new", and references to the change that introduced
-   a rule go stale the moment they land.
+   if you cannot, do not make the edit. When you add a rule, a step, or a criterion to an existing
+   file, also have evidence of that failure: a run that showed it, or a fragile path as the first
+   rule defines one. On any other path, a failure you derived by reading the file or enumerating
+   states waits for a run. Delete explanations and reminders that tooling makes redundant. Keep
+   instructions that determine when a check runs or how its result gates the workflow. The
+   environment is a source of truth too: a rule that restates `package.json` scripts, config files,
+   the directory layout, or `--help` output is a cache of a cheap lookup, and it goes stale. Cache
+   only what no file confesses — the unwritten convention, the reason behind a choice, the gotcha.
+   Write timeless text: "currently", "new", and references to the change that introduced a rule go
+   stale the moment they land.
 
 4. **Keep one source of truth per meaning.** State each meaning in one authoritative place, so
    changing the behavior is a one-place edit. A meaning stated twice costs double maintenance and
@@ -183,10 +187,9 @@ contract and dependencies, and the instruction that runs it.
 
 ## Sub-agent prompts
 
-If the document is a prompt for a sub-agent — a one-shot task dispatch rather than a durable file —
-read [subagent-prompts.md](references/subagent-prompts.md) for what changes when the instructions
-live for a single dispatch: the context the prompt must carry, the return contract, decision rules
-in place of clarification, and parallel dispatches.
+If the document is a prompt for a sub-agent, whether the session sends it once or a file stores it,
+read [subagent-prompts.md](references/subagent-prompts.md) for the context the prompt must carry,
+the return contract, decision rules in place of clarification, and parallel dispatches.
 
 ## Review
 

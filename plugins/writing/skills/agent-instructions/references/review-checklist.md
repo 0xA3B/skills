@@ -7,8 +7,9 @@ its scope, and each question names the rule or reference section it applies.
 
 Once per document:
 
-- [ ] In a diff, is the net rule count equal to or lower than before? If higher, name an existing
-      rule the change could replace or delete. (spend the budget deliberately)
+- [ ] In a diff, or across the edits a sweep proposes, is the net rule count equal to or lower than
+      before? If higher, name an existing rule the change could replace or delete. (spend the budget
+      deliberately)
 - [ ] If the document is or governs a derived instruction copy, does it meet each item of "Derived
       instruction copies" in [document-mechanics.md](document-mechanics.md)? (derived instruction
       copies)
@@ -30,6 +31,10 @@ Once per document:
 For each added or changed instruction of a diff, or each instruction of a swept file, walk the Rules
 in `SKILL.md` in order. Record each rule the instruction fails, with the fix, or record that it
 passes every rule.
+
+Fix a failed rule by deleting or replacing text when that resolves it. List each fix that adds a
+rule, a step, or a criterion apart from the other fixes, and apply it only with the evidence that
+"spend the budget deliberately" requires. (spend the budget deliberately)
 
 ## Applied skills
 
