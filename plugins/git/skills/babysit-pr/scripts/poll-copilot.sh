@@ -53,7 +53,7 @@
 #             9 the head's only review predates the last retarget, and no Copilot activity followed
 #               the retarget within the acknowledgment window.
 # Run unsandboxed (gh needs the keyring). To keep a log and the exit code:
-#   poll-copilot.sh 123 > .local/poll.log; rc=$?; cat .local/poll.log
+#   poll-copilot.sh 123 > <log-file>; rc=$?; cat <log-file>
 set -u -o pipefail
 PR_ARG="${1:?pr number or url}"
 INTERVAL="${2:-60}"

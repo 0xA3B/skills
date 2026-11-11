@@ -27,7 +27,7 @@ head:
 - `resolved-with-exceptions`: all known findings are dispositioned, but the adapter gave no terminal
   clean signal;
 - `round-limit`: all findings from the last permitted review round are dispositioned, but the
-  adapter is not `approved`;
+  adapter is neither `approved` nor converged;
 - `timed-out`: the initial head, or a pushed head its adapter reference still awaits a review of,
   drew no acknowledgment in the acknowledgment window, or an acknowledged head drew no activity
   through the response timeout;
@@ -190,9 +190,8 @@ A review round covers every active adapter that has not converged, reviewing the
 through their terminal response. A current-head review already observed when the invocation starts
 counts as round one. Allow at most seven review rounds total per invocation unless the user
 explicitly changes the limit. Disposition every finding received in round seven and commit and push
-permitted fixes, then stop before round eight. Return `round-limit` whenever round seven is
-dispositioned and the adapter is not `approved` under Outcome, whether or not the disposition
-produced a new head.
+permitted fixes, then stop before round eight. Return `round-limit` for each adapter that round
+seven leaves neither `approved` nor converged, whether or not the disposition produced a new head.
 
 An adapter's terminal clean signal on the current head classifies it `approved`. Otherwise the
 convergence rule applies: an adapter that returned findings in the round has converged when every

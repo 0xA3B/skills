@@ -24,13 +24,13 @@ Finish in one of these states:
   with a lease when it has a published ref;
 - the history already meets the plan rules, and nothing was rewritten;
 - review mode reported the plan, and each blocker fix mode would refuse on, without rewriting;
-- a precise refusal or blocker is reported, and the branch is at its pre-tidy head.
+- a precise refusal or blocker is reported, and the branch is at its pre-tidy head, or, when the
+  remote head moved during the push, at the rewritten head with the backup ref kept.
 
 ## Invariants
 
-These invariants define what this skill does; a request that asks for something outside them asks
-for work this skill does not perform. When the user's request conflicts with an invariant, keep the
-invariant, and report the conflict and the closest result the invariant allows.
+When the user's request conflicts with an invariant, keep the invariant, and report the conflict and
+the closest result the invariant allows.
 
 - **Same tree, same base.** The rewritten branch ends on the recorded tree and sits on the recorded
   base. When an instruction would change the tree, such as dropping a commit that changes files,
@@ -96,14 +96,16 @@ base commit, which is the parent of the range's oldest commit, and the published
 commits the local branch lacks.
 
 Run the durable-SHA search in [MERGE-METHOD.md](../../references/MERGE-METHOD.md) over the range;
-when a durable match requires stable commit identity, stop for a user decision.
+when a durable match requires stable commit identity, list the match as a blocker in review mode; in
+fix mode, report it and rewrite only after the user approves, and otherwise stop at the pre-tidy
+head.
 
 When no refusal or check above stops the run, in fix mode, apply `git:commit` to intended
 uncommitted changes; in review mode, plan over the committed range and report the uncommitted paths.
 Then record the local head and its tree; the range runs through that head.
 
 Step 1 is done when the range and every recorded value are fixed, no refusal applies, and, in fix
-mode, the worktree is clean.
+mode, no tracked changes remain.
 
 ### 2. Plan
 
@@ -143,9 +145,8 @@ commit signer, and a sandbox that blocks either stops the rebase partway.
 
 1. Set the backup ref `refs/tidy-history/<branch>` to the local head.
 2. When every planned change folds a `fixup!` commit whose subject names exactly one commit in the
-   range, run `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash <base-commit>`; Git writes that
-   plan as the todo, and would fold a subject several commits share into the oldest. Otherwise,
-   write the plan as a rebase todo that uses only `pick`, `fixup`, `drop`, `edit`, and `exec`; the
+   range, run `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash <base-commit>`. Otherwise, write
+   the plan as a rebase todo that uses only `pick`, `fixup`, `drop`, `edit`, and `exec`; the
    message-taking verbs read the message from an editor, which a non-interactive run cannot supply.
    Write each new message to a file, check it as `git:commit` directs, and set it with
    `exec git commit --amend --file=<message-file>` after the commit and its `fixup` lines. Run
@@ -173,8 +174,7 @@ Step 3 is done when every rebase the step started has finished and no rebase is 
 
 Compare the new head's tree with the recorded tree, confirm the base commit is an ancestor of the
 new head, confirm each message the plan set appears on its commit, and confirm no commit in the new
-range has a subject that starts with `fixup!`, `squash!`, or `amend!`, because autosquash leaves a
-commit whose subject names no commit in the range unfolded. On any difference, run
+range has a subject that starts with `fixup!`, `squash!`, or `amend!`. On any difference, run
 `git reset --hard refs/tidy-history/<branch>` and stop with the difference.
 
 When the branch has a published ref, push with

@@ -26,9 +26,8 @@ resolving or creating the pull request, use its canonical `<pr-url>` for every l
 Push the branch explicitly before running `gh pr create`; do not depend on interactive push or fork
 prompts.
 
-Discover repository pull-request templates before composing the description. When a template
-applies, preserve its required structure and fields in the completed body file. Create the pull
-request with the authored title and completed description:
+Discover repository pull-request templates before composing the description, then create the pull
+request:
 
 ```text
 gh pr create --repo <base-repo> --base <target> --head <head> --title <title> --body-file <body-file>
@@ -47,10 +46,10 @@ Closes #124
 
 A list after one keyword, such as `Closes #123, #124`, closes only the first issue.
 
-If the branch lookup finds an open pull request, compare `baseRefName` with the resolved target.
-When the core workflow authorizes retargeting, use `gh pr edit <pr-url> --base <target>`, then
-refetch and reassess the pull request. Refresh its title and body when they no longer match the
-effective diff. Reuse its URL only after the targets match; never create another.
+If the branch lookup finds an open pull request, compare `baseRefName` with the resolved target. To
+refresh, run `gh pr edit <pr-url> --title <title> --body-file <body-file>`; to retarget as the core
+workflow authorizes, run `gh pr edit <pr-url> --base <target>`, then refetch and reassess the pull
+request. Reuse its URL only after the targets match; never create another.
 
 ## Initial CI
 

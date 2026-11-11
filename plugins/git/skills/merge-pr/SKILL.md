@@ -45,7 +45,8 @@ change request is not merged, report its state and stop. That authorization does
 
 An administrative override of a forge protection requires an explicit same-invocation request naming
 that protection and must still comply with loaded repository policy. Unresolved review threads are
-not overrideable in this workflow; disposition and resolve them before merging.
+not overrideable in this workflow: reply to or resolve a thread only as the user directs for it;
+otherwise stop, report it, and recommend `git:babysit-pr` for automated-review threads.
 
 ## Forge selection
 
@@ -56,8 +57,8 @@ selection:
 - [GITHUB.md](references/GITHUB.md)
 - [GITLAB.md](references/GITLAB.md)
 
-This skill is adapter-blind. Adapter-specific outcomes belong to `babysit-pr` and its hand off.
-Enforce adapter approval only when the forge exposes it as a required check or approval.
+Beyond forge-required checks and approvals, the reviewed head in the pre-merge gate is this skill's
+only adapter requirement.
 
 ## Pre-merge gate
 
@@ -85,9 +86,9 @@ error. Do not troubleshoot CI in this workflow.
 When target drift makes the branch unmergeable or requires new commits, stop and recommend invoking
 `git:create-pr` next.
 
-After any head change, recommend a `git:babysit-pr` round before returning to this skill; run that
-round only when the change request or its repository shows automated review activity and either this
-skill was explicitly invoked or the user's request asked for the review loop or for the merge.
+After any head change, when the change request or its repository shows automated review activity,
+run a `git:babysit-pr` round with the authority of its explicit invocation and return here at its
+hand off; otherwise continue on the new head.
 
 ## Merge method
 
@@ -95,7 +96,6 @@ When selecting the method, read [MERGE-METHOD.md](../../references/MERGE-METHOD.
 selection order. Run its durable-SHA search only when the selected path would rebase or squash topic
 commits.
 
-If the repository forbids the merge commit that a durable match requires, stop for a user decision.
 For a rebase or squash path, inspect ignored text only when repository guidance, the invocation, or
 the `create-pr` hand off identifies a local artifact. Record matching paths and SHAs without
 crawling ignored trees; their presence does not block the rewrite.
@@ -103,7 +103,8 @@ crawling ignored trees; their presence does not block the rewrite.
 Unless the selected method is squash or the change request is already merged, apply
 `git:tidy-history` in review mode to the topic branch. When it plans any change, stop, name each
 blocker it listed, and recommend `git:tidy-history` followed by a `git:babysit-pr` round. When it
-plans no change, continue; a listed blocker guards a rewrite, which this merge does not perform.
+plans no change, continue; a listed blocker guards a local rewrite of the topic branch, which this
+merge does not perform.
 
 When merge commit is selected, preserve a repository-configured merge-message template. When squash
 creates a replacement commit, use the Conventional Commit change-request title as its subject and
@@ -126,7 +127,9 @@ After the forge reports success:
 5. check whether the remote topic branch still exists with
    `git ls-remote <remote> refs/heads/<branch>` against the remote that hosts it; a remote-tracking
    ref can outlive a branch the forge deleted;
-6. if it exists and permissions allow, delete it only after steps 1–4 succeed.
+6. if it exists, permissions allow, and it is neither the remote's default branch nor the source or
+   target of another open change request, delete it only after steps 1–4 succeed; otherwise keep it
+   and report it.
 
 Do not infer success from a CLI exit code alone.
 
@@ -160,12 +163,13 @@ locations: drafts of its description, commit messages, and issue or comment bodi
 output such as an issue or pull-request JSON dump, and poll or CI logs. Anything that must outlive
 the merge belongs in a tracked file, an issue, or the change request itself.
 
-- Delete a file only when all of these hold: it is ignored and untracked, or it is a recorded path
-  under the system temporary directory; it is one of the kinds listed above; and its tie to this
-  change request is shown. The tie is shown when `git:create-pr`, `git:babysit-pr`, or this session
-  recorded writing the file for this change request, when the full topic branch name is a component
-  of its path, or when its name holds the change-request number as a whole number, such as
-  `pr-42-body.md` for change request 42 and not `pr-142.json`.
+- Delete a file only when all of these hold: it is untracked, and it is either ignored or a recorded
+  path under the system temporary directory; it is one of the kinds listed above; and its tie to
+  this change request is shown. The tie is shown when `git:create-pr`, `git:babysit-pr`, or this
+  session recorded writing the file for this change request, when its path contains the full topic
+  branch name as a directory path, such as `feat/retry/` for the branch `feat/retry`, or when its
+  name marks a change request and holds this one's number as a whole number, such as `pr-42-body.md`
+  for change request 42 and neither `pr-142.json` nor `issue-42.json`.
 - Look in the scratch location the repository's instructions name and at the recorded paths. Leave
   other ignored trees, such as dependency and build directories, unread.
 - List every other file found there that looks related, and every handoff document, note, or

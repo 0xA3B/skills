@@ -13,9 +13,7 @@ argument-hint: "[target|instructions]"
 
 # Create PR
 
-Prepare a branch operationally and create or refresh its change request. A request to create or
-refresh the change request means the user considers local review complete; do not repeat code-review
-workflows.
+Prepare a branch operationally and create or refresh its change request.
 
 ## Outcome
 
@@ -39,8 +37,10 @@ authorization, validation, or forge state prevent that outcome.
 Use **Change request** for the forge-neutral object. Use **Pull request** in the GitHub lane and
 **Merge request** in the GitLab lane.
 
-Resolve the forge from the selected remote. Support GitHub through `gh` and GitLab through `glab`;
-stop on another or ambiguous forge. After selecting the forge, read exactly one forge lane:
+Select the remote that hosts the target: the remote the user names, else the remote whose repository
+an open change request targets, else the only remote; when several remotes remain, stop for a user
+decision. Resolve the forge from the selected remote. Support GitHub through `gh` and GitLab through
+`glab`; stop on another or ambiguous forge. After selecting the forge, read exactly one forge lane:
 
 - GitHub remote: read [GITHUB.md](references/GITHUB.md) for `gh` inspection fields, create and
   refresh commands, and merge semantics.
@@ -62,12 +62,12 @@ and changes; do not move or reset the target ref merely to make branch creation 
 repository branch-naming convention when one exists. Otherwise infer a concise type-and-purpose name
 from the intended change, asking only when the intent is genuinely ambiguous.
 
-Apply `git:commit` to all intended uncommitted changes. Continue only with a clean worktree. If an
-open change request already exists for the topic branch, compare its target with the resolved
-target. Reuse it only when they match. When the user explicitly selected a different target,
-retarget through the forge lane, refetch its metadata, and reassess its diff and mergeability. Stop
-for a user decision on any other mismatch; never create a duplicate. A closed or merged change
-request is not reusable without an explicit user decision.
+Apply `git:commit` to all intended uncommitted changes without pushing; step 3 publishes the branch.
+Continue only with a clean worktree. If an open change request already exists for the topic branch,
+compare its target with the resolved target. Reuse it only when they match. When the user explicitly
+selected a different target, retarget through the forge lane, refetch its metadata, and reassess its
+diff and mergeability. Stop for a user decision on any other mismatch; never create a duplicate. A
+closed or merged change request is not reusable without an explicit user decision.
 
 Step 1 is done when the worktree is clean on a topic branch, the resolved target is fixed, and
 either a reusable open change request is identified or none exists.
@@ -85,14 +85,16 @@ cleanup rather than crawling ignored trees.
 Test the selected path's feasibility without leaving the working branch partially rewritten. When
 rebase conflicts but the forge can merge the unchanged topic cleanly, retain the branch and select a
 merge commit. When the selected path requires conflict resolution, restore the original state,
-report the conflicting commits and files, and stop. Conflict resolution changes reviewed content and
-belongs outside this operational workflow.
+report the conflicting commits and files, and stop.
+
+Step 2 is done when the expected merge method is recorded and the branch is at its original head;
+the forge performs a selected rebase at merge.
 
 ### 3. Validate and publish
 
 Run the repository's documented full pre-PR or local validation gate. When no full gate is defined,
 use the established project script surface to run the smallest credible format, lint, typecheck, and
-test set for the whole proposed change. Do not bypass hooks or weaken validation to publish faster.
+test set for the whole proposed change. Do not weaken validation to publish faster.
 
 Before publishing, author the change request from the initiating request, linked issues or tickets,
 the effective diff, and the decisions that shaped the final solution:
@@ -124,8 +126,9 @@ After authoring:
 1. apply `git:tidy-history` to the topic branch against the resolved target; it keeps the validated
    tree, and when it refuses or stops, continue with the history it left and report its reason;
 2. push the topic branch normally when `git:tidy-history` did not publish it;
-3. create or refresh the change request through the selected forge lane with the authored title and
-   completed description, ready for review unless the user explicitly asks for a draft.
+3. create the change request through the selected forge lane with the authored title and completed
+   description, or refresh an existing one's title and description when they no longer match the
+   effective diff, ready for review unless the user explicitly asks for a draft.
 
 Record the change-request URL, target, and exact source-head SHA.
 
@@ -136,7 +139,8 @@ state progress as a soft inactivity timeout. Continue beyond ten wall-clock minu
 clearly advancing. Stop immediately on a failed, errored, or demonstrably stalled required check.
 
 A timeout reports the exact pending checks and preserves the change request. It does not cancel CI
-or claim that validation failed.
+or claim that validation failed. Step 4 is done when every required check on the published head has
+passed, or a stop or timeout above is reported.
 
 ## Completion and hand off
 
@@ -150,9 +154,7 @@ Report:
 - local validation and initial CI state;
 - blockers or pending work.
 
-After publishing the head, stop and recommend `git:babysit-pr` next; continue into it only when the
-user's request asked for the review loop, or asked for the merge and the change request or its
-repository shows automated review activity.
-
-If target drift later changes mergeability, recommend an explicit `git:create-pr` rerun against the
-existing change request.
+After publishing the head, stop. When the forge is GitHub and the user's request asked for the
+review loop, or asked for the merge and the change request or its repository shows automated review
+activity, continue into `git:babysit-pr`; when the request asked for the merge otherwise, continue
+into `git:merge-pr`. Otherwise recommend `git:babysit-pr` on GitHub or `git:merge-pr` on GitLab.
