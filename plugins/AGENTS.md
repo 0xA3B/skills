@@ -162,6 +162,12 @@
   engineering instructions stay in force. Scope the style to chat responses and the evidence conduct
   behind them; engineering workflow rules belong to skills and instruction files.
 
+## Writing plugin sub-agent lines
+
+- Treat `plugins/writing/skills/agent-instructions/references/subagent-prompts.md` as the source of
+  the sub-agent lines in `plugins/writing/README.md`, and update those lines in the same change that
+  alters a rule they copy.
+
 ## Validation
 
 - After adding or changing portable manifests, target extensions, marketplace entries, skill

@@ -64,20 +64,29 @@ cases:
   - id: delegate-implementation
     prompt: >-
       Have a sub-agent implement the /health endpoint and report back with the diff.
-    expect: invoke
+    expect: skip
     rationale:
-      Delegated implementation dispatches a sub-agent, so the skill applies before writing its task
-      prompt.
+      The user asks for the implementation, and the task prompt is a means to it. A dispatch gets
+      its prompt from always-loaded guidance; the skill owns a prompt that is the deliverable or
+      that a file stores.
 
   - id: one-line-dispatch
     prompt: >-
       Have a background agent find which file defines the test command and report the path.
+    expect: skip
+    rationale:
+      The user asks for a lookup, not for a prompt. The Claude lane offers the Agent tool and counts
+      only main-thread Skill calls, so a load before the dispatch would be this skill firing on a
+      request it does not own.
+
+  - id: stored-dispatch-prompt
+    prompt: >-
+      Add a step to skills/release/SKILL.md that dispatches a sub-agent to check the changelog
+      against the merged pull requests, and write the prompt that step uses.
     expect: invoke
     rationale:
-      The dispatch trigger has no size threshold; a one-line lookup still needs a task prompt that
-      carries its context and return contract. The Claude lane offers the Agent tool and counts only
-      main-thread Skill calls, so the skill must load before or with the dispatch, not inside the
-      dispatched sub-agent.
+      Editing a SKILL.md triggers the skill; the case also checks that the dispatch exclusion does
+      not claim a prompt that a file stores.
 
   - id: review-bundled-script
     prompt: >-
