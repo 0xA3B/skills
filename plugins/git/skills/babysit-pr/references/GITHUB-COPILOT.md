@@ -1,5 +1,8 @@
 # GitHub Copilot review adapter
 
+Contents: Identity and selection, Polling script, Initial review, Findings and approval, Responses
+and thread resolution, Follow-up review.
+
 Use this adapter for GitHub Copilot code review on GitHub. Its external protocol may change; when
 live behavior contradicts this reference, stop and report the observed difference instead of
 guessing.
@@ -18,10 +21,7 @@ repository evidence.
 Run [`scripts/poll-copilot.sh`](../scripts/poll-copilot.sh) on the initial head and after every
 push: `<skill-dir>/scripts/poll-copilot.sh <pr> [interval-seconds] [max-polls]`, run as
 `2. Poll active adapters` directs. Set `REPO` to the forge-side base repository when the checkout is
-a fork. Observed activity decides first: a Copilot review request created after the head was
-published, or a Copilot review of the head, starts the wait. Only without either does the script
-read the repository rules that apply to the base branch, to learn whether the configuration reviews
-the head. The script prints the review body and every unresolved Copilot thread with its id and
+a fork. The script prints the review body and every unresolved Copilot thread with its id and
 comments; when it prints a `truncated:` line for a thread, fetch that thread's remaining comments
 before triage. Triage the threads as Findings and approval directs. Read the outcome from its
 `exit=` line:
@@ -37,7 +37,8 @@ before triage. Triage the threads as Findings and approval directs. Read the out
   acknowledgment came within the acknowledgment window. For the initial head, return `timed-out` and
   report that the automatic-review configuration may need checking; for a pushed head, apply
   Follow-up review.
-- `5`: the poll budget ended after acknowledgment without a review; return `timed-out`.
+- `5`: the poll budget ended after acknowledgment without a review; rerun the script until the runs
+  together span the response timeout, then return `timed-out`.
 - `6`: observation failure; retry once, then return `blocked`. When the output names a missing
   dependency or a bad `EXPECT_HEAD`, a retry repeats the failure: follow `2. Poll active adapters`
   or correct the value instead.
@@ -55,11 +56,9 @@ before triage. Triage the threads as Findings and approval directs. Read the out
   `resolved-with-exceptions` with the retarget as the exception; the earlier classification does not
   carry forward.
 
-Repository rules are not the only source of Copilot reviews: an organization or user setting, or a
-manual request, can start one that the rules do not show. Before exit `7` or `8`, the script waits
-until the acknowledgment window after the head reached the branch has passed. A review request or
-review that appears on a head later is adapter activity, so the final observation before the hand
-off still starts a round.
+An organization or user setting, or a manual request, can start a review the repository rules do not
+show, so a Copilot review request or review that appears on a head after exit `7` or `8` is adapter
+activity, and the final observation before the hand off still starts a round.
 
 ## Initial review
 
@@ -83,13 +82,9 @@ Use the pull request's resolved base owner and repository for `{owner}` and `{re
 pull request number for `<pr>` and its full URL for `<pr-url>`.
 
 Copilot submits a pull-request review tied to a commit. Findings appear in the review body and
-inline review comments. Track inline comment IDs and review thread IDs. GitHub may re-anchor
-unresolved comments to a newer commit, so `commit_id` is not a stable indication that a finding is
-new.
-
-Copilot's review body may list each finding in an overview with a severity badge, such as
-`High severity`; the inline comment carries none. The badge is the reviewer's claim about
-consequence, and the shared feedback discipline rates that claim.
+inline review comments. Copilot's review body may list each finding in an overview with a severity
+badge, such as `High severity`; the inline comment carries none. The badge is the reviewer's claim
+about consequence, and the shared feedback discipline rates that claim.
 
 Inspect review-body details such as `Suppressed comments`. Copilot may place previously missed
 findings there while reporting zero new inline comments. Give an item labeled `Previously missed`
@@ -118,30 +113,18 @@ against the merge state.
 
 ## Responses and thread resolution
 
-Query the complete review-thread connection through `gh api graphql` and act through its mutations —
-`addPullRequestReviewThreadReply` to reply and `resolveReviewThread` to resolve, both fed by the
-thread `id` from that query. `gh` has no native subcommand for either action.
-
-Apply the shared feedback discipline before acting. After disposition:
-
-- react 👍 to an accepted finding and 👎 to a rejected finding when the inline comment offers that
-  feedback channel;
-- reply with the accepted fix and validation, or the technical evidence for rejection;
-- resolve the GitHub review thread only after the disposition is recorded;
-- verify the thread no longer appears in the pull request's unresolved review threads.
+Reply to, react to, and resolve threads as [GITHUB-THREADS.md](GITHUB-THREADS.md) directs.
 
 Replies preserve the disposition for human readers; Copilot code review does not consume or answer
 thread replies. A repeated finding in a later review is new adapter activity, but a rejected finding
 that returns without new evidence still stops the loop under `4. Stop rounds`.
 
-When a finding exists only in a review body and has no inline comment or thread, record its
-disposition in a pull-request comment that names the finding. Skip reaction and thread-resolution
-steps that have no target.
-
 ## Follow-up review
 
 The repository's configuration decides whether a push starts another Copilot review, and this
-adapter never requests one. After a push, run the polling script on the new head. On exit `8` or
-`4`, the adapter keeps the classification its last review earned and the report names the head that
-review covered. When a review request or a review of the new head appears, tie a new round to the
-new `headRefOid` and require a current-head terminal response within the response timeout.
+adapter never requests one. After a push, run the polling script on the new head. On exit `8`, the
+adapter keeps the classification its last review earned and the report names the head that review
+covered. On exit `4`, return `timed-out`, which replaces that classification, because the
+configuration was due to review the pushed head. When a review request or a review of the new head
+appears, tie a new round to the new `headRefOid` and require a current-head terminal response within
+the response timeout.

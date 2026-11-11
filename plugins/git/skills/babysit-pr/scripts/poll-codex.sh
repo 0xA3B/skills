@@ -38,7 +38,7 @@
 #             ACK_POLLS intervals; 5 max polls reached; 6 observation failure or a missing tool;
 #             9 the head's only review predates the last retarget.
 # Run unsandboxed (gh needs the keyring). To keep a log and the exit code:
-#   poll-codex.sh 123 > .local/poll.log; rc=$?; cat .local/poll.log
+#   poll-codex.sh 123 > <log-file>; rc=$?; cat <log-file>
 set -u -o pipefail
 PR_ARG="${1:?pr number or url}"
 INTERVAL="${2:-60}"

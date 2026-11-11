@@ -11,7 +11,7 @@ runs a plain `--force`.
 
 - **Tidy once, before merge.** One hand-off point would be simpler, but `git:merge-pr` gates on the
   reviewed head, so every pull request would pay an extra review round after approval. Instead,
-  `git:create-pr` and `git:address-pr-feedback` tidy inside pushes that already reset review, and
+  `git:create-pr` and `git:babysit-pr` tidy inside pushes that already reset review, and
   `git:merge-pr` runs the skill in review mode as a gate.
 - **An explicit-approval path for protected branches and plain force.** Approval would cost the user
   about the same as running the commands themselves, and it would add a rarely used branch of

@@ -1,12 +1,11 @@
 ---
 name: merge-pr
 description: >-
-  Merge a ready GitHub pull request or GitLab merge request and verify remote and local cleanup. Use
-  when the user asks to merge or land a specific pull request or merge request, including checking
-  forge merge gates, selecting the merge method, observing the merge, deleting branches, and
-  refreshing ignored SHA references. Do not use for merging one branch into another locally,
-  resolving merge conflicts, squashing or rewriting local history, merging code such as functions or
-  files, creating change requests, handling review feedback, or bypassing protections.
+  Merge a ready GitHub pull request (PR) or GitLab merge request (MR) through the forge, then verify
+  the merge and clean up its branches and leftover working files. Use when the user asks to merge or
+  land a specific PR or MR, or to do the post-merge cleanup of one that is already merged. Do not
+  use for merging one branch into another locally, resolving merge conflicts, merging code such as
+  functions, or questions about whether a PR is ready to merge.
 license: MIT
 argument-hint: "[change-request|instructions]"
 ---
@@ -25,14 +24,17 @@ Finish in one of these states:
 - a required merge queue remains pending and no cleanup was attempted;
 - a precise forge, protection, conflict, permission, or local-state blocker is reported.
 
-This workflow is idempotent. When invoked for an already merged change request, skip merge execution
-and perform verification and remaining cleanup.
+This workflow is idempotent. When invoked for an already merged change request, including one that
+auto-merge or another person merged, skip merge execution and perform verification and remaining
+cleanup.
 
 ## Authority and boundaries
 
 An explicit invocation of this skill, or a user request that asks to merge the change request,
-authorizes a normal policy-compliant merge and verified branch cleanup; implicit invocation alone
-never authorizes a merge. That authorization does not extend to:
+authorizes a normal policy-compliant merge, verified branch cleanup, and deleting the change
+request's own working artifacts as Working artifacts directs; implicit invocation alone never
+authorizes a merge. A request for post-merge cleanup authorizes the cleanup and no merge: when the
+change request is not merged, report its state and stop. That authorization does not extend to:
 
 - administrative bypass of checks, approvals, branch protections, merge queues, or unresolved
   threads;
@@ -43,7 +45,8 @@ never authorizes a merge. That authorization does not extend to:
 
 An administrative override of a forge protection requires an explicit same-invocation request naming
 that protection and must still comply with loaded repository policy. Unresolved review threads are
-not overrideable in this workflow; disposition and resolve them before merging.
+not overrideable in this workflow: reply to or resolve a thread only as the user directs for it;
+otherwise stop, report it, and recommend `git:babysit-pr` for automated-review threads.
 
 ## Forge selection
 
@@ -54,8 +57,8 @@ selection:
 - [GITHUB.md](references/GITHUB.md)
 - [GITLAB.md](references/GITLAB.md)
 
-This skill is adapter-blind. Adapter-specific outcomes belong to `address-pr-feedback` and its hand
-off. Enforce adapter approval only when the forge exposes it as a required check or approval.
+Beyond forge-required checks and approvals, the reviewed head in the pre-merge gate is this skill's
+only adapter requirement.
 
 ## Pre-merge gate
 
@@ -67,7 +70,7 @@ Before merging, require:
 - an open, non-draft change request, unless it is already merged;
 - a forge source head matching the local source head and, when the change request or its repository
   shows automated review activity, the reviewed head: the current source head and target branch the
-  last `git:address-pr-feedback` invocation reported with every adapter `approved` or
+  last `git:babysit-pr` invocation reported with every adapter `approved` or
   `resolved-with-exceptions`, or with another status the user explicitly accepted for that head and
   target branch after it was reported; a local review lane does not set it;
 - all required CI passing on that head;
@@ -83,10 +86,9 @@ error. Do not troubleshoot CI in this workflow.
 When target drift makes the branch unmergeable or requires new commits, stop and recommend invoking
 `git:create-pr` next.
 
-After any head change, recommend a `git:address-pr-feedback` round before returning to this skill;
-run that round only when the change request or its repository shows automated review activity and
-either this skill was explicitly invoked or the user's request asked for the review loop or for the
-merge.
+After any head change, when the change request or its repository shows automated review activity,
+run a `git:babysit-pr` round with the authority of its explicit invocation and return here at its
+hand off; otherwise continue on the new head.
 
 ## Merge method
 
@@ -94,14 +96,15 @@ When selecting the method, read [MERGE-METHOD.md](../../references/MERGE-METHOD.
 selection order. Run its durable-SHA search only when the selected path would rebase or squash topic
 commits.
 
-If the repository forbids the merge commit that a durable match requires, stop for a user decision.
 For a rebase or squash path, inspect ignored text only when repository guidance, the invocation, or
 the `create-pr` hand off identifies a local artifact. Record matching paths and SHAs without
 crawling ignored trees; their presence does not block the rewrite.
 
 Unless the selected method is squash or the change request is already merged, apply
-`git:tidy-history` in review mode to the topic branch. When it plans any change, stop and recommend
-`git:tidy-history` followed by a `git:address-pr-feedback` round.
+`git:tidy-history` in review mode to the topic branch. When it plans any change, stop, name each
+blocker it listed, and recommend `git:tidy-history` followed by a `git:babysit-pr` round. When it
+plans no change, continue; a listed blocker guards a local rewrite of the topic branch, which this
+merge does not perform.
 
 When merge commit is selected, preserve a repository-configured merge-message template. When squash
 creates a replacement commit, use the Conventional Commit change-request title as its subject and
@@ -124,13 +127,16 @@ After the forge reports success:
 5. check whether the remote topic branch still exists with
    `git ls-remote <remote> refs/heads/<branch>` against the remote that hosts it; a remote-tracking
    ref can outlive a branch the forge deleted;
-6. if it exists and permissions allow, delete it only after steps 1–4 succeed.
+6. if it exists, permissions allow, and it is neither the remote's default branch nor the source or
+   target of another open change request, delete it only after steps 1–4 succeed; otherwise keep it
+   and report it.
 
 Do not infer success from a CLI exit code alone.
 
 After a rebase or squash merge, if ignored SHA references were recorded, read
 [IGNORED-SHA-REFERENCES.md](references/IGNORED-SHA-REFERENCES.md) before refreshing them. Leave
-every reference unchanged unless that procedure proves its replacement.
+every reference unchanged unless that procedure proves its replacement, and skip a file that Working
+artifacts deletes.
 
 ## Local cleanup
 
@@ -150,6 +156,26 @@ after proving:
 
 If any proof is missing, preserve the branch.
 
+## Working artifacts
+
+After the remote verification passes, delete the interim files this change request left in ignored
+locations: drafts of its description, commit messages, and issue or comment bodies, saved forge
+output such as an issue or pull-request JSON dump, and poll or CI logs. Anything that must outlive
+the merge belongs in a tracked file, an issue, or the change request itself.
+
+- Delete a file only when all of these hold: it is untracked, and it is either ignored or a recorded
+  path under the system temporary directory; it is one of the kinds listed above; and its tie to
+  this change request is shown. The tie is shown when `git:create-pr`, `git:babysit-pr`, or this
+  session recorded writing the file for this change request, when its path contains the full topic
+  branch name as a directory path, such as `feat/retry/` for the branch `feat/retry`, or when its
+  name marks a change request and holds this one's number as a whole number, such as `pr-42-body.md`
+  for change request 42 and neither `pr-142.json` nor `issue-42.json`.
+- Look in the scratch location the repository's instructions name and at the recorded paths. Leave
+  other ignored trees, such as dependency and build directories, unread.
+- List every other file found there that looks related, and every handoff document, note, or
+  prototype even when its tie is shown, and ask the user once whether to delete each, keep it, or
+  first move its content to a tracked place. Without an answer, keep the files and report them.
+
 ## Completion
 
 Report:
@@ -163,4 +189,5 @@ Report:
 - remote branch deletion and fetched target state;
 - ignored SHA references updated or left unresolved;
 - local target update and topic-branch deletion;
+- working artifacts deleted, and those kept or awaiting the user's decision;
 - every cleanup item left for a later invocation.

@@ -11,7 +11,7 @@ export type Snapshot = Record<string, unknown>;
 export type Scenario = { snapshots: Snapshot[] };
 
 export function pollScript(name: string): string {
-  return path.resolve(here, "../../plugins/git/skills/address-pr-feedback/scripts", name);
+  return path.resolve(here, "../../plugins/git/skills/babysit-pr/scripts", name);
 }
 
 export async function recorded(fixture: string): Promise<Scenario> {

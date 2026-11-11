@@ -6,9 +6,14 @@ Select the expected merge method in this order:
 1. repository-enforced policy;
 2. explicit user choice;
 3. true fast-forward when the forge supports it;
-4. rebase when linear history is preferred and commit identity is disposable;
-5. merge commit by default to preserve the reviewed topic commits and their identities;
-6. squash only when explicitly justified by one semantic unit or unusable topic-branch history.
+4. rebase when the target keeps linear history and commit identity is disposable;
+5. squash only when one semantic unit or unusable topic-branch history explicitly justifies it;
+6. merge commit otherwise, to preserve the reviewed topic commits and their identities.
+
+The target keeps linear history when branch protection or a ruleset requires it, or when
+`git rev-list --first-parent --parents -n 20 <remote>/<target>` prints no line with more than one
+parent: none of the target's last 20 first-parent commits is a merge commit. Commit identity is
+disposable when the durable-SHA search below finds no match that requires stable identity.
 
 ## Durable SHA search
 

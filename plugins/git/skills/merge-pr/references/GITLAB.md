@@ -1,7 +1,5 @@
 # GitLab merge request merge
 
-Use this reference only after selecting a GitLab merge request.
-
 Commands and fields below are exemplars of the stated invariants. If the installed CLI lacks one,
 use an equivalent CLI or API path that preserves the invariant and report the deviation.
 

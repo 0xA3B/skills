@@ -44,28 +44,13 @@ cases:
     expect: invoke
     rationale: The user is asking to create a scoped commit.
 
-  - id: non-conventional-commit-request
-    prompt: >-
-      Commit these changes without using Conventional Commits.
-    expect: skip
-    rationale: The user explicitly asks not to use the commit standard owned by this skill.
-
   - id: gitmoji-commit-request
     prompt: >-
       Commit these changes using Gitmoji commit messages.
-    expect: skip
-    rationale: The user asks for a different commit message standard than Conventional Commits.
-
-  - id: agents-no-conventional-commits
-    prompt: >-
-      Commit these changes.
-    workspace_files:
-      AGENTS.md: |
-        # Project Conventions
-
-        Commit messages must not use Conventional Commits.
-    expect: skip
-    rationale: Repository instructions explicitly reject the commit standard owned by this skill.
+    expect: invoke
+    rationale: >-
+      Committing is this skill's workflow under any message convention; the repository's or the
+      user's convention replaces the default profile inside it.
 
   - id: agents-gitmoji-commits
     prompt: >-
@@ -75,8 +60,10 @@ cases:
         # Project Conventions
 
         Commit messages must use Gitmoji.
-    expect: skip
-    rationale: Repository instructions require a different commit message standard.
+    expect: invoke
+    rationale: >-
+      Committing is this skill's workflow under any message convention; the repository's or the
+      user's convention replaces the default profile inside it.
 
   - id: draft-message-only
     prompt: >-
@@ -113,3 +100,39 @@ cases:
       I am ready to commit to this implementation plan.
     expect: skip
     rationale: The word commit is used as ordinary language, not a git commit request.
+
+  - id: go-ahead-commit-and-push
+    prompt: >-
+      Yep, go ahead and commit and push.
+    workspace_files:
+      src/cache.ts: |
+        export const cacheTtlSeconds = 30;
+    expect: invoke
+    rationale: A short conversational go-ahead that chains a push after the commit.
+
+  - id: tests-pass-commit
+    prompt: >-
+      The tests pass now, so commit it.
+    workspace_files:
+      src/cache.ts: |
+        export const cacheTtlSeconds = 30;
+    expect: invoke
+    rationale: The commit follows a check the user reports as passed.
+
+  - id: branch-and-commit
+    prompt: >-
+      Create a branch and commit this.
+    workspace_files:
+      src/cache.ts: |
+        export const cacheTtlSeconds = 30;
+    expect: invoke
+    rationale: Creating the branch first does not move the commit to another skill.
+
+  - id: amend-last-commit-message
+    prompt: >-
+      Amend the last commit so its message says fix instead of feat.
+    workspace:
+      seed: node-service
+    expect: skip
+    invoke-instead: git:tidy-history
+    rationale: Rewriting an existing commit belongs to tidy-history.

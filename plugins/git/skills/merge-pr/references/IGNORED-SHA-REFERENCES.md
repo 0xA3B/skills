@@ -1,8 +1,5 @@
 # Ignored SHA references
 
-Use this reference only after a rebase or squash merge when ignored, untracked local artifacts
-contain recorded references to original topic commits.
-
 Update an ignored file only when all of these hold:
 
 - it is ignored and untracked at cleanup time;
@@ -14,5 +11,4 @@ Update an ignored file only when all of these hold:
 
 Accept an abbreviated SHA only when it resolves unambiguously. Do not guess after squash, duplicate
 patches, empty commits, concurrent target changes, or unavailable original objects. Leave ambiguous
-references unchanged and report them. Never rewrite tracked, non-ignored untracked, or published
-durable artifacts.
+references unchanged and report them.

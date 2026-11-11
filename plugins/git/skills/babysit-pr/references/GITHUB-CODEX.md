@@ -1,5 +1,8 @@
 # GitHub Codex review adapter
 
+Contents: Identity and selection, Initial review, Polling script, Findings and approval, Responses
+and thread resolution, Follow-up review.
+
 Use this adapter for Codex code review on GitHub. Its external protocol may change; when live
 behavior contradicts this reference, stop and report the observed difference instead of guessing.
 
@@ -39,8 +42,7 @@ checkout is a fork. Read the outcome from its `exit=` line:
 - `0`: the review of the head completed with no unresolved Codex threads, or a reaction-only clean
   round (a 👍 after the head was published, with no summary row). A last printed `thumbs` count of
   one or more is the clean signal; zero after the extra polls is a completed review without it,
-  classified by the round's dispositions. Every terminal exit re-reads the head and the base after
-  its dump, so a push or a retarget during the wait exits `3` instead.
+  classified by the round's dispositions.
 - `1`: the review completed with unresolved Codex threads; the dump holds the round's findings.
 - `2`: the connector reported an error; apply the transient-error rule below.
 - `3`: the head or the base changed during the poll; rerun on the new head. When the line before
@@ -73,13 +75,10 @@ gh pr view <pr-url> --json headRefOid,mergeStateStatus,statusCheckRollup
 Use the pull request's resolved base owner and repository for `{owner}` and `{repo}`. Substitute the
 pull request number for `<pr>` and its full URL for `<pr-url>`.
 
-Findings appear as a Codex review plus inline review comments. Track inline comment IDs and review
-thread IDs. GitHub may re-anchor unresolved comments to a newer commit, so `commit_id` is not a
-stable indication that a finding is new.
-
-Each inline finding carries a severity badge from P1 to P3. P1 claims the top consequence tier and
-P2 and P3 claim below it; the shared feedback discipline rates that claim. A finding that appears
-only in a review body carries no badge.
+Findings appear as a Codex review plus inline review comments. Each inline finding carries a
+severity badge from P1 to P3. P1 claims the top consequence tier and P2 and P3 claim below it; the
+shared feedback discipline rates that claim. A finding that appears only in a review body carries no
+badge.
 
 If the connector returns an explicit transient error and requests another `@codex review`, treat the
 error as adapter activity and retry once for that head. Return `blocked` when the retry returns the
@@ -97,21 +96,7 @@ Follow-up review decides whether the new head needs its own signal.
 
 ## Responses and thread resolution
 
-Query the complete review-thread connection through `gh api graphql` and act through its mutations —
-`addPullRequestReviewThreadReply` to reply and `resolveReviewThread` to resolve, both fed by the
-thread `id` from that query. `gh` has no native subcommand for either action.
-
-Apply the shared feedback discipline before acting. After disposition:
-
-- react 👍 to an accepted finding and 👎 to a rejected finding when the inline comment offers that
-  feedback channel;
-- reply with the accepted fix and validation, or the technical evidence for rejection;
-- resolve the GitHub review thread only after the disposition is recorded;
-- verify the thread no longer appears in the pull request's unresolved review threads.
-
-When a finding exists only in a review body and has no inline comment or thread, record its
-disposition in a pull-request comment that names the finding. Skip reaction and thread-resolution
-steps that have no target.
+Reply to, react to, and resolve threads as [GITHUB-THREADS.md](GITHUB-THREADS.md) directs.
 
 In a pull request description, reply, or comment, write the `@codex` mention only in a review
 request this adapter allows or the user asks to have posted, and otherwise name Codex without the
@@ -123,9 +108,7 @@ fixes, validation, commits, and push authority, so no mention asks Codex to addr
 
 The connector's automatic-review configuration decides whether a push starts another Codex review,
 and this adapter requests none beyond the single retry the transient-error rule allows and the
-late-review request below. A summary row whose review trigger reads `New commits` means the
-repository reviews every push: watch for that review, and post `@codex review` only as the
-late-review request.
+late-review request below.
 
 After a push, watch the new head with the polling script. A hand-assembled query misses the 👀
 reaction and the `Running` row the connector edits into the summary comment in place. Any exit other
@@ -134,11 +117,11 @@ the round requires a current-head terminal response within the response timeout;
 pushed after the adapter converged under `4. Stop rounds` is the later-head review the convergence
 rule describes.
 
-When the pushed head exits `4` and the summary row's trigger reads `New commits`, the review is
-late, not absent: Codex has posted a pushed head's review about seven minutes after the push. Keep
-the earlier head's approval off the pushed head, post `@codex review` once as the late-review
-request, and run the polling script on that head again. A second exit `4` returns `timed-out`, which
-replaces the classification the adapter's last review earned, including after convergence. When no
-summary row reads `New commits`, exit `4` applies the pushed-head outcome from
-`2. Poll active adapters`, or the initial-head outcome when no earlier Codex review covers any head
-of the pull request.
+When the pushed head exits `4` and the summary row's trigger reads `New commits`, which means the
+repository reviews every push, the review is late, not absent: Codex has posted a pushed head's
+review about seven minutes after the push. Keep the earlier head's approval off the pushed head,
+post `@codex review` once as the late-review request, and run the polling script on that head again.
+A second exit `4` returns `timed-out`, which replaces the classification the adapter's last review
+earned, including after convergence. When no summary row reads `New commits`, exit `4` applies the
+pushed-head outcome from `2. Poll active adapters`, or the initial-head outcome when no earlier
+Codex review covers any head of the pull request.

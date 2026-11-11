@@ -70,11 +70,53 @@ cases:
     prompt: >-
       Codex left three findings on pull request 42. Work through them and request another review.
     expect: skip
-    invoke-instead: git:address-pr-feedback
-    rationale: Automated review feedback belongs to address-pr-feedback.
+    invoke-instead: git:babysit-pr
+    rationale: Automated review feedback belongs to babysit-pr.
 
   - id: conceptual-question
     prompt: >-
       What is the difference between a merge commit and a squash merge?
     expect: skip
     rationale: A conceptual question does not ask to merge a change request.
+
+  - id: go-ahead-and-merge-then
+    prompt: >-
+      Got it, let's go ahead and merge PR 42 then!
+    expect: invoke
+    rationale: A conversational go-ahead to merge a specific pull request.
+
+  - id: merge-multiple-prs
+    prompt: >-
+      Go ahead and merge #191 and #193.
+    expect: invoke
+    rationale: Several pull requests in one request.
+
+  - id: merge-then-more-work
+    prompt: >-
+      Merge PR #164, then start on issue #162.
+    expect: invoke
+    rationale: The merge leads a request that continues with other work.
+
+  - id: approved-merge-it
+    prompt: >-
+      PR 42 is approved, merge it.
+    expect: invoke
+    rationale: The terse approval-then-merge form.
+
+  - id: post-merge-cleanup
+    prompt: >-
+      PR 42 was auto-merged. Do the post-merge cleanup.
+    expect: invoke
+    rationale: Cleanup after a merge someone else made is this skill's idempotent tail.
+
+  - id: push-and-ask-ci
+    prompt: >-
+      Add a note about the retry limit to the README and push it. Did CI pass on the last run?
+    expect: skip
+    rationale: A push and a CI question ask for no merge.
+
+  - id: merge-readiness-question
+    prompt: >-
+      Is PR 42 ready to merge?
+    expect: skip
+    rationale: A readiness question commands no merge.
