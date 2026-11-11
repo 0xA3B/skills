@@ -23,6 +23,7 @@ export async function replay(
   script: string,
   scenario: Scenario,
   args: string[],
+  extraEnv: Record<string, string> = {},
 ): Promise<{ exitCode: number; stdout: string }> {
   const work = await mkdtemp(path.join(tmpdir(), "poll-replay-"));
   try {
@@ -47,6 +48,7 @@ export async function replay(
           FAKE_GH_DIR: work,
           PATH: `${bin}${path.delimiter}${env["PATH"] ?? ""}`,
           REPO: "0xA3B/skills",
+          ...extraEnv,
         },
       });
       return { exitCode: 0, stdout };
@@ -56,5 +58,23 @@ export async function replay(
     }
   } finally {
     await rm(work, { force: true, recursive: true });
+  }
+}
+
+// Runs a poll script with an empty PATH, so it finds neither gh nor jq.
+export async function runWithoutTools(
+  script: string,
+): Promise<{ exitCode: number; stdout: string }> {
+  const emptyPath = await mkdtemp(path.join(tmpdir(), "poll-no-tools-"));
+  try {
+    const { stdout } = await execFileAsync("/bin/bash", [script, "1"], {
+      env: { PATH: emptyPath, REPO: "0xA3B/skills" },
+    });
+    return { exitCode: 0, stdout };
+  } catch (caught: unknown) {
+    const failure = caught as { code: number; stdout: string; stderr: string };
+    return { exitCode: failure.code, stdout: failure.stdout + failure.stderr };
+  } finally {
+    await rm(emptyPath, { force: true, recursive: true });
   }
 }

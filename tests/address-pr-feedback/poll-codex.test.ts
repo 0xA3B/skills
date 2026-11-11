@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { pollScript, recorded, replay, type Scenario, type Snapshot } from "./replay.js";
+import {
+  pollScript,
+  recorded,
+  replay,
+  runWithoutTools,
+  type Scenario,
+  type Snapshot,
+} from "./replay.js";
 
 const script = pollScript("poll-codex.sh");
 
@@ -16,7 +23,9 @@ type Thread = {
   };
 };
 
-// Recorded from #293 with `record-poll`: a completed Codex review of 66b91ba with its 👍.
+// Recorded from #293 with `record-poll`: a completed Codex review of 66b91ba with its 👍. The base
+// branch and the empty retarget timeline were added by hand when the script began to read them;
+// #293 targeted main and was never retargeted.
 async function recordedClean(): Promise<Scenario> {
   return recorded("codex-clean.json");
 }
@@ -62,8 +71,24 @@ function reactions(...items: [content: string, createdAt: string][]): Snapshot {
   };
 }
 
-async function poll(scenario: Scenario): Promise<{ exitCode: number; stdout: string }> {
-  return replay(script, scenario, ["293", "60", "3"]);
+async function poll(
+  scenario: Scenario,
+  env: Record<string, string> = {},
+): Promise<{ exitCode: number; stdout: string }> {
+  return replay(script, scenario, ["293", "60", "3"], env);
+}
+
+const RECORDED_HEAD = "66b91ba1368a60a7d13d1bb715a2af47ffe2173e";
+const EARLIER_HEAD = "1".repeat(40);
+
+function runningSummary(scenario: Scenario): string {
+  const completed = summaryBody(scenario);
+  const running = completed.replace(
+    /✅ \*\*Completed\*\* <relative-time datetime="[^"]+">[^<]+<\/relative-time>/u,
+    '🔄 **Running** since <relative-time datetime="2026-11-07T03:16:45Z">2026-11-07T03:16:45Z</relative-time>',
+  );
+  expect(running).not.toBe(completed);
+  return running;
 }
 
 describe("poll-codex.sh", () => {
@@ -149,5 +174,142 @@ describe("poll-codex.sh", () => {
 
     expect(exitCode).toBe(3);
     expect(stdout).toContain("head changed");
+  });
+
+  // Observed on #252: GitHub reported the earlier head for about 11 minutes after a force push,
+  // and the script classified that head's completed review under exit 0.
+  it("waits for the forge to report the expected head before classifying", async () => {
+    const scenario = await recordedClean();
+    const pr = scenario.snapshots[0]?.["pr"] as Record<string, unknown>;
+    scenario.snapshots = [
+      { ...scenario.snapshots[0], pr: { ...pr, headRefOid: EARLIER_HEAD } },
+      { pr },
+    ];
+
+    const { exitCode, stdout } = await poll(scenario, { EXPECT_HEAD: RECORDED_HEAD });
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain(`waiting for the forge to report ${RECORDED_HEAD}`);
+    expect(stdout).toContain("terminal: completed review of 66b91ba");
+  });
+
+  it("exits 3 when the forge never reports the expected head", async () => {
+    const { exitCode, stdout } = await poll(await recordedClean(), { EXPECT_HEAD: EARLIER_HEAD });
+
+    expect(exitCode).toBe(3);
+    expect(stdout).toContain(
+      `the forge reports ${RECORDED_HEAD}, not the expected ${EARLIER_HEAD}`,
+    );
+    expect(stdout).not.toContain("terminal:");
+  });
+
+  it("exits 3 when the base changes during the wait", async () => {
+    const scenario = await recordedClean();
+    const pr = scenario.snapshots[0]?.["pr"] as Record<string, unknown>;
+    scenario.snapshots = [
+      {
+        ...scenario.snapshots[0],
+        ...withSummary(runningSummary(scenario)),
+        ...reactions(["eyes", "2026-11-07T03:16:46Z"]),
+      },
+      { ...withSummary(summaryBody(scenario)), pr: { ...pr, baseRefName: "develop" } },
+    ];
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(3);
+    expect(stdout).toContain("base changed: develop");
+  });
+
+  it("exits 6 when the forge reports no head while the script waits for the expected one", async () => {
+    const scenario = await recordedClean();
+    const pr = scenario.snapshots[0]?.["pr"] as Record<string, unknown>;
+    scenario.snapshots = [{ ...scenario.snapshots[0], pr: { ...pr, headRefOid: null } }];
+
+    const { exitCode, stdout } = await poll(scenario, { EXPECT_HEAD: EARLIER_HEAD });
+
+    expect(exitCode).toBe(6);
+    expect(stdout).toContain("observation failure: empty head");
+  });
+
+  // A base the forge fails to report is a failed observation, not a retarget.
+  it("exits 6 when the forge reports no base during the wait", async () => {
+    const scenario = await recordedClean();
+    const pr = scenario.snapshots[0]?.["pr"] as Record<string, unknown>;
+    scenario.snapshots = [
+      { ...scenario.snapshots[0], ...reactions() },
+      { pr: { ...pr, baseRefName: null } },
+    ];
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(6);
+    expect(stdout).toContain("observation failure: empty base");
+  });
+
+  // The terminal exit re-reads the state after the dump and the extra 👍 polls.
+  it("exits 3 when the base changes after the terminal signal", async () => {
+    const scenario = await recordedClean();
+    const pr = scenario.snapshots[0]?.["pr"] as Record<string, unknown>;
+    scenario.snapshots = [
+      { ...scenario.snapshots[0], ...reactions() },
+      { pr: { ...pr, baseRefName: "develop" } },
+    ];
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(stdout).toContain("terminal: completed review of 66b91ba");
+    expect(exitCode).toBe(3);
+    expect(stdout).toContain("base changed: develop");
+  });
+
+  // A review of the diff against the old base says nothing about the diff against the new one.
+  // GitHub records a manual retarget as base_ref_changed and its own retarget of a stacked pull
+  // request as automatic_base_change_succeeded.
+  it.each(["base_ref_changed", "automatic_base_change_succeeded"])(
+    "exits 9 when the head's completed review predates a %s event",
+    async (event) => {
+      const scenario = await recordedClean();
+      Object.assign(scenario.snapshots[0] ?? {}, {
+        timeline: [{ event, created_at: "2026-11-08T00:00:00Z" }],
+      });
+
+      const { exitCode, stdout } = await poll(scenario);
+
+      expect(exitCode).toBe(9);
+      expect(stdout).toContain("predates the retarget at 2026-11-08T00:00:00Z");
+    },
+  );
+
+  // The recorded review completed at 03:17:27Z and its 👍 came at 03:17:30Z.
+  it("does not read a stale review's late 👍 as a reaction-only clean signal", async () => {
+    const scenario = await recordedClean();
+    Object.assign(scenario.snapshots[0] ?? {}, {
+      timeline: [{ event: "base_ref_changed", created_at: "2026-11-07T03:17:28Z" }],
+    });
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(9);
+    expect(stdout).not.toContain("reaction-only clean signal");
+  });
+
+  it("counts a review that completed in the same second as the retarget", async () => {
+    const scenario = await recordedClean();
+    Object.assign(scenario.snapshots[0] ?? {}, {
+      timeline: [{ event: "base_ref_changed", created_at: "2026-11-07T03:17:27Z" }],
+    });
+
+    const { exitCode, stdout } = await poll(scenario);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("terminal: completed review of 66b91ba");
+  });
+
+  it("exits 6 and names the tool when gh is missing", async () => {
+    const { exitCode, stdout } = await runWithoutTools(script);
+
+    expect(exitCode).toBe(6);
+    expect(stdout).toContain("missing dependency: gh");
   });
 });

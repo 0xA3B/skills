@@ -16,27 +16,31 @@ repository evidence.
 ## Polling script
 
 Run [`scripts/poll-copilot.sh`](../scripts/poll-copilot.sh) on the initial head and after every
-push: `<skill-dir>/scripts/poll-copilot.sh <pr> [interval-seconds] [max-polls]`, unsandboxed and in
-the foreground, because a background completion does not wake every agent. Set `REPO` to the
-forge-side base repository when the checkout is a fork. Observed activity decides first: a Copilot
-review request created after the head was published, or a Copilot review of the head, starts the
-wait. Only without either does the script read the repository rules that apply to the base branch,
-to learn whether the configuration reviews the head. The script prints the review body and every
-unresolved Copilot thread with its id and comments; when it prints a `truncated:` line for a thread,
-fetch that thread's remaining comments before triage. Triage the threads as Findings and approval
-directs. Read the outcome from its `exit=` line:
+push: `<skill-dir>/scripts/poll-copilot.sh <pr> [interval-seconds] [max-polls]`, run as
+`2. Poll active adapters` directs. Set `REPO` to the forge-side base repository when the checkout is
+a fork. Observed activity decides first: a Copilot review request created after the head was
+published, or a Copilot review of the head, starts the wait. Only without either does the script
+read the repository rules that apply to the base branch, to learn whether the configuration reviews
+the head. The script prints the review body and every unresolved Copilot thread with its id and
+comments; when it prints a `truncated:` line for a thread, fetch that thread's remaining comments
+before triage. Triage the threads as Findings and approval directs. Read the outcome from its
+`exit=` line:
 
 - `0`: Copilot completed a review of the head, and no Copilot thread is unresolved.
 - `1`: Copilot completed a review of the head; the dump holds its unresolved threads.
 - `2`: Copilot stated that it could not review the head; classify the adapter `blocked` with the
   stated cause, as Findings and approval directs.
-- `3`: the head changed during the poll; rerun on the new head.
+- `3`: the head or the base changed during the poll; rerun on the new head. When the line before
+  `exit=` says the forge never reported the expected head, confirm with `git ls-remote` that the
+  push reached the remote and rerun once; return `blocked` when it repeats.
 - `4`: the configuration reviews the head, or the script could not rule that out, but no
   acknowledgment came within the acknowledgment window. For the initial head, return `timed-out` and
   report that the automatic-review configuration may need checking; for a pushed head, apply
   Follow-up review.
 - `5`: the poll budget ended after acknowledgment without a review; return `timed-out`.
-- `6`: observation failure; retry once, then return `blocked`.
+- `6`: observation failure; retry once, then return `blocked`. When the output names a missing
+  dependency or a bad `EXPECT_HEAD`, a retry repeats the failure: follow `2. Poll active adapters`
+  or correct the value instead.
 - `7`: the configuration does not review this pull request, Copilot never reviewed it, and no
   Copilot activity appeared within the acknowledgment window: no Copilot rule covers the base, no
   rule reviews drafts, or the pull request was retargeted onto the base and has since neither left
@@ -46,6 +50,10 @@ directs. Read the outcome from its `exit=` line:
 - `8`: the configuration does not review this head, such as a push under `review_on_push: false`,
   and no Copilot activity appeared within the acknowledgment window; apply Follow-up review with the
   last reviewed head the script prints.
+- `9`: the head's only review predates the pull request's last retarget, so it covered the diff
+  against the earlier base, and no Copilot activity followed the retarget. Classify the adapter
+  `resolved-with-exceptions` with the retarget as the exception; the earlier classification does not
+  carry forward.
 
 Repository rules are not the only source of Copilot reviews: an organization or user setting, or a
 manual request, can start one that the rules do not show. Before exit `7` or `8`, the script waits

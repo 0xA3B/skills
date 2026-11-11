@@ -9,6 +9,11 @@
 #   BOT, MARK  reviewer login and summary-comment marker (defaults: the Codex connector)
 #   REPO       forge-side base repository as owner/name (default: the URL argument, else the
 #              checkout's remote)
+#   EXPECT_HEAD  full SHA of the head the caller pushed. The forge can report the earlier head for
+#              minutes after a push, so the script waits up to max-polls intervals for the forge to
+#              report this head and exits 3 when it never does. Unset, the script classifies
+#              whatever head the forge reports.
+# Needs gh and jq.
 #
 # Acknowledgment of a head is the summary table's Running row naming that head; a 👀 reaction
 # counts only when created after the head was published and no summary row names the head,
@@ -18,14 +23,21 @@
 # after the head was published (a reaction-only clean round): the floor is the latest of the head
 # commit date, the pull request's creation time, and the last force push, so a plain push of an
 # already-created older commit is the one case an earlier 👍 can cover; the terminal line prints
-# both timestamps for that case. The head is re-read after every terminal dump so a push during the
-# wait exits 3 instead of classifying the old head.
+# both timestamps for that case. The head and the base are re-read after every terminal dump so a
+# push or a retarget during the wait exits 3 instead of classifying the old state. A review that
+# completed before the pull request's last retarget covered the diff against the old base, so it
+# does not count: the publication floor includes the retarget, and a Completed row older than it
+# ends in exit 9 once the acknowledgment window passes without a newer review; a 👍 that follows
+# such a row belongs to that review and is no reaction-only clean signal. The summary row gives no
+# start time, so a review that was running when the pull request was retargeted and completed
+# afterward still counts.
 #
 # Exit codes: 0 completed review with no unresolved Codex threads; 1 completed with unresolved
-#             Codex threads; 2 the connector reported an error for the head; 3 the head changed;
-#             4 no acknowledgment within ACK_POLLS intervals; 5 max polls reached; 6 observation
-#             failure.
-# Run unsandboxed in the foreground (gh needs the keyring). To keep a log and the exit code:
+#             Codex threads; 2 the connector reported an error for the head; 3 the head or the base
+#             changed, or the forge never reported EXPECT_HEAD; 4 no acknowledgment within
+#             ACK_POLLS intervals; 5 max polls reached; 6 observation failure or a missing tool;
+#             9 the head's only review predates the last retarget.
+# Run unsandboxed (gh needs the keyring). To keep a log and the exit code:
 #   poll-codex.sh 123 > .local/poll.log; rc=$?; cat .local/poll.log
 set -u -o pipefail
 PR_ARG="${1:?pr number or url}"
@@ -35,6 +47,17 @@ ACK_POLLS="${ACK_POLLS:-2}"
 BOT="${BOT:-chatgpt-codex-connector[bot]}"
 MARK="${MARK:-codex-pull-request-review-summary}"
 trap 'echo "exit=$?"' EXIT
+for tool in gh jq; do
+  command -v "${tool}" >/dev/null 2>&1 || {
+    echo "missing dependency: ${tool}"
+    exit 6
+  }
+done
+EXPECT_HEAD="${EXPECT_HEAD:-}"
+if [[ -n "${EXPECT_HEAD}" ]] && ! [[ "${EXPECT_HEAD}" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "bad EXPECT_HEAD: ${EXPECT_HEAD} is not a full commit SHA"
+  exit 6
+fi
 NUM="${PR_ARG##*/}"
 [[ "${NUM}" =~ ^[1-9][0-9]*$ ]] || {
   echo "bad pr argument: ${PR_ARG}"
@@ -45,13 +68,26 @@ if [[ -z "${REPO:-}" ]] && [[ "${PR_ARG}" =~ ^https://github\.com/([^/]+/[^/]+)/
 fi
 REPO="${REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}" || exit 6
 [[ -n "${REPO}" ]] || exit 6
-HEAD="$(gh pr view "${NUM}" --repo "${REPO}" --json headRefOid -q .headRefOid)" || exit 6
-[[ -n "${HEAD}" ]] || exit 6
-SHORT="${HEAD:0:7}"
 observe() {
   echo "observation failure: $1"
   exit 6
 }
+read_head() { gh pr view "${NUM}" --repo "${REPO}" --json headRefOid -q .headRefOid; }
+HEAD="$(read_head)" || observe "head"
+for ((w = 0; ; w++)); do
+  [[ -n "${HEAD}" ]] && [[ "${HEAD}" != null ]] || observe "empty head"
+  [[ -z "${EXPECT_HEAD}" ]] || [[ "${HEAD}" = "${EXPECT_HEAD}" ]] && break
+  if [[ "${w}" -ge "${MAX}" ]]; then
+    echo "the forge reports ${HEAD}, not the expected ${EXPECT_HEAD}, after ${MAX} polls"
+    exit 3
+  fi
+  echo "waiting for the forge to report ${EXPECT_HEAD}; it reports ${HEAD}"
+  sleep "${INTERVAL}"
+  HEAD="$(read_head)" || observe "head"
+done
+SHORT="${HEAD:0:7}"
+BASE="$(gh pr view "${NUM}" --repo "${REPO}" --json baseRefName -q .baseRefName)" || observe "base"
+[[ -n "${BASE}" ]] && [[ "${BASE}" != null ]] || observe "empty base"
 COMMIT_AT="$(gh api "repos/${REPO}/commits/${HEAD}" --jq .commit.committer.date)" || observe "head commit"
 PR_AT="$(gh pr view "${NUM}" --repo "${REPO}" --json createdAt -q .createdAt)" || observe "pr createdAt"
 # shellcheck disable=SC2016 # $owner, $name, and $num are GraphQL variables.
@@ -60,23 +96,36 @@ FORCE_AT="$(gh api graphql -F owner="${REPO%/*}" -F name="${REPO#*/}" -F num="${
     pullRequest(number:$num){ timelineItems(itemTypes:[HEAD_REF_FORCE_PUSHED_EVENT], last:1){
       nodes{ ... on HeadRefForcePushedEvent { createdAt } } } } } }' \
   --jq '.data.repository.pullRequest.timelineItems.nodes[-1].createdAt // ""')" || observe "force pushes"
-HEAD_AT="$(printf '%s\n' "${COMMIT_AT}" "${PR_AT}" "${FORCE_AT}" | sort | tail -1)"
+RETARGET_AT="$(gh api --paginate "repos/${REPO}/issues/${NUM}/timeline" \
+  --jq '.[] | select(.event == "base_ref_changed" or .event == "automatic_base_change_succeeded") | .created_at' \
+  | sort | tail -1)" || observe "timeline events"
+# A signal counts only when it follows both the head's publication and the last retarget.
+HEAD_AT="$(printf '%s\n' "${COMMIT_AT}" "${PR_AT}" "${FORCE_AT}" "${RETARGET_AT}" | sort | tail -1)"
 [[ -n "${HEAD_AT}" ]] || observe "head publication time"
-echo "pr=${NUM} repo=${REPO} head=${HEAD} published>=${HEAD_AT} interval=${INTERVAL}s max=${MAX}"
+echo "pr=${NUM} repo=${REPO} base=${BASE} head=${HEAD} published>=${HEAD_AT}" \
+  "retargeted=${RETARGET_AT:-never} interval=${INTERVAL}s max=${MAX}"
 
-head_still() { # exit 3 when the head moved since the script started
-  local h
-  h="$(gh pr view "${NUM}" --repo "${REPO}" --json headRefOid -q .headRefOid)" || observe "head"
-  [[ -n "${h}" ]] || observe "empty head"
+still() { # exit 3 when the head or the base moved since the script started
+  local now h b
+  now="$(gh pr view "${NUM}" --repo "${REPO}" --json headRefOid,baseRefName \
+    -q '"\(.headRefOid) \(.baseRefName)"')" || observe "head and base"
+  h="${now%% *}"
+  b="${now#* }"
+  [[ -n "${h}" ]] && [[ "${h}" != null ]] || observe "empty head"
   [[ "${h}" = "${HEAD}" ]] || {
     echo "head changed: ${h}"
     exit 3
   }
+  [[ -n "${b}" ]] && [[ "${b}" != null ]] || observe "empty base"
+  [[ "${b}" = "${BASE}" ]] || {
+    echo "base changed: ${b}"
+    exit 3
+  }
 }
 finish() {
-  head_still
+  still
   exit "$1"
-} # every terminal exit re-reads the head after the dump
+} # every terminal exit re-reads the head and the base after the dump
 # The summary comment's first table row with a status, or empty; fails on a gh error. Only a table
 # row names the commit: the comment's <details> header repeats the status without it.
 summary_line() {
@@ -137,20 +186,30 @@ dump() {
 }
 
 ack=0
+stale=""
 for ((i = 1; i <= MAX; i++)); do
-  now="$(gh pr view "${NUM}" --repo "${REPO}" --json headRefOid -q .headRefOid)" || observe "head"
-  [[ -n "${now}" ]] || observe "empty head"
-  if [[ "${now}" != "${HEAD}" ]]; then
-    echo "head changed: ${now}"
-    exit 3
-  fi
+  still
   summary="$(summary_line)" || observe "comments"
-  eyes="$(reaction_count eyes "${HEAD_AT}")" || observe "reactions"
-  echo "$(date -u +%H:%M:%S) poll ${i} eyes=${eyes} summary=[${summary}]"
+  # A Completed row older than the last retarget reviewed the diff against the old base.
   case "${summary}" in
     *Completed*"${SHORT}"*)
       done_at="$(completed_at "${summary}")"
       [[ -n "${done_at}" ]] || observe "Completed line has no datetime"
+      # The row's timestamp carries fractional seconds and the timeline's does not; compare whole
+      # seconds, so a review that completed in the retarget's own second still counts.
+      done_second="${done_at%%.*}"
+      done_second="${done_second%Z}Z"
+      if [[ -n "${RETARGET_AT}" ]] && [[ "${done_second}" < "${RETARGET_AT}" ]]; then
+        stale="${done_at}"
+        summary=""
+      fi
+      ;;
+    *) ;;
+  esac
+  eyes="$(reaction_count eyes "${HEAD_AT}")" || observe "reactions"
+  echo "$(date -u +%H:%M:%S) poll ${i} eyes=${eyes} summary=[${summary}]"
+  case "${summary}" in
+    *Completed*"${SHORT}"*)
       thumbs="$(reaction_count +1 "${done_at}")" || observe "reactions"
       echo "terminal: completed review of ${SHORT} at ${done_at}; thumbs=${thumbs}"
       dump
@@ -171,7 +230,7 @@ for ((i = 1; i <= MAX; i++)); do
     *Running*"${SHORT}"*) ack=1 ;;
     *) ;;
   esac
-  if [[ -z "${summary}" ]]; then
+  if [[ -z "${summary}" ]] && [[ -z "${stale}" ]]; then
     # Reaction-only clean round: a 👍 created after the head commit with no summary row.
     thumbs="$(reaction_count +1 "${HEAD_AT}")" || observe "reactions"
     if [[ "${thumbs}" -gt 0 ]]; then
@@ -183,6 +242,11 @@ for ((i = 1; i <= MAX; i++)); do
   fi
   # A 👀 created after the head was published acknowledges it unless a summary row names the head.
   case "${summary}" in *"${SHORT}"*) ;; *) [[ "${eyes}" -gt 0 ]] && ack=1 ;; esac
+  if [[ "${ack}" -eq 0 ]] && [[ "${i}" -gt "${ACK_POLLS}" ]] && [[ -n "${stale}" ]]; then
+    echo "the review of ${SHORT} completed at ${stale}, which predates the retarget at ${RETARGET_AT}"
+    dump
+    finish 9
+  fi
   if [[ "${ack}" -eq 0 ]] && [[ "${i}" -gt "${ACK_POLLS}" ]]; then
     echo "no acknowledgment of ${SHORT} within ${ACK_POLLS} intervals"
     dump

@@ -22,7 +22,7 @@ if (!dir) {
 const args = process.argv.slice(2);
 const real = process.env["FAKE_GH_REAL"];
 
-// The timeline events poll-copilot.sh reads; recording drops the rest.
+// The timeline events the poll scripts read; recording drops the rest.
 const TIMELINE_EVENTS = new Set([
   "automatic_base_change_succeeded",
   "base_ref_changed",
