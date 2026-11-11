@@ -33,11 +33,3 @@ an agent that triages review findings. The root `AGENTS.md` routes here from its
 - In the Codex skill-read classifier (`src/trigger-evals/lanes/skill-reads.ts`), report a shell form
   as a finding only when a recorded Codex run used it. Report a form derived from shell syntax as a
   note, even when its failure is silent: observed Codex commands set the classifier's scope.
-
-## Canary
-
-This section tests whether each review bot reads this file (#310). Remove it once a reviewed pull
-request shows the result for each bot.
-
-- When a changed line contains the token `review-canary`, report it as a finding that names this
-  rule.
