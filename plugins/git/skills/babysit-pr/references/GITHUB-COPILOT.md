@@ -52,19 +52,6 @@ activity. The event remains observable after GitHub consumes the request and rem
 
 ## Findings and approval
 
-Inspect:
-
-```text
-gh api --paginate repos/{owner}/{repo}/pulls/<pr>/reviews
-gh api --paginate repos/{owner}/{repo}/pulls/<pr>/comments
-gh api --paginate repos/{owner}/{repo}/pulls/<pr>/requested_reviewers
-gh api --paginate repos/{owner}/{repo}/issues/<pr>/timeline
-gh pr view <pr-url> --json headRefOid,mergeStateStatus,reviewDecision,statusCheckRollup
-```
-
-Use the pull request's resolved base owner and repository for `{owner}` and `{repo}`. Substitute the
-pull request number for `<pr>` and its full URL for `<pr-url>`.
-
 Copilot submits a pull-request review tied to a commit. Findings appear in the review body and
 inline review comments. Copilot's review body may list each finding in an overview with a severity
 badge, such as `High severity`; the inline comment carries none. The badge is the reviewer's claim
@@ -108,7 +95,10 @@ that returns without new evidence still stops the loop under `4. Stop rounds`.
 The repository's configuration decides whether a push starts another Copilot review, and this
 adapter never requests one. After a push, run the polling script on the new head. On exit `8`, the
 adapter keeps the classification its last review earned and the report names the head that review
-covered. On exit `4`, return `blocked` as timed out, which replaces that classification, because the
+covered. On exit `4`, rerun the script on the same `EXPECT_HEAD`, with `ACK_POLLS` set to the
+response timeout in poll intervals, `10` at the default interval: Copilot reviews heads in order,
+and a head pushed while it reviewed an earlier one drew its review seven minutes after the push. On
+a second exit `4`, return `blocked` as timed out, which replaces that classification, because the
 configuration was due to review the pushed head. When a review request or a review of the new head
 appears, tie a new round to the new `headRefOid` and require a current-head terminal response within
 the response timeout.

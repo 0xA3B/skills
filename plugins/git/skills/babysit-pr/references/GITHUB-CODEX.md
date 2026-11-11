@@ -31,14 +31,13 @@ without the adapter's clean signal.
 
 Run [`scripts/poll-codex.sh`](../scripts/poll-codex.sh) to wait for the terminal signal:
 `<skill-dir>/scripts/poll-codex.sh <pr> [interval-seconds] [max-polls]`, run as
-`2. Poll active adapters` directs. After exit `0` or `1`, fetch the head's Codex review body as
-Findings and approval directs, because the dump lists only review threads. The script prints one
-line per poll and, on a terminal signal, every unresolved thread Codex opened, with its thread id,
-comment ids, and full bodies, then the head, merge state, checks, and the count of unresolved
-threads from every reviewer. Its defaults are the login and summary marker named above; set `BOT` or
-`MARK` when the connector renames either, and `REPO` to the forge-side base repository when the
-checkout is a fork. Read the outcome from its `exit=` line as `2. Poll active adapters` lists them,
-with these refinements:
+`2. Poll active adapters` directs. The script prints one line per poll and, on a terminal signal,
+every unresolved thread Codex opened, with its thread id, comment ids, and full bodies, then the
+body of each Codex review of the head, then the head, merge state, checks, and the count of
+unresolved threads from every reviewer. Its defaults are the login and summary marker named above;
+set `BOT` or `MARK` when the connector renames either, and `REPO` to the forge-side base repository
+when the checkout is a fork. Read the outcome from its `exit=` line as `2. Poll active adapters`
+lists them, with these refinements:
 
 - `0` also covers a reaction-only clean round: a 👍 after the head was published, with no summary
   row. A last printed `thumbs` count of one or more is the clean signal; zero after the extra polls
@@ -47,19 +46,6 @@ with these refinements:
 - `4` on a pushed head: apply Follow-up review.
 
 ## Findings and approval
-
-Inspect:
-
-```text
-gh api --paginate repos/{owner}/{repo}/pulls/<pr>/reviews
-gh api --paginate repos/{owner}/{repo}/pulls/<pr>/comments
-gh api --paginate repos/{owner}/{repo}/issues/<pr>/comments
-gh api --paginate repos/{owner}/{repo}/issues/<pr>/reactions
-gh pr view <pr-url> --json headRefOid,mergeStateStatus,statusCheckRollup
-```
-
-Use the pull request's resolved base owner and repository for `{owner}` and `{repo}`. Substitute the
-pull request number for `<pr>` and its full URL for `<pr-url>`.
 
 Findings appear as a Codex review plus inline review comments. Each inline finding carries a
 severity badge from P1 to P3. P1 claims the top consequence tier and P2 and P3 claim below it; the
