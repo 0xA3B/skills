@@ -135,8 +135,8 @@
   intentionally adds repeatable regression coverage.
 - Decide which workflow transitions a skill body specifies with the degrees-of-freedom rule in
   `writing:agent-instructions`. A transition known only from enumerating a state matrix, not from an
-  observed run, earns a rule only when it passes the enumerated-path test in the root `AGENTS.md`
-  `## Code Review Rules`; otherwise wait for the observed run.
+  observed run, earns a rule only when it passes the enumerated-path test in the root `REVIEW.md`;
+  otherwise wait for the observed run.
 
 ## Writing plugin prose output style
 
