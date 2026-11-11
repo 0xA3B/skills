@@ -19,23 +19,18 @@ order or silently expanding edit authority.
 ## Outcome
 
 Finish with every active adapter classified against the current source head, or against the last
-head it reviewed when it converged or when the repository's review configuration reviewed no later
-head:
+head it reviewed when it left the loop or when the repository's review configuration reviewed no
+later head:
 
 - `approved`: the adapter gave its terminal clean signal on the current head, or on the last head
   the configuration reviewed;
 - `resolved-with-exceptions`: all known findings are dispositioned, but the adapter gave no terminal
   clean signal;
-- `round-limit`: all findings from the last permitted review round are dispositioned, but the
-  adapter is neither `approved` nor converged;
-- `timed-out`: the initial head, or a pushed head its adapter reference still awaits a review of,
-  drew no acknowledgment in the acknowledgment window, or an acknowledged head drew no activity
-  through the response timeout;
-- `blocked`: missing prerequisites, user decisions, CI state, or unsupported behavior prevent
-  continuation.
+- `blocked`, with its reason: the adapter timed out, the round limit was reached, or a missing
+  prerequisite, a user decision, CI state, or unsupported behavior prevents continuation.
 
-Do not call an exception or timeout green, or an approval on a head the configuration was still due
-to review.
+Do not call an exception or a `blocked` adapter green, or an approval on a head the configuration
+was still due to review.
 
 ## Required feedback discipline
 
@@ -92,9 +87,8 @@ Available adapters:
 - [GITHUB-CODEX.md](references/GITHUB-CODEX.md)
 - [GITHUB-COPILOT.md](references/GITHUB-COPILOT.md)
 
-Load the reference for every active adapter before polling, and
-[GITHUB-THREADS.md](references/GITHUB-THREADS.md) before the first reply, reaction, or thread
-resolution on GitHub. Stop precisely when the current forge or bot has no available adapter.
+Load the reference for every active adapter before polling. Stop precisely when the current forge or
+bot has no available adapter.
 
 ## Review loop
 
@@ -132,6 +126,28 @@ and the script then waits for the pushed head instead of classifying the earlier
 need `gh` and `jq`; when the output names a missing dependency, stop and report it to the user
 instead of installing it.
 
+Read a polling script's outcome from its `exit=` line. Both scripts share these outcomes, and each
+adapter reference adds or refines its own:
+
+- `0`: the review of the head completed with no unresolved thread from the adapter. The reference
+  says when that is the clean signal.
+- `1`: the review completed with unresolved threads; the dump holds the round's findings.
+- `2`: the adapter reported that it could not review the head; the reference says what to do.
+- `3`: the head or the base changed during the poll; rerun on the new head. When the line before
+  `exit=` says the forge never reported the expected head, confirm with `git ls-remote` that the
+  push reached the remote and rerun once; return `blocked` when it repeats.
+- `4`: no acknowledgment within the acknowledgment window. For the initial head, return `blocked` as
+  timed out, and report that the automatic-review configuration may need checking; for a pushed
+  head, apply the reference's follow-up protocol.
+- `5`: the poll budget ended without a terminal signal. Rerun the script while the adapter shows
+  activity, until the runs together span the response timeout; then return `blocked` as timed out.
+- `6`: observation failure; retry once, then return `blocked`. When the output names a missing
+  dependency or a bad `EXPECT_HEAD`, a retry repeats the failure: report the dependency or correct
+  the value instead.
+- `9`: the head's only review predates the pull request's last retarget, so it covered the diff
+  against the earlier base. Classify the adapter `resolved-with-exceptions` with the retarget as the
+  exception; the earlier classification does not carry forward.
+
 Before starting or advancing either timer, prove that the observation channel can fetch a
 known-present change-request field such as the current source head. Treat a command error or an
 unexpectedly missing field as an observation failure, not inactivity. Retry one plausibly transient
@@ -140,12 +156,12 @@ environment in this workflow.
 
 Two windows govern the wait. The acknowledgment window is two poll intervals after a head is
 published: when no adapter-defined acknowledgment of that head appears in it, the initial head
-returns `timed-out` with the configuration hint, and a pushed head keeps the classification the
-adapter's last review earned, with the head that review covered named in the report, unless its
-adapter reference still awaits a review of that head. The response timeout is ten minutes without
-adapter-defined activity after acknowledgment. Reset it only for a recognized adapter state
-transition tied to the current review round or source head; unrelated comments, stale reactions, and
-old approvals do not reset it. A terminal response ends the wait immediately.
+returns `blocked` as timed out, with the configuration hint, and a pushed head keeps the
+classification the adapter's last review earned, with the head that review covered named in the
+report, unless its adapter reference still awaits a review of that head. The response timeout is ten
+minutes without adapter-defined activity after acknowledgment. Reset it only for a recognized
+adapter state transition tied to the current review round or source head; unrelated comments, stale
+reactions, and old approvals do not reset it. A terminal response ends the wait immediately.
 
 CI is observable context, not this skill's repair scope. Report a failed or errored required check
 as a blocker. Allow clearly advancing CI to continue; do not claim merge readiness from review state
@@ -155,12 +171,14 @@ alone.
 
 For each new finding:
 
-1. apply `engineering:receiving-feedback`;
+1. apply `engineering:receiving-feedback`, and judge the finding against the repository's review
+   rules when it states them, in a `REVIEW.md` or a `## Code Review Rules` section: a finding those
+   rules class as a note gets a reply and no fix;
 2. classify it using that skill's status taxonomy;
 3. implement only accepted work within granted authority;
 4. validate the smallest coherent fix;
-5. respond, react, and resolve the thread according to the active adapter within granted authority,
-   after the round's push when accepted work changes the branch and at once when it does not;
+5. record the disposition within granted authority, as Record dispositions directs, after the
+   round's push when accepted work changes the branch and at once when it does not;
 6. preserve rejected or deferred reasoning in the change request within granted authority.
 
 When accepted work changes the branch, apply `git:commit` to the completed round, then apply
@@ -178,6 +196,23 @@ adapter owns reactions, mentions, and the forge calls, and a reply identifies an
 file and the behavior or rule it changes, not by a commit SHA, because this round's tidy, or a later
 round's, replaces the commits.
 
+**Record dispositions.** Write one entry per review thread to a dispositions file, a JSON array of
+`{"thread": "<thread id>", "verdict": "accepted" | "rejected" | "none", "reply": "<text>"}`, with
+`none` for a deferred finding, and run
+`<skill-dir>/scripts/apply-dispositions.sh <pr> <dispositions-file>` unsandboxed. The script
+validates the file before it writes, then replies on each thread, reacts 👍 or 👎 to the finding,
+resolves the thread, and verifies the result. Follow it as written instead of assembling the calls;
+it needs `gh` and `jq`. Read the outcome from its `exit=` line:
+
+- `0`: every thread is resolved and carries its reply.
+- `1`: a line reads `MISMATCH`; inspect that thread on the forge, then rerun the same file.
+- `6`: the input is invalid, a tool is missing, or a call failed, and the output names the entry and
+  the step. Correct the file, or report the missing tool to the user, and rerun the same file; a
+  rerun posts no duplicate reply.
+
+When a finding exists only in a review body and has no thread, record its disposition in a
+pull-request comment that names the finding.
+
 Keep a poll log or another file this workflow writes in a directory named for the topic branch under
 the scratch location the repository's instructions name, or in the system temporary directory
 without one, and list in the report each such file that outlives the invocation.
@@ -187,56 +222,42 @@ Track stable thread or comment IDs and compare them with the snapshot.
 
 ### 4. Stop rounds
 
-A review round covers every active adapter that has not converged, reviewing the same source head
-through their terminal response. A current-head review already observed when the invocation starts
-counts as round one. Allow at most seven review rounds total per invocation unless the user
-explicitly changes the limit. Disposition every finding received in round seven and commit and push
-permitted fixes, then stop before round eight. Return `round-limit` for each adapter that round
-seven leaves neither `approved` nor converged, whether or not the disposition produced a new head.
+A review round is one review of the current source head by every active adapter still in the loop,
+through its terminal response. A current-head review already observed when the invocation starts
+counts as round one. After dispositioning a round's findings for an adapter, take the first case
+that applies:
 
-An adapter's terminal clean signal on the current head classifies it `approved`. Otherwise the
-convergence rule applies: an adapter that returned findings in the round has converged when every
-one of them sits below the top consequence tier.
+1. A finding is gated or needs clarification: stop rounds as a required user decision.
+2. An accepted finding sits in the top consequence tier, as `engineering:receiving-feedback` rates
+   it: push the round's permitted fixes and run another round on the new head.
+3. Otherwise the adapter leaves the loop. Push its permitted fixes, if any, in one push. Classify it
+   `approved` when its last review gave the clean signal its reference defines, and
+   `resolved-with-exceptions` when it did not. Report the current source head, the head its last
+   review covered, and every disposition applied since that review, with the evidence for each
+   rejection or deferral.
 
-- An accepted or auto-accepted finding carries the rating `engineering:receiving-feedback` assigns.
-- A finding dispositioned deferred or rejected sits below the top tier.
-- A gated or needs-clarification finding blocks convergence and stops rounds as a required user
-  decision.
+Before the hand off, apply each adapter's follow-up protocol to the current head once, and report
+the observation with the adapter's status. When a review of a later head appears from an adapter
+that left the loop, disposition its findings:
 
-After dispositioning a converged adapter's findings and pushing its permitted fixes:
+- when one is an accepted top-tier finding, the adapter re-enters the loop at case 2;
+- otherwise fix a finding only when it concerns behavior the change request already claims, such as
+  a regression in an input it supports or a flaw in an earlier round's fix, push those fixes once,
+  and defer the rest, drafting one follow-up issue for them in the hand-off report. After that push,
+  defer every below-top-tier finding from the adapter's later reviews and hand off.
 
-1. Stop its rounds, and continue rounds for adapters that have not converged.
-2. Classify it by the signal its last review earned under its adapter reference,
-   `resolved-with-exceptions` when that review gave no clean signal.
-3. Report the current source head, the earlier head its last review covered, and every disposition
-   applied since that review, with the evidence for each rejection or deferral.
-4. Before the hand off, apply that adapter's follow-up protocol to the current head and report the
-   observation with its status.
-
-A review of a later head can appear from an adapter that converged or whose classification carried
-forward, at that final observation or while the loop still polls another adapter. Disposition its
-findings, then:
-
-- when that review itself fails the convergence rule, the adapter is active again and its rounds
-  continue;
-- otherwise, fix a finding from that review only when it concerns behavior the change request
-  already claims, such as a regression in an input it supports or a flaw in an earlier round's fix,
-  and defer the rest, drafting one follow-up issue for them in the hand-off report;
-- after one push of such fixes past convergence, defer every below-top-tier finding from that
-  adapter's later reviews and hand off.
+Allow at most seven review rounds per invocation unless the user changes the limit. Disposition
+every finding from round seven, push its permitted fixes, and return `blocked` at the round limit
+for each adapter still in the loop.
 
 When a finding revises a condition that two earlier rounds already revised, treat the condition as
 settled: reject the finding by reference to the earlier revisions unless it shows an input the
 current condition handles wrongly; when fixing that input would undo an earlier revision, the
 finding is a required user decision.
 
-Stop before the round limit when:
-
-- a required user decision remains;
-- the same rejected finding returns without new evidence;
-- an adapter or forge changes behavior beyond its reference;
-- CI or permissions block progress;
-- the response timeout expires.
+Also stop, returning `blocked` with the reason, when the same rejected finding returns without new
+evidence, an adapter or forge changes behavior beyond its reference, CI or permissions block
+progress, or the response timeout expires.
 
 The user may rerun this skill later; reconstruct state from the forge rather than relying on
 session-only counters or assumptions.
@@ -257,4 +278,4 @@ hand off. When every exception is a rejection recorded in the change request or 
 head the repository's review configuration does not review, every thread is resolved, and required
 CI passes, recommend `git:merge-pr` with those exceptions, naming each such fix as unconfirmed by
 its adapter; otherwise the user decides whether to rerun this skill or continue with `git:merge-pr`.
-For `round-limit`, `timed-out`, or `blocked`, do not suggest that the review gate passed.
+For `blocked`, do not suggest that the review gate passed.

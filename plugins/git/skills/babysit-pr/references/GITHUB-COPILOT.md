@@ -24,24 +24,12 @@ push: `<skill-dir>/scripts/poll-copilot.sh <pr> [interval-seconds] [max-polls]`,
 a fork. The script prints the review body and every unresolved Copilot thread with its id and
 comments; when it prints a `truncated:` line for a thread, fetch that thread's remaining comments
 before triage. Triage the threads as Findings and approval directs. Read the outcome from its
-`exit=` line:
+`exit=` line as `2. Poll active adapters` lists them, with these refinements and additions:
 
-- `0`: Copilot completed a review of the head, and no Copilot thread is unresolved.
-- `1`: Copilot completed a review of the head; the dump holds its unresolved threads.
 - `2`: Copilot stated that it could not review the head; classify the adapter `blocked` with the
   stated cause, as Findings and approval directs.
-- `3`: the head or the base changed during the poll; rerun on the new head. When the line before
-  `exit=` says the forge never reported the expected head, confirm with `git ls-remote` that the
-  push reached the remote and rerun once; return `blocked` when it repeats.
-- `4`: the configuration reviews the head, or the script could not rule that out, but no
-  acknowledgment came within the acknowledgment window. For the initial head, return `timed-out` and
-  report that the automatic-review configuration may need checking; for a pushed head, apply
-  Follow-up review.
-- `5`: the poll budget ended after acknowledgment without a review; rerun the script until the runs
-  together span the response timeout, then return `timed-out`.
-- `6`: observation failure; retry once, then return `blocked`. When the output names a missing
-  dependency or a bad `EXPECT_HEAD`, a retry repeats the failure: follow `2. Poll active adapters`
-  or correct the value instead.
+- `4`: the configuration reviews the head, or the script could not rule that out. For a pushed head,
+  apply Follow-up review.
 - `7`: the configuration does not review this pull request, Copilot never reviewed it, and no
   Copilot activity appeared within the acknowledgment window: no Copilot rule covers the base, no
   rule reviews drafts, or the pull request was retargeted onto the base and has since neither left
@@ -51,10 +39,6 @@ before triage. Triage the threads as Findings and approval directs. Read the out
 - `8`: the configuration does not review this head, such as a push under `review_on_push: false`,
   and no Copilot activity appeared within the acknowledgment window; apply Follow-up review with the
   last reviewed head the script prints.
-- `9`: the head's only review predates the pull request's last retarget, so it covered the diff
-  against the earlier base, and no Copilot activity followed the retarget. Classify the adapter
-  `resolved-with-exceptions` with the retarget as the exception; the earlier classification does not
-  carry forward.
 
 An organization or user setting, or a manual request, can start a review the repository rules do not
 show, so a Copilot review request or review that appears on a head after exit `7` or `8` is adapter
@@ -113,7 +97,7 @@ against the merge state.
 
 ## Responses and thread resolution
 
-Reply to, react to, and resolve threads as [GITHUB-THREADS.md](GITHUB-THREADS.md) directs.
+Record each disposition as `3. Triage and respond` directs.
 
 Replies preserve the disposition for human readers; Copilot code review does not consume or answer
 thread replies. A repeated finding in a later review is new adapter activity, but a rejected finding
@@ -124,7 +108,7 @@ that returns without new evidence still stops the loop under `4. Stop rounds`.
 The repository's configuration decides whether a push starts another Copilot review, and this
 adapter never requests one. After a push, run the polling script on the new head. On exit `8`, the
 adapter keeps the classification its last review earned and the report names the head that review
-covered. On exit `4`, return `timed-out`, which replaces that classification, because the
+covered. On exit `4`, return `blocked` as timed out, which replaces that classification, because the
 configuration was due to review the pushed head. When a review request or a review of the new head
 appears, tie a new round to the new `headRefOid` and require a current-head terminal response within
 the response timeout.
