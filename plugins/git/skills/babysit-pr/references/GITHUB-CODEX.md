@@ -19,8 +19,8 @@ The adapter does not initiate the first review merely because this skill was inv
 
 Treat a Codex 👀 reaction associated with the pull request or its trigger as acknowledgment and
 activity, not approval. The reaction may be transient. If neither acknowledgment nor a current-head
-review appears within the acknowledgment window, return `timed-out` and report that the repository
-or automatic-review configuration may need checking.
+review appears within the acknowledgment window, return `blocked` as timed out and report that the
+repository or automatic-review configuration may need checking.
 
 The connector may maintain an issue comment marked `<!-- codex-pull-request-review-summary -->`.
 Treat a transition in its status, commit, or review trigger as adapter activity. `Running` is
@@ -37,28 +37,14 @@ line per poll and, on a terminal signal, every unresolved thread Codex opened, w
 comment ids, and full bodies, then the head, merge state, checks, and the count of unresolved
 threads from every reviewer. Its defaults are the login and summary marker named above; set `BOT` or
 `MARK` when the connector renames either, and `REPO` to the forge-side base repository when the
-checkout is a fork. Read the outcome from its `exit=` line:
+checkout is a fork. Read the outcome from its `exit=` line as `2. Poll active adapters` lists them,
+with these refinements:
 
-- `0`: the review of the head completed with no unresolved Codex threads, or a reaction-only clean
-  round (a 👍 after the head was published, with no summary row). A last printed `thumbs` count of
-  one or more is the clean signal; zero after the extra polls is a completed review without it,
-  classified by the round's dispositions.
-- `1`: the review completed with unresolved Codex threads; the dump holds the round's findings.
+- `0` also covers a reaction-only clean round: a 👍 after the head was published, with no summary
+  row. A last printed `thumbs` count of one or more is the clean signal; zero after the extra polls
+  is a completed review without it, classified by the round's dispositions.
 - `2`: the connector reported an error; apply the transient-error rule below.
-- `3`: the head or the base changed during the poll; rerun on the new head. When the line before
-  `exit=` says the forge never reported the expected head, confirm with `git ls-remote` that the
-  push reached the remote and rerun once; return `blocked` when it repeats.
-- `4`: no acknowledgment within the acknowledgment window; apply the initial-head outcome from
-  `2. Poll active adapters`, or for a pushed head, Follow-up review.
-- `5`: the poll budget ended without a terminal signal. The default budget is ten minutes, the
-  response timeout; return `timed-out` when the adapter showed no activity across it, and rerun the
-  script when it did.
-- `6`: observation failure; retry once, then return `blocked`. When the output names a missing
-  dependency or a bad `EXPECT_HEAD`, a retry repeats the failure: follow `2. Poll active adapters`
-  or correct the value instead.
-- `9`: the head's only review predates the pull request's last retarget, so it covered the diff
-  against the earlier base. Classify the adapter `resolved-with-exceptions` with the retarget as the
-  exception; the earlier classification does not carry forward.
+- `4` on a pushed head: apply Follow-up review.
 
 ## Findings and approval
 
@@ -96,7 +82,7 @@ Follow-up review decides whether the new head needs its own signal.
 
 ## Responses and thread resolution
 
-Reply to, react to, and resolve threads as [GITHUB-THREADS.md](GITHUB-THREADS.md) directs.
+Record each disposition as `3. Triage and respond` directs.
 
 In a pull request description, reply, or comment, write the `@codex` mention only in a review
 request this adapter allows or the user asks to have posted, and otherwise name Codex without the
@@ -114,14 +100,14 @@ After a push, watch the new head with the polling script. A hand-assembled query
 reaction and the `Running` row the connector edits into the summary comment in place. Any exit other
 than `4` continues the round on the new `headRefOid` under the exit meanings in Polling script, and
 the round requires a current-head terminal response within the response timeout; a review of a head
-pushed after the adapter converged under `4. Stop rounds` is the later-head review the convergence
-rule describes.
+pushed after the adapter left the loop under `4. Stop rounds` is the later-head review that section
+describes.
 
 When the pushed head exits `4` and the summary row's trigger reads `New commits`, which means the
 repository reviews every push, the review is late, not absent: Codex has posted a pushed head's
 review about seven minutes after the push. Keep the earlier head's approval off the pushed head,
 post `@codex review` once as the late-review request, and run the polling script on that head again.
-A second exit `4` returns `timed-out`, which replaces the classification the adapter's last review
-earned, including after convergence. When no summary row reads `New commits`, exit `4` applies the
-pushed-head outcome from `2. Poll active adapters`, or the initial-head outcome when no earlier
-Codex review covers any head of the pull request.
+A second exit `4` returns `blocked` as timed out, which replaces the classification the adapter's
+last review earned, including after it left the loop. When no summary row reads `New commits`, exit
+`4` applies the pushed-head outcome from `2. Poll active adapters`, or the initial-head outcome when
+no earlier Codex review covers any head of the pull request.
