@@ -20,25 +20,32 @@ the repository's convention.
 Finish in one of these states:
 
 - every intended change is committed, each commit has one logical purpose and one rollback boundary,
-  and each message passed the repository's commit rules;
+  and each message other than a correction's `fixup!` subject passed the repository's commit rules;
 - the commit plan and its messages are reported and nothing is staged, because the request asked for
   a dry run, a message draft, or split guidance;
-- a precise blocker is reported: a merge or rebase in progress, conflicts, overlapping hunks that
-  cannot be split into the planned units, or nothing to commit.
+- a precise blocker is reported: a merge, rebase, cherry-pick, or revert in progress, conflicts,
+  overlapping hunks that cannot be split into the planned units, or nothing to commit.
 
 ## Authority and boundaries
 
-A request to commit authorizes staging and committing the intended changes without further
-questions.
+A request to commit authorizes staging and committing the intended changes, asking only at the
+breaking-change checkpoint.
 
 - **Scope.** A request that names a path or concern, such as "only the docs" or "skip the config",
   sets the scope. A request that names none, such as "commit" or "commit everything", covers all
   coherent current work for the task: leave out unrelated, pre-existing, and local-only artifacts,
   and include generated outputs when the work or repository policy requires them.
-- **Push.** Push only when the request asks for it, with a plain `git push` that sets the upstream
-  of a new branch. Report a rejected push; a force push belongs to `git:tidy-history`.
+- **Push.** Push only when the request asks for it: run `git push`, or
+  `git push --set-upstream <remote> HEAD` with the repository's push remote when the branch has no
+  upstream. Report a rejected push without retrying it with force; a force push belongs to
+  `git:tidy-history`.
 - **New commits only.** When a request needs an existing commit amended, reworded, folded, or split,
-  commit the new content here and apply `git:tidy-history` to rewrite the history.
+  commit the new content here, then apply `git:tidy-history` to rewrite the history; that request
+  also authorizes its lease-only force push of a published branch.
+- **Breaking-change checkpoint.** When one reading of a unit's release impact is a breaking change
+  and another is not, and neither the request nor the release tooling's rules decide between them,
+  ask the user before committing that unit, proposing the type and marker. When no user can answer,
+  commit the unit without the marker and name the assumption in the report.
 - **Hooks.** Pass `--no-verify` only when the user's request asks for it.
 - **Ignored paths.** Stage tracked paths and non-ignored untracked paths. When the user names an
   ignored path, name the matching ignore rule and report that the repository's ignore policy must
@@ -58,14 +65,14 @@ breaking-change markers drive changelogs and version bumps.
 - When the user or the repository names another message convention, write messages in that
   convention instead of the Conventional Commit rules in this section and its reference.
   Partitioning, the workflow, and the report still apply, with that convention's kinds of change in
-  place of types. Otherwise write Conventional Commit messages:
-  `<type>[optional scope][!]: <description>` with an imperative subject. Read
+  place of types. Otherwise write Conventional Commit messages: `type(scope): subject`, or
+  `type: subject` for cross-cutting work, with a lowercase type, a short hyphenated noun as scope,
+  and an imperative subject that starts lowercase except for an acronym or proper noun such as
+  `HTTP`, ends without a period, and keeps the header within 72 characters when practical. Read
   [conventional-commits.md](references/conventional-commits.md) when a footer, a breaking-change
   marker, or the choice between two types is in doubt.
 - Choose `feat`, `fix`, `!`, and `BREAKING CHANGE:` by release impact, not by the size of the diff;
-  when release tooling is present, its rules decide. When the release impact is ambiguous and one
-  reading is a breaking change, ask the user before committing; otherwise choose, and name the
-  assumption in the report.
+  when release tooling is present, its rules decide.
 - Choose a scope from the change's intent or the repository's established scopes, not from a folder
   name.
 - Name the resulting behavior, boundary, or user-visible outcome in the subject. Use a generic verb
@@ -99,22 +106,28 @@ corrects a commit the target already contains, is an ordinary commit.
 
 ## Workflow
 
-1. Inspect the staged changes, the unstaged tracked changes, and the untracked non-ignored files in
-   scope.
-2. Plan the commits: split the work into units by the partitioning rules, and choose each unit's
-   message, or its target commit for a correction. For a dry run, a message draft, or split
-   guidance, report the plan and stop here.
+1. Run `git status` and inspect the staged changes, the unstaged tracked changes, and the untracked
+   non-ignored files in scope. If a merge, rebase, cherry-pick, or revert is in progress, conflicts
+   remain, or nothing in scope changed, report that blocker and stop.
+2. Plan the commits: assign every in-scope change to exactly one unit by the partitioning rules, or
+   mark it uncommitted with the reason, and choose each unit's message, or its target commit for a
+   correction. For a dry run, a message draft, or split guidance, report the plan and stop here.
 3. Commit the units in dependency order. For each unit:
-   1. Check the drafted message. Run the repository's commit linter on it when the linter accepts a
-      message from a file or stdin; otherwise check it against the rules read above.
-   2. Stage the unit and confirm that `git diff --cached --name-only` lists only its files. Unstage
-      any other path before committing.
+   1. Unless the unit is a correction, check the drafted message. Run the repository's commit linter
+      on it when the linter accepts a message from a file or stdin; otherwise check it against the
+      rules read above.
+   2. Stage the unit and confirm that `git diff --cached --name-only` lists only its files and, for
+      a file the unit shares with another unit, that `git diff --cached -- <file>` shows only this
+      unit's hunks. Unstage anything else before committing.
    3. Run `git commit` as its own command, not chained with staging or another commit. A rejected
       commit leaves the unit staged; resolve the rejection before staging the next unit. When a
       sandbox blocks the commit, such as its signing, rerun the commit outside the sandbox.
-4. Push when the request asked for it.
 
-Step 3 is done when every intended change in scope is committed and the index is empty.
+   Step 3 is done when every intended change in scope is committed and no change in scope remains
+   staged.
+
+4. If the request asked for a push, push as **Push** directs; the step is done when the push
+   succeeds or its rejection is reported.
 
 ## Report
 
