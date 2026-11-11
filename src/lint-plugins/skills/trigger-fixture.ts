@@ -19,9 +19,9 @@ import { isDirectory, pathExists } from "../files.js";
 import type { FindMissingPluginTargets } from "../repository.js";
 import type { PluginTargets } from "../types.js";
 
-// The two skill layouts a fixture can live in. Alternates named by invoke-instead are resolved
-// against the same layouts, so a plugin fixture names <plugin>:<skill> and a repo-local fixture
-// names a bare skill name.
+// The two skill layouts a fixture can live in. Skills named by invoke-instead or invoke-or are
+// resolved against the same layouts, so a plugin fixture names <plugin>:<skill> and a repo-local
+// fixture names a bare skill name.
 type FixtureKind = Skill["kind"];
 
 // Lints evals/triggers.yaml when a skill ships one: every loader finding becomes a
@@ -55,21 +55,40 @@ export async function validateTriggerFixture(
 
   const ownTarget = fixtureTarget(context.repoRoot, skillPath);
   for (const [index, testCase] of fixture.cases.entries()) {
-    if (testCase.invokeInstead === undefined || ownTarget === undefined) {
+    if (ownTarget === undefined) {
       continue;
     }
-    await validateAlternate(
-      context,
-      {
-        fixturePath,
-        kind: ownTarget.kind,
-        targets,
-        ownLabel: formatSkillLabel(ownTarget),
-        label: testCase.invokeInstead,
-        caseIndex: index,
-      },
-      missingTargets,
-    );
+    // A compound case's listed skills get the alternate checks: each must be able to make the
+    // trigger decision wherever the fixture runs.
+    const named: Array<Pick<AlternateCheck, "key" | "label" | "path">> = [
+      ...(testCase.invokeInstead === undefined
+        ? []
+        : [
+            {
+              key: "invoke-instead" as const,
+              label: testCase.invokeInstead,
+              path: ["cases", index, "invoke-instead"],
+            },
+          ]),
+      ...(testCase.invokeOr ?? []).map((label, entryIndex) => ({
+        key: "invoke-or" as const,
+        label,
+        path: ["cases", index, "invoke-or", entryIndex],
+      })),
+    ];
+    for (const alternate of named) {
+      await validateAlternate(
+        context,
+        {
+          fixturePath,
+          kind: ownTarget.kind,
+          targets,
+          ownLabel: formatSkillLabel(ownTarget),
+          ...alternate,
+        },
+        missingTargets,
+      );
+    }
   }
   if (ownTarget !== undefined) {
     const ownBody = await readFile(ownTarget.skillFilePath, "utf8");
@@ -177,8 +196,10 @@ type AlternateCheck = {
   targets: PluginTargets;
   // The label of the skill that owns the fixture.
   ownLabel: string;
+  // The fixture key that names the skill, and the path to the label under it.
+  key: "invoke-instead" | "invoke-or";
   label: string;
-  caseIndex: number;
+  path: FixturePath;
 };
 
 async function validateAlternate(
@@ -186,15 +207,15 @@ async function validateAlternate(
   check: AlternateCheck,
   missingTargets: FindMissingPluginTargets,
 ): Promise<void> {
-  const { fixturePath, kind, targets, ownLabel, label, caseIndex } = check;
-  const pointer = toJsonPointer(["cases", caseIndex, "invoke-instead"]);
+  const { fixturePath, kind, targets, ownLabel, key, label } = check;
+  const pointer = toJsonPointer(check.path);
   const { pluginName } = parseSkillLabel(label);
   if (kind === "plugin" && pluginName === undefined) {
     error(
       context,
       "trigger-fixture/alternate-kind",
       fixturePath,
-      `invoke-instead names "${label}", but a plugin fixture must name a plugin skill as <plugin>:<skill>.`,
+      `${key} names "${label}", but a plugin fixture must name a plugin skill as <plugin>:<skill>.`,
       pointer,
     );
     return;
@@ -204,20 +225,24 @@ async function validateAlternate(
       context,
       "trigger-fixture/alternate-kind",
       fixturePath,
-      `invoke-instead names "${label}", but a repo-local fixture must name a repo-local skill by its bare name.`,
+      `${key} names "${label}", but a repo-local fixture must name a repo-local skill by its bare name.`,
       pointer,
     );
     return;
   }
 
   // The fixture's own skill can never be its alternate: the assertion needs the target silent
-  // and the alternate firing at once.
+  // and the alternate firing at once. Listing it on a compound case adds nothing.
   if (label === ownLabel) {
+    const reason =
+      key === "invoke-instead"
+        ? "which can never fire on a skip case."
+        : "which every invoke case already accepts.";
     error(
       context,
       "trigger-fixture/alternate-self",
       fixturePath,
-      `invoke-instead names "${label}", the fixture's own skill, which can never fire on a skip case.`,
+      `${key} names "${label}", the fixture's own skill, ${reason}`,
       pointer,
     );
     return;
@@ -229,7 +254,7 @@ async function validateAlternate(
       context,
       "trigger-fixture/alternate-missing",
       fixturePath,
-      `invoke-instead names "${label}", but ${toPosix(path.relative(context.repoRoot, skillPath))} has no SKILL.md.`,
+      `${key} names "${label}", but ${toPosix(path.relative(context.repoRoot, skillPath))} has no SKILL.md.`,
       pointer,
     );
     return;
@@ -248,7 +273,7 @@ async function validateAlternate(
       context,
       "trigger-fixture/alternate-manual-only",
       fixturePath,
-      `invoke-instead names "${label}", which is manual-only and can never be an implicit route.`,
+      `${key} names "${label}", which is manual-only and can never be an implicit route.`,
       pointer,
     );
   }
@@ -263,7 +288,7 @@ async function validateAlternate(
       context,
       "trigger-fixture/alternate-target",
       fixturePath,
-      `invoke-instead names "${label}", but plugin "${pluginName}" does not ship on ${target}, where this fixture also runs.`,
+      `${key} names "${label}", but plugin "${pluginName}" does not ship on ${target}, where this fixture also runs.`,
       pointer,
     );
   }

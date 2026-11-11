@@ -23,6 +23,9 @@ export type TriggerCase = {
   rationale?: string;
   // Routing assertion, skip cases only: the label of the skill that must be the only one to fire.
   invokeInstead?: string;
+  // Compound cases, invoke cases only: labels of the other skills that own part of the request.
+  // The case passes when the target or any of them makes the trigger decision.
+  invokeOr?: string[];
   // Resolved from the fixture-level default unless the case replaces it or opts out.
   workspace?: WorkspaceSpec;
   // Unstaged files written last, fixture-level defaults merged under the case's own per path.
@@ -230,6 +233,7 @@ function validateCase(
     );
   }
   const invokeInstead = readInvokeInstead(value["invoke-instead"], expect, report, path);
+  const invokeOr = readInvokeOr(value["invoke-or"], expect, report, path);
   // A case workspace replaces the fixture default wholesale; "none" opts out of it.
   const caseWorkspace = readWorkspaceSpec(value["workspace"], report, [...path, "workspace"]);
   const workspace =
@@ -256,6 +260,7 @@ function validateCase(
       expect,
       ...(typeof rationale === "string" && rationale.length > 0 ? { rationale } : {}),
       ...(invokeInstead === undefined ? {} : { invokeInstead }),
+      ...(invokeOr === undefined ? {} : { invokeOr }),
       ...(workspace === undefined ? {} : { workspace }),
       ...(workspaceFiles === undefined ? {} : { workspaceFiles }),
     },
@@ -277,9 +282,14 @@ function readApplies(value: unknown, report: Report): string[] {
     return [];
   }
 
-  const applies: string[] = [];
-  value.forEach((entry: unknown, index) => {
-    const path = ["applies", index];
+  return readSkillLabels(value, report, ["applies"]);
+}
+
+// The distinct skill labels of a list key; the last path segment names the key in messages.
+function readSkillLabels(entries: unknown[], report: Report, listPath: FixturePath): string[] {
+  const labels: string[] = [];
+  entries.forEach((entry, index) => {
+    const path = [...listPath, index];
     if (typeof entry !== "string" || !SKILL_LABEL_PATTERN.test(entry)) {
       report(
         path,
@@ -287,13 +297,38 @@ function readApplies(value: unknown, report: Report): string[] {
       );
       return;
     }
-    if (applies.includes(entry)) {
-      report(path, `duplicate applies entry "${entry}".`);
+    if (labels.includes(entry)) {
+      report(path, `duplicate ${String(listPath.at(-1))} entry "${entry}".`);
       return;
     }
-    applies.push(entry);
+    labels.push(entry);
   });
-  return applies;
+  return labels;
+}
+
+// Whether each label names an existing, implicitly invokable skill other than the fixture's own
+// is the plugin linter's cross-reference check.
+function readInvokeOr(
+  value: unknown,
+  expect: TriggerExpectation | undefined,
+  report: Report,
+  casePath: FixturePath,
+): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const path = [...casePath, "invoke-or"];
+  const location = formatLocation(path);
+  if (!Array.isArray(value) || value.length === 0) {
+    report(path, `expected ${location} to be a non-empty list of skill labels.`);
+    return undefined;
+  }
+  if (expect === "skip") {
+    report(path, `expected ${location} only on expect: invoke cases.`);
+    return undefined;
+  }
+
+  return readSkillLabels(value, report, path);
 }
 
 // Spec: "invoke-instead: <label> is valid only on expect: skip cases." Whether the label names an

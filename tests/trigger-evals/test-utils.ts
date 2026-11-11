@@ -106,6 +106,7 @@ export type FixtureCase = {
   expect: "invoke" | "skip";
   prompt?: string;
   invokeInstead?: string;
+  invokeOr?: string[];
   workspaceFiles?: Record<string, string>;
 };
 
@@ -321,6 +322,9 @@ export function triggerFixtureYaml(
     ];
     if (testCase.invokeInstead !== undefined) {
       caseLines.push(`    invoke-instead: ${testCase.invokeInstead}`);
+    }
+    if (testCase.invokeOr !== undefined) {
+      caseLines.push("    invoke-or:", ...testCase.invokeOr.map((label) => `      - ${label}`));
     }
     if (testCase.workspaceFiles !== undefined) {
       caseLines.push("    workspace_files:");

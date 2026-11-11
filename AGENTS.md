@@ -179,8 +179,11 @@ Change this section, and the Terminology section of a nested `AGENTS.md`, throug
   checkout, fixture workspace.
 - **Routing assertion**: The `invoke-instead` check on a skip case: the named alternate must be the
   only skill that fires. Aliases to avoid: route-to, redirect.
-- **Dependent case**: A skip case in another skill's fixture whose routing assertion names the
-  target skill. Aliases to avoid: dependency.
+- **Compound case**: An invoke case whose request chains outcomes that other skills also own; it
+  lists those skills under `invoke-or` and passes when the target or a listed skill makes the
+  trigger decision. Aliases to avoid: chained case, invoke-also.
+- **Dependent case**: A case in another skill's fixture that names the target skill, in a routing
+  assertion or a compound case's `invoke-or` list. Aliases to avoid: dependency.
 - **Seeded case**: A trigger fixture case whose resolved workspace names a given workspace seed.
   Aliases to avoid: seed dependent, dependent case.
 - **Trigger eval**: A development-only run that checks whether one plugin or repo-local skill
@@ -240,6 +243,9 @@ Relationships:
   **Seeded cases**.
 - A **Trigger fixture** skip case carries zero or one **Routing assertion**; the cases whose
   **Routing assertion** names a skill are that skill's **Dependent cases**.
+- A **Compound case** lists one or more other skills and is a **Dependent case** of each; it asserts
+  only the first **Trigger decision**
+  ([ADR 0004](docs/adr/0004-compound-cases-assert-the-first-trigger-decision.md)).
 - A **Trigger fixture** lists zero or more **Applied skills** of its skill.
 - A **Candidate** closes when its implementation lands, when a **Decision record** declines it, or
   with a stated invalidation reason.

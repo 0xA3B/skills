@@ -139,6 +139,19 @@ describe("formatCaseLines", () => {
       ],
     ],
     [
+      "names the listed skill that made the decision on a compound case",
+      {
+        expect: "invoke",
+        invokeOr: ["demo:sibling", "demo:third"],
+        invocationSignal: "command-skill-read",
+        invokedSkills: ["demo:sibling"],
+      },
+      [
+        "- PASS existing-feedback: 1/1 passed, expected invoke or demo:sibling, demo:third",
+        "  attempt 1 PASS: observed invoke-or demo:sibling via command-skill-read (1.5s)",
+      ],
+    ],
+    [
       "reports a different skill as wrong-skill on a routing assertion",
       {
         invokeInstead: "demo:sibling",

@@ -306,6 +306,52 @@ describe("buildCaseResult", () => {
     });
   });
 
+  // A compound request chains outcomes that more than one skill owns, such as "commit, push, and
+  // open a PR". Either owner may make the trigger decision, so the case lists the others.
+  describe("compound case", () => {
+    const LISTED = "demo:sibling-skill";
+    const compoundCase = {
+      id: "commit-and-open-pr",
+      expect: "invoke" as const,
+      invokeOr: [LISTED],
+    };
+
+    it.each([
+      ["the target fires alone", invokedObservations(TARGET), true],
+      ["a listed skill fires alone", invokedObservations(LISTED), false],
+      ["the target and a listed skill both fire", invokedObservations(LISTED, TARGET), true],
+    ])("passes when %s", (_label, caseObservations, invoked) => {
+      const result = buildCaseResult(
+        verdictOptions({ testCase: compoundCase, observations: caseObservations }),
+      );
+
+      expect(result).toMatchObject({ invoked, passed: true, invokeOr: [LISTED] });
+      expect(result).not.toHaveProperty("wrongSkill");
+    });
+
+    it("fails when nothing fires", () => {
+      const result = buildCaseResult(verdictOptions({ testCase: compoundCase }));
+
+      expect(result).toMatchObject({ invoked: false, passed: false });
+    });
+
+    it.each([
+      ["alone", invokedObservations("demo:other-skill")],
+      ["beside the target", invokedObservations(TARGET, "demo:other-skill")],
+      ["beside a listed skill", invokedObservations(LISTED, "demo:other-skill")],
+    ])("fails when an unlisted skill fires %s", (_label, caseObservations) => {
+      const result = buildCaseResult(
+        verdictOptions({ testCase: compoundCase, observations: caseObservations }),
+      );
+
+      expect(result).toMatchObject({ wrongSkill: "demo:other-skill", passed: false });
+    });
+
+    it("leaves invokeOr off results of plain cases", () => {
+      expect(buildCaseResult(verdictOptions())).not.toHaveProperty("invokeOr");
+    });
+  });
+
   it("classifies skip signals from how the run ended", () => {
     const skipCase = { id: "skip-case", expect: "skip" as const };
     const byEnd = (endedBy: "completed" | "stop-when" | "timeout" | "abort") =>

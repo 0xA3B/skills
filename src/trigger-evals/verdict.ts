@@ -10,9 +10,12 @@ export type TriggerCaseResult = {
   expect: TriggerExpectation;
   // The case's routing assertion, copied from the fixture so reports can show the expectation.
   invokeInstead?: string;
+  // A compound case's listed skills, copied from the fixture for the same reason.
+  invokeOr?: string[];
   invocationSignal: InvocationSignal;
   // True when the target skill was invoked, regardless of whether another staged skill also
-  // fired; simultaneous firings are recorded separately in wrongSkill.
+  // fired; simultaneous firings are recorded separately in wrongSkill. A compound case can pass
+  // with this false, when a listed skill made the trigger decision.
   invoked: boolean;
   // Every distinct staged skill in the trigger decision, in detection order, minus the dependency
   // loads below.
@@ -20,9 +23,9 @@ export type TriggerCaseResult = {
   // Detected skills the verdict attributed to another detected skill's workflow because that
   // skill applies them (dropDependencyLoads). Kept for the report; they carry no decision.
   dependencyLoads?: string[];
-  // Label of a non-target staged skill whose invocation was detected. Fails an invoke case even
-  // when the target also fired (simultaneous invocation is trigger-contract overlap); surfaced
-  // informationally on skip cases.
+  // Label of a staged skill whose invocation was detected and that is neither the target nor a
+  // compound case's listed skill. Fails an invoke case even when the target also fired
+  // (simultaneous invocation is trigger-contract overlap); surfaced informationally on skip cases.
   wrongSkill?: string;
   passed: boolean;
   // How a skip verdict was reached: the run finished naturally, was stopped at the decision-item
@@ -62,7 +65,12 @@ export function shouldStopEarly(
 }
 
 export type CaseVerdictOptions = {
-  testCase: { id: string; expect: TriggerExpectation; invokeInstead?: string };
+  testCase: {
+    id: string;
+    expect: TriggerExpectation;
+    invokeInstead?: string;
+    invokeOr?: readonly string[];
+  };
   attempt: number;
   targetLabel: string;
   // Every staged skill's label regardless of invocation policy, for the isolation check.
@@ -104,7 +112,13 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   // the verdict attributed the read to another skill's workflow.
   const dependencyLoads = detectedSkills.filter((label) => !invokedSkills.includes(label));
   const invoked = invokedSkills.includes(options.targetLabel);
-  const wrongSkill = invokedSkills.find((label) => label !== options.targetLabel);
+  // A compound request chains outcomes that several skills own, and which owner an agent loads
+  // first varies by agent and by attempt, so a compound case accepts the target or any skill it
+  // lists. The lanes cannot run the first skill's workflow, so the load that would follow it is
+  // never observed and the case asserts nothing about it
+  // (docs/adr/0004-compound-cases-assert-the-first-trigger-decision.md).
+  const accepted = new Set([options.targetLabel, ...(testCase.invokeOr ?? [])]);
+  const wrongSkill = invokedSkills.find((label) => !accepted.has(label));
   // A wrong-skill invocation fails an invoke case even when the target also fired — simultaneous
   // firing is trigger-contract overlap, the very thing the eval exists to expose. It does not fail
   // a skip case: the fixture only encodes expectations about the target, and a sibling firing on a
@@ -118,7 +132,7 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
   // wrong-skill detection.
   const matchedExpectation =
     testCase.expect === "invoke"
-      ? invoked && wrongSkill === undefined
+      ? invokedSkills.length > 0 && wrongSkill === undefined
       : testCase.invokeInstead === undefined
         ? !invoked
         : !invoked && invokedSkills.length === 1 && invokedSkills[0] === testCase.invokeInstead;
@@ -138,6 +152,7 @@ export function buildCaseResult(options: CaseVerdictOptions): TriggerCaseResult 
     attempt: options.attempt,
     expect: testCase.expect,
     ...(testCase.invokeInstead === undefined ? {} : { invokeInstead: testCase.invokeInstead }),
+    ...(testCase.invokeOr === undefined ? {} : { invokeOr: [...testCase.invokeOr] }),
     invocationSignal: observations.signal,
     invoked,
     invokedSkills,

@@ -142,6 +142,20 @@ cases:
     ]);
   });
 
+  it("reads invoke-or on invoke cases", () => {
+    const { fixture } = parseTriggerFixture(
+      fixtureYaml({ firstCase: { "invoke-or": ["git:commit", "git:tidy-history"] } }),
+    );
+
+    expect(fixture?.cases[0]).toStrictEqual({
+      id: "invoke-case",
+      prompt: "Do the thing.",
+      expect: "invoke",
+      invokeOr: ["git:commit", "git:tidy-history"],
+    });
+    expect(fixture?.cases[1]).not.toHaveProperty("invokeOr");
+  });
+
   // Spec: "invoke-instead: <label> is valid only on expect: skip cases."
   it("reads invoke-instead on skip cases", async () => {
     const fixturePath = await writeFixture(`
@@ -557,6 +571,57 @@ describe("parseTriggerFixture details", () => {
         {
           path: ["cases", 0, "invoke-instead"],
           message: "expected cases[0].invoke-instead only on expect: skip cases.",
+        },
+      ],
+    ],
+    [
+      "invoke-or on a skip case",
+      fixtureYaml({ secondCase: { "invoke-or": ["engineering:tdd"] } }),
+      [
+        {
+          path: ["cases", 1, "invoke-or"],
+          message: "expected cases[1].invoke-or only on expect: invoke cases.",
+        },
+      ],
+    ],
+    [
+      "an invoke-or that is not a list",
+      fixtureYaml({ firstCase: { "invoke-or": "engineering:tdd" } }),
+      [
+        {
+          path: ["cases", 0, "invoke-or"],
+          message: "expected cases[0].invoke-or to be a non-empty list of skill labels.",
+        },
+      ],
+    ],
+    [
+      "an empty invoke-or list",
+      fixtureYaml({ firstCase: { "invoke-or": [] } }),
+      [
+        {
+          path: ["cases", 0, "invoke-or"],
+          message: "expected cases[0].invoke-or to be a non-empty list of skill labels.",
+        },
+      ],
+    ],
+    [
+      "an invoke-or entry that is not a skill label",
+      fixtureYaml({ firstCase: { "invoke-or": ["engineering:tdd", "Git:Commit extra"] } }),
+      [
+        {
+          path: ["cases", 0, "invoke-or", 1],
+          message:
+            "expected cases[0].invoke-or[1] to be a skill label: <plugin>:<skill> or a bare repo-local skill name.",
+        },
+      ],
+    ],
+    [
+      "a repeated invoke-or entry",
+      fixtureYaml({ firstCase: { "invoke-or": ["engineering:tdd", "engineering:tdd"] } }),
+      [
+        {
+          path: ["cases", 0, "invoke-or", 1],
+          message: 'duplicate invoke-or entry "engineering:tdd".',
         },
       ],
     ],

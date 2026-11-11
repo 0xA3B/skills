@@ -8,7 +8,8 @@ import type { SelectionEvalOptions, TriggerEvalSelection } from "./selection/ind
 export type TriggerEvalCliOptions = Omit<SelectionEvalOptions, "lane"> & {
   agents: Agent[];
   selection: TriggerEvalSelection;
-  // Also run the dependent cases: routing assertions in other fixtures that name a selected skill.
+  // Also run the dependent cases: routing assertions and compound cases in other fixtures that
+  // name a selected skill.
   withDependents?: true;
 };
 
@@ -203,9 +204,9 @@ export function usage(): string {
     "                             passes. Defaults to 1.",
     "  --codex-home <path>        Source Codex home to copy auth/config from. Defaults to ~/.codex.",
     "  --claude-config-dir <path> CLAUDE_CONFIG_DIR for Claude runs. Defaults to the ambient value.",
-    "  --with-dependents          Also run the dependent cases: skip cases in other fixtures whose",
-    "                             invoke-instead names a selected skill, on the lanes their own",
-    "                             fixture runs on.",
+    "  --with-dependents          Also run the dependent cases: cases in other fixtures whose",
+    "                             invoke-instead or invoke-or names a selected skill, on the lanes",
+    "                             their own fixture runs on.",
     "  --keep-runtime             Keep staged workspaces and Codex homes after the run for",
     "                             debugging. By default they are removed once each case's output",
     "                             is captured; reports and case artifacts are always kept.",
