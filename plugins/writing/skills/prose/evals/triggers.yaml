@@ -93,3 +93,17 @@ cases:
       What makes text sound AI-generated?
     expect: skip
     rationale: A conceptual question is not a request to compose, edit, or review prose.
+
+  - id: review-draft-chat-message
+    prompt: >-
+      Here's a Slack message I'm drafting to a coworker; suggest edits: "Hey, just wanted to circle
+      back and touch base regarding the launch timeline, as I think it's important that we align on
+      next steps going forward."
+    expect: invoke
+    rationale: A message drafted for another reader is a prose artifact the skill owns.
+
+  - id: asked-whether-skill-used
+    prompt: >-
+      Did you use the prose skill for those replies?
+    expect: skip
+    rationale: A question about whether a skill loaded is not a request to write or edit prose.

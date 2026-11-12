@@ -152,3 +152,77 @@ cases:
     invoke-instead: engineering:terminology
     rationale:
       Terminology-section content is owned by a terminology workflow, which this skill excludes.
+
+  - id: update-dependency-policy-section
+    prompt: >-
+      Bring over the updated dependency policy from docs/sibling-dependency-policy.md and adapt it
+      for this repo.
+    workspace_files:
+      AGENTS.md: |
+        # Project instructions
+
+        ## Project conventions
+
+        - Run `node --test` before you report a change as done.
+
+        ## Dependency policy
+
+        - Prefer the Node.js standard library over a new dependency.
+      CLAUDE.md: |
+        @AGENTS.md
+      docs/sibling-dependency-policy.md: |
+        ## Dependency policy
+
+        - Prefer the standard library when it fits the problem.
+        - Bound each direct dependency below its next major release.
+        - Let the update bot refresh the lockfile; regenerate it locally only for a requested
+          dependency change.
+    expect: invoke
+    rationale:
+      The prompt names a policy that lives in AGENTS.md, not the file. Real sessions edited the
+      policy section without a load when the request took this shape.
+
+  - id: go-ahead-update-claude-md
+    prompt: >-
+      Looks good, go ahead and add that rule to CLAUDE.md now: run `node --test` before reporting a
+      change as done.
+    expect: invoke
+    rationale:
+      A conversational go-ahead after a discussion is the casual twin of add-claude-md-rule, and the
+      shape real sessions missed.
+
+  - id: revise-drafted-skill
+    prompt: >-
+      Revise the drafted deploy skill: step 2 has to say when staging is safe, and the last step has
+      to name what to check.
+    workspace_files:
+      skills/deploy/SKILL.md: |
+        ---
+        name: deploy
+        description: Deploy this service. Use when the user asks to deploy or roll back.
+        ---
+
+        # Deploy
+
+        1. Run `node --test`.
+        2. Deploy to staging if it seems safe.
+        3. Check that everything looks fine.
+    expect: invoke
+    rationale:
+      The prompt names the skill, not its SKILL.md, and asks for a revision of its instructions.
+
+  - id: mechanical-agents-md-rename
+    prompt: >-
+      Rename the hostname staging.example.com to stage.example.com everywhere in the repo, including
+      the AGENTS.md examples.
+    workspace_files:
+      AGENTS.md: |
+        # Project instructions
+
+        - Smoke-test a change with `curl https://staging.example.com/health`.
+      src/config.js: |
+        export const STAGING_URL = "https://staging.example.com";
+    expect: skip
+    rationale:
+      The instruction text changes only mechanically inside a repository-wide rename, so no
+      instruction-writing decision exists for the skill to govern.
