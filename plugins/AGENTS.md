@@ -138,9 +138,9 @@
   observed run, earns a rule only when it passes the enumerated-path test in the root `REVIEW.md`;
   otherwise wait for the observed run.
 
-## Writing plugin prose output style
+## Writing plugin chat output style
 
-- Maintain `plugins/writing/output-styles/prose.md` as the Claude Code output style for chat
+- Maintain `plugins/writing/output-styles/chat.md` as the Claude Code output style for chat
   responses, and `plugins/writing/chatbot-instructions.md` as the copy-pasteable chat guidance for
   chat apps without access to installed skills, such as claude.ai and ChatGPT.
 - Treat `plugins/writing/skills/prose/SKILL.md` and
@@ -153,8 +153,8 @@
   offers of more help, such as "If you want, I can ...".
 - Keep `plugins/writing/chatbot-instructions.md` at or below 5,000 characters, measured with
   `wc -m`: ChatGPT's custom-instructions field on paid plans rejects longer text.
-- Keep `plugins/writing/output-styles/prose.md` at or below 8,000 characters, measured with
-  `wc -m plugins/writing/output-styles/prose.md` from the repository root. The body rides in the
+- Keep `plugins/writing/output-styles/chat.md` at or below 8,000 characters, measured with
+  `wc -m plugins/writing/output-styles/chat.md` from the repository root. The body rides in the
   system prompt on every request, so growth costs tokens every turn. When a needed rule does not
   fit, compress or cut other lines first; raise the budget here only when no line can be shortened
   or cut without losing a rule.
