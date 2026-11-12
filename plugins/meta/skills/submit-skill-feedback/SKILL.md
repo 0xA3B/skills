@@ -2,11 +2,8 @@
 name: submit-skill-feedback
 description: >-
   Capture the current session's qualified feedback on how a skill from this marketplace performed
-  during an actual run. File public-source feedback as labeled GitHub issues or recurrence comments,
-  and preserve private-source feedback as ignored local records. Use when the user asks to submit,
-  file, or record skill feedback after running a marketplace skill. Do not use for handling code
-  review findings, PR comments, feedback on skills from other marketplaces, or generic issue
-  creation.
+  during an actual run: file public-source feedback as labeled GitHub issues or recurrence comments,
+  and keep private-source feedback as ignored local records.
 disable-model-invocation: true
 argument-hint: "[skill-name ...]"
 compatibility: >-
