@@ -25,6 +25,13 @@ context load; otherwise make it model-invoked.
 Shared reference that two manual-only skills both need can live in neither: push it to a plain file
 outside the skill system that both point at.
 
+The invocation posture decides who reads the description, and so the description's form. Write a
+model-invoked skill's description as a trigger contract, as "Trigger contracts" below directs. No
+agent reads a manual-only skill's description; the user reads it in a command menu. Write it as a
+summary of what the skill does and produces, in one or two sentences, without "Use when" or "Do not
+use" clauses. When a change switches a skill's invocation posture, rewrite the description in the
+other form in the same change.
+
 ## Composing skills
 
 When one skill applies another model-invoked skill during the same workflow, assign ownership by
