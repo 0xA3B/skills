@@ -1,6 +1,7 @@
 version: 1
 applies:
   - engineering:review-changes
+  - writing:agent-instructions
 cases:
   - id: tune-trigger-request
     prompt: >-
@@ -45,3 +46,10 @@ cases:
       Improve the quality of the tests the tdd skill produces.
     expect: skip
     rationale: Output quality after invocation is out of scope; this workflow tunes triggers only.
+
+  - id: shorten-description
+    prompt: >-
+      The description of the tdd skill is too long. Shorten it, and check that the skill still
+      triggers on the same requests.
+    expect: invoke
+    rationale: A description edit changes the trigger contract even when the request names length.

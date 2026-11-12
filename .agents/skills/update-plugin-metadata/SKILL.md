@@ -1,11 +1,10 @@
 ---
 name: update-plugin-metadata
-description:
-  Updates marketplace plugin metadata, marketplace entries, README files, and skill UI metadata in
-  this repository. Use when the user asks to revise plugin descriptions, prompts, authorship,
-  categories, keywords, versions, or metadata consistency. Do not use for editing skill body
-  instructions in SKILL.md, or for tuning a skill description as a trigger contract; trigger
-  behavior belongs to optimize-trigger.
+description: >-
+  Use when asked to change plugin metadata in this repository: a plugin's description, default
+  prompts, author, category, keywords, or version, its marketplace entries or README summary, or a
+  skill's Codex UI metadata in `agents/openai.yaml`. Do not use to tune a skill `description` as a
+  trigger contract (optimize-trigger).
 license: MIT
 argument-hint: "[plugin]"
 ---

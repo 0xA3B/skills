@@ -29,9 +29,9 @@ cases:
 
   - id: create-new-plugin
     prompt: >-
-      Which repo workflow should create a new Codex plugin for database tools?
+      Create a new plugin for database tools.
     expect: skip
-    rationale: This skill only adds skills to existing plugins; plugin creation belongs elsewhere.
+    rationale: This skill only adds skills to existing plugins; it creates no plugin.
 
   - id: update-existing-skill
     prompt: >-

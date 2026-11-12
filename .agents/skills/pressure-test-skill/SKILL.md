@@ -1,13 +1,11 @@
 ---
 name: pressure-test-skill
 description: >-
-  Pressure-tests a plugin or repo-local skill by running temporary shortcut-pressure prompts in an
-  isolated agent context and manually evaluating whether the loaded skill changes behavior. Use when
-  the user asks to pressure test a skill, validate skill behavior under realistic pressure, verify
-  that new or tightened skill wording actually stops an agent from skipping or rationalizing around
-  a rule, or compare the output an agent produces on one task with and without a skill loaded. Do
-  not use for evaluating or tuning when a skill is implicitly invoked or its trigger fixtures (that
-  belongs to optimize-trigger), or for conceptual questions about pressure testing.
+  Use when asked to pressure test a plugin or repo-local skill, to check that its rules hold when an
+  agent is under pressure to skip or rationalize around them, to verify that new or tightened
+  wording changes agent behavior, or to compare the output an agent produces on one task with and
+  without the skill loaded. Do not use to evaluate when a skill is implicitly invoked
+  (optimize-trigger).
 license: MIT
 argument-hint: "[skill-path]"
 ---

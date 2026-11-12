@@ -1,13 +1,9 @@
 ---
 name: address-skill-feedback
 description: >-
-  Triage and address skill feedback from marketplace issues or private local artifacts: verify each
-  item against the run evidence and current instructions, identify the correct owner, assign encode,
-  reroute, discretion, wait, or reject, apply approved changes under the instruction budget, and
-  leave a durable public or private record. Use when the user asks to address, triage, or work
-  through skill feedback. Do not use for capturing new feedback from a run, for code review findings
-  on a PR, or for conceptual questions about the feedback process; capturing feedback belongs to
-  meta:submit-skill-feedback.
+  Triage and address skill feedback from marketplace issues or private files under
+  `.local/feedback/`: verify each item against its run evidence, find its owner, disposition it,
+  apply the approved changes, and leave a record on each source.
 disable-model-invocation: true
 argument-hint: "[issue-number-or-path ...]"
 ---
