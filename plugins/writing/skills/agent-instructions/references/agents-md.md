@@ -2,21 +2,19 @@
 
 What changes when the document is a repository instruction file — an `AGENTS.md` or `CLAUDE.md`:
 loading is scope-driven, not trigger-driven. The harness decides when the file loads from where it
-sits, so placement does most of the work that pointer wording does for other reference. Everything
-else about writing the file is the universal guidance in `SKILL.md`,
-[document-mechanics.md](document-mechanics.md), and [line-mechanics.md](line-mechanics.md).
+sits, so placement does most of the work that pointer wording does for other reference.
 
 ## The scope ladder
 
 Repository instruction files have their own disclosure ladder, ranked by how much of the repository
 the material governs:
 
-1. **Root instruction file** — always loaded, every session, no gate. Each line taxes every turn, so
-   the disclosure test becomes "does every session need this line?", not "does every branch?".
+1. **Root instruction file** — loaded in every session. Each line taxes every turn, so the
+   disclosure test becomes "does every session need this line?", not "does every branch?".
 2. **Directory-scoped instruction file** — an `AGENTS.md` in a subdirectory, for material only work
-   under that directory needs: progressive disclosure with a path trigger, as "Loading" describes.
-   Judge placement by where the work happens, not where the topic's files sit: put material a
-   session needs while working elsewhere in the repository in the root file or behind a pointer.
+   under that directory needs. Judge placement by where the work happens, not where the topic's
+   files sit: put material a session needs while working elsewhere in the root file or behind a
+   pointer.
 3. **Disclosed reference** — a plain file behind a pointer, for material scoped to a task rather
    than a place.
 
@@ -35,31 +33,34 @@ Codex sessions start at the repository root, so Codex loads only the root `AGENT
   down the scope ladder.
 - **Nested index.** In the root `AGENTS.md`, list exactly the nested `AGENTS.md` files that exist,
   each with a path predicate, such as "Before reading or editing files under `plugins/`, read
-  `plugins/AGENTS.md`." Without an index entry, nothing directs a Codex session to read a nested
-  file.
+  `plugins/AGENTS.md`."
 
 ## Composition across agents
 
 Keep one canonical instruction file per scope. When two agents read different filenames, make one
 file canonical and have the other import it — for example, `AGENTS.md` as canonical with a sibling
-`CLAUDE.md` containing `@AGENTS.md` plus only the guidance that is agent-specific. Two independently
-maintained files for one scope drift into two sources of truth. Give each nested `AGENTS.md` such a
-sibling `CLAUDE.md` as well: Claude Code loads a nested `CLAUDE.md`, not a nested `AGENTS.md`.
+`CLAUDE.md` containing `@AGENTS.md` plus only the guidance that is agent-specific. Give each nested
+`AGENTS.md` such a sibling `CLAUDE.md` as well: Claude Code loads a nested `CLAUDE.md`, not a nested
+`AGENTS.md`.
 
 ## Installed skills
 
-A model-invoked skill's description is already always-loaded context. An instruction-file line that
-restates what the skill does or when it fires is a second copy competing with the first; the
-duplication rule applies across surfaces, not just within a file. When the repository binds a
-model-invoked skill to scope its description cannot carry — which section it governs, which
-conventions override it, or which of its options this repository fixes — name the skill in the
-instruction file with that scope; otherwise leave the skill unnamed.
+A model-invoked skill's description is already always-loaded context, so an instruction-file line
+that restates what the skill does or when it fires is a second copy competing with the first. Name a
+skill in the instruction file only to bind scope its description cannot carry: which section it
+governs, which conventions override it, or which of its options this repository fixes.
 
 ## Terminology sections
 
-When a terminology section needs term, alias, relationship, or format changes: if the
-`engineering:terminology` skill is available, use it for those changes; otherwise leave the section
-unchanged and report proposed changes instead of applying them.
+When a terminology section needs term, alias, relationship, or format changes, use the
+`engineering:terminology` skill if it is available; otherwise leave the section unchanged and report
+the proposed changes.
+
+## Review rules
+
+When the project needs review guidance, such as how to rate a finding, keep it in a root `REVIEW.md`
+and route to it from a `## Code Review Rules` section of the root instruction file, so every
+reviewer reads one file and every other session loads one sentence; otherwise leave out both.
 
 ## A default shape
 
@@ -85,16 +86,15 @@ What kind of repository this is, what lives where, and the ownership boundaries.
 
 Testable imperatives: commands, paths, and thresholds.
 
-## Dependency policy
+## Code Review Rules
 
-How dependencies are chosen, constrained, and updated.
+Before you review a change here or triage review findings on one, read [REVIEW.md](REVIEW.md) and
+apply its rules.
 
 ## Terminology
 
 Durable domain terms. When a terminology workflow governs this section, name it here.
 ```
 
-The skeleton works because Purpose lists the outcomes changes are judged against, Nested
-instructions routes Codex to every nested file, Project conventions holds only testable imperatives,
-and Terminology names the workflow that governs it; the section names, their order, and the full set
-are incidental.
+Purpose lists the outcomes changes are judged against, and Project conventions holds only testable
+imperatives. Apart from `## Code Review Rules`, the section names and their order are incidental.
