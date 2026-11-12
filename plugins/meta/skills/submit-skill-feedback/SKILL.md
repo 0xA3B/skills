@@ -31,11 +31,10 @@ decide whether to encode, reroute, leave to discretion, wait, or reject it.
 
 ## Select targets and destination
 
-1. Treat named skills as a closed list unless the user calls the list tentative, asks for omissions,
-   or asks for `any` or `all` session-run skills. For an open list, review every in-scope
-   session-run skill as a candidate, then retain only the skills that produce qualified feedback. If
-   neither the targets nor the intended scope is clear, review every in-scope session-run skill the
-   same way, and name that assumption in the report.
+1. When the user names skills, review only those skills, unless the user calls the list tentative,
+   asks for omissions, or asks for `any` or `all` session-run skills. Otherwise review every
+   in-scope skill the session ran and keep the skills that produce qualified feedback; when the
+   request stated neither targets nor scope, name that assumption in the report.
 2. For each target, record the plugin name and version from the manifest that supplied the skill
    instructions used in the run, plus the agent that ran them. If the marketplace has a newer
    version, compare the current instructions and record the current version only when it differs.
@@ -152,11 +151,10 @@ alone points at a different instruction once its list gains, loses, or reorders 
    revised draft.
 3. Verify `gh auth status --active --hostname github.com` shows the user's marketplace account.
 4. Create each issue with `gh issue create --repo <repository>` and labels `feedback` and
-   `plugin:<plugin-name>`. Add each confirmed recurrence comment to its open issue with
-   `gh issue comment <issue-number> --repo <repository>`.
-5. The marketplace maintains labels by hand. If a label is missing, create the issue without that
-   label and name the missing label in the report.
-6. Read back each created issue or comment. When its body differs from the confirmed draft, edit it
+   `plugin:<plugin-name>`. The marketplace maintains labels by hand: when a label is missing, create
+   the issue without that label and name the missing label in the report. Add each confirmed
+   recurrence comment to its open issue with `gh issue comment <issue-number> --repo <repository>`.
+5. Read back each created issue or comment. When its body differs from the confirmed draft, edit it
    to match. Then report every URL.
 
 ## Preserve local feedback
