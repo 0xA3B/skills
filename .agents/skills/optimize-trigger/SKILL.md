@@ -36,7 +36,6 @@ skill's intended trigger boundary.
   Claude lane.
 - If the target skill is manual-only, warn the user and do not optimize trigger behavior unless they
   explicitly ask for advisory review.
-- Optimize trigger behavior only. Do not evaluate output quality in this workflow.
 
 ## Fixture contract
 
@@ -174,8 +173,7 @@ cases where loaded repository instructions should affect the trigger boundary, s
    ```
 
    The `description` is one trigger contract shared by both agents, so skills should pass on both.
-   Use `--agent codex` or `--agent claude` to run one agent at a time; while wording changes,
-   iterate with diagnostic runs.
+   Use `--agent codex` or `--agent claude` to run one agent at a time.
 
    Every run stages the target's deployment context by default. A plugin skill competes against
    every plugin in the agent's marketplace catalog, matching an installed session. A repo-local
@@ -214,12 +212,14 @@ cases where loaded repository instructions should affect the trigger boundary, s
    test, and that each `Agent:` line names the model you selected and the same agent version as any
    run you compare against. If a line does not match, rerun from the correct checkout or agent
    before you interpret the results. `report.json` records the same fields.
-7. For false negatives, make the description more explicit about the missing user intent.
-8. For false positives, narrow the description with clearer ownership boundaries or exclusions. When
-   only Claude Code needs different tuning, prefer adding or adjusting the Claude-only `when_to_use`
-   frontmatter key over forking the shared `description`: Claude appends `when_to_use` to the
-   description in its skill listing (combined text truncated at 1,536 characters), while Codex
-   ignores the key entirely.
+7. Fix a failed case in the predicate first, as "Trigger contracts" in `writing:agent-instructions`
+   directs: for a false negative, restate the predicate over the work; for a false positive, narrow
+   it, and add an exclusion only when another skill owns the request or the case still fails. After
+   the fixture passes, drop each exclusion whose case passes a diagnostic run without it.
+8. When only Claude Code needs different tuning, adjust the Claude-only `when_to_use` frontmatter
+   key instead of forking the shared `description`: Claude appends `when_to_use` to the description
+   in its skill listing (combined text truncated at 1,536 characters), while Codex ignores the key
+   entirely.
 9. When a repo-local target overlaps a marketplace skill — a `wrong-skill` result in either
    direction — fix the repo-local description. Marketplace descriptions serve every installation;
    edit one only when the overlap would also misfire in a session without the repo-local skills.
@@ -326,6 +326,5 @@ cases where loaded repository instructions should affect the trigger boundary, s
   `applies` entry, and the body reference it requires, only when that body's workflow applies the
   referenced skill in a step; an entry added so the harness drops a load as a dependency load hides
   real overlap.
-- Do not make the script edit descriptions automatically.
 - Do not add trigger evals to `mise exec -- pnpm check`; this is a development workflow, not a
   routine gate.
