@@ -17,7 +17,9 @@ license: MIT
 metadata:
   original_author: Alex Baker
   layers_adapted_from: https://github.com/cursor/plugins/tree/46125561306434d8a1d7745d540d8932ab0cd2a2/pstack/skills/technical-writing
-  upstream_reviewed: 46125561306434d8a1d7745d540d8932ab0cd2a2
+  upstream_reviewed: 2eaf46574b25cdf7ef8c849837099b866b7438ce
+  change_descriptions_adapted_from: https://github.com/mattpocock/skills/tree/4ae2317ddb22b046e26455e4f9c9b3aaaf62212d/skills/engineering/pr
+  change_descriptions_upstream_reviewed: 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
 ---
 
 # Technical writing
