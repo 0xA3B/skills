@@ -1,16 +1,12 @@
 ---
 name: prose
 description: >-
-  Use when asked to write, rewrite, tighten, shorten, or review general prose for a human reader — a
-  chat reply, explanation, summary, announcement, email, newsletter, or blog post — or to make text
-  sound less AI-generated, robotic, or stilted, or to cut filler and slop from text. This is the
-  base style for all prose; skills for specific artifact classes override it for their artifacts. Do
-  not use when the target is a technical artifact or a technical comment or reply in an issue or
-  review thread, even if the user asks to rewrite, tighten, or improve its prose. Technical-writing
-  owns that composition after the substance and disposition are settled; verifying, triaging, or
-  deciding how to handle existing feedback belongs to the feedback-handling workflow. Also do not
-  use for files that instruct agents (agent-instructions); for commit messages; for program code; or
-  for conceptual questions about writing style.
+  Use when asked to write, rewrite, tighten, shorten, or review prose for a human reader that is not
+  a technical artifact — an email, message, announcement, newsletter, blog post, summary, or chat
+  reply — or to make text sound less AI-generated, robotic, or stilted, or to cut its filler. Do not
+  use for a technical artifact, including a comment or reply in an issue or review thread, even when
+  the request is to tighten its prose (technical-writing); for files that instruct agents
+  (agent-instructions); or for commit messages or code.
 license: MIT
 metadata:
   original_author: Alex Baker

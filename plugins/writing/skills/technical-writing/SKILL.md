@@ -1,18 +1,15 @@
 ---
 name: technical-writing
 description: >-
-  Use when writing, editing, or reviewing technical artifacts — READMEs, CONTRIBUTING and setup
-  guides, knowledge-base pages, runbooks, migration and upgrade guides, API reference prose,
-  architecture and design documents, release notes, long-form docstrings, pull request descriptions,
-  or issue and ticket descriptions — including making text clearer for non-native English readers.
-  Do not use to review README or documentation files the user changed in this checkout;
-  engineering:review-changes owns that review and applies this skill inside. Do not use to assess,
-  triage, or decide changes from unresolved review feedback. Once another workflow settles the
-  feedback, use for drafting or rewriting technical comments in issue trackers, pull or merge
-  request comments, and reviewer replies. Do not use for decision records
-  (engineering:decision-records); for agent-instruction files such as AGENTS.md or SKILL.md; for
-  chat responses, commit messages, or code comments; or for conceptual questions about writing
-  standards.
+  Use whenever the session writes, edits, or reviews a technical artifact for other readers, even as
+  a small edit or as one step of a larger task: a README, guide, runbook, knowledge-base page, API
+  reference, design document, or release notes; a pull request, issue, or ticket description; or a
+  comment or reply in an issue or review thread. This includes a draft to publish later and text
+  made clearer for non-native English readers. Do not use to review documentation changed in this
+  checkout (engineering:review-changes); to decide what unresolved review feedback requires
+  (engineering:receiving-feedback); for decision records (engineering:decision-records); for files
+  that instruct agents (agent-instructions); for code comments; or for scratch notes nobody will
+  publish.
 license: MIT
 metadata:
   original_author: Alex Baker
