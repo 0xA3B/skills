@@ -34,19 +34,22 @@ rely on.
 5. Read each item's evidence line. An `observed` item carries a real run moment; a `speculative`
    item is a noticed risk; when it only enumerates a state, location, or transition, the provenance
    test below decides what it can earn.
-6. When a new issue references closed feedback, read the earlier disposition and change. Determine
-   whether the behavior regressed, the earlier remedy missed the new context, or the earlier
-   resolution did not address the mechanism. When a selected issue already carries a `wait`
-   disposition, or a new item matches a `wait` record on an open issue or in
-   `.local/feedback-deferred/`, test the recorded trigger against the evidence since that
-   disposition, add a new item's evidence to the `wait` record as a recurrence, and reject the new
-   item as a duplicate of that record by link. When the trigger has fired, the `wait` item enters
-   this pass; otherwise leave it out. When the new item is a public issue and the record is private,
-   the issue instead becomes the public `wait` record, carrying the disposition and trigger, and the
-   private record takes the `Status: Promoted to <issue-url>` line and moves to
-   `.local/feedback-archive/`. Leave an item whose recorded encode is pending, shown by an open
-   change request cross-referenced on the issue timeline or recorded in the private source, out of
-   this pass until its change lands.
+6. Check each item against earlier records:
+   - When a new issue references closed feedback, read the earlier disposition and change, and
+     determine whether the behavior regressed, the earlier remedy missed the new context, or the
+     earlier resolution did not address the mechanism.
+   - When a selected issue already carries a `wait` disposition, test its recorded trigger against
+     the evidence since that disposition. When the trigger has fired, the `wait` item enters this
+     pass; otherwise leave it out.
+   - When a new item matches a `wait` record on an open issue or in `.local/feedback-deferred/`, add
+     the new item's evidence to the record as a recurrence, reject the new item as a duplicate of
+     that record by link, and test the record's trigger the same way. When the new item is a public
+     issue and the record is private, the issue instead becomes the public `wait` record, carrying
+     the disposition and trigger, and the private record takes the `Status: Promoted to <issue-url>`
+     line and moves to `.local/feedback-archive/`.
+   - Leave an item whose recorded encode is pending, shown by an open change request
+     cross-referenced on the issue timeline or recorded in the private source, out of this pass
+     until its change lands.
 
 ## Reconstruct the feedback
 
@@ -125,9 +128,6 @@ handled correctly is evidence for `discretion`, not for encoding. Ask whether th
 change model behavior versus the default; a rule that only restates capable model behavior does not
 earn the attention budget.
 
-The proposed remedy does not inherit the observation's validity. A reviewer can identify a real
-failure while proposing an overbroad rule, the wrong owner, or only one of several sound designs.
-
 ## Disposition taxonomy
 
 Disposition every atomic feedback item as exactly one of:
@@ -148,10 +148,6 @@ Disposition every atomic feedback item as exactly one of:
 - **reject**: the reported mechanism did not occur, the claimed contract is wrong, the issue is
   already addressed, or no actionable feedback remains after correcting its evidence or context.
 
-Recurrence is evidence, not an automatic encoding threshold. One top-tier miss can earn an
-instruction immediately. Several cheap occurrences in the same local context can still belong to
-repository guidance or discretion.
-
 ## Encoding rules
 
 Apply `writing:agent-instructions` to every skill edit, and hold these lines from it especially:
@@ -160,8 +156,6 @@ Apply `writing:agent-instructions` to every skill edit, and hold these lines fro
   calibration items in particular should resolve as replace-or-delete more often than append; a fix
   that removes rigidity (a hard cap, an over-specified sequence) is a valid and often the best
   encoding.
-- Put external-protocol facts in the reference file for that protocol, not the always-loaded skill
-  body.
 - Prefer one portable decision rule over a catalog of project examples. A valid encoding can delete
   redundant guidance, narrow an absolute, move conditional mechanics behind a pointer, or preserve a
   bounded safeguard while recalibrating its threshold.
@@ -174,13 +168,9 @@ Apply `writing:agent-instructions` to every skill edit, and hold these lines fro
   a restructure that moves material between files or reorders sections for its own change unless a
   feedback item names the load or ordering as the failure.
 
-Choose the smallest correct surface:
-
-- Change the description and trigger fixtures for an invocation-boundary failure.
-- Change the skill body for guidance every invocation needs.
-- Change a routed reference for mode-specific, artifact-specific, or protocol-specific guidance.
-- Change the orchestrating workflow when the failure occurs between stages owned by separate skills.
-- Preserve model discretion when several safe methods satisfy the same invariant.
+Within the owner that "Find the owner" assigns, choose the smallest surface: the skill body for
+guidance every invocation needs, and a routed reference for mode-specific, artifact-specific, or
+protocol-specific guidance.
 
 State the mechanism and boundary, not the repository example that exposed it. Preserve adjacent
 behavior that worked. If the proposed encoding changes the skill's intended scope or conflicts with

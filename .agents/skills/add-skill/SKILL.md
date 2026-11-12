@@ -10,97 +10,46 @@ argument-hint: "[skill-name]"
 
 # Add skill
 
-Repo-local wrapper for adding a plugin skill under `plugins/<plugin-name>/skills/`.
-
-Use the `writing:agent-instructions` skill for drafting or materially revising `SKILL.md`. Use this
-skill for this repository's plugin placement, metadata, documentation, invocation-policy, and
-validation conventions.
+Add one plugin skill under `plugins/<plugin-name>/skills/`. `plugins/AGENTS.md` owns the naming,
+frontmatter, invocation-policy, default-prompt, and version rules this workflow applies, and
+`writing:agent-instructions` owns the wording of `SKILL.md`.
 
 ## Outcome
 
-Create a complete skill in an existing plugin with the expected repo layout, agent metadata for
-every plugin target, plugin-facing docs when useful, and passing plugin validation.
+Finish with a complete skill in an existing plugin: its `SKILL.md`, its Codex UI metadata, trigger
+fixtures when it is implicitly invokable, updated README files, a plugin version bump, and passing
+validation.
 
-Stop when the new skill is present, relevant metadata/docs are updated, and validation has passed.
-If the target plugin is ambiguous, the skill already exists, or validation fails for a reason that
-is not clearly caused by this change, report the blocker and the safest next action.
-
-## Source of truth
-
-- Follow `plugins/AGENTS.md` for skill metadata placement and authoring rules.
-- Follow the `writing:agent-instructions` skill for skill-body drafting, instruction quality,
-  information hierarchy, and completion criteria.
-- Use existing skills in the target plugin as local style examples.
-- Follow the plugin version policy in `plugins/AGENTS.md`.
-- Keep runtime instructions in `SKILL.md`.
-- Keep Codex UI metadata and Codex invocation policy in `agents/openai.yaml`; keep Claude Code
-  invocation policy in `SKILL.md` frontmatter (`disable-model-invocation`). The linter enforces
-  parity between the two.
-- Bias new skills toward manual invocation. Allow implicit invocation only when the skill has a
-  clear trigger contract, the user intent boundary is narrow enough to avoid surprising activation,
-  and trigger fixtures are added and validated as part of the workflow.
+If the target plugin does not exist or is ambiguous, the skill already exists, or validation fails
+for a reason this change did not cause, report the blocker and stop.
 
 ## Workflow
 
-1. Identify the target plugin and normalize the skill name to lowercase kebab-case. Use an action or
-   workflow name (imperative verb phrase by default) for user-invocable skills and a state or
-   discipline phrase (typically a gerund, such as `receiving-feedback`) for `user-invocable: false`
-   skills.
-2. Confirm the skill does not already exist at `plugins/<plugin-name>/skills/<skill-name>/`.
-3. Create:
-
-   ```text
-   plugins/<plugin-name>/skills/<skill-name>/SKILL.md
-   plugins/<plugin-name>/skills/<skill-name>/agents/openai.yaml
-   ```
-
-4. Apply the `writing:agent-instructions` discipline to draft `SKILL.md`; apply `plugins/AGENTS.md`
-   for this repo's frontmatter and placement rules.
-5. Write `agents/openai.yaml` with `interface.display_name`, `interface.short_description`,
-   `interface.default_prompt`, and `policy.allow_implicit_invocation`. For manual-only skills, make
-   `interface.default_prompt` include the explicit `$plugin-name:skill-name` callout. Use
-   `policy.allow_implicit_invocation: false` unless the skill is clearly designed for implicit
-   invocation from the start. For manual-only skills, also set `disable-model-invocation: true` in
-   `SKILL.md` frontmatter so Claude Code applies the same policy; omit the key for implicitly
-   invokable skills. Add `argument-hint` when the skill takes meaningful invocation arguments;
-   follow `plugins/AGENTS.md` for the other Claude Code frontmatter keys.
-6. If the skill is behavior-shaping, run a behavior pressure test before treating the draft as
-   ready. Use the repo-local `pressure-test-skill` workflow; it owns the pressure-test methodology,
-   including prompt design, isolated execution, manual evaluation, and scratch handling under
-   `.local/`.
-7. If `policy.allow_implicit_invocation: true`, add positive and negative trigger fixtures:
-
-   ```text
-   plugins/<plugin-name>/skills/<skill-name>/evals/triggers.yaml
-   ```
-
-8. When the new skill should be visible to plugin users, update the plugin README and root
-   `README.md`.
-9. When the skill should be visible from plugin-level prompt examples, update Codex plugin default
-   prompts. Keep `interface.defaultPrompt` to three prompts or fewer, choose the most useful entry
-   points, and include explicit `$plugin-name:skill-name` callouts for manual-only skills.
-10. Unless the user explicitly asks to test same-version behavior, bump the version in the plugin's
-    portable manifest (`plugin.json`), sized by the plugin version policy, so every targeted agent
-    treats the installed skill set as changed. If the plugin ships a Claude extension
-    (`.claude-plugin/plugin.json`), bump its version to match; the linter requires the two to match.
-11. If implicit invocation is enabled, run trigger validation on both agents:
-
-```bash
-mise exec -- pnpm eval:trigger -- plugins/<plugin-name>/skills/<skill-name> --agent both
-```
-
-12. Run repository validation:
-
-```bash
-mise exec -- pnpm lint:plugins
-mise exec -- pnpm format:check
-```
+1. Identify the target plugin, and name the skill by the skill rules in `plugins/AGENTS.md`. If
+   `plugins/<plugin-name>/skills/<skill-name>/` exists, stop and report it.
+2. Choose the invocation policy. Default to a manual-only skill. Make the skill implicitly invokable
+   only when the agent or another skill must reach it without the user naming it, and its
+   description can state a trigger contract narrow enough that it does not fire on nearby requests.
+   Record the policy in both `SKILL.md` frontmatter and `agents/openai.yaml`.
+3. Create `SKILL.md` in the skill directory. Apply `writing:agent-instructions` to the body and the
+   description, and use the target plugin's existing skills as examples of local style.
+4. Create `agents/openai.yaml` with `interface.display_name`, `interface.short_description`,
+   `interface.default_prompt`, and `policy.allow_implicit_invocation`, set by the skill rules and
+   the default prompt policy in `plugins/AGENTS.md`.
+5. If the skill asks an agent to resist a shortcut or shapes an artifact, run `pressure-test-skill`
+   on the draft and apply the changes it finds.
+6. If the skill is implicitly invokable, run `optimize-trigger` on it to write `evals/triggers.yaml`
+   and run its trigger evals. Done at that workflow's terminal outcome; report a stop for a user
+   decision as a blocker.
+7. Add the skill to the plugin README and the root `README.md`. Add it to the plugin's default
+   prompts only when the default prompt policy in `plugins/AGENTS.md` ranks it among the plugin's
+   most useful entry points.
+8. Bump the plugin version by the plugin version policy in `plugins/AGENTS.md`.
+9. Run `mise exec -- pnpm lint:plugins` and `mise exec -- pnpm format:check`, and fix what they
+   report.
 
 ## Boundaries
 
-- Do not create a new plugin unless the user explicitly asks for one.
-- Do not change plugin metadata unless the new skill affects plugin descriptions, prompts, keywords,
-  or visible docs.
-- Do not duplicate broad skill-authoring guidance here; keep repo-wide review guidance in
-  `plugins/AGENTS.md` and use `writing:agent-instructions` for skill-body quality.
-- Do not stage or commit changes unless the user asks.
+- This workflow creates no plugin and no repo-local skill, and changes other plugin metadata only
+  where the skill makes it wrong.
+- Stage or commit only when the user asks.

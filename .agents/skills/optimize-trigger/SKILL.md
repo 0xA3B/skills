@@ -36,113 +36,14 @@ skill's intended trigger boundary.
 - If the target skill is manual-only, warn the user and do not optimize trigger behavior unless they
   explicitly ask for advisory review.
 
-## Fixture contract
+## References
 
-Trigger fixtures live at:
-
-```text
-plugins/<plugin>/skills/<skill>/evals/triggers.yaml
-.agents/skills/<skill>/evals/triggers.yaml
-```
-
-Each fixture file must include both positive and negative cases:
-
-```yaml
-version: 1
-cases:
-  - id: commit-message-request
-    prompt: >-
-      Draft a Conventional Commit message for these changes.
-    expect: invoke
-    rationale: The user is asking for commit message policy help.
-
-  - id: conceptual-question
-    prompt: >-
-      What is the purpose of Conventional Commits?
-    expect: skip
-    rationale: The user is asking a conceptual question, not requesting the workflow.
-
-  - id: project-convention-conflict
-    prompt: >-
-      Commit these changes.
-    workspace_files:
-      AGENTS.md: |
-        Commit messages must use Gitmoji, not Conventional Commits.
-    expect: skip
-    rationale: Repository instructions require a different workflow than this skill owns.
-
-  - id: adjacent-workflow
-    prompt: >-
-      Open a pull request for this branch.
-    expect: skip
-    invoke-instead: git:create-pr
-    rationale: Opening the PR belongs to create-pr.
-```
-
-Use positive cases for natural prompts that should load the skill. Keep them representative of real
-user intent rather than asking the model to choose a workflow, because workflow-selection wording
-can muddy the trigger signal. Use negative cases for nearby prompts that should not load it,
-especially conceptual questions, adjacent workflows, or requests owned by a different skill.
-
-When the request in a skip case belongs to another implicitly invokable skill of the same kind, add
-a routing assertion: `invoke-instead: <label>` names that alternate, and the case passes only when
-the alternate is the only skill that fires.
-
-When a prompt chains outcomes that other implicitly invokable skills also own, such as "commit,
-push, and open a PR", write one compound case in the fixture of the skill whose workflow applies the
-others: `expect: invoke` with an `invoke-or:` list of the other owners. The case passes when the
-target or a listed skill makes the trigger decision and no other skill fires. A case runs no
-workflow, so it never shows a later load.
-
-Under both keys, a plugin fixture names a plugin skill as `<plugin>:<skill>` and a repo-local
-fixture names a repo-local skill by its bare name. `pnpm lint:plugins` rejects a named skill that is
-missing, manual-only, of the other kind, or absent from a plugin target the fixture's plugin ships
-on.
-
-When the skill's workflow applies another skill in a step, list its label under a top-level
-`applies:`. When a `wrong-skill` result names a skill the workflow applies, declare it there;
-otherwise fix the descriptions.
-
-Make every standalone case actionable. When a prompt refers to a file, branch, prior response, or
-artifact that the prompt does not contain, add the smallest representative `workspace_files` input
-or embed the needed text in the prompt. Missing input can make an agent inspect the empty fixture or
-ask for context before selecting a skill, which measures task viability instead of invocation.
-
-A case runs in an empty directory unless it resolves to a `workspace` block or a non-empty
-`workspace_files` map, from the case or the fixture default. When a prompt assumes a plausible
-project — "review the staged changes", "fix the regex in parseIso", "where should the seam go" —
-declare a workspace seed:
-
-```yaml
-version: 1
-workspace: # fixture-level default; applies to skip cases too
-  seed: node-service # evals/seeds/node-service/
-  branch: main # optional
-  committed: {}
-  staged: {}
-workspace_files: {} # fixture-level default, merged per path with the case's own (case wins)
-cases:
-  - id: example
-    workspace: { seed: node-service, staged: { src/retry.js: "..." } } # replaces the default
-    workspace_files: {}
-  - id: other
-    workspace: none # opts out of the fixture default
-```
-
-Every seeded workspace is a git repository with no remote and one commit holding the seed, the
-`committed` files, and the evaluated agent's config surfaces; `staged` files are then added to the
-index and `workspace_files` stay unstaged. A seed's own `.gitignore` shapes the seed commit only;
-`committed` and `staged` files are always added. Without a `workspace` block, `workspace_files`
-alone writes plain files with no git repository.
-
-Seed ownership is one-way: tailor a case to a seed through the `committed`, `staged`, and
-`workspace_files` layers, and never edit a seed for one case.
-
-Prefer cheap boundary-question negatives when the nearby workflow would otherwise do substantial
-work, such as asking which workflow owns plugin creation or metadata updates. Use action-style
-negative prompts only when the near miss itself is important to test. Use `workspace_files` for
-cases where loaded repository instructions should affect the trigger boundary, such as an
-`AGENTS.md` commit convention.
+- Before you review, add, or change a fixture case, read
+  [fixture-contract.md](references/fixture-contract.md) for the case format, routing assertions,
+  compound cases, `applies`, and workspace seeds.
+- Before you interpret a FAIL, ERROR, `wrong-skill`, dependency-load, or timeout result, or debug a
+  run, read [harness-notes.md](references/harness-notes.md) for how the runner stages skills,
+  classifies an invocation on each agent, and ends a case.
 
 ## Workflow
 
@@ -172,7 +73,9 @@ cases where loaded repository instructions should affect the trigger boundary, s
    ```
 
    The `description` is one trigger contract shared by both agents, so skills should pass on both.
-   Use `--agent codex` or `--agent claude` to run one agent at a time.
+   Use `--agent codex` or `--agent claude` to run one agent at a time. Run every trigger eval
+   unsandboxed: each case's agent CLI applies its own sandbox, and inside another sandbox every case
+   ends as ERROR with an environmental-failure note.
 
    Every run stages the target's deployment context by default. A plugin skill competes against
    every plugin in the agent's marketplace catalog, matching an installed session. A repo-local
@@ -210,7 +113,8 @@ cases where loaded repository instructions should affect the trigger boundary, s
    description for a FAIL, confirm that the `Checkout:` line names the checkout and branch under
    test, and that each `Agent:` line names the model you selected and the same agent version as any
    run you compare against. If a line does not match, rerun from the correct checkout or agent
-   before you interpret the results. `report.json` records the same fields.
+   before you interpret the results. `report.json` records the same fields. Treat a case that skips
+   only by timeout, printed as a weak signal, as unresolved, not passing.
 7. Fix a failed case in the predicate first, as "Trigger contracts" in `writing:agent-instructions`
    directs: for a false negative, restate the predicate over the work; for a false positive, narrow
    it, and add an exclusion only when another skill owns the request or the case still fails. After
@@ -244,74 +148,6 @@ cases where loaded repository instructions should affect the trigger boundary, s
     mise exec -- pnpm lint
     mise exec -- pnpm typecheck
     ```
-
-## Harness notes
-
-- The runner writes reports and Codex homes under `.local/skill-evals/`, and creates staged
-  workspaces outside the repository so only deliberately staged skills are loadable — the parent
-  checkout's live skills never leak into the trigger signal. On both lanes, staged plugin deployment
-  copies and the Codex marketplace catalog are siblings of the case workspace rather than project
-  files, matching an installed session and keeping them out of project reconnaissance.
-- Runtime state is removed as the run goes: each attempt's Codex home once its output is captured,
-  and the staged workspaces and run home when the run ends, whether it completed, failed, timed out,
-  or was canceled. `report.json` and each attempt's `events.jsonl`, `final.txt`, and `stderr.log`
-  under `cases/<case-id>/attempt-<n>/` stay. Pass `--keep-runtime` to retain the homes and
-  workspaces for debugging, though the copied `auth.json` is still removed; a directory the runner
-  could not remove is printed as a warning and never fails the run.
-- Cases with a `workspace` block or `workspace_files` run in an attempt-specific copy of the staged
-  workspace. The runner builds the seeded repository identically on both lanes, with a harness-owned
-  git identity and signing disabled, so the machine's git configuration cannot affect a run.
-- The committed `description` remains the trigger surface under test. Staged skill copies are
-  byte-identical to the committed skills on both lanes.
-- The runner stops the agent CLI at the trigger decision, so positive cases do not need to finish
-  the requested workflow.
-- Negative cases stop early too: once the lane's budget of decision-bearing items completes without
-  an invocation signal, the run is stopped and classified as a clean skip. The Claude lane allows
-  five items and counts text-only assistant turns and non-read tool calls; thinking and `Read`,
-  `Glob`, or `Grep` reconnaissance do not consume the budget. The Codex lane allows eight and counts
-  every non-reasoning completed item, because its generic command events do not reliably distinguish
-  read-only reconnaissance and the model inspects a seeded workspace before it loads a skill.
-- Codex has no skill tool or skill event, so on Codex a successful command that prints a staged
-  `SKILL.md` from its first line is the invocation signal. `src/trigger-evals/lanes/skill-reads.ts`
-  owns the load and inspection forms; through the trigger decision, a command naming a staged
-  `SKILL.md` in another form is reported as ERROR, and classifying that form is a harness
-  attribution change. A whole-file read made to answer a question about a skill still counts, so
-  read `events.jsonl` before tuning a conceptual case that fails only on Codex.
-- A skill loaded in the same trigger decision as a skill whose fixture lists it under `applies` is a
-  dependency load of that skill's workflow, and the verdict drops it whatever the read order; two
-  skills that apply each other both stay invocations. The case line lists the dropped loads after
-  `dependency loads`.
-- Every staged skill keeps its real invocation policy, and the lane watches each implicitly
-  invokable staged skill, so invoking the wrong skill is a distinct, attributable observation. A
-  `wrong-skill` result names a plugin skill as `<plugin>:<skill>` and a repo-local sibling by its
-  bare skill name. It fails an invoke case — even when the target fires in the same trigger
-  decision, because simultaneous invocation is itself trigger-contract overlap — and is surfaced on
-  passing skip cases too, because either direction exposes overlap between loaded skills.
-- On Claude Code, the runner launches `claude -p` with the Skill tool, the read-only `Read`, `Glob`,
-  and `Grep` tools, and the Agent tool, and classifies invocation from the main thread's Skill tool
-  events in the stream-json output. A Skill call inside a dispatched sub-agent is not a trigger
-  decision, and the sub-agent's events consume no budget; the main thread's Agent call is one
-  decision-bearing item. Plugin skills load from the staged plugin copy via `--plugin-dir`;
-  repo-local skills load from the staged `.claude/skills/` copy.
-- Claude workspaces stage project-only `.claude/settings.json` with `disableBundledSkills: true` so
-  bundled skills such as `code-review` do not compete with the target. The runner verifies the
-  isolation at runtime: each Claude case checks the init event's `skills` list against the staged
-  set (plus the exempt list in `verdict.ts`) and reports an environmental failure when unstaged
-  skills leak in, because a leaked skill can steal or provoke an invocation in either direction.
-- Staging is lane-specific: only the evaluated agent's config surfaces are written into the
-  workspace (`.claude/` for Claude, `.agents/` for Codex), so the other agent's files never pollute
-  the workspace under test.
-- Attempt pass/fail is based on matching the expected invoke or skip classification, and a case
-  passes only when every attempt passes. Exec errors and timeouts remain in the report because
-  trigger evals do not validate workflow completion.
-- Skip verdicts record how the run ended: natural completion, the decision-item budget, or the case
-  timeout. Timeout skips are annotated as weak signals because the model might have invoked after
-  the cutoff; treat a fixture that repeatedly skips only via timeout as unresolved, not passing.
-- Run trigger evals from an unsandboxed context. The per-case CLI subprocesses apply their own OS
-  sandbox and need network and home-directory access, so driving the harness from inside a sandbox
-  (a sandboxed Codex session, a sandboxed Bash tool call) kills every case before it executes —
-  macOS refuses to nest a second Seatbelt sandbox. The runner reports such cases as ERROR with an
-  environmental-failure note instead of counting the dead run as a skip.
 
 ## Boundaries
 
