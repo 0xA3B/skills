@@ -26,7 +26,6 @@ Use this order, and include a section only when it has real content:
 ## Rules
 
 - The reader must reach a first working result without leaving the README and its links.
-- State prerequisites before the commands that need them.
 - Keep the roadmap, the changelog, and the full API out of the README; link to them instead.
 - When an independent section gains a different audience, lifecycle, or maintenance authority, move
   it to a dedicated document and link to it.

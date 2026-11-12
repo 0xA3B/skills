@@ -6,7 +6,7 @@ instruction. The script binds the path; the agent acts on its output instead of 
 ## When to bundle
 
 - Bundle a script for a fragile path the agent would otherwise assemble from several commands,
-  parsing, pagination, or timing. Each run that assembles the path can assemble it wrong.
+  parsing, pagination, or timing.
 - Keep a fragile path that one command covers in the instructions as an exact command line.
 - For a batch or destructive step on a fragile path, have the agent write its plan to a file and
   validate the plan with a script before applying it. A passing validator run gates the apply; make
@@ -19,8 +19,7 @@ instruction. The script binds the path; the agent acts on its output instead of 
   polls span the ten-minute response timeout", not a bare `11`.
 - Distinguish every outcome that changes the workflow's next step with a separate exit code or a
   structured status, a named status in structured output. When the workflow routes by exit code,
-  print the code as the last output line, so a captured log carries it; a structured status already
-  travels in the output.
+  print the code as the last output line, so a captured log carries it.
 - Keep an error apart from a negative result. When the script cannot run a step or read a source,
   exit with a code no clean or empty result uses and a message naming what failed. Handle what the
   script can decide itself, such as pagination or rechecking state that may have moved; never
@@ -81,8 +80,7 @@ separate commands, and state:
   foreground;
 - the route for a missing dependency: stop and report it to the user, and install nothing into the
   global environment without the user's approval. A command-scoped runner, such as the uv shebang
-  above or `npm exec --package`, leaves the global environment unchanged and needs no approval. A
-  global install changes state outside the run, so this route is fragile;
+  above or `npm exec --package`, leaves the global environment unchanged and needs no approval;
 - the next step for each outcome, identified by its exit code or structured status. Leave mechanics
   to the script's header.
 
@@ -98,6 +96,5 @@ the outcome from the final `exit=` line:
 - `6`: the script could not read the pull request; retry once, then return `blocked`.
 ```
 
-The example is correct because it tells the agent to run the script instead of assembling the poll,
-gives the one run need with its reason, routes a missing declared tool to the user, and maps every
-exit code to a next step; the script name and the exit code numbers are incidental.
+The example is correct because it tells the agent to run the script, gives the one run need with its
+reason, routes a missing declared tool to the user, and maps every exit code to a next step.

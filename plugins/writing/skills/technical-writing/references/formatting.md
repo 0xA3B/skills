@@ -48,8 +48,7 @@ two conflict on a sentence.
 - Put a command and its output in separate blocks.
 - Mark placeholders in one consistent form, for example `PROJECT_ID`, and define each placeholder
   near its first use.
-- Make every command run as pasted once placeholders are replaced. State prerequisites before the
-  command that needs them.
+- Make every command run as pasted once placeholders are replaced.
 
 ## Notices
 

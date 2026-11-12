@@ -90,14 +90,9 @@ published page. The publish step can change both the content and the rendering.
 
 When you cannot render a page, apply the fallback in [formatting.md](formatting.md).
 
-## Checklist
+## Completion
 
-- The map names each audience, task, and fact authority, marks each mutable fact, and gives every
-  mutable fact one owning page.
-- Every externally owned fact was confirmed with its owner or is marked unknown with the owner
-  named.
-- The gateway routes by task and holds no procedure and no mutable fact.
-- Every example follows the code-sample rules in `formatting.md`, names its actor when the reader
-  cannot perform the step, and gives the request route when the step needs someone else.
-- Every page passed the rendered review at both widths after publication, and before publication
-  when the platform has a preview, or the review is reported as not done.
+The knowledge base is done when the map is complete, the gateway holds no procedure and no mutable
+fact, every example names its actor and request route where the reader cannot perform the step, and
+every page passed the rendered review at both widths after publication, and before publication when
+the platform has a preview, or the review is reported as not done.

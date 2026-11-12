@@ -10,16 +10,15 @@ or understanding (thinking), and does it serve learning or work?
 - Understanding and work: **reference**.
 - Understanding and learning: **explanation**.
 
-Apply the two questions to a whole document or to one paragraph. Reach for them whenever you are
-unsure what you are writing; gut feel is often wrong here.
+Apply the two questions to a whole document or to one paragraph.
 
 ## Tutorial: learning by doing
 
-You are the teacher, and the learner's success is your responsibility. Open with what the learner
-will build, not what they will "learn". Make every step produce a visible result, early and often,
-and tell the learner what they should see: the expected output, the prompt change, the log line.
-Keep explanation to one clause and a link; a teaching pause breaks the lesson. Stay concrete, write
-as "we", and give steps as commands: "First, run x. Now, run y."
+The learner's success is your responsibility. Open with what the learner will build, not what they
+will "learn". Make every step produce a visible result, early and often, and tell the learner what
+they should see: the expected output, the prompt change, the log line. Keep explanation to one
+clause and a link; a teaching pause breaks the lesson. Stay concrete, write as "we", and give steps
+as commands: "First, run x. Now, run y."
 
 ## How-to: steps to a goal
 
@@ -48,5 +47,3 @@ Keep each section internally consistent: do not put tutorial hand-holding inside
 argument inside a how-to section. Split the document when modes serve different audiences,
 lifecycles, or tasks, not merely because more than one mode appears. Follow the README content model
 in [readme.md](readme.md) for gateway documents.
-
-Source: diataxis.fr.
