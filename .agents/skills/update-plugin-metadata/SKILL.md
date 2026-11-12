@@ -1,69 +1,47 @@
 ---
 name: update-plugin-metadata
-description:
-  Updates marketplace plugin metadata, marketplace entries, README files, and skill UI metadata in
-  this repository. Use when the user asks to revise plugin descriptions, prompts, authorship,
-  categories, keywords, versions, or metadata consistency. Do not use for editing skill body
-  instructions in SKILL.md, or for tuning a skill description as a trigger contract; trigger
-  behavior belongs to optimize-trigger.
+description: >-
+  Use when asked to change plugin metadata in this repository: a plugin's description, default
+  prompts, author, category, keywords, or version, its marketplace entries or README summary, or a
+  skill's Codex UI metadata in `agents/openai.yaml`. Do not use to tune a skill `description` as a
+  trigger contract (optimize-trigger).
 license: MIT
 argument-hint: "[plugin]"
 ---
 
 # Update plugin metadata
 
-Repo-local workflow for keeping plugin metadata consistent across the Claude Code and Codex
-marketplaces.
+Keep a plugin's metadata consistent across its metadata surfaces: the portable manifest, the target
+extensions, the marketplace catalogs, the README files, and each skill's Codex UI metadata.
+`plugins/AGENTS.md` owns the manifest conventions, the default prompt policy, invocation-policy
+parity, and the plugin version policy this workflow applies.
 
 ## Outcome
 
-Update all metadata surfaces affected by the request while preserving this repo's schemas and
-keeping plugin discovery, README summaries, skill UI metadata, and default prompts consistent.
+Finish with every metadata surface the request affects changed together, and validation passing.
 
-Stop when the affected surfaces are aligned and validation has passed. If the requested metadata
-change implies a plugin rename, schema change, or new skill body, update only the safe surfaces and
-report the remaining work instead of guessing.
-
-## Source of truth
-
-- Follow `plugins/AGENTS.md` for manifest conventions, metadata placement, the default prompt
-  policy, invocation-policy parity, and the plugin version policy; do not restate them here.
-- Plugin README files and the root `README.md` carry the user-facing plugin summaries.
+If the request implies a plugin rename, a schema change, or a new skill body, change only the
+surfaces that stay valid without that work and report the rest; a new skill belongs to `add-skill`.
 
 ## Workflow
 
-1. Identify the target plugin or plugins.
-2. Read the plugin's portable manifest, its target extensions, and its marketplace entries before
-   editing.
-3. Determine whether the request changes plugin name, version, description, author, repository,
-   keywords, category, prompts, skill display names, skill descriptions, invocation policy, or
-   README-visible summaries.
-4. Determine whether the change is content-only, additive, narrowing, or compatibility-affecting,
-   then apply the plugin version policy.
-5. Update all affected metadata surfaces together.
-6. Preserve schema-specific field names and shapes; do not normalize them into a different
-   structure.
-7. When evidence is missing, inspect the actual plugin directories and existing metadata before
-   inventing names, summaries, prompts, or categories.
-8. Run validation:
-
-   ```bash
-   mise exec -- pnpm lint:plugins
-   mise exec -- pnpm format:check
-   ```
-
-9. When validation tooling changed, run `mise exec -- pnpm lint` and `mise exec -- pnpm typecheck`.
+1. Identify the target plugins. Read each one's portable manifest, target extensions, and
+   marketplace entries before editing.
+2. List the fields the request changes, and every surface that carries each field.
+3. Change those surfaces together. Keep each schema's field names and shapes. Take a name, summary,
+   prompt, or category the request does not supply from the plugin directory and its existing
+   metadata; do not invent one.
+4. Apply the plugin version policy in `plugins/AGENTS.md` to the change.
+5. Run `mise exec -- pnpm lint:plugins` and `mise exec -- pnpm format:check`. When the change
+   touched validation tooling, also run `mise exec -- pnpm lint` and `mise exec -- pnpm typecheck`.
 
 ## Consistency rules
 
 - Keep plugin `name`, `version`, `description`, `author`, `repository`, and `keywords` aligned
-  across the portable manifest, the Claude extension, marketplace catalogs, and plugin directory;
-  the portable manifest is authoritative.
-- Keep README skill lists aligned with actual `plugins/<plugin-name>/skills/` directories.
+  across the portable manifest, the Claude extension, the marketplace catalogs, and the plugin
+  directory; the portable manifest is authoritative.
+- Keep README skill lists aligned with the directories under `plugins/<plugin-name>/skills/`.
 
 ## Boundaries
 
-- Do not add a new skill body; use `add-skill`.
-- Do not add a scaffold script or template unless the user explicitly asks for plugin creation
-  automation.
-- Do not commit changes unless the user asks.
+- Commit only when the user asks.
