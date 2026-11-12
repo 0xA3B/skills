@@ -1,10 +1,8 @@
 ---
 name: grill-me
 description: >-
-  Interview the user through an adversarial decision tree until the important decisions,
-  dependencies, and edge cases are clear. Use when the user asks to stress-test a plan, decision,
-  idea, or design, get grilled on an approach, challenge a brainstormed direction, or resolve
-  ambiguity before implementation.
+  Interview the user through an adversarial decision tree to stress-test a plan, decision, idea, or
+  design until the important decisions, dependencies, and edge cases are clear.
 license: MIT
 metadata:
   original_author: Matt Pocock
