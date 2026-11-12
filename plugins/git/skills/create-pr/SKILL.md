@@ -1,12 +1,11 @@
 ---
 name: create-pr
 description: >-
-  Create or update a GitHub pull request (PR) or GitLab merge request (MR) from the current branch:
-  prepare the branch, validate, push, write the title and description, and observe initial CI. Use
-  when the user asks to create, open, or publish a PR or MR, or to add or push changes to an
-  existing one, including as the last step of a request such as "commit, push, and open a PR". Do
-  not use for editing only a PR's title or description, drafting a description without publishing,
-  or validating without publishing.
+  Use when the user asks to create, open, or publish a GitHub pull request (PR) or GitLab merge
+  request (MR) from the current branch, or to update an existing one or add or push changes to it,
+  including as the last step of a request such as "commit, push, and open a PR". Do not use to edit
+  only a PR's title or description, or to draft a description or validate a branch without
+  publishing.
 license: MIT
 argument-hint: "[target|instructions]"
 ---

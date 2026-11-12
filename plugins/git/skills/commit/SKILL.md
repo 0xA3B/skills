@@ -1,11 +1,10 @@
 ---
 name: commit
 description: >-
-  Create git commits from the current changes, split into logical units, with messages in the
-  repository's convention and Conventional Commits by default. Use whenever creating a git commit:
-  when the user asks to commit, including as one step of a larger request such as "commit and push"
-  or "the tests pass, so commit", or to commit only part of the changes. Do not use for drafting a
-  message or a split plan without committing, or for questions about commits or history.
+  Use whenever the session creates a git commit: when the user asks to commit, including as one step
+  of a larger request such as "commit and push" or "the tests pass, so commit", or to commit only
+  part of the changes. Do not use to draft a message or a split plan without committing, or to amend
+  or rewrite existing commits (tidy-history).
 license: MIT
 argument-hint: "[instructions]"
 ---

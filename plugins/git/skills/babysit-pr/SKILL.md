@@ -1,12 +1,10 @@
 ---
 name: babysit-pr
 description: >-
-  Babysit a GitHub pull request (PR) through automated review: wait for review bots such as Codex or
-  Copilot, triage their findings, push fixes, reply to and resolve their threads, and repeat until
-  each bot approves the current head or an exception is reported. Use when the user asks to babysit
-  a PR, to handle, address, or drive bot or automated review feedback on one, to wait for or poll a
-  review bot, or to reply to and resolve its threads. Do not use for human review comments, CI
-  repair, GitLab merge requests, or findings from a local or sub-agent review.
+  Use when the user asks to babysit a GitHub pull request (PR) through automated review: to wait for
+  or poll a review bot such as Codex or Copilot, to handle, address, or drive its feedback, or to
+  reply to and resolve its threads. Do not use for human review comments, CI repair, GitLab merge
+  requests, or findings from a local or sub-agent review.
 license: MIT
 argument-hint: "[change-request|adapters|instructions]"
 ---
