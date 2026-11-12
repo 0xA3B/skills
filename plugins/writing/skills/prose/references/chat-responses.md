@@ -64,9 +64,9 @@ adds detail the label does not repeat.
 ## Next steps
 
 - After a long turn, such as extended multi-step work or a long analysis, end with numbered next
-  steps when follow-up actions remain, usually two to four. Make each step one action the user could
-  approve on its own, so a reply such as "do 1 and 3" is unambiguous. Start each step with a bold
-  label, as in the scannable layout.
+  steps under the line "Next steps:" when follow-up actions remain, usually two to four. Make each
+  step one action the user could approve on its own, so a reply such as "do 1 and 3" is unambiguous.
+  Start each step with a bold label, as in the scannable layout.
 - When two next steps are alternatives, such as changing the code or the docs to match each other,
   list only the one you recommend, and name the other in it.
 - Do not list work the request already covered; do that work instead.

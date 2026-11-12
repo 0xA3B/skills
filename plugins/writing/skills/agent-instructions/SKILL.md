@@ -1,14 +1,13 @@
 ---
 name: agent-instructions
 description: >-
-  Use when creating, editing, tightening, or reviewing files that instruct agents — AGENTS.md,
-  CLAUDE.md, SKILL.md and its bundled scripts, agent definitions, or system-prompt fragments —
-  including a supplied diff to one, and when the user asks for a sub-agent prompt as the
-  deliverable. Do not use to dispatch a sub-agent for a task, where the prompt is a means and not
-  the deliverable; as the entry point for reviewing the session's own changes, which a review
-  workflow owns; for READMEs or other docs (technical-writing); for a terminology section's entries;
-  for conceptual questions about instruction files; or for other code the session writes itself,
-  even when the program is an agent.
+  Use whenever the session writes, revises, or reviews the wording of instructions for an agent, or
+  a script a skill bundles: an AGENTS.md, CLAUDE.md, or SKILL.md, an agent definition, a system
+  prompt, a policy or rule section in one of those files, or a sub-agent prompt that is the
+  deliverable or that a file stores. Do not use for a one-off sub-agent prompt that dispatches a
+  task; to review changes in this checkout (engineering:review-changes); for a terminology section's
+  entries (engineering:terminology); or for a mechanical edit, such as a rename, that passes through
+  an instruction file.
 license: MIT
 metadata:
   original_author: Alex Baker
@@ -171,7 +170,8 @@ words, and pruning.
 
 If the document is an `AGENTS.md` or `CLAUDE.md`, also read [agents-md.md](references/agents-md.md)
 for the scope ladder, loading and the root byte limit, composition across agents, the
-installed-skill duplication rule, terminology-section handling, and a default section shape.
+installed-skill duplication rule, terminology-section handling, the review-rules route, and a
+default section shape.
 
 ## Skills
 

@@ -183,3 +183,80 @@ cases:
       From now on, keep your chat replies short and direct.
     expect: skip
     rationale: Chat response style is governed by the prose skill, not technical writing.
+
+  - id: file-followup-issue
+    prompt: >-
+      Push the branch and file a follow-up issue for the missing pagination tests: the list endpoint
+      has no test for an empty page or for a page_size above 100.
+    workspace:
+      seed: node-service
+    expect: invoke
+    rationale:
+      An issue requested as a delivery step of a larger task is still an issue description; real
+      sessions wrote these without a load.
+
+  - id: comment-on-issue
+    prompt: >-
+      Add a comment to issue 75 summarizing the plan we settled on: keep the v1 config reader for
+      one release, log a deprecation warning when it loads a v1 file, and remove it in 3.0.
+    expect: invoke
+    rationale:
+      A GitHub issue comment posted as a delivery step is a collaborative comment, beside the
+      drafting request in jira-comment.
+
+  - id: quick-readme-fix
+    prompt: >-
+      Fix the stale install wording in the README; the package is named dotsync now, not
+      dotsync-cli.
+    workspace_files:
+      package.json: |
+        {
+          "name": "dotsync",
+          "version": "2.0.0",
+          "bin": { "dotsync": "dist/cli.js" }
+        }
+      README.md: |
+        # dotsync
+
+        Sync dotfiles across machines.
+
+        ## Install
+
+        In order to install, you will want to run `npm install --global dotsync-cli`, after which the
+        `dotsync-cli` command should be available.
+    expect: invoke
+    rationale:
+      A short README edit is technical-writing work, unlike the full document in write-readme.
+
+  - id: fill-pr-template
+    prompt: >-
+      Rewrite the PR description in PR_BODY.md to follow the repository's PR template.
+    workspace_files:
+      .github/pull_request_template.md: |
+        ## Why
+
+        ## What changed
+
+        ## Validation
+      PR_BODY.md: |
+        Adds day-based duration parsing. Hours and minutes behave as before. Parser unit tests and
+        the full suite pass. Week-based durations come in a later change.
+    expect: invoke
+    rationale: Fitting a change description to a template is change-description writing.
+
+  - id: draft-doc-for-publishing
+    prompt: >-
+      Draft the design document for the cache redesign in a local file first; I'll publish it to the
+      wiki once we've reviewed it. The redesign replaces the per-process LRU with a shared Redis
+      cache, keys entries by tenant and route, and expires them after 120 seconds.
+    expect: invoke
+    rationale:
+      A draft that will be published is a technical artifact even when it starts as a local file.
+
+  - id: scratch-working-notes
+    prompt: >-
+      Jot the open questions and the plan into a scratch notes file under .local/ so I can pick this
+      up tomorrow. Open: whether the cache key needs the tenant. Plan: prototype the shared cache,
+      then measure hit rate.
+    expect: skip
+    rationale: Scratch notes that nobody will publish are not a technical artifact.

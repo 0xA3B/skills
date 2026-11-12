@@ -23,8 +23,13 @@ Sync state lives in two surfaces:
 
 - Per-skill frontmatter `metadata` keys, colocated with the attribution:
   - `original_source`: the attribution pin — the upstream tree the skill body was adapted from. Move
-    it only when a sync ports content into the skill, because that changes the adaptation basis.
-    `mechanics_adapted_from` plays the same role for partial adaptations.
+    it only when a sync ports content into the skill, because that changes the adaptation basis. A
+    `<part>_adapted_from` key, such as `mechanics_adapted_from`, plays the same role for a partial
+    adaptation. When a skill already tracks another upstream, the partial adaptation keeps its own
+    cursor in `<part>_upstream_reviewed`. Each attribution key with its cursor is one adaptation,
+    and the workflow treats each adaptation as its own adapted skill: triage it only in a sync of
+    the upstream repository its attribution names, diff from its own cursor, and advance only that
+    cursor.
   - `upstream_reviewed`: the sync cursor — the last upstream commit whose deltas were triaged for
     this skill, whether or not anything was ported. Advance it for every skill reviewed in a sync.
   - `upstream_status: retired`: the upstream counterpart no longer exists. Keep `original_source`
@@ -48,8 +53,8 @@ hash. Done when the target release and its commit hash are named.
 
 ### 2. Load prior sync state
 
-Grep `plugins/*/skills/*/SKILL.md` frontmatter for `original_source`, `mechanics_adapted_from`,
-`upstream_reviewed`, `upstream_status`, and `upstream_divergence` to build the adapted-skill map,
+Grep `plugins/*/skills/*/SKILL.md` frontmatter for `original_source`, every `*_adapted_from`, every
+`*upstream_reviewed`, `upstream_status`, and `upstream_divergence` to build the adapted-skill map,
 and read the most recent closed `upstream-sync` issue for deferred adoptions and their trigger
 conditions. Create this cycle's sync issue if it does not exist. Done when every adapted skill has a
 known cursor or a retired status, and the previous sync's deferrals are listed.

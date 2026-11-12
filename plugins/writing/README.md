@@ -21,10 +21,10 @@ the artifacts they own.
   agents — `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, agent definitions, system-prompt fragments, and
   sub-agent task prompts — and for the scripts a skill bundles.
 
-## Prose output style
+## Chat output style
 
-For Claude Code, select the plugin's `prose` output style so every chat response applies the `prose`
-skill's base style and chat-response rules from the system prompt. Set `outputStyle` to `prose` in a
+For Claude Code, select the plugin's `chat` output style so every chat response applies the `prose`
+skill's base style and chat-response rules from the system prompt. Set `outputStyle` to `chat` in a
 settings file, or pick it under **Output style** in `/config`. The style keeps Claude Code's
 software engineering instructions in force.
 

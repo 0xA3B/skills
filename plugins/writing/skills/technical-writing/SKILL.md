@@ -1,23 +1,22 @@
 ---
 name: technical-writing
 description: >-
-  Use when writing, editing, or reviewing technical artifacts — READMEs, CONTRIBUTING and setup
-  guides, knowledge-base pages, runbooks, migration and upgrade guides, API reference prose,
-  architecture and design documents, release notes, long-form docstrings, pull request descriptions,
-  or issue and ticket descriptions — including making text clearer for non-native English readers.
-  Do not use to review README or documentation files the user changed in this checkout;
-  engineering:review-changes owns that review and applies this skill inside. Do not use to assess,
-  triage, or decide changes from unresolved review feedback. Once another workflow settles the
-  feedback, use for drafting or rewriting technical comments in issue trackers, pull or merge
-  request comments, and reviewer replies. Do not use for decision records
-  (engineering:decision-records); for agent-instruction files such as AGENTS.md or SKILL.md; for
-  chat responses, commit messages, or code comments; or for conceptual questions about writing
-  standards.
+  Use whenever the session writes, edits, or reviews a technical artifact for other readers, even as
+  a small edit or as one step of a larger task: a README, guide, runbook, knowledge-base page, API
+  reference, design document, or release notes; a pull request, issue, or ticket description; or a
+  comment or reply in an issue or review thread. This includes a draft to publish later and text
+  made clearer for non-native English readers. Do not use to review documentation changed in this
+  checkout (engineering:review-changes); to decide what unresolved review feedback requires
+  (engineering:receiving-feedback); for decision records (engineering:decision-records); for files
+  that instruct agents (agent-instructions); for code comments; or for scratch notes nobody will
+  publish.
 license: MIT
 metadata:
   original_author: Alex Baker
   layers_adapted_from: https://github.com/cursor/plugins/tree/46125561306434d8a1d7745d540d8932ab0cd2a2/pstack/skills/technical-writing
-  upstream_reviewed: 46125561306434d8a1d7745d540d8932ab0cd2a2
+  upstream_reviewed: 2eaf46574b25cdf7ef8c849837099b866b7438ce
+  change_descriptions_adapted_from: https://github.com/mattpocock/skills/tree/4ae2317ddb22b046e26455e4f9c9b3aaaf62212d/skills/engineering/pr
+  change_descriptions_upstream_reviewed: 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
 ---
 
 # Technical writing
@@ -39,9 +38,8 @@ commit messages follow the repository's commit convention.
 For a collaborative comment, start after its technical substance and disposition are settled.
 Verifying, triaging, or deciding how to handle existing feedback is outside this skill's scope.
 
-Also apply the "Patterns to remove" section of the `prose` skill to every artifact this file
-governs. This file restates the sentence rules it shares with `prose`, so it stands alone when it
-loads without the base; where the two files conflict on a sentence, this file wins.
+When the `prose` skill is available, load it and apply its "Patterns to remove" section to every
+artifact this file governs.
 
 The project's own style guide, templates, and neighboring-file conventions win over this file. When
 editing an existing artifact, make the smallest change that satisfies the request, preserve its
@@ -78,15 +76,15 @@ controlled language.
 
 ## Rules
 
-**Preserve technical meaning, conditions, exceptions, and executable detail before applying any
-wording rule below. Do not shorten or split a sentence when the change obscures behavior or a
-relationship between facts.** When a wording rule makes a sentence less precise, fix the sentence
-another way or leave it alone.
+Preserve technical meaning, conditions, exceptions, and executable detail before applying any
+wording rule below. When a wording rule makes a sentence less precise, or shortening or splitting a
+sentence obscures behavior or a relationship between facts, fix the sentence another way or leave it
+alone.
 
 ### Words
 
-- Use one word for one meaning. Use the same word for that meaning each time.
-- Use one meaning for one word. Do not use a word as a synonym for a different concept.
+- Use one word for each meaning and one meaning for each word: repeat the same word for a concept,
+  and do not reuse it for a different concept.
 - Technical names and technical verbs are permitted and expected. Write "cache", "deserialize",
   "idempotent", and "quorum" when they are correct. These rules remove vague words, not precise
   ones.
@@ -126,18 +124,18 @@ another way or leave it alone.
 - Start each instruction with the command verb.
 - Put the condition before the command. Write "If the build fails, examine the log."
 - State prerequisites before the command that needs them.
-- Put a warning or a caution before the step it applies to, never after, and start it with a
-  command. Write "Do not run this against production."
+- Put a warning or a caution before the step it applies to, and start it with a command. Write "Do
+  not run this against production."
 
 ### Paragraphs
 
 - Put the topic sentence first in the paragraph.
-- Split genuinely separate ideas into separate sentences. Keep a longer sentence that carries one
-  idea with its condition or consequence.
+- Split separate ideas into separate sentences. Keep a longer sentence that carries one idea with
+  its condition or consequence.
 
 ## What these rules do not govern
 
-Leave these alone. Reproduce them exactly.
+Reproduce these exactly:
 
 - Code blocks, identifiers, file paths, commands, and configuration keys.
 - Command output, log lines, and error messages.
@@ -173,13 +171,7 @@ Read the finished text once and check each item:
   - Check defaults against code or schemas.
   - Check paths and links against the repository.
   - Check examples and behavior claims against tests or executable behavior.
-- The document has one dominant Diátaxis mode. Use clearly separated sections for other modes when
-  they serve the same audience and lifecycle; change descriptions, issue and ticket descriptions,
-  and collaborative comments skip Diátaxis.
-- Every sentence names its actor in the active voice, except where the actor is unknown or beside
-  the point, and each instruction starts with a command verb after its condition.
-- Each concept uses one term, and that term does not change across the document.
-- Every warning appears before its step.
-- No "only", pronoun, or "and"/"or" grouping can be read two ways.
-- When the document's structure changed, it passes the checks in
-  [formatting.md](references/formatting.md).
+- Every sentence you wrote or changed follows each rule under "Rules".
+- A created or restructured document has one dominant mode, as
+  [document-modes.md](references/document-modes.md) defines it.
+- When the document's structure changed, it follows [formatting.md](references/formatting.md).

@@ -30,12 +30,21 @@ review comment; combine concerns when they share one mechanism and remedy. Disti
 evidence from a recommendation, explain why the requested change matters, and end with the concrete
 decision, question, or next action when one exists.
 
+## Attribute the comment
+
+Open each comment you publish with this line in italics, followed by a blank line. Replace
+`<harness>` with the name of the harness running you, such as Claude Code or Codex, not the model:
+
+```markdown
+_Written by <harness> on this user's behalf._
+```
+
+When the user, the repository, or the platform sets its own authorship-disclosure policy, follow
+that policy instead. Leave the line out of a draft the user publishes themselves.
+
 ## Publish and resolve
 
 Treat drafting, publishing, and resolving as separate actions with separate authority. Approval to
 draft or publish a comment does not authorize resolving its thread. Inspect the exact comment body
 before publishing it. When the system supports readback, verify the published comment and correct
 any material alteration before resolving or closing the thread.
-
-Follow the user's or platform's authorship-disclosure policy. This reference governs how to write a
-required disclosure, not whether one is required.

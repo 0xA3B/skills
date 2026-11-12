@@ -47,6 +47,13 @@ The description of a model-invoked skill is the trigger contract that decides wh
 [document-mechanics.md](document-mechanics.md) in full, and front-load the words users type when
 they ask for the skill's work.
 
+State the predicate over the work, not over the request's wording. When the skill governs something
+the session produces, write "Use whenever the session writes ..." and name the shapes the skill must
+still fire on, such as a small edit or one step of a larger task; "Use when asked to write ..."
+misses a request that names the outcome and not the artifact. When always-loaded guidance already
+governs the session's own output, keep the predicate on the request. Drop an exclusion for a request
+the predicate is already false of, unless a trigger case fails without it.
+
 When the repository has trigger tooling, run the skill's positive and negative trigger cases on
 every supported agent, and treat a description change as done when every case passes; otherwise
 treat it as done when the description follows the pointer rules above.

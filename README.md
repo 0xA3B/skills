@@ -147,8 +147,8 @@ skill's Agent Skills frontmatter metadata.
   `SKILL.md`, agent definitions, system-prompt fragments, and sub-agent task prompts — and for the
   scripts a skill bundles.
 
-The writing plugin also ships a `prose` output style for Claude Code that applies the `prose`
-skill's chat-response guidance from the system prompt on every turn. For chat apps without access to
+The writing plugin also ships a `chat` output style for Claude Code that applies the `prose` skill's
+chat-response guidance from the system prompt on every turn. For chat apps without access to
 installed skills, such as claude.ai and ChatGPT, paste
 [`chatbot-instructions.md`](./plugins/writing/chatbot-instructions.md) into the app's persistent
 instructions; see the plugin README for details.
