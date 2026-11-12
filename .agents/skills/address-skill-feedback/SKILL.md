@@ -168,8 +168,8 @@ Apply `writing:agent-instructions` to every skill edit, and hold these lines fro
   a restructure that moves material between files or reorders sections for its own change unless a
   feedback item names the load or ordering as the failure.
 
-Within the owner that "Find the owner" assigns, choose the smallest surface: the skill body for
-guidance every invocation needs, and a routed reference for mode-specific, artifact-specific, or
+When "Find the owner" assigns a skill body or its references, choose the smaller surface: the body
+for guidance every invocation needs, and a routed reference for mode-specific, artifact-specific, or
 protocol-specific guidance.
 
 State the mechanism and boundary, not the repository example that exposed it. Preserve adjacent
