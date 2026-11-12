@@ -89,12 +89,12 @@ Ordered by importance. When rules conflict, the earlier rule wins.
    first. An agent may skip or only preview a reference reached only through another disclosed
    reference.
 
-7. **Write pointers as routing predicates.** A pointer — a skill description or a line naming
-   another document — decides when its material is reached. Write its triggers in the shape "Use
-   when [triggers]". Where the triggers also match a request this pointer should not take, such as
-   one a sibling pointer or skill should take, add "Do not use for [exclusions]"; otherwise end at
-   the triggers. Name concrete artifacts and verbs, not topics, and keep one trigger per distinct
-   branch.
+7. **Write pointers as routing predicates.** A pointer — a model-invoked skill's description or a
+   line naming another document — decides when its material is reached. Write its triggers in the
+   shape "Use when [triggers]". Where the triggers also match a request this pointer should not
+   take, such as one a sibling pointer or skill should take, add "Do not use for [exclusions]";
+   otherwise end at the triggers. Name concrete artifacts and verbs, not topics, and keep one
+   trigger per distinct branch.
 
 8. **Write imperatives with a named actor.** "Before you commit, run `make test`", not "tests should
    be run". Passive voice hides who acts and when the rule fires.

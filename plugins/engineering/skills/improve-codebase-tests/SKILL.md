@@ -1,11 +1,8 @@
 ---
 name: improve-codebase-tests
 description: >-
-  Find evidence-backed test-suite improvement opportunities in a codebase. Use when the user wants
-  the test suite treated as a codebase: flaky or slow suites, scaffold and fixture design, mock
-  strategy drift, subsumed or low-value tests, or a focused test-suite health review. Do not use for
-  reviewing the tests of a single diff or branch, which belongs to the test-review lane of a code
-  review.
+  Find evidence-backed improvement opportunities in a codebase's whole test suite: flaky or slow
+  suites, scaffold and fixture design, mock strategy drift, and subsumed or low-value tests.
 license: MIT
 metadata:
   original_author: Alex Baker

@@ -1,9 +1,8 @@
 ---
 name: improve-codebase-architecture
 description: >-
-  Find evidence-backed architectural deepening opportunities in a codebase. Use when the user wants
-  refactoring candidates, better module design, simpler interfaces, stronger testability, or a
-  focused codebase architecture review.
+  Find evidence-backed architectural deepening opportunities in a codebase: refactoring candidates,
+  better module design, simpler interfaces, and stronger testability.
 license: MIT
 metadata:
   original_author: Matt Pocock

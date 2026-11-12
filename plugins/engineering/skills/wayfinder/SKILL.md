@@ -1,10 +1,9 @@
 ---
 name: wayfinder
 description: >-
-  Turn a loose or oversized idea into a breadth-first map of its destination, known facts, open
-  decisions, decision-sized chunks, dependencies, frontier, unresolved fog, and excluded scope. Use
-  when the user wants to brainstorm, scope a large effort, decompose an unclear goal, or find the
-  next decisions before deeper planning or implementation.
+  Turn a loose or oversized idea into a breadth-first map before deeper planning or implementation:
+  its destination, known facts, open decisions, decision-sized chunks, dependencies, frontier,
+  unresolved fog, and excluded scope.
 license: MIT
 metadata:
   original_author: Matt Pocock

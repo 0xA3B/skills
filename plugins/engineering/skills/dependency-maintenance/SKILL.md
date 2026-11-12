@@ -1,11 +1,10 @@
 ---
 name: dependency-maintenance
 description: >-
-  Review dependency update PRs across package managers and forges, decide whether they are safe to
-  merge, merge only ready updates, sync local dependency state, refresh repo-pinned tooling through
-  small maintenance PRs, and create linked follow-up issues for breaking changes, validation
-  failures, or useful new features. Use when the user asks to review Dependabot, Renovate, lockfile
-  maintenance, security, runtime, package-manager, or other dependency update PRs.
+  Review dependency update PRs, such as Dependabot, Renovate, lockfile maintenance, security, and
+  runtime updates, across package managers and forges: merge the ones that are safe, sync local
+  dependency state, refresh repo-pinned tooling through small maintenance PRs, and file linked
+  follow-up issues for breaking changes, validation failures, and useful new features.
 license: MIT
 disable-model-invocation: true
 ---

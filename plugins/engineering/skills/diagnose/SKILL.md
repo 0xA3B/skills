@@ -1,9 +1,9 @@
 ---
 name: diagnose
 description: >-
-  Run a disciplined diagnosis loop for bugs, failures, flaky behavior, and performance regressions:
-  build a red-capable loop, reproduce and minimize, rank falsifiable hypotheses, instrument, fix,
-  and regression-test. Use when the user explicitly asks to diagnose or debug a problem.
+  Run a disciplined diagnosis loop for a bug, failure, flaky behavior, or performance regression:
+  build a loop that can fail, reproduce and minimize, rank falsifiable hypotheses, instrument, fix,
+  and add a regression test.
 license: MIT
 metadata:
   original_author: Matt Pocock
