@@ -1,12 +1,10 @@
 ---
 name: tidy-history
 description: >-
-  Rewrite a topic branch's unmerged commits so each has one logical purpose and a valid message,
-  without changing the branch's final tree, then force-push the result with a lease. Use when the
-  user asks to tidy or clean up branch history; to squash, fold, reorder, split, reword, or amend
-  existing commits, including amending working-tree changes into one; or to fold review fixes into
-  the commits they correct. Do not use for rebasing a branch onto an updated target, resolving
-  conflicts, or questions about history or rebasing.
+  Use whenever the session rewrites a topic branch's existing commits: tidies or cleans up its
+  history; squashes, folds, reorders, splits, rewords, or amends commits, including amending
+  working-tree changes into one; or folds review fixes into the commits they correct. Do not use to
+  rebase a branch onto an updated target or to resolve conflicts.
 license: MIT
 argument-hint: "[range|review|instructions]"
 ---
