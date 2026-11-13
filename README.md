@@ -85,6 +85,8 @@ provides shared background discipline, and `decision-records` both backs the oth
 loads on its own for requests to record or check a decision. Use `handoff` when another agent
 session should continue from an ignored local context document.
 
+- [`engineering:brief`](./plugins/engineering/skills/brief/): Keeps a local working brief of the
+  decisions, plan, and state of settled work through implementation.
 - [`engineering:codebase-design`](./plugins/engineering/skills/codebase-design/): Applies shared
   deep-module and interface-design discipline.
 - [`engineering:decision-records`](./plugins/engineering/skills/decision-records/): Records,

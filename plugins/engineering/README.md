@@ -7,12 +7,15 @@ workflow.
 The typical implementation flow starts with `wayfinder`, which maps a loose or oversized idea into
 decision-sized chunks. `grill-me` resolves a selected direction through adversarial questioning, and
 `prototype` answers questions that need disposable executable evidence, and loads on its own for
-prototype and spike requests. `tdd` implements observable behavior through a red-green-refactor loop
-over a frontier of behaviors, and loads on its own for implementation requests. `review-changes`
-reviews the unpublished changes in the checkout through focused lanes, fixes accepted findings,
-verifies the fixes with the lanes that reviewed them, and reruns the lanes those fixes invalidated;
-`tdd` applies it at completion, and `git:create-pr` applies it before publishing. Use `handoff` when
-another agent session should continue the work from an ignored local context document.
+prototype and spike requests. `brief` writes the settled decisions, the plan, and the current state
+into an ignored local document that the implementing session keeps current, so the work survives
+compaction and sub-agents can read it. `tdd` implements observable behavior through a
+red-green-refactor loop over a frontier of behaviors, and loads on its own for implementation
+requests. `review-changes` reviews the unpublished changes in the checkout through focused lanes,
+fixes accepted findings, verifies the fixes with the lanes that reviewed them, and reruns the lanes
+those fixes invalidated; `tdd` applies it at completion, and `git:create-pr` applies it before
+publishing. Use `handoff` when another agent session should continue the work from an ignored local
+context document.
 
 `codebase-design` is a shared background discipline consumed by the user-facing workflows.
 `wayfinder`, `grill-me`, `prototype`, `tdd`, `diagnose`, `improve-codebase-architecture`, and
@@ -37,6 +40,8 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
 
 ## Skills
 
+- `engineering:brief`: Keep a local working brief of the decisions, plan, and state of settled work
+  through implementation.
 - `engineering:codebase-design`: Apply shared deep-module and interface-design discipline.
 - `engineering:decision-records`: Record, update, or supersede architecture decision records, and
   read the records that touch an area before a change there.
