@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Brief"
+  short_description: "Keep a working brief of decisions, plan, and state"
+  default_prompt:
+    "Use $engineering:brief to write a working brief for this work before implementing it."
+policy:
+  allow_implicit_invocation: false

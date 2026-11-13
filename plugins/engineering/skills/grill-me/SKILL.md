@@ -66,7 +66,8 @@ the tree together with every decision under it. Work the tree in rounds:
 
 Send every question in the chat message, inside the round's numbering; the useful answer usually
 carries a reason or a new option. Number sections `<round>.<branch>` and questions continuously
-across the round, so a reply can name a question:
+across the round, so a reply can name a question. Label each decision's options `a`, `b`, `c`, so a
+reply can be as short as `Q1 — a`:
 
 ```
 ## Round 2
@@ -103,10 +104,10 @@ Decision:
 ```
 ❓ **Q1 — <question title>**: <the question>
 
-- **<option A>**: <what it costs and what it buys>
-- **<option B>**: <what it costs and what it buys>
+- **a) <option>**: <what it costs and what it buys>
+- **b) <option>**: <what it costs and what it buys>
 
-➡️ <recommended option, and why it beats the others>
+➡️ <label of the recommended option, and why it beats the others>
 ```
 
 Proposal:
@@ -124,13 +125,14 @@ Confirm: <the consequence to confirm>. If rejected: <what changes>.
 - Test domain relationships, state transitions, and ownership with concrete edge-case scenarios.
 - Verify important claims about current behavior against code. When code and the user's model
   disagree, pause and resolve which should be authoritative.
-- Use `AGENTS.md ## Terminology` when present. Update stable domain terms there as they crystallize;
-  skip generic programming terms and incidental implementation names.
-- Apply `engineering:decision-records` to record a choice the user settles when it passes that
-  skill's gates.
-- Keep the session to questions and evidence gathering, dispatched disposable prototypes, and
-  terminology and decision-record updates; implementing, ticket creation, and enacting the approach
-  belong to the next explicit workflow after the handoff.
+- Use `AGENTS.md ## Terminology` when present. Collect stable domain terms as they crystallize, and
+  each choice the user settles that passes the gates of `engineering:decision-records`, for the
+  completion summary; skip generic programming terms and incidental implementation names.
+- Until the user confirms shared understanding, keep the session to questions, evidence gathering,
+  and dispatched disposable prototypes, and write no terminology entry or decision record, including
+  a record a prototype's answer would justify; list each for the completion summary. A later round
+  can reverse an earlier answer. Implementing, ticket creation, and enacting the approach belong to
+  the workflow that follows.
 
 When terminology is the main unresolved work, recommend `engineering:terminology`.
 
@@ -141,8 +143,10 @@ nothing left silently assumed. Before declaring completion:
 
 1. Summarize the decisions, facts, assumptions, rejected paths, and remaining follow-ups.
 2. State why the approach is ready to implement, defer, or reject.
-3. Report terminology changes, decision records written, unresolved questions that need executable
-   evidence, and the recommended next explicit workflow. If another manual engineering skill is
-   next, include a handoff note with the context to carry forward and its exact
-   `engineering:<skill>` invocation.
+3. List the terminology entries and decision records to write, each with its term and definition or
+   its decision and reason, the unresolved questions that need executable evidence, and the
+   recommended next step in one line.
 4. Ask the user to confirm that shared understanding has been reached.
+5. When the user confirms, apply `engineering:terminology` to the listed entries and
+   `engineering:decision-records` to the listed records, and report each path written. When the user
+   names a gap instead, put it on the frontier and return to the rounds; otherwise write nothing.
