@@ -1,12 +1,11 @@
 ---
 name: terminology
 description: >-
-  Create, update, prune, or review durable project terminology in AGENTS.md. Use when the user wants
-  to define domain terms, harden naming, resolve ambiguous language, record aliases to avoid, align
-  code or docs with a terminology section, capture a term that stabilized during review or
-  implementation, or adapt glossary/ubiquitous-language guidance into repository agent guidance. Do
-  not use for general instruction-file style or structure editing, for renaming code identifiers
-  without a terminology decision, or for conceptual questions about terminology or domain language.
+  Use when the session creates, updates, prunes, or reviews the terminology section of an AGENTS.md:
+  defines a domain term, picks one canonical name among synonyms, records aliases to avoid, captures
+  a term that stabilized during other work, or adapts a glossary into agent guidance. Do not use for
+  other edits to an instruction file (writing:agent-instructions) or to rename code identifiers
+  without a terminology decision.
 license: MIT
 metadata:
   original_author: Matt Pocock
@@ -29,7 +28,6 @@ relationships, or the user receives a focused terminology review with concrete p
 - Read the existing `AGENTS.md ## Terminology` section before changing it.
 - Use repository evidence: conversation context, README files, nearby docs, code names, tests, and
   established maintainer language.
-- Prefer the canonical term used by domain experts or project maintainers.
 - State uncertainty when a term is not stable enough to make durable.
 - Ground each term in maintainer, domain-expert, or user-facing language; implementation names on
   their own are corroborating evidence, not a source.
@@ -83,8 +81,6 @@ Judge placement by where the work happens, not where the topic's files sit.
 - Skip entries whose definition restates an always-loaded surface, such as an installed skill's
   description or another section of the same file; skip relationships that restate workflow behavior
   the owning skill or document already encodes.
-- Include only terms relevant to domain experts, maintainers, or future agents working in the
-  repository.
 - Skip generic programming concepts unless they have domain-specific meaning in the project.
 - Define what the term is, not every behavior associated with it.
 - Keep definitions to one sentence.

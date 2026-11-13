@@ -1,17 +1,12 @@
 ---
 name: tdd
 description: >-
-  Use when implementing or changing behavior that callers or users can observe: a new feature, a
-  behavior change, a bug fix whose cause is known, a port from a reference implementation, or a new
-  or changed public interface or seam. Drives the work through a red-green-refactor loop over a
-  frontier of behaviors, with tests at the public interface. Do not use for changes with no behavior
-  to prove, such as configuration, documentation, formatting, or mechanical renames; for disposable
-  prototypes or spikes; for a bug whose cause is still unknown, which needs diagnosis first; for
-  reviewing existing changes; or for conceptual questions about TDD.
-when_to_use: >-
-  Also use when the user asks to build, add, implement, or ship a feature or its first version
-  without a spec: load this skill before asking for requirements, because the loop starts from one
-  tracer bullet at the outermost stable surface and surfaces open decisions as it goes.
+  Use whenever the session implements or changes behavior that callers or users can observe: a
+  feature or its first version, a behavior change, a bug fix whose cause is known, a port from a
+  reference implementation, a new or changed public interface, or an agreed design the user says to
+  implement. Do not use for a change with no behavior to prove, such as configuration,
+  documentation, or a mechanical rename; for a throwaway prototype or spike (engineering:prototype);
+  or for a bug whose cause is unknown.
 license: MIT
 metadata:
   original_author: Matt Pocock
@@ -86,19 +81,12 @@ remaining independent work in the round.
 
 ## Discipline checks
 
-Watch for rationalizations:
-
-- "This is too small to test."
-- "I'll write the tests right after."
-- "The test would be obvious."
-- "Manual testing proves the same thing."
-- "This is just a refactor, so RED does not matter."
-
-These are signals to reduce the frontier to one tracer bullet or find a cheaper seam. When the
-interface is still unsettled, put the first tests at the outermost stable surface — a command, an
-endpoint, a file, or an artifact — and let internals move under them. When the code is disposable
-evidence for a design question rather than behavior that will land, stop the loop, apply
-`engineering:prototype`, and resume the loop from its evidence.
+When a change seems too small, too obvious, or too much like a refactor to test first, reduce the
+frontier to one tracer bullet or find a cheaper seam. When the interface is still unsettled, put the
+first tests at the outermost stable surface — a command, an endpoint, a file, or an artifact — and
+let internals move under them. When the code is disposable evidence for a design question rather
+than behavior that will land, stop the loop, apply `engineering:prototype`, and resume the loop from
+its evidence.
 
 When implementation lands before its test, do not claim a TDD cycle for it. If the code is yours and
 uncommitted, set it aside and write the failing test first. Otherwise keep it, add behavior-focused
@@ -181,8 +169,7 @@ the suite is green. Do not start the next RED before then.
 
 ### 5. Repeat
 
-Settled behaviors push the frontier outward. Recompute it and start the next cycle only after the
-refactor pass is complete.
+Settled behaviors push the frontier outward. Recompute it and start the next cycle.
 
 ## Mocking
 
@@ -199,8 +186,7 @@ When the requested behavior is implemented:
 - Report the red-green-refactor sequence at a high level.
 - Name the tests added, changed, or removed.
 - Note any behavior that remains intentionally untested and why.
-- State validation evidence from fresh command output. Avoid success claims based on expectation or
-  earlier runs.
+- State validation evidence from fresh command output.
 - For a port, state that every inventory item is settled or recorded as an intentional difference.
 - For spec-driven work, state that the green suite encodes this session's reading of the spec and is
   not evidence of spec conformance.

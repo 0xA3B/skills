@@ -1,12 +1,11 @@
 ---
 name: receiving-feedback
 description: >-
-  Use when handling existing feedback that evaluates completed work: reviewer comments, PR or MR
-  comments, sub-agent findings, findings from a review agent or bot, or a user's correction of a
-  prior response. Verifies and triages each item before responding or applying fixes. Do not use for
-  a message that extends the active task rather than evaluating completed work, such as accepting a
-  recommendation, adding a requirement, or supplying implementation details; for first-party bug
-  reports; for implementation requests; or for requests to generate a new code review.
+  Use whenever the session handles feedback that evaluates completed work, before it replies or
+  changes anything: reviewer or bot comments and threads on a PR or MR, findings from a sub-agent or
+  review agent, or a user's correction of an earlier response. Do not use for a message that extends
+  the active task, such as accepting a recommendation or adding a requirement, or for a request to
+  produce a new review (engineering:review-changes).
 user-invocable: false
 ---
 
@@ -139,9 +138,6 @@ asks for a summary of everything. Include:
 - evidence and impact;
 - your recommended approach;
 - the exact decision needed.
-
-Avoid long code snippets by default; provide pseudocode or code only when it materially clarifies
-the decision or the user asks.
 
 ## Output
 

@@ -1,5 +1,6 @@
 version: 1
 applies:
+  - engineering:review-changes
   - git:commit
   - writing:technical-writing
 cases:
@@ -137,8 +138,11 @@ cases:
         export const retryLimit = 3;
     expect: invoke
     invoke-or:
+      - engineering:tdd
       - git:commit
-    rationale: Updating the pull request after a change refreshes it.
+    rationale: >-
+      Updating the pull request after a change refreshes it; the retry-limit change is observable
+      behavior, so tdd may make the first trigger decision.
 
   - id: open-pr-short
     prompt: >-

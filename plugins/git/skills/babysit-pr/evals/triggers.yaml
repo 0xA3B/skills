@@ -39,7 +39,7 @@ cases:
       Review my current changes before I open a pull request.
     expect: skip
     invoke-instead: engineering:review-changes
-    rationale: Local review of session changes belongs to review-changes.
+    rationale: Local review of unpublished changes belongs to review-changes.
 
   - id: open-pull-request
     prompt: >-

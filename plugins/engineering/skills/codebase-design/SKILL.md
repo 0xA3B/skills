@@ -1,12 +1,10 @@
 ---
 name: codebase-design
 description: >-
-  Design deeper module interfaces and better seams in concrete repository code. Use when asked to
-  design or improve a specific module interface, deepen shallow wrappers, compare interface designs,
-  choose a seam, reduce caller knowledge, improve testability through an interface, or when another
-  workflow or review lane directs applying engineering:codebase-design. Do not use for direct bug
-  fixes, generic code review, implementation-only requests such as making a decided interface change
-  in code (engineering:tdd), or conceptual architecture questions.
+  Use when the session designs or redesigns a module interface or seam in repository code: deepens
+  shallow wrappers, compares interface designs, places a seam, or reduces what callers must know. Do
+  not use to implement a decided interface change (engineering:tdd) or to review changes in this
+  checkout (engineering:review-changes).
 license: MIT
 metadata:
   original_author: Matt Pocock
@@ -52,6 +50,15 @@ exists, and keep a clearer established domain term rather than replacing it with
   dependency categories, or reasons to change accumulate, even while its interface still has
   leverage, and keep the resulting seams private unless callers need the variation. File length or
   method count alone is a prompt to look, not a finding.
+- Group modules into a package directory when they serve one concept and code outside the group
+  needs a smaller interface than the modules expose together. Grouping by kind (`types/`, `utils/`)
+  or wrapping a single module in a directory fails this test. The package's entry module
+  (`index.ts`, `__init__.py`) only re-exports, and sibling modules import each other directly, so
+  the entry module cannot create an import cycle. Production code outside the directory imports only
+  the entry module. Enforce that boundary with the project's linter or import-contract tool; a
+  directory boundary that nothing enforces is a naming convention, not a seam. A test may import a
+  private module whose own interface is deep enough to be a test surface; that test does not reach
+  past an interface.
 - Treat the interface as the test surface. Tests that must reach past it indicate the wrong seam or
   module shape.
 - A test adapter proves controllability, not variation. Whether a dependency earns a public port

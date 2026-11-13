@@ -34,13 +34,19 @@ cases:
     prompt: >-
       Review my current changes before I commit.
     expect: invoke
-    rationale: The user asks to review changes made in this session.
+    rationale: The user asks for a review of uncommitted changes in this checkout.
 
   - id: review-worktree
     prompt: >-
       Review my worktree.
     expect: invoke
-    rationale: The worktree holds the session's changes.
+    rationale: Worktree changes are unpublished changes in this checkout.
+
+  - id: review-before-push
+    prompt: >-
+      Review this before I push it.
+    expect: invoke
+    rationale: The publishing boundary in its shortest form; the changes are not yet pushed.
 
   - id: review-staged-changes
     prompt: >-
@@ -63,17 +69,42 @@ cases:
             throw lastError;
           }
     expect: invoke
-    rationale: Staged changes are session-authored changes awaiting commit.
+    rationale: Staged changes are unpublished changes awaiting commit.
 
-  - id: review-what-we-changed
+  - id: review-unpushed-work
     prompt: >-
-      Review what we changed today before I open the PR.
+      Review everything that isn't pushed yet before I open the PR.
     expect: invoke
-    rationale: The user asks for a review of this session's changes before publishing them.
+    rationale: The user asks for a review of unpublished changes before publishing them.
 
-  - id: review-session-branch
+  - id: review-handoff-changes
     prompt: >-
-      Review the branch we built this session before I open the PR.
+      Pick up the handoff in notes/handoff.md and review the worktree changes it describes before we
+      open a PR.
+    workspace_files:
+      notes/handoff.md: |
+        # Handoff: ISO date parsing
+
+        ## Work completed
+
+        - `src/date.js`: `parseIso` now accepts a trailing `Z`. The change is uncommitted.
+
+        ## Decisions
+
+        - Seconds default to 0 when the input omits them, because the list endpoint compares
+          timestamps at second precision.
+
+        ## Next action
+
+        Review the worktree changes, then open a PR.
+    expect: invoke
+    rationale: >-
+      Changes inherited through a handoff are unpublished changes in this checkout, whoever wrote
+      them.
+
+  - id: review-topic-branch
+    prompt: >-
+      Review this branch's commits before I open the PR.
     workspace:
       seed: node-service
       branch: session/retry-policy
@@ -93,7 +124,7 @@ cases:
             throw lastError;
           }
     expect: invoke
-    rationale: A branch authored in this session is in scope whatever its git shape.
+    rationale: A local branch with no change request is unpublished whatever its git shape.
 
   - id: assigned-test-lane
     prompt: >-
@@ -138,17 +169,53 @@ cases:
     expect: invoke
     rationale: Changed documentation is reviewed through the prose lane.
 
+  - id: review-readme-edits
+    prompt: >-
+      Can you review my README edits?
+    workspace_files:
+      README.md: |
+        # node-service
+
+        A small HTTP service with no dependencies. It stores items in memory and exposes a
+        paginated list endpoint.
+
+        ## Install
+
+        Clone the repository. The service needs Node 26 or later and has no packages to install.
+
+        ## Usage
+
+        ```sh
+        node --test
+        node src/server.js --port 8080
+        ```
+    expect: invoke
+    rationale: >-
+      A short twin of documentation-review: the same request without the formal framing missed in
+      real sessions.
+
+  - id: edit-then-review
+    prompt: >-
+      Tighten the usage section of the README, then review the changes.
+    expect: invoke
+    invoke-or:
+      - writing:technical-writing
+    rationale: >-
+      A placement check: the edit belongs to technical-writing and the review to this skill, so
+      either owner may make the first trigger decision and no other skill may. A pass does not show
+      that the tail clause loads this skill.
+
   - id: teammate-pr-review
     prompt: >-
       Review this PR from my teammate before it merges.
     expect: skip
-    rationale: Work the session did not author is outside this workflow.
+    rationale: A teammate's published change request is outside this workflow.
 
   - id: third-party-code-review
     prompt: >-
       Review the code quality of this open source library we depend on.
     expect: skip
-    rationale: Third-party code is not session-authored work.
+    rationale: Third-party code is not a change in this checkout.
 
   - id: existing-feedback
     prompt: >-
@@ -174,7 +241,7 @@ cases:
     invoke-instead: writing:agent-instructions
     rationale: >-
       The user supplies a diff that is not a change in this checkout, so reviewing it belongs to
-      agent-instructions, not the session-change review workflow.
+      agent-instructions, not this review workflow.
 
   - id: bug-report
     prompt: >-
@@ -207,7 +274,7 @@ cases:
       Review the architecture of this codebase and find deepening opportunities.
     expect: skip
     rationale:
-      A whole-codebase architecture audit is not a review of the session's changes; its owner,
+      A whole-codebase architecture audit is not a review of unpublished changes; its owner,
       improve-codebase-architecture, is manual-only.
 
   - id: conceptual-question
@@ -215,3 +282,9 @@ cases:
       What makes a code review useful?
     expect: skip
     rationale: A conceptual question does not ask for a review of changes.
+
+  - id: opinion-on-review-lanes
+    prompt: >-
+      Which review lanes were most useful in that last run?
+    expect: skip
+    rationale: The user asks for an opinion about an earlier review, not for a review.

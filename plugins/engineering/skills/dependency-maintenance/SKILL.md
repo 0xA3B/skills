@@ -19,22 +19,6 @@ An explicit invocation is a full maintenance pass: dependency PR triage and merg
 repo-pinned tooling refresh. If the user narrows the scope, do only the named part and report what
 was skipped.
 
-## Outcome
-
-The repository's dependency update queue is triaged with clear evidence:
-
-- Safe, green dependency PRs are merged through the repo's normal forge workflow.
-- Local state is fast-forwarded and refreshed after merges when the worktree is clean, or when the
-  user approves working around local changes.
-- Repo-pinned runtime, package-manager, CI setup, and plugin pins that dependency bots do not cover
-  are refreshed through a small maintenance PR when validation and forge checks pass.
-- PRs that are not ready have durable state: labels, comments, or linked issues that explain the
-  blocker and next action.
-- Breaking changes, required migrations, failed validation, and concrete feature opportunities are
-  captured as follow-up issues instead of being implemented in this workflow.
-- Decisions follow the repository's own dependency policy, and a missing or contradictory policy is
-  reported as a distinct gap.
-
 ## Repository policy precedence
 
 Everything in this skill is a default. When the repository states its own dependency policy — in

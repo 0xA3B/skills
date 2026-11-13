@@ -11,6 +11,8 @@ Route each changed file to its writing standard and judge it only against that s
 - Human-facing documentation — README files, guides, runbooks, reference prose, and release notes —
   follows the `writing:technical-writing` skill body supplied with this lane's brief. The project's
   own style guide and neighboring-file conventions win over the supplied standard.
+- Other human-facing prose — a blog post, an announcement, a newsletter, or an email — follows the
+  `writing:prose` skill body supplied with this lane's brief.
 
 Review only meaningfully changed prose. Leave mechanical edits — version numbers, link targets,
 names mirrored from code — unreviewed rather than inventing wording feedback about them.

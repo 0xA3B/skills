@@ -52,6 +52,8 @@ trigger fired enters this pass. Follow concrete friction:
 - a seam is missing at real variation or added where nothing varies;
 - tests reach through interfaces or depend on private structure;
 - one logical change repeatedly causes scattered edits;
+- several modules in a flat directory serve one concept while outside callers use a small share of
+  their exports;
 - code names conflict with durable domain language.
 
 Tie every candidate to specific files, callers, tests, history, or observed navigation friction.

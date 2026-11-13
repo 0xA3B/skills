@@ -78,11 +78,12 @@ The typical implementation flow starts with `wayfinder`, which maps a loose idea
 chunks. `grill-me` resolves a selected direction, and `prototype` answers questions that need
 executable evidence and loads on its own for prototype and spike requests. `tdd` implements
 observable behavior through a red-green-refactor loop over a frontier of behaviors, and loads on its
-own for implementation requests. `review-changes` reviews changes the session authored through
-focused lanes, fixes accepted findings, and reruns the lanes those fixes invalidated; `tdd` applies
-it at completion. `codebase-design` provides shared background discipline, and `decision-records`
-both backs the other workflows and loads on its own for requests to record or check a decision. Use
-`handoff` when another agent session should continue from an ignored local context document.
+own for implementation requests. `review-changes` reviews the unpublished changes in the checkout
+through focused lanes, fixes accepted findings, and reruns the lanes those fixes invalidated; `tdd`
+applies it at completion, and `git:create-pr` applies it before publishing. `codebase-design`
+provides shared background discipline, and `decision-records` both backs the other workflows and
+loads on its own for requests to record or check a decision. Use `handoff` when another agent
+session should continue from an ignored local context document.
 
 - [`engineering:codebase-design`](./plugins/engineering/skills/codebase-design/): Applies shared
   deep-module and interface-design discipline.

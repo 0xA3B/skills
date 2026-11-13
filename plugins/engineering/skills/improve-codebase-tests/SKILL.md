@@ -137,4 +137,3 @@ later pass builds on it instead of re-deriving it.
 
 - Diff-scoped test findings belong to the test-review lane inside `engineering:review-changes`; this
   skill is codebase-scoped.
-- Do not manufacture repository-wide candidates when the pain is one suite.
