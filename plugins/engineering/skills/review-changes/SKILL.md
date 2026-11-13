@@ -1,20 +1,12 @@
 ---
 name: review-changes
 description: >-
-  Use when asked to review changes made in the current session before committing, opening a PR, or
-  merging: the worktree, staged or work-in-progress edits, or the session's commits up to a whole
-  branch, including changes to agent-instruction files and documentation. Also use when asked to run
-  one review lane, such as test quality or prose, over those changes. Runs focused review lanes with
-  independent reviewers, verifies and triages the findings, applies accepted in-scope fixes, reruns
-  the lanes those fixes invalidated, and validates. Do not use for a branch, PR, or MR someone else
-  authored; for a diff or file the user pastes or supplies rather than changes in this checkout; for
-  existing reviewer feedback; for first-party bug reports; for implementation requests; for
-  architecture or test-suite audits of a whole codebase; for writing documentation; or for
-  conceptual questions about review.
-when_to_use: >-
-  Also use when the user asks to review a README, documentation, or other prose files they changed
-  in this checkout during the session; the prose lane applies the writing skills to those changes
-  inside this workflow.
+  Use when asked, alone or as one step of a larger request, to review changes in this checkout that
+  are not yet published for review: the worktree, staged edits, or the branch's commits, including
+  changed documentation and agent-instruction files. Also use when asked to run one review lane,
+  such as test quality or prose, over those changes. Do not use for someone else's branch, PR, or
+  MR; for a diff or file the user pastes; or for existing review feedback
+  (engineering:receiving-feedback).
 license: MIT
 metadata:
   original_author: Alex Baker
@@ -23,25 +15,31 @@ argument-hint: "[path|lane]"
 
 # Review changes
 
-Review changes this session authored through focused lanes run by independent reviewers, then
+Review unpublished changes in this checkout through focused lanes run by independent reviewers, then
 triage, fix, and validate. This workflow owns scope, depth, lane selection, fix policy, and
 completion.
 
 ## Outcome
 
-Find and fix valid, in-scope issues in the session's changes, and leave review evidence current for
-the settled revision.
+Find and fix valid, in-scope issues in the unpublished changes, or report them where the session
+lacks authoring context, and leave review evidence current for the settled revision.
 
 ## Scope
 
-Default to staged, unstaged, and untracked non-ignored files in the current worktree, plus any
-commits this session created as part of the current effort. Diff session commits from their merge
-base with the target branch, or from where this session's work began when that is narrower. If the
-user names a path, a lane, or a narrower target, review only that target.
+Default to the unpublished changes in this checkout: staged, unstaged, and untracked non-ignored
+files, plus the branch's commits that no change request contains yet. Diff those commits from the
+change request's head when the branch has one, and otherwise from their merge base with the target
+branch. If the user or invoking workflow names a path, a lane, or a narrower target, review only
+that target.
 
-If the session authored nothing, say so and ask for a specific commit range. If the target is work
-this session did not author, such as another person's branch, PR, or MR, stop and say so: the
-autonomous triage below relies on the authoring context.
+If the checkout holds no unpublished changes, say so and ask for a specific commit range. If the
+target is work someone else published, such as another person's branch, PR, or MR, stop and say so.
+
+The session holds **authoring context** for a change it made, or inherited together with its
+decisions through a compaction summary or a handoff document. A session that was handed a branch and
+asked only to commit and push it has the changes without the decisions, so it holds no authoring
+context for them, and neither does it for edits the user made beside its own. Authoring context
+decides who triages a finding, not whether the lanes run: see Triage and fixes.
 
 ## Review depth
 
@@ -81,13 +79,13 @@ selected:
 - [SPEC-ADHERENCE.md](references/SPEC-ADHERENCE.md): the remedy reconciles the implementation with
   an available spec, issue, PRD, acceptance criteria, or equivalent intended-behavior source.
 - [PROSE-REVIEW.md](references/PROSE-REVIEW.md): the remedy improves how changed agent-instruction
-  files or human-facing documentation read against their writing standard.
+  files, documentation, or other human-facing prose read against their writing standard.
 
 Two lanes are content-owning: `code review` owns changed code, configuration, schemas, and other
-behavior-affecting surface; `prose review` owns meaningfully changed agent-instruction files and
-human-facing documentation. A full review requires each content-owning lane whose content the diff
-changes and no content-owning lane for content the diff does not touch, so a prose-only diff runs
-without the `code review` lane.
+behavior-affecting surface; `prose review` owns meaningfully changed agent-instruction files,
+documentation, and other human-facing prose. A full review requires each content-owning lane whose
+content the diff changes and no content-owning lane for content the diff does not touch, so a
+prose-only diff runs without the `code review` lane.
 
 Three lanes carry extra selection conditions:
 
@@ -114,9 +112,9 @@ context in the evidence.
 
 Run one independent reviewer per selected lane when subagents are available, so one review intent
 does not anchor another. The prose lane may run one reviewer per writing standard when the diff
-spans both agent-instruction files and human-facing documentation. Keep independent reviewers even
-when the user asks to save time or to have the main agent handle every lane; when subagents are
-unavailable, run the strongest local review possible and report that the lanes were not independent.
+spans more than one. Keep independent reviewers even when the user asks to save time or to have the
+main agent handle every lane; when subagents are unavailable, run the strongest local review
+possible and report that the lanes were not independent.
 
 Provide every lane reviewer:
 
@@ -131,9 +129,9 @@ Provide every lane reviewer:
 - the `writing:agent-instructions` or `writing:technical-writing` skill body matching each reviewed
   file type for the prose-review lane, plus the agent-instructions review checklist reference when
   instruction files are in scope, for the same reason;
-- the `writing:prose` skill body alongside the technical-writing body, because the technical-writing
-  standard applies the prose skill's "Patterns to remove" section and an isolated reviewer cannot
-  load it;
+- the `writing:prose` skill body for other human-facing prose and alongside the technical-writing
+  body, which applies the prose skill's "Patterns to remove" section that an isolated reviewer
+  cannot load;
 - [review-finding.schema.json](references/review-finding.schema.json) when structured output is
   available;
 - a prohibition on adding lanes, expanding scope, triaging user decisions, or applying fixes.
@@ -168,13 +166,16 @@ Report no findings when the lane passes. Do not invent low-value style comments 
 
 ## Triage and fixes
 
+For a finding on a change the session holds no authoring context for, report the finding with its
+evidence and leave its triage and fix to the user; the rest of this section and Verify fixes and
+rerun lanes cover the other findings.
+
 Apply `engineering:receiving-feedback` to the returned findings: merge findings that converge across
 lanes by its triage rules, verify before accepting, and classify each with its status taxonomy.
 
-The session's authoring context is triage context: judge findings against the decisions and
-constraints from the development session and the review rules the lanes received, and triage
-autonomously instead of replaying findings to the user. Report every rejection with its rationale;
-autonomy covers judging findings, not discarding them silently.
+Judge findings against the decisions and constraints the session carries and the review rules the
+lanes received, and triage autonomously instead of replaying findings to the user. Report every
+rejection with its rationale; autonomy covers judging findings, not discarding them silently.
 
 Automatically apply accepted or auto-accepted behavior-preserving fixes within the changed surface
 or directly adjacent tests and docs. Apply dependent fixes in dependency order and let the affected

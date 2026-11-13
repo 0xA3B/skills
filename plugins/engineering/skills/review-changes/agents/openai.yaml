@@ -1,7 +1,7 @@
 version: 1
 interface:
   display_name: "Review Changes"
-  short_description: "Review, fix, and re-review changes made this session"
-  default_prompt: "Review the changes I made this session before I commit."
+  short_description: "Review, fix, and re-review unpublished changes"
+  default_prompt: "Review my unpublished changes before I open a PR."
 policy:
   allow_implicit_invocation: true

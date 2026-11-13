@@ -6,6 +6,9 @@ These skills create Conventional Commits and drive GitHub or GitLab change reque
 preparation through automated review and verified merge cleanup.
 
 `babysit-pr` requires the `engineering` plugin so it can apply `engineering:receiving-feedback`.
+When that plugin is installed and the session made the unpublished changes or inherited their
+decisions, `create-pr` also applies `engineering:review-changes` before it publishes them, unless a
+review already covered them or the user asks to skip it.
 
 An agent can invoke every skill implicitly. Each skill stops at a hand off that recommends the next
 workflow, and the agent continues into that workflow only when the user's request already asked for

@@ -14,3 +14,4 @@ the index.
 - [0002 The git plugin tidies topic-branch history without asking](0002-git-plugin-tidies-topic-history-autonomously.md)
 - [0003 mise installs and locks the toolchain](0003-mise-installs-and-locks-the-toolchain.md)
 - [0004 Compound cases assert the first trigger decision](0004-compound-cases-assert-the-first-trigger-decision.md)
+- [0005 create-pr applies review-changes before publishing](0005-create-pr-applies-review-changes-before-publishing.md)

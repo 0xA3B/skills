@@ -29,7 +29,7 @@ authorization, validation, or forge state prevent that outcome.
   rewrite of remote history. When authorized, fetch first and use `--force-with-lease`, never
   `--force`.
 - Never resolve merge or rebase conflicts, rebase a target branch onto a topic branch, bypass hooks,
-  perform code review, or merge the change request.
+  or merge the change request.
 
 ## Forge and target
 
@@ -60,6 +60,11 @@ If currently on the target branch, create a topic branch before committing. Pres
 and changes; do not move or reset the target ref merely to make branch creation convenient. Follow a
 repository branch-naming convention when one exists. Otherwise infer a concise type-and-purpose name
 from the intended change, asking only when the intent is genuinely ambiguous.
+
+If `engineering:review-changes` is available, the session holds authoring context for any of the
+unpublished changes as that skill defines it, no review in this session has covered them since their
+last change, and the user has not said the review is done or asked to skip it, apply
+`engineering:review-changes` to them; otherwise continue without a review.
 
 Apply `git:commit` to all intended uncommitted changes without pushing; step 3 publishes the branch.
 Continue only with a clean worktree. If an open change request already exists for the topic branch,
@@ -150,6 +155,7 @@ Report:
 - expected merge method and any identity constraint;
 - ignored SHA references and working artifacts recorded for `git:merge-pr` cleanup;
 - commits created, history changes `git:tidy-history` made, and push mode used;
+- whether `engineering:review-changes` ran, or the reason it did not;
 - local validation and initial CI state;
 - blockers or pending work.
 
