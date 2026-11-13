@@ -25,6 +25,13 @@ cases:
     expect: invoke
     rationale: Superseding a recorded decision belongs to decision-records.
 
+  - id: amend-unmerged-adr
+    prompt: >-
+      Edit the in-memory ADR in place, since it hasn't merged yet: add that we rejected SQLite
+      because it would be the service's only runtime dependency.
+    expect: invoke
+    rationale: Amending a record that has not merged is record maintenance, not a supersede.
+
   - id: rejected-alternative
     prompt: >-
       Write up why we rejected a message queue for the list endpoint so nobody proposes it again.

@@ -31,7 +31,8 @@ cases:
     expect: invoke
     rationale: >-
       The user supplies a diff to a skill body, an agent-facing file, for instruction review; the
-      diff is not a change in this checkout, so no session-change review workflow owns it.
+      diff is not a change in this checkout, so the review workflow for unpublished changes does not
+      own it.
 
   - id: session-change-review
     prompt: >-
@@ -39,7 +40,7 @@ cases:
     expect: skip
     invoke-instead: engineering:review-changes
     rationale: >-
-      Reviewing a session's own changes before a commit is a review workflow's entry point; that
+      Reviewing unpublished changes before a commit is a review workflow's entry point; that
       workflow applies this skill inside its prose lane.
 
   - id: system-prompt-fragment

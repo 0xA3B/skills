@@ -123,8 +123,8 @@ cases:
     expect: skip
     invoke-instead: engineering:review-changes
     rationale:
-      Reviewing the session's own changes belongs to the review workflow, which applies this skill
-      inside its prose lane.
+      Reviewing unpublished changes belongs to the review workflow, which applies this skill inside
+      its prose lane.
 
   - id: unresolved-review-feedback
     prompt: >-

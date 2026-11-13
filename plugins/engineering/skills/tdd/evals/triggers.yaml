@@ -53,6 +53,15 @@ cases:
     expect: invoke
     rationale: The user names the workflow explicitly.
 
+  - id: go-ahead-implement-agreed-change
+    prompt: >-
+      We agreed on the design above: the list endpoint rejects page 0 with a 400 and caps the page
+      size at 100. Go ahead and implement it.
+    expect: invoke
+    rationale: >-
+      A go-ahead after a design discussion is an implementation request, though it names no feature
+      and no test.
+
   - id: config-only-change
     prompt: >-
       Bump the Node version in the CI workflow file to 26.

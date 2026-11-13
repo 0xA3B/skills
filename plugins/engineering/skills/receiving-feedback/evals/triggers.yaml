@@ -14,6 +14,18 @@ cases:
     expect: invoke
     rationale: The user asks to handle findings returned by reviewers.
 
+  - id: address-reviewer-findings
+    prompt: |-
+      Address reviewer B's findings.
+
+      Reviewer B:
+      1. src/list-endpoint.js: page 0 produces a negative slice start instead of an error.
+      2. test/list-endpoint.test.js: no test covers a page beyond the last one.
+    expect: invoke
+    rationale: >-
+      A short twin of triage-sub-agent-findings: the same request without the triage vocabulary
+      missed in real sessions.
+
   - id: respond-to-pr-comments
     prompt: >-
       Respond to the PR comments and make the changes that are actually valid.
@@ -38,6 +50,24 @@ cases:
       plan.
     expect: invoke
     rationale: The user corrects completed work, which needs verification before the plan changes.
+
+  - id: correction-with-context
+    prompt: >-
+      Good analysis, but part of it is wrong. You wrote that the API client "silently swallows the
+      timeout", but disabling the timeout there was my explicit instruction, and the failing run was
+      on a different machine. Update the analysis.
+    expect: invoke
+    rationale:
+      A correction softened by praise and carrying new context still evaluates completed work.
+
+  - id: close-out-review-threads
+    prompt: >-
+      Make sure every review bot thread on the GitLab merge request is accepted, rejected, or
+      resolved.
+    expect: invoke
+    rationale: >-
+      Closing out bot threads on a GitLab merge request is feedback handling, and no git skill owns
+      merge request threads.
 
   - id: accepts-recommendation-with-details
     prompt: >-
