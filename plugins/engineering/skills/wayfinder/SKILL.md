@@ -75,15 +75,15 @@ mapping stops before implementation:
 - `engineering:tdd` only when the shape is already clear enough to implement;
 - a manual prerequisite when access, setup, or human action blocks a later decision.
 
-Research chunks are the exception to leaving chunks unresolved: when a chunk is purely a missing
-fact — no user decision to make and no artifact beyond the finding — resolve it during mapping with
-read-only research subagents, run in parallel when the agent supports subagents, and fold each
-finding into the known ground instead of leaving the chunk on the map. Keep a research chunk on the
-map only when the fact is unreachable this session, such as missing access, credentials, or a person
-to ask. When the agent supports subagents, a prototype chunk that is the only thing keeping another
-chunk off the frontier is resolved the same way: apply `engineering:prototype` through a subagent
-and fold the evidence into the known ground. Without subagents, or when the chunk blocks nothing,
-the prototype chunk stays on the map.
+Research chunks are the exception to recommending instead of resolving: when a chunk is purely a
+missing fact — no user decision to make and no artifact beyond the finding — resolve it during
+mapping with read-only research subagents, run in parallel when the agent supports subagents, and
+fold each finding into the known ground instead of leaving the chunk on the map. Keep a research
+chunk on the map only when the fact is unreachable this session, such as missing access,
+credentials, or a person to ask. When the agent supports subagents, a prototype chunk that is the
+only thing keeping another chunk off the frontier is resolved the same way: apply
+`engineering:prototype` through a subagent and fold the evidence into the known ground. Without
+subagents, or when the chunk blocks nothing, the prototype chunk stays on the map.
 
 Record dependencies between chunks. The **frontier** is the set of chunks that are precise,
 unblocked, and useful to start next.
@@ -98,10 +98,8 @@ scope does not return unless the destination changes.
 
 ### 5. Stop at the map
 
-Leave mapped chunks unresolved, apart from research chunks and the prototype chunks step 3 resolves
-during mapping; resolving any other chunk belongs to the workflow it is classified under. If the
-entire effort is already clear and small enough for one session, say that a map is unnecessary and
-recommend the next explicit workflow instead.
+If the entire effort is already clear and small enough for one session, say that a map is
+unnecessary and recommend the next explicit workflow instead.
 
 ## Output
 

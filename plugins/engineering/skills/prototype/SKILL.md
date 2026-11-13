@@ -1,14 +1,10 @@
 ---
 name: prototype
 description: >-
-  Build a disposable prototype that answers one design question before real implementation. Use when
-  the user asks to prototype, spike, or try a throwaway version of something, sanity-check a state
-  model or data shape, compare design approaches with switchable variants, or prove that an existing
-  system accepts a change before committing to it, and when `engineering:grill-me`,
-  `engineering:wayfinder`, or `engineering:tdd` needs executable evidence for an open decision. Do
-  not use for code intended to land, which belongs to `engineering:tdd`; for a bug whose cause is
-  unknown, which needs diagnosis first; for reviewing existing changes; or for conceptual questions
-  about prototyping.
+  Use when the session builds throwaway code to answer a design question before real implementation:
+  a prototype or spike, a sanity check of a state model or data shape, switchable variants of a
+  design, or proof that an existing system accepts a change. Do not use for code intended to land
+  (engineering:tdd) or for a bug whose cause is unknown.
 license: MIT
 metadata:
   original_author: Matt Pocock

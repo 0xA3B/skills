@@ -1,13 +1,10 @@
 ---
 name: decision-records
 description: >-
-  Maintain a repository's architecture decision records (ADRs). Use when the user asks to record,
-  write, update, or supersede an ADR, a design decision, or the reason an alternative was rejected,
-  when a workflow has settled a hard-to-reverse choice, when the user asks to check the records that
-  touch an area before a change, or when another skill directs applying
-  engineering:decision-records. Do not use for domain terms or glossary entries
-  (engineering:terminology), for deferred candidates, open questions, specs, or tickets, or for
-  conceptual questions about ADRs.
+  Use when the session records, amends, or supersedes an architecture decision record (ADR), a
+  design decision, or the reason an alternative was rejected; when a workflow settles a
+  hard-to-reverse choice; or when the user asks to check the records that touch an area before a
+  change. Do not use for domain terms or glossary entries (engineering:terminology).
 license: MIT
 metadata:
   original_author: Matt Pocock

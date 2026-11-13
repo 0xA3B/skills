@@ -40,8 +40,8 @@ This is the primary work. Find the smallest credible signal that can catch this 
 4. captured request, trace, payload, event, or data replay;
 5. throwaway harness around the suspect subsystem;
 6. property, fuzz, stress, bisection, or differential loop;
-7. [`scripts/hitl-loop.template.sh`](scripts/hitl-loop.template.sh) only when human interaction is
-   unavoidable.
+7. a copy of the template [`scripts/hitl-loop.template.sh`](scripts/hitl-loop.template.sh), edited
+   for this bug, only when human interaction is unavoidable.
 
 Tighten the loop by reducing runtime, isolating setup, pinning time, seeding randomness, freezing
 network or filesystem dependencies, and asserting the specific symptom.
