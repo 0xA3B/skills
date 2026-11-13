@@ -2,11 +2,9 @@
 
 ## Project conventions
 
-- Group modules under `src/` into a sub-package directory only when the group has callers outside it
-  and a smaller public seam than its parts. The sub-package's `index.ts` only re-exports; its
-  sibling modules import each other directly and are private to production code outside the
-  directory. Register each sub-package in the `no-restricted-imports` patterns in `.oxlintrc.json`;
-  tests may import private modules.
+- Register each sub-package directory under `src/` in the `no-restricted-imports` patterns in
+  `.oxlintrc.json`. The patterns match by directory name, so give a sub-package a name that no other
+  `src/` directory uses. `engineering:codebase-design` states when modules earn a package directory.
 - Keep the plugin linter's checks local and deterministic; run a check that reads git history, such
   as the plugin version check, as its own command, not as a plugin linter rule.
 
