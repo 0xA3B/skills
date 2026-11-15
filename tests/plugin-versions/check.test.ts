@@ -59,7 +59,7 @@ describe("checkPluginVersions", () => {
     },
   );
 
-  // Shipped content (AGENTS.md terminology) excludes trigger fixtures under skills/<skill>/evals/.
+  // Shipped content (AGENTS.md ubiquitous language) excludes trigger fixtures under skills/<skill>/evals/.
   it("lists only shipped paths when fixtures change beside them", async () => {
     await withFeatureBranch(async (repoRoot) => {
       await commitFiles(repoRoot, "fix: hello", {

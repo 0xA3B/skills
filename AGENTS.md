@@ -98,10 +98,12 @@ in `AGENTS.md`. When you add, move, or remove a nested `AGENTS.md`, update this 
 Before you review a change here or triage review findings on one, read [REVIEW.md](REVIEW.md) and
 apply its rules.
 
-## Terminology
+## Ubiquitous language
 
-Change this section, and the Terminology section of a nested `AGENTS.md`, through
-`engineering:terminology`.
+Use these terms, with these meanings, in conversation, code, tests, and documents. When a request,
+or code the task changes, uses an alias to avoid or uses a term with a different meaning, say so
+before you continue. Change this section, and the Ubiquitous language section of a nested
+`AGENTS.md`, through `engineering:ubiquitous-language`.
 
 - **Skills repository**: This repository, which maintains reusable agent skills and publishes them
   through one marketplace catalog per plugin target. Aliases to avoid: plugin repo, package.

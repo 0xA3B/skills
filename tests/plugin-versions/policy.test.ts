@@ -42,7 +42,7 @@ describe("shippedChangesByPlugin", () => {
     );
   });
 
-  // Shipped content (AGENTS.md terminology): every file under plugins/<plugin>/ except trigger
+  // Shipped content (AGENTS.md ubiquitous language): every file under plugins/<plugin>/ except trigger
   // fixtures under skills/<skill>/evals/.
   it("excludes trigger fixtures under skills/<skill>/evals/", () => {
     expect(
