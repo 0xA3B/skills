@@ -23,16 +23,21 @@ the code they explain, and stay readable without access to an issue tracker.
 
 Write a record only when all three hold:
 
-1. **Hard to reverse.** Changing the choice later costs real migration, rewrite, or renegotiation.
+1. **Hard to reverse.** Changing the choice later costs real migration, rewrite, or renegotiation. A
+   choice that one change can undo with nothing else built on it, such as restoring deleted code
+   from history or swapping a tool in an afternoon, fails this gate.
 2. **Surprising without context.** A reader of the code would ask why it was done this way.
 3. **A real trade-off.** Genuine alternatives existed and one was chosen for specific reasons.
 
 A choice that fails any gate gets no record: an easy reversal will be reversed, an obvious choice
 raises no question, and a choice without alternatives has no reason to explain. A surprise whose
 reason fits in a comment at the site, and that fails either other gate, gets the comment and no
-record. Choices that pass include an architectural shape, an integration pattern between contexts, a
-technology with lock-in, a boundary or ownership rule, a deliberate deviation from the obvious path,
-a constraint invisible in the code, and a rejected alternative whose rejection is not obvious.
+record. A choice whose reason an always-loaded instruction file already states gets no record, and a
+choice whose reason matters only to someone reviewing the change that makes it gets that change's
+commit message. Choices that pass include an architectural shape, an integration pattern between
+contexts, a technology whose replacement would take months, a boundary or ownership rule, a
+deliberate deviation from the obvious path, a constraint invisible in the code, and a rejected
+alternative whose rejection is not obvious.
 
 Deferred candidates, open questions, specs, and tickets are pending work, not decisions; leave them
 where the invoking workflow already puts pending work.
