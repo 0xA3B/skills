@@ -60,6 +60,8 @@ word.
   directory boundary that nothing enforces is a naming convention, not a seam. A test may import a
   private module whose own interface is deep enough to be a test surface; that test does not reach
   past an interface.
+- When a design adds or changes an interface, read [COMMENTS.md](../../references/COMMENTS.md) for
+  what its interface comment must state.
 - Treat the interface as the test surface. Tests that must reach past it indicate the wrong seam or
   module shape.
 - A test adapter proves controllability, not variation. Whether a dependency earns a public port
