@@ -157,6 +157,8 @@ unchanged and the suite green:
 - Keep setup explicit while the behavior and data shape are still emerging. Extract a domain-named
   helper only once repeated setup represents a settled concept, and parameterize only cases that
   share behavior, setup shape, and failure meaning.
+- When the frontier's production or test code adds, changes, or invalidates a comment, or adds or
+  changes an interface callers use, read [COMMENTS.md](../../references/COMMENTS.md) and apply it.
 - Report existing code the new code reveals as problematic; change it only when the user asks.
 
 This workflow owns the production and test code it introduced or materially changed, including

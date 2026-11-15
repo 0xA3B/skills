@@ -19,6 +19,10 @@ Look for:
 Read [FOWLER-SMELLS.md](FOWLER-SMELLS.md), focusing on Feature Envy, Data Clumps, Primitive
 Obsession, Repeated Switches, Shotgun Surgery, Divergent Change, and Refused Bequest.
 
+Check each new or changed interface against **Interface comment** in
+[COMMENTS.md](../../../references/COMMENTS.md): a missing interface comment and one that describes
+the implementation are findings, reported as its Review section directs.
+
 Before flagging a structure as misplaced, shallow, or unnecessary, read the comments, docs, and
 terminology that govern it; restating a documented rationale back as a defect is noise.
 

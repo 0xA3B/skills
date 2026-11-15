@@ -123,7 +123,8 @@ Provide every lane reviewer:
   the repository's root `AGENTS.md` and of the `AGENTS.md` nearest each changed file, when present,
   and each file such a section routes to;
 - the assigned lane reference, plus [FOWLER-SMELLS.md](references/FOWLER-SMELLS.md) for the
-  simplification and codebase-design lanes;
+  simplification and codebase-design lanes, and [COMMENTS.md](../../references/COMMENTS.md) for the
+  code-review and codebase-design lanes;
 - the `engineering:codebase-design` skill body for the codebase-design and API/seam lanes, because
   some agents do not let an isolated reviewer load another skill;
 - the `writing:agent-instructions` or `writing:technical-writing` skill body matching each reviewed

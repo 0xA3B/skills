@@ -19,6 +19,10 @@ Trace rather than skim:
 - For each changed function, check callers and callees for a new precondition, changed return shape,
   new failure mode, or ordering dependency the change introduces.
 
+Check the comments the change adds, edits, or leaves stale against every rule in
+[COMMENTS.md](../../../references/COMMENTS.md) except **Interface comment**, which the
+codebase-design lane owns; report each comment finding as that file's Review section directs.
+
 Use repository guidance and relevant tests as evidence. When a finding rests on repository guidance,
 quote the rule and the line that violates it; do not report spirit-of-the-guidance inferences. Avoid
 generic style feedback, speculative architecture redesign, and unrelated codebase audits. Report a
