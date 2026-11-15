@@ -186,3 +186,22 @@
   contracts, widen the selection instead of the staging:
   `pnpm eval:trigger:plugin -- plugins/<plugin>` runs every trigger eval in the plugin, and
   `pnpm eval:trigger:marketplace` runs every trigger eval in the catalog.
+
+## Ubiquitous language
+
+While you work under `plugins/` or `.agents/skills/`, use these terms as well as the root terms,
+with these meanings. When a request, or code the task changes, uses an alias to avoid or uses a term
+with a different meaning, say so before you continue. Change this section through
+`engineering:ubiquitous-language`.
+
+- **Candidate**: Pending work a workflow proposed and set aside until a stated revisit trigger
+  fires, recorded with its evidence as a `candidate:<kind>` issue or a scratch file. Aliases to
+  avoid: deferred finding, backlog item, decision.
+- **Metadata surface**: Any file that exposes plugin or skill metadata and must stay aligned with
+  adjacent surfaces. Aliases to avoid: docs.
+
+Relationships:
+
+- A **Candidate** closes when its implementation lands, when a **Decision record** declines it, or
+  with a stated invalidation reason.
+- A **Candidate** joins the **Frontier** of a codebase pass once its revisit trigger fires.

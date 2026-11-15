@@ -32,7 +32,7 @@ evaluated, and improved over time. Preserve these outcomes:
 `CLAUDE.md` that imports `@AGENTS.md` and may add only Claude-specific guidance that doesn't belong
 in `AGENTS.md`. When you add, move, or remove a nested `AGENTS.md`, update this list:
 
-- Before reading or editing files under `plugins/`, read `plugins/AGENTS.md`.
+- Before reading or editing files under `plugins/` or `.agents/skills/`, read `plugins/AGENTS.md`.
 - Before reading or editing files under `src/` or `tests/`, read `src/AGENTS.md`.
 
 ## Project conventions
@@ -189,14 +189,9 @@ before you continue. Change this section, and the Ubiquitous language section of
 - **Decision record**: One recorded choice that is hard to reverse, surprising without context, and
   a real trade-off, kept as a file under `docs/adr/` with its context and reason. Aliases to avoid:
   ADR issue, design doc, decision label.
-- **Candidate**: Pending work a workflow proposed and set aside until a stated revisit trigger
-  fires, recorded with its evidence as a `candidate:<kind>` issue or a scratch file. Aliases to
-  avoid: deferred finding, backlog item, decision.
 - **Frontier**: The items whose prerequisites are already settled and that are useful to work next:
   chunks on a wayfinder decision map, open questions in a grill-me round, acceptance criteria in a
   tdd round. Aliases to avoid: backlog.
-- **Metadata surface**: Any file that exposes plugin or skill metadata and must stay aligned with
-  adjacent surfaces. Aliases to avoid: docs.
 - **Trigger contract**: The `description` text that defines when a skill should be implicitly
   invoked. Aliases to avoid: skill summary.
 
@@ -226,8 +221,5 @@ Relationships:
   only the first **Trigger decision**
   ([ADR 0004](docs/adr/0004-compound-cases-assert-the-first-trigger-decision.md)).
 - A **Trigger fixture** lists zero or more **Applied skills** of its skill.
-- A **Candidate** closes when its implementation lands, when a **Decision record** declines it, or
-  with a stated invalidation reason.
-- A **Candidate** joins the **Frontier** of a codebase pass once its revisit trigger fires.
 - A **Review lane** separates review intent from review scope; scope belongs to the invoking review
   workflow.
