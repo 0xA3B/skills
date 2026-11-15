@@ -95,6 +95,9 @@ session should continue from an ignored local context document.
 - [`engineering:dependency-maintenance`](./plugins/engineering/skills/dependency-maintenance/):
   Reviews dependency update PRs, merges ready ones, syncs local state, refreshes repo-pinned
   tooling, and files linked follow-up issues.
+- [`engineering:dependency-policy`](./plugins/engineering/skills/dependency-policy/): Applies
+  default rules for choosing, bounding, overriding, and locking dependencies and toolchain versions
+  where the repository states none.
 - [`engineering:diagnose`](./plugins/engineering/skills/diagnose/): Runs a disciplined diagnosis
   loop for bugs, flaky behavior, and performance regressions.
 - [`engineering:grill-me`](./plugins/engineering/skills/grill-me/): Stress-tests a plan, decision,

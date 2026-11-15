@@ -1,0 +1,114 @@
+version: 1
+workspace:
+  seed: node-service
+  committed:
+    package.json: |
+      {
+        "name": "node-service",
+        "version": "0.1.0",
+        "private": true,
+        "type": "module",
+        "scripts": {
+          "test": "node --test"
+        },
+        "dependencies": {
+          "express": ">=4.21.2 <5",
+          "zod": ">=3.23.0 <4"
+        },
+        "devEngines": {
+          "runtime": {
+            "name": "node",
+            "version": "26",
+            "onFail": "error"
+          }
+        }
+      }
+cases:
+  - id: add-dependency
+    prompt: >-
+      Install dayjs; we'll use it for date formatting in the next change.
+    expect: invoke
+    rationale: Adding a dependency is the skill's core trigger.
+
+  - id: upgrade-major
+    prompt: >-
+      Bump express to version 5 in package.json.
+    expect: invoke
+    rationale: Moving a major bound rewrites a manifest entry.
+
+  - id: override-transitive
+    prompt: >-
+      The qs package that express pulls in has a vulnerability. Force it to 6.14.1 or later.
+    expect: invoke
+    rationale: Constraining a transitive dependency belongs to the override rule.
+
+  - id: remove-dependency
+    prompt: >-
+      We no longer use zod anywhere. Remove it from the project.
+    expect: invoke
+    rationale: Removing a dependency changes the manifest and the lockfile.
+
+  - id: bump-runtime
+    prompt: >-
+      Move the project to Node.js 27.
+    expect: invoke
+    rationale: Changing a toolchain version is in scope.
+
+  - id: regenerate-lockfile
+    prompt: >-
+      Regenerate the lockfile so it picks up the latest patch releases.
+    expect: invoke
+    rationale: An intentional lockfile regeneration is in scope.
+
+  - id: updater-config
+    prompt: >-
+      Add a Renovate config that groups every dependency update into one weekly PR.
+    expect: invoke
+    rationale: Changing updater configuration is in scope.
+
+  - id: policy-section
+    prompt: >-
+      Add a dependency policy section to this project's AGENTS.md.
+    expect: invoke
+    invoke-or:
+      - writing:agent-instructions
+    rationale: >-
+      Writing a dependency policy section is in scope, and agent-instructions owns the wording of an
+      AGENTS.md section, so either may make the first trigger decision.
+
+  - id: merge-update-prs
+    prompt: >-
+      Go through the open Renovate PRs and merge the ones that are safe.
+    expect: skip
+    rationale: Reviewing and merging dependency update PRs belongs to a manual-only workflow.
+
+  - id: review-update-pr
+    prompt: >-
+      Is the Dependabot PR that bumps zod from 3.23.8 to 3.24.1 safe to merge?
+    expect: skip
+    rationale: Judging an update PR is review, not a dependency change the session makes.
+
+  - id: install-existing
+    prompt: >-
+      Install the project's dependencies and run the tests.
+    expect: skip
+    rationale: A frozen install changes no dependency, bound, or lockfile.
+
+  - id: use-existing-dependency
+    prompt: >-
+      Use zod, which the project already depends on, to validate the list endpoint's page and
+      pageSize options.
+    expect: skip
+    rationale: Using a declared dependency changes no manifest entry.
+
+  - id: conceptual-ranges
+    prompt: >-
+      What is the difference between a caret range and a tilde range in package.json?
+    expect: skip
+    rationale: A conceptual question asks for no dependency change.
+
+  - id: conceptual-cooldown
+    prompt: >-
+      Why do some teams wait a few days before adopting new package releases?
+    expect: skip
+    rationale: A conceptual question asks for no dependency change.
