@@ -6,10 +6,13 @@ hierarchy, and no second copy to keep in sync. A prompt that a file stores follo
 document mechanics, as any instruction file does. By default a sub-agent starts with an empty
 context, cannot ask a follow-up question, and reports back through a single final message.
 
-Some harnesses can instead fork the parent conversation into the sub-agent. When the dispatch is a
-fork, the sub-agent already holds the session context: skip stating the facts and conventions it
-already holds, and apply every other rule in this file. When you cannot tell whether the dispatch is
-a fork, assume an empty context.
+Some harnesses can instead fork the parent conversation into the sub-agent, and some fork by
+default. When the harness lets you choose, dispatch with an empty context; fork only when the task
+needs session context that the prompt cannot state. A fork carries the session's conclusions into
+work that should be independent, such as a review, and spends the sub-agent's context on history the
+task does not need. When the dispatch is a fork, the sub-agent already holds the session context:
+skip stating the facts and conventions it already holds, and apply every other rule in this file.
+When you cannot tell whether the dispatch is a fork, assume an empty context.
 
 ## Carry the context
 

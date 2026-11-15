@@ -46,8 +46,10 @@ an instruction file. It does not load when an agent dispatches a sub-agent for a
 agent apply the core prompt rules to each dispatch, add these lines to your user memory, such as
 `~/.claude/CLAUDE.md` for Claude Code or `~/.codex/AGENTS.md` for Codex:
 
-- In every prompt for a sub-agent, state each fact the task needs; the sub-agent has seen none of
-  the conversation.
+- Start each sub-agent with an empty context; fork the conversation into the sub-agent only when the
+  task needs session context that the prompt cannot state.
+- In every prompt for a sub-agent, state each fact the task needs; a sub-agent with an empty context
+  has seen none of the conversation.
 - State what the sub-agent must return: the format, the fields, and what to leave out, so that the
   report fits in one response.
 - Give a default for a choice the prompt does not cover, name what is out of scope, and say whether
