@@ -7,8 +7,8 @@ description: >-
 license: MIT
 metadata:
   original_author: Matt Pocock
-  original_source: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/engineering/diagnosing-bugs
-  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
+  original_source: https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/diagnosing-bugs
+  upstream_reviewed: 5863806dd4e15c63174bee4e7515a4256792ecfa
 disable-model-invocation: true
 argument-hint: "[problem]"
 ---
@@ -106,7 +106,9 @@ the first plausible explanation.
 
 When a correct test seam exists, convert the minimized reproduction into a failing regression test
 before applying the fix. The seam must exercise the actual bug pattern; a shallow test that cannot
-reproduce the causal path gives false confidence.
+reproduce the causal path gives false confidence. If you forced the failure by changing code or a
+fixture, diff the changed file against its unchanged version and confirm the change is present
+before you trust the failure.
 
 Make the smallest change that explains both the original failure and the probe results. Rerun:
 

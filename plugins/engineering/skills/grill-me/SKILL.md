@@ -7,7 +7,10 @@ license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/84fdeffd12f2ee307994d1eb6feb48173b6e0502/skills/productivity/grilling
-  upstream_reviewed: 84fdeffd12f2ee307994d1eb6feb48173b6e0502
+  upstream_reviewed: 5863806dd4e15c63174bee4e7515a4256792ecfa
+  upstream_divergence: >-
+    options carry labels so a reply names one; upstream words each question so "yes" accepts the
+    recommendation
 disable-model-invocation: true
 argument-hint: "[approach]"
 ---

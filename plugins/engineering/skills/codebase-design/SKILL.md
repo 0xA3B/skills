@@ -9,7 +9,7 @@ license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/e9fcdf95b402d360f90f1db8d776d5dd450f9234/skills/engineering/codebase-design
-  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
+  upstream_reviewed: 5863806dd4e15c63174bee4e7515a4256792ecfa
 user-invocable: false
 ---
 

@@ -9,7 +9,7 @@ license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/engineering/domain-modeling
-  upstream_reviewed: c55ee46073ed923f86ce59a5eb3b6d895095d1b7
+  upstream_reviewed: 5863806dd4e15c63174bee4e7515a4256792ecfa
 argument-hint: "[decision]"
 ---
 
