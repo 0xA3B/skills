@@ -37,8 +37,9 @@ through that interface.
 - **Locality**: change, bugs, knowledge, and verification concentrated behind one interface.
 
 Use these terms when their concepts apply, and prefer them over ambiguous substitutes such as
-component, service, API, or boundary. Map them to `AGENTS.md ## Terminology` when that section
-exists, and keep a clearer established domain term rather than replacing it with the skill's word.
+component, service, API, or boundary. Map them to `AGENTS.md ## Ubiquitous language` when that
+section exists, and keep a clearer established domain term rather than replacing it with the skill's
+word.
 
 ## Principles
 

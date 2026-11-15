@@ -5,9 +5,9 @@ description: >-
   a script a skill bundles: an AGENTS.md, CLAUDE.md, or SKILL.md, an agent definition, a system
   prompt, a policy or rule section in one of those files, or a sub-agent prompt that is the
   deliverable or that a file stores. Do not use for a one-off sub-agent prompt that dispatches a
-  task; to review changes in this checkout (engineering:review-changes); for a terminology section's
-  entries (engineering:terminology); or for a mechanical edit, such as a rename, that passes through
-  an instruction file.
+  task; to review changes in this checkout (engineering:review-changes); for a ubiquitous language
+  section's entries (engineering:ubiquitous-language); or for a mechanical edit, such as a rename,
+  that passes through an instruction file.
 license: MIT
 metadata:
   original_author: Alex Baker
@@ -170,8 +170,8 @@ words, and pruning.
 
 If the document is an `AGENTS.md` or `CLAUDE.md`, also read [agents-md.md](references/agents-md.md)
 for the scope ladder, loading and the root byte limit, composition across agents, the
-installed-skill duplication rule, terminology-section handling, the review-rules route, and a
-default section shape.
+installed-skill duplication rule, ubiquitous-language-section handling, the review-rules route, and
+a default section shape.
 
 ## Skills
 

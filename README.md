@@ -114,8 +114,8 @@ session should continue from an ignored local context document.
   responds to existing review feedback.
 - [`engineering:tdd`](./plugins/engineering/skills/tdd/): Builds features or fixes with a
   red-green-refactor loop.
-- [`engineering:terminology`](./plugins/engineering/skills/terminology/): Creates, updates, or
-  reviews durable project terminology.
+- [`engineering:ubiquitous-language`](./plugins/engineering/skills/ubiquitous-language/): Creates,
+  updates, or reviews the project's ubiquitous language.
 - [`engineering:wayfinder`](./plugins/engineering/skills/wayfinder/): Maps a loose idea into
   decisions, dependencies, frontier, fog, and excluded scope.
 

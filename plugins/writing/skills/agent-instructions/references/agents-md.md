@@ -50,11 +50,11 @@ that restates what the skill does or when it fires is a second copy competing wi
 skill in the instruction file only to bind scope its description cannot carry: which section it
 governs, which conventions override it, or which of its options this repository fixes.
 
-## Terminology sections
+## Ubiquitous language sections
 
-When a terminology section needs term, alias, relationship, or format changes, use the
-`engineering:terminology` skill if it is available; otherwise leave the section unchanged and report
-the proposed changes.
+When a ubiquitous language section, or a section named `## Terminology`, needs term, alias,
+relationship, or format changes, use the `engineering:ubiquitous-language` skill if it is available;
+otherwise leave the section unchanged and report the proposed changes.
 
 ## Review rules
 
@@ -91,9 +91,9 @@ Testable imperatives: commands, paths, and thresholds.
 Before you review a change here or triage review findings on one, read [REVIEW.md](REVIEW.md) and
 apply its rules.
 
-## Terminology
+## Ubiquitous language
 
-Durable domain terms. When a terminology workflow governs this section, name it here.
+Durable domain terms. When a workflow governs this section, name it here.
 ```
 
 Purpose lists the outcomes changes are judged against, and Project conventions holds only testable

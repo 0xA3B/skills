@@ -4,7 +4,7 @@ Ask whether the change fits the repository's architecture and improves or degrad
 seam placement, locality, leverage, and testability.
 
 Apply `engineering:codebase-design` and inspect repository conventions, nearby modules, callers,
-tests, and `AGENTS.md ## Terminology`.
+tests, and `AGENTS.md ## Ubiquitous language`.
 
 Look for:
 

@@ -21,12 +21,12 @@ context document.
 `wayfinder`, `grill-me`, `prototype`, `tdd`, `diagnose`, `improve-codebase-architecture`, and
 `improve-codebase-tests` apply `decision-records` to read the records that touch their scope and to
 write records for the choices they settle; `decision-records` also loads on its own for requests to
-record or check a decision. `terminology` and `decision-records` together are the plugin's surface
-for language and decisions: `terminology` keeps the ubiquitous language in `AGENTS.md`, and
-`decision-records` keeps architecture decision records under `docs/adr/`, following domain-driven
-design's separation of the shared language from the decisions expressed in that language.
-`diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`, and `dependency-maintenance`
-remain focused workflows for their respective concerns.
+record or check a decision. `ubiquitous-language` and `decision-records` together are the plugin's
+surface for language and decisions: `ubiquitous-language` keeps the ubiquitous language in
+`AGENTS.md`, and `decision-records` keeps architecture decision records under `docs/adr/`, following
+domain-driven design's separation of the shared language from the decisions expressed in that
+language. `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`, and
+`dependency-maintenance` remain focused workflows for their respective concerns.
 
 On Claude Code, the bundled `code-review` skill competes with `review-changes` for generic review
 prompts. To keep the bundled skill typable as `/code-review` but stop its implicit invocation, set
@@ -60,6 +60,7 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
 - `engineering:review-changes`: Review unpublished changes in the checkout through focused lanes,
   fix accepted findings, and rerun invalidated lanes.
 - `engineering:tdd`: Build features or fixes with a red-green-refactor loop.
-- `engineering:terminology`: Create, update, or review durable project terminology.
+- `engineering:ubiquitous-language`: Create, update, or review the project's ubiquitous language in
+  `AGENTS.md`.
 - `engineering:wayfinder`: Map a loose idea into decisions, dependencies, frontier, fog, and
   excluded scope.

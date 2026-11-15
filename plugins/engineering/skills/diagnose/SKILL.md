@@ -17,8 +17,8 @@ argument-hint: "[problem]"
 Use a tight evidence loop for hard bugs. Each phase produces the evidence required by the next; skip
 a phase only when current evidence explicitly satisfies its completion criterion.
 
-Keep domain names aligned with `AGENTS.md ## Terminology` when present. Before a fix changes a
-module boundary or seam, apply `engineering:decision-records` to read the decision records that
+Keep domain names aligned with `AGENTS.md ## Ubiquitous language` when present. Before a fix changes
+a module boundary or seam, apply `engineering:decision-records` to read the decision records that
 touch it.
 
 ## Redact what you show

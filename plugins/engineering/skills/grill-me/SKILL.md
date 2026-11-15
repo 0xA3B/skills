@@ -128,16 +128,17 @@ Confirm: <the consequence to confirm>. If rejected: <what changes>.
 - Test domain relationships, state transitions, and ownership with concrete edge-case scenarios.
 - Verify important claims about current behavior against code. When code and the user's model
   disagree, pause and resolve which should be authoritative.
-- Use `AGENTS.md ## Terminology` when present. Collect stable domain terms as they crystallize, and
-  each choice the user settles that passes the gates of `engineering:decision-records`, for the
-  completion summary; skip generic programming terms and incidental implementation names.
+- Use `AGENTS.md ## Ubiquitous language` when present. Collect stable domain terms as they
+  crystallize, and each choice the user settles that passes the gates of
+  `engineering:decision-records`, for the completion summary; skip generic programming terms and
+  incidental implementation names.
 - Until the user confirms shared understanding, keep the session to questions, evidence gathering,
-  and dispatched disposable prototypes, and write no terminology entry or decision record, including
-  a record a prototype's answer would justify; list each for the completion summary. A later round
-  can reverse an earlier answer. Implementing, ticket creation, and enacting the approach belong to
-  the workflow that follows.
+  and dispatched disposable prototypes, and write no ubiquitous language entry or decision record,
+  including a record a prototype's answer would justify; list each for the completion summary. A
+  later round can reverse an earlier answer. Implementing, ticket creation, and enacting the
+  approach belong to the workflow that follows.
 
-When terminology is the main unresolved work, recommend `engineering:terminology`.
+When the language is the main unresolved work, recommend `engineering:ubiquitous-language`.
 
 ## Completion
 
@@ -146,10 +147,10 @@ nothing left silently assumed. Before declaring completion:
 
 1. Summarize the decisions, facts, assumptions, rejected paths, and remaining follow-ups.
 2. State why the approach is ready to implement, defer, or reject.
-3. List the terminology entries and decision records to write, each with its term and definition or
-   its decision and reason, the unresolved questions that need executable evidence, and the
-   recommended next step in one line.
+3. List the ubiquitous language entries and decision records to write, each with its term and
+   definition or its decision and reason, the unresolved questions that need executable evidence,
+   and the recommended next step in one line.
 4. Ask the user to confirm that shared understanding has been reached.
-5. When the user confirms, apply `engineering:terminology` to the listed entries and
+5. When the user confirms, apply `engineering:ubiquitous-language` to the listed entries and
    `engineering:decision-records` to the listed records, and report each path written. When the user
    names a gap instead, put it on the frontier and return to the rounds; otherwise write nothing.
