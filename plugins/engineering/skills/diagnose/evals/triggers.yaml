@@ -1,0 +1,80 @@
+version: 1
+applies:
+  - engineering:decision-records
+workspace:
+  seed: node-service
+cases:
+  - id: symptom-without-cause
+    prompt: >-
+      Uploads fail intermittently in production and nobody knows why. Figure out what is going on.
+    expect: invoke
+    rationale: A reported symptom with no known cause is the core trigger.
+
+  - id: failing-test-unknown-cause
+    prompt: >-
+      test/date.test.js started failing on main after yesterday's merge and I can't tell why. Find
+      the cause and fix it.
+    expect: invoke
+    rationale: A failure whose cause is not evident needs a reproduction and a diagnosis first.
+
+  - id: performance-regression
+    prompt: >-
+      The list endpoint got about three times slower since last week's release. Find out what
+      regressed.
+    expect: invoke
+    rationale: A performance regression with no known cause needs a measured loop.
+
+  - id: flaky-test
+    prompt: >-
+      The storage tests pass locally but fail about one run in five in CI. Track down the flake.
+    expect: invoke
+    rationale: Flaky behavior has an unknown cause by definition.
+
+  - id: fix-attempt-did-not-resolve
+    prompt: >-
+      I added a null check in src/api-client.js, but the client still crashes with "Cannot read
+      properties of undefined" on some responses. Find out what is actually going wrong.
+    expect: invoke
+    rationale: A fix that did not resolve the problem shows that the cause is still unknown.
+
+  - id: debug-request
+    prompt: >-
+      Debug why the server returns a 500 on POST /items.
+    expect: invoke
+    rationale: A debugging request names a symptom and asks for its cause.
+
+  - id: bug-with-known-cause
+    prompt: >-
+      The date parser drops the timezone offset when the string ends in Z. The cause is the regex in
+      parseIso. Fix it.
+    expect: skip
+    invoke-instead: engineering:tdd
+    rationale: A bug whose cause is known starts from a failing regression test in tdd.
+
+  - id: error-names-its-fix
+    prompt: >-
+      CI fails with "Unknown option --experimental-strip in package.json script test". Remove that
+      flag from the test script.
+    expect: skip
+    rationale: The error names its own fix, so there is no cause to find.
+
+  - id: review-finding
+    prompt: >-
+      A reviewer left this comment on my pull request: "parseIso mishandles negative offsets such as
+      -05:30." Handle the comment.
+    expect: skip
+    invoke-instead: engineering:receiving-feedback
+    rationale: A reviewer's finding goes through feedback triage before any diagnosis.
+
+  - id: feature-request
+    prompt: >-
+      Add a --verbose flag to the server that logs each request.
+    expect: skip
+    invoke-instead: engineering:tdd
+    rationale: A feature request reports no failure to diagnose.
+
+  - id: conceptual-question
+    prompt: >-
+      What is the difference between a flaky test and a failing test?
+    expect: skip
+    rationale: A conceptual question does not ask for a diagnosis.

@@ -4,7 +4,7 @@ description: >-
   Use when the session builds throwaway code to answer a design question before real implementation:
   a prototype or spike, a sanity check of a state model or data shape, switchable variants of a
   design, or proof that an existing system accepts a change. Do not use for code intended to land
-  (engineering:tdd) or for a bug whose cause is unknown.
+  (engineering:tdd) or for a bug whose cause is unknown (engineering:diagnose).
 license: MIT
 metadata:
   original_author: Matt Pocock

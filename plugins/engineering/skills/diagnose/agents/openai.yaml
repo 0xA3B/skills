@@ -2,6 +2,6 @@ version: 1
 interface:
   display_name: "Diagnose"
   short_description: "Debug with a disciplined feedback loop"
-  default_prompt: "Use $engineering:diagnose to debug this with a disciplined feedback loop."
+  default_prompt: "Find the cause of this bug with a disciplined feedback loop, then fix it."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
