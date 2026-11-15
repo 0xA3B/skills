@@ -1,15 +1,14 @@
 ---
 name: diagnose
 description: >-
-  Run a disciplined diagnosis loop for a bug, failure, flaky behavior, or performance regression:
-  build a loop that can fail, reproduce and minimize, rank falsifiable hypotheses, instrument, fix,
-  and add a regression test.
+  Use whenever the session must find the cause of a bug, failure, flaky behavior, or performance
+  regression: the user reports a symptom without a cause, an error does not reveal its cause, or a
+  fix attempt did not resolve the problem.
 license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/5863806dd4e15c63174bee4e7515a4256792ecfa/skills/engineering/diagnosing-bugs
   upstream_reviewed: 5863806dd4e15c63174bee4e7515a4256792ecfa
-disable-model-invocation: true
 argument-hint: "[problem]"
 ---
 

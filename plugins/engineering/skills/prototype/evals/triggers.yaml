@@ -54,6 +54,7 @@ cases:
     prompt: >-
       Uploads fail intermittently in production and nobody knows why. Figure out what is going on.
     expect: skip
+    invoke-instead: engineering:diagnose
     rationale: A bug with an unknown cause needs diagnosis, not a prototype.
 
   - id: review-branch

@@ -6,7 +6,7 @@ description: >-
   reference implementation, a new or changed public interface, or an agreed design the user says to
   implement. Do not use for a change with no behavior to prove, such as configuration,
   documentation, or a mechanical rename; for a throwaway prototype or spike (engineering:prototype);
-  or for a bug whose cause is unknown.
+  or for a bug whose cause is unknown (engineering:diagnose).
 license: MIT
 metadata:
   original_author: Matt Pocock
