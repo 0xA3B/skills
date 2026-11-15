@@ -49,8 +49,7 @@ in `AGENTS.md`. When you add, move, or remove a nested `AGENTS.md`, update this 
 - Keep `check`-suffixed scripts non-mutating.
 - Configure shfmt through `.editorconfig` only. shfmt ignores `.editorconfig` when it receives any
   parser or printer flag, such as `-i`, `-ci`, or `-s`, so pass none.
-- Before changing an area, read the decision records under `docs/adr/` that touch it, and record a
-  choice that is hard to reverse there, following `docs/adr/README.md`.
+- Before changing an area, read the decision records under `docs/adr/` that touch it.
 - When using a plugin skill maintained in this repository, follow its working-tree `SKILL.md` as the
   current workflow authority. The installed marketplace copy may be stale until the plugin is
   reinstalled.
