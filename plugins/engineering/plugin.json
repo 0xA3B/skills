@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "engineering",
-  "version": "2.14.0",
-  "description": "Engineering workflow skills for decision mapping, adversarial design review, dependency maintenance, durable terminology, decision records, prototyping, TDD, diagnosis, architecture, code review, and handoffs.",
+  "version": "3.0.0",
+  "description": "Engineering workflow skills for decision mapping, adversarial design review, dependency maintenance, ubiquitous language, decision records, prototyping, TDD, diagnosis, architecture, code review, and handoffs.",
   "author": {
     "name": "Alex Baker"
   },
@@ -19,7 +19,7 @@
     "review",
     "planning",
     "handoff",
-    "terminology",
+    "ubiquitous-language",
     "adr"
   ],
   "extensions": {
@@ -27,7 +27,7 @@
       "interface": {
         "displayName": "Engineering",
         "shortDescription": "Map, stress-test, implement, diagnose, review, and hand off work.",
-        "longDescription": "Workflow skills for breadth-first decision mapping, adversarial design review, dependency maintenance, durable terminology, decision records, shared codebase design, disposable prototyping, test-driven implementation, disciplined debugging, scoped review lanes, feedback triage, and local session handoffs. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
+        "longDescription": "Workflow skills for breadth-first decision mapping, adversarial design review, dependency maintenance, ubiquitous language, decision records, shared codebase design, disposable prototyping, test-driven implementation, disciplined debugging, scoped review lanes, feedback triage, and local session handoffs. Adapted skills preserve source attribution in Agent Skills frontmatter metadata.",
         "developerName": "Alex Baker",
         "category": "Productivity",
         "capabilities": ["Read", "Write"],

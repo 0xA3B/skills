@@ -15,5 +15,5 @@ End with:
 - Findings with file references and concrete proposed wording, or the changes applied.
 - Ambiguities resolved or still open.
 
-Stop when the review identifies the next terminology decision the user needs to make, or the
+Stop when the review identifies the next decision about the language the user needs to make, or the
 requested changes are applied.

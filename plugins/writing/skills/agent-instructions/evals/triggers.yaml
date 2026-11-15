@@ -150,9 +150,10 @@ cases:
     prompt: >-
       Add a "staging lane" entry to the terminology table in our AGENTS.md.
     expect: skip
-    invoke-instead: engineering:terminology
+    invoke-instead: engineering:ubiquitous-language
     rationale:
-      Terminology-section content is owned by a terminology workflow, which this skill excludes.
+      The content of the terminology section is owned by another workflow, which this skill
+      excludes.
 
   - id: update-dependency-policy-section
     prompt: >-

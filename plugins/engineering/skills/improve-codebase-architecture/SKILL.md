@@ -41,10 +41,10 @@ Deepening pays off where future change is likely. Choose the review area before 
 
 ## Explore
 
-Read `AGENTS.md ## Terminology`, repository guidance, nearby docs, code, callers, and tests. Apply
-`engineering:decision-records` to read the decision records that touch the scoped area; a candidate
-that contradicts one surfaces only under that skill's conflict rule. Apply the read step in
-[CANDIDATES.md](../../references/CANDIDATES.md) to the scoped area, so a candidate whose revisit
+Read `AGENTS.md ## Ubiquitous language`, repository guidance, nearby docs, code, callers, and tests.
+Apply `engineering:decision-records` to read the decision records that touch the scoped area; a
+candidate that contradicts one surfaces only under that skill's conflict rule. Apply the read step
+in [CANDIDATES.md](../../references/CANDIDATES.md) to the scoped area, so a candidate whose revisit
 trigger fired enters this pass. Follow concrete friction:
 
 - understanding one concept requires bouncing through many shallow modules;
@@ -91,8 +91,8 @@ For the selected candidate, make explicit:
   chosen by the Test migration section of `codebase-design` DEEPENING.md, a surviving test for each
   invariant named above, and for each group of values that must share one snapshot or transaction a
   test that proves they do;
-- durable concepts the refactor introduces or renames, with proposed `AGENTS.md ## Terminology`
-  entries when a name is new or collides with an existing term;
+- durable concepts the refactor introduces or renames, with proposed
+  `AGENTS.md ## Ubiquitous language` entries when a name is new or collides with an existing term;
 - migration and compatibility constraints.
 
 When the remaining choices are user-owned decisions, recommend an explicit invocation of

@@ -69,8 +69,8 @@ Then write these sections, leaving out a section that would be empty:
 - **Decisions**: each settled decision with the reason that constrains later work, and each rejected
   path a later reader would otherwise propose again.
 - **Open questions**: each unresolved decision or assumption, with who or what resolves it.
-- **Plan**: the ordered steps, each with the check that shows the step is done. When terminology
-  entries or decision records are still to be written, list them first.
+- **Plan**: the ordered steps, each with the check that shows the step is done. When ubiquitous
+  language entries or decision records are still to be written, list them first.
 - **State**: the status of each step, the step in progress, the last validation result, and the last
   commit a review covered.
 - **Discoveries**: each fact learned during implementation that contradicts a decision or changes

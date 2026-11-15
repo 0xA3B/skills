@@ -97,9 +97,9 @@ regression coverage, and report the exception. Do not rewrite the test to fit th
 ### 1. Plan the test surface
 
 Before editing, inspect the relevant code, tests, docs, and project commands. Keep domain names
-aligned with `AGENTS.md ## Terminology` when present. Apply `engineering:decision-records` to read
-the decision records that touch the surface; a record that the needed interface contradicts goes
-through that skill's conflict rule.
+aligned with `AGENTS.md ## Ubiquitous language` when present. Apply `engineering:decision-records`
+to read the decision records that touch the surface; a record that the needed interface contradicts
+goes through that skill's conflict rule.
 
 Identify:
 

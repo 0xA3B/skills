@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Ubiquitous language"
+  short_description: "Create, update, or review the project's ubiquitous language"
+  default_prompt: "Review and update this project's ubiquitous language in AGENTS.md."
+policy:
+  allow_implicit_invocation: true

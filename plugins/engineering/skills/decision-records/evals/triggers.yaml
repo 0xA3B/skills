@@ -1,6 +1,6 @@
 version: 1
 applies:
-  - engineering:terminology
+  - engineering:ubiquitous-language
   - writing:technical-writing
 workspace:
   seed: node-service
@@ -42,8 +42,8 @@ cases:
     prompt: >-
       Add "page" to our AGENTS.md terminology and mark "batch" as an alias to avoid.
     expect: skip
-    invoke-instead: engineering:terminology
-    rationale: A glossary entry belongs to terminology, not to a decision record.
+    invoke-instead: engineering:ubiquitous-language
+    rationale: A glossary entry belongs to the ubiquitous language, not to a decision record.
 
   - id: fix-bug
     prompt: >-

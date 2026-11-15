@@ -21,7 +21,7 @@ workspace:
       module they cover. Inject collaborators such as `fetch` through factory options so tests
       never touch the network.
 
-      ## Terminology
+      ## Ubiquitous language
 
       | Term | Definition | Aliases to avoid |
       | --- | --- | --- |
@@ -40,20 +40,20 @@ cases:
       We use "job", "task", and "run" interchangeably in this codebase. Pick one canonical term and
       record it in the terminology.
     expect: invoke
-    rationale: The user wants ambiguous language resolved into durable canonical terminology.
+    rationale: The user wants ambiguous language resolved into one canonical term.
 
   - id: prune-terminology-table
     prompt: >-
       Review our AGENTS.md terminology table for stale or duplicated entries.
     expect: invoke
-    rationale: The user is asking for a terminology review, which this skill owns.
+    rationale: The user is asking for a review of the language, which this skill owns.
 
   - id: capture-term-from-review
     prompt: >-
       We settled on calling these "eval lanes" during that review. Capture the term so future
       sessions use it.
     expect: invoke
-    rationale: A term stabilized during review and should become durable terminology.
+    rationale: A term stabilized during review and should enter the ubiquitous language.
 
   - id: adapt-glossary-guidance
     prompt: >-
@@ -67,7 +67,7 @@ cases:
           vendor confirming the order.
         - **Reorder level**: the quantity at which an item is flagged for restocking.
     expect: invoke
-    rationale: The user wants glossary material converted into a terminology section.
+    rationale: The user wants glossary material converted into a ubiquitous language section.
 
   - id: general-agents-md-tightening
     prompt: >-
@@ -75,28 +75,28 @@ cases:
     expect: skip
     invoke-instead: writing:agent-instructions
     rationale:
-      General instruction-file editing is owned by an instruction-writing skill, not terminology.
+      General instruction-file editing is owned by an instruction-writing skill, not this one.
 
   - id: rename-code-identifiers
     prompt: >-
       Rename the JobRunner class to TaskRunner across the codebase.
     expect: skip
-    rationale: The user wants a code refactor, not a terminology decision.
+    rationale: The user wants a code refactor, not a decision on a term.
 
   - id: conceptual-ubiquitous-language
     prompt: >-
       What is a ubiquitous language in domain-driven design?
     expect: skip
-    rationale: The user is asking a conceptual question, not maintaining terminology.
+    rationale: The user is asking a conceptual question, not maintaining the language.
 
   - id: human-facing-glossary-page
     prompt: >-
       Write a glossary page for our user documentation site.
     expect: skip
-    rationale: The deliverable is human-facing documentation, not agent-facing terminology.
+    rationale: The deliverable is human-facing documentation, not the agent-facing language.
 
   - id: word-definition-question
     prompt: >-
       What does "idempotent" mean?
     expect: skip
-    rationale: The user wants a definition in chat, not durable project terminology.
+    rationale: The user wants a definition in chat, not an entry in the language.
