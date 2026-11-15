@@ -11,7 +11,7 @@ license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8/skills/engineering/tdd
-  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
+  upstream_reviewed: 5863806dd4e15c63174bee4e7515a4256792ecfa
   upstream_divergence: >-
     the loop runs over a frontier of behaviors instead of one test at a time; refactor runs once per
     frontier over production and test code; test seams chosen autonomously, not pre-agreed

@@ -8,7 +8,7 @@ license: MIT
 metadata:
   original_author: Matt Pocock
   original_source: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/engineering/wayfinder
-  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
+  upstream_reviewed: 5863806dd4e15c63174bee4e7515a4256792ecfa
   upstream_divergence: tracker-neutral; upstream issue-ticket mechanics adapt into the decision map
 disable-model-invocation: true
 argument-hint: "[idea]"

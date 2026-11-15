@@ -12,7 +12,7 @@ license: MIT
 metadata:
   original_author: Alex Baker
   mechanics_adapted_from: https://github.com/mattpocock/skills/tree/6acc160e4e0cd062dbbbd7a1b26ae92855edf07e/skills/productivity/writing-for-agents
-  upstream_reviewed: 6acc160e4e0cd062dbbbd7a1b26ae92855edf07e
+  upstream_reviewed: 5863806dd4e15c63174bee4e7515a4256792ecfa
   upstream_divergence: >-
     allows a prohibition that names a specific default pattern with its replacement, and drops the
     claim that naming a behavior makes it more available; upstream allows only a hard guardrail
