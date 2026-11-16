@@ -75,8 +75,6 @@ or code the task changes, uses an alias to avoid or uses a term with a different
 before you continue. Change this section, and the Ubiquitous language section of a nested
 `AGENTS.md`, through `engineering:ubiquitous-language`.
 
-- **Skills repository**: This repository, which maintains reusable agent skills and publishes them
-  through one marketplace catalog per plugin target. Aliases to avoid: plugin repo, package.
 - **Plugin target**: An agent a plugin ships to (Claude Code or Codex), declared by shipping that
   agent's target extension and marketplace entry. Aliases to avoid: platform, harness.
 - **Marketplace catalog**: The root list of plugins this repository exposes to one plugin target as
@@ -124,34 +122,9 @@ before you continue. Change this section, and the Ubiquitous language section of
   a hand off to a manual-only skill always stops. Aliases to avoid: auto-invoke, delegate.
 - **Trigger fixture**: A committed YAML file of positive and negative cases used to evaluate
   implicit invocation behavior. Aliases to avoid: skill test.
-- **Workspace seed**: Committed project content under `evals/seeds/<name>/`, copied into a case
-  workspace and initialized as a git repository before the agent runs. Aliases to avoid: scaffold,
-  checkout, fixture workspace.
-- **Routing assertion**: The `invoke-instead` check on a skip case: the named alternate must be the
-  only skill that fires. Aliases to avoid: route-to, redirect.
-- **Compound case**: An invoke case whose request chains outcomes that other skills also own; it
-  lists those skills under `invoke-or` and passes when the target or a listed skill makes the
-  trigger decision. Aliases to avoid: chained case, invoke-also.
-- **Dependent case**: A case in another skill's fixture that names the target skill, in a routing
-  assertion or a compound case's `invoke-or` list. Aliases to avoid: dependency.
-- **Seeded case**: A trigger fixture case whose resolved workspace names a given workspace seed.
-  Aliases to avoid: seed dependent, dependent case.
 - **Trigger eval**: A development-only run that checks whether one plugin or repo-local skill
   invokes or skips for each trigger fixture case on a selected agent (Codex or Claude Code). Aliases
   to avoid: validation gate.
-- **Attempt**: One execution of one trigger fixture case within a trigger eval, numbered from 1;
-  `--repeat <n>` runs n attempts of each selected case. Aliases to avoid: repeat, iteration, trial.
-- **Eval lane**: The per-agent adapter a trigger eval runs through, owning that agent's staging,
-  case execution, and invocation observations. Aliases to avoid: review lane, harness.
-- **Invocation signal**: The observed evidence that the agent invoked a staged skill: a Codex
-  command that prints a staged skill file from its first line, or a Claude Code assistant message
-  with Skill tool calls. Aliases to avoid: telemetry, canary.
-- **Trigger decision**: An attempt's first invocation signal and the staged skills it loads; later
-  loads are workflow behavior outside the trigger decision. Aliases to avoid: observation window.
-- **Applied skill**: A skill that another skill's workflow loads in one of its steps, declared under
-  `applies` in the applying skill's trigger fixture; its load in the same trigger decision as the
-  applying skill is a dependency load, not a separate invocation. A hand-off target is not an
-  applied skill. Aliases to avoid: dependency, mention.
 - **Plugin linter**: The local validator behind `pnpm lint:plugins`, covering marketplace, manifest,
   skill, metadata, and instruction-file consistency. Aliases to avoid: validator.
 - **Review lane**: A focused review pass over the same target with one intent, such as code review,
@@ -170,27 +143,11 @@ Relationships:
 
 - The repository exposes one **Marketplace catalog** per **Plugin target**.
 - A **Marketplace catalog** contains one or more **Marketplace entries**.
-- A **Marketplace entry** points to one **Plugin**.
 - A **Plugin** owns one **Portable manifest**, one **Target extension** per **Plugin target**, and
   zero or more **Plugin skills**.
-- A **Target extension** is either the **Codex extension** or the **Claude extension**.
 - A **Plugin skill** owns one `SKILL.md`, plus one **Codex UI metadata** file when the plugin
   targets Codex.
-- A **Plugin skill** becomes a **Retired skill** when it leaves its **Plugin**.
 - A **Trigger eval** runs **Trigger fixtures** against one implicitly invokable **Plugin skill** or
   **Repo-local skill** on one agent; **Trigger fixtures** are shared across agents.
-- A **Trigger eval** executes through exactly one **Eval lane**, the adapter for the selected agent.
-- A **Trigger eval** runs one or more **Attempts** of each selected case; the case passes only when
-  every **Attempt** passes.
-- An **Attempt** has zero or one **Trigger decision**.
-- Each **Trigger fixture** case runs in zero or one **Workspace seed**; a **Workspace seed** is
-  shared by every fixture that names it, and the cases whose resolved workspace names it are its
-  **Seeded cases**.
-- A **Trigger fixture** skip case carries zero or one **Routing assertion**; the cases whose
-  **Routing assertion** names a skill are that skill's **Dependent cases**.
-- A **Compound case** lists one or more other skills and is a **Dependent case** of each; it asserts
-  only the first **Trigger decision**
-  ([ADR 0004](docs/adr/0004-compound-cases-assert-the-first-trigger-decision.md)).
-- A **Trigger fixture** lists zero or more **Applied skills** of its skill.
 - A **Review lane** separates review intent from review scope; scope belongs to the invoking review
   workflow.
