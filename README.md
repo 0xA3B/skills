@@ -49,7 +49,7 @@ Update the marketplace later with `/plugin marketplace update 0xa3b-marketplace`
 ### `git`
 
 These skills create Conventional Commits and drive GitHub or GitLab change requests from operational
-preparation through automated review and verified merge cleanup.
+preparation through review feedback, CI repair, and verified merge cleanup.
 
 `babysit-pr` requires the `engineering` plugin so it can apply the shared `receiving-feedback`
 discipline.
@@ -62,8 +62,9 @@ discipline.
   request's target it only reports its plan.
 - [`git:create-pr`](./plugins/git/skills/create-pr/): Prepares a branch, creates or refreshes its
   pull request or merge request, and observes initial CI.
-- [`git:babysit-pr`](./plugins/git/skills/babysit-pr/): Drives active automated-review adapters to
-  approval or a reported exception.
+- [`git:babysit-pr`](./plugins/git/skills/babysit-pr/): Drives a pull request to a merge-ready
+  state: automated review at approval or a reported exception, required CI repaired when the pull
+  request broke it, and every review thread resolved or held for the user's decision.
 - [`git:merge-pr`](./plugins/git/skills/merge-pr/): Verifies merge gates, merges synchronously, and
   cleans up verified local and remote branch state.
 

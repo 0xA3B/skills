@@ -160,6 +160,7 @@ Report:
 - blockers or pending work.
 
 After publishing the head, stop. When the forge is GitHub and the user's request asked for the
-review loop, or asked for the merge and the change request or its repository shows automated review
-activity, continue into `git:babysit-pr`; when the request asked for the merge otherwise, continue
-into `git:merge-pr`. Otherwise recommend `git:babysit-pr` on GitHub or `git:merge-pr` on GitLab.
+review loop, or asked for the merge and either automated review activity shows on the change request
+or its repository, or a required check failed, continue into `git:babysit-pr`; when the request
+asked for the merge otherwise, continue into `git:merge-pr`. Otherwise recommend `git:babysit-pr` on
+GitHub or `git:merge-pr` on GitLab.

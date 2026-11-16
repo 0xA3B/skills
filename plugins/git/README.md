@@ -3,7 +3,7 @@
 ![Git plugin logo](assets/logo.png)
 
 These skills create Conventional Commits and drive GitHub or GitLab change requests from operational
-preparation through automated review and verified merge cleanup.
+preparation through review feedback, CI repair, and verified merge cleanup.
 
 `babysit-pr` requires the `engineering` plugin so it can apply `engineering:receiving-feedback`.
 When that plugin is installed and the session made the unpublished changes or inherited their
@@ -31,7 +31,9 @@ and report when a merge or a rebase would require it.
   final tree, then force-push the result with `--force-with-lease`.
 - `create-pr`: Prepare a branch operationally, create or refresh its pull request or merge request,
   and observe initial CI.
-- `babysit-pr`: Drive active automated-review adapters to current-head approval or a clearly
-  reported exception.
+- `babysit-pr`: Drive a pull request to a merge-ready state: automated-review adapters at approval
+  or a reported exception, required CI repaired when the pull request broke it, and every review
+  thread resolved or held for the user's decision. A reply to a person, or to a bot with no active
+  adapter, waits for the user's approval unless it reports a permitted fix.
 - `merge-pr`: Enforce forge-native merge gates, select a merge method, verify the remote merge, and
   clean up local and remote branch state and the change request's leftover working files.

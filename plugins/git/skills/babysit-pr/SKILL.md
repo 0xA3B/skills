@@ -1,24 +1,32 @@
 ---
 name: babysit-pr
 description: >-
-  Use when the user asks to babysit a GitHub pull request (PR) through automated review: to wait for
-  or poll a review bot such as Codex or Copilot, to handle, address, or drive its feedback, or to
-  reply to and resolve its threads. Do not use for human review comments, CI repair, GitLab merge
-  requests, or findings from a local or sub-agent review.
+  Use when the user asks to babysit a GitHub pull request (PR) or get it ready to merge: to wait for
+  or poll a review bot such as Codex or Copilot; to handle, address, reply to, or resolve review
+  feedback on the PR, from a bot or a person; or to fix a failing CI check on the PR. Do not use for
+  GitLab merge requests or for findings from a local or sub-agent review.
 license: MIT
 argument-hint: "[change-request|adapters|instructions]"
 ---
 
 # Babysit PR
 
-Drive authorized automated reviewers to a terminal outcome without treating their feedback as an
-order or silently expanding edit authority.
+Drive a pull request to a merge-ready state without treating feedback as an order or silently
+expanding edit authority.
 
 ## Outcome
 
-Finish with every active adapter classified against the current source head, or against the last
-head it reviewed when it left the loop or when the repository's review configuration reviewed no
-later head:
+Finish with three gates reported against the current source head. Completion and hand off decides
+from them whether the change request is merge-ready:
+
+- **Review gate:** every active adapter is classified as below;
+- **CI gate:** every required check passes or is skipped; otherwise the gate is `blocked`, with the
+  check and the reason;
+- **Thread gate:** every review thread is resolved; otherwise each open thread is listed with the
+  reply draft or the user decision it awaits.
+
+Classify each active adapter against the current source head, or against the last head it reviewed
+when it left the loop or when the repository's review configuration reviewed no later head:
 
 - `approved`: the adapter gave its terminal clean signal on the current head, or on the last head
   the configuration reviewed;
@@ -27,8 +35,8 @@ later head:
 - `blocked`, with its reason: the adapter timed out, the round limit was reached, or a missing
   prerequisite, a user decision, CI state, or unsupported behavior prevents continuation.
 
-Do not call an exception or a `blocked` adapter green, or an approval on a head the configuration
-was still due to review.
+Do not call an exception, a `blocked` adapter, or a `blocked` CI gate green, or an approval on a
+head the configuration was still due to review.
 
 ## Required feedback discipline
 
@@ -43,25 +51,51 @@ the change request's own surface and tests; such a fix is a permitted fix. Gate 
 
 ## Authority and boundaries
 
-An explicit invocation of this skill, or a user request that asks to handle, address, or drive the
-feedback, to resolve its review threads, or to request a follow-up review, authorizes for active
-adapters polling, adapter-defined reactions and replies, thread resolution after disposition,
-permitted edits, relevant validation, applying `git:commit` and `git:tidy-history`, normal pushes,
-and the review requests an adapter defines, such as a transient-error retry. A request for a
-follow-up review is answered by each adapter's follow-up protocol, which observes the repository's
-review configuration and requests a review only where the adapter defines one. A request that asks
-only to wait for, poll, or triage a review bot's findings authorizes polling and triage: classify
-each finding, report the dispositions, and return `blocked` on the user's decision before any
-reaction, reply, review request, thread resolution, edit, commit, or push.
+An explicit invocation of this skill, or a user request that asks to get the change request ready to
+merge, to handle, address, or drive its feedback, to resolve its review threads, to fix its failing
+checks, or to request a follow-up review, authorizes:
+
+- for active adapters, polling, adapter-defined reactions and replies, thread resolution after
+  disposition, and the review requests an adapter defines, such as a transient-error retry;
+- for required CI, one rerun of a failed check and the repair
+  [GITHUB-CI.md](references/GITHUB-CI.md) permits;
+- for other feedback, the dispositions Other feedback permits;
+- for each of these, permitted edits, relevant validation, applying `git:commit` and
+  `git:tidy-history`, and normal pushes.
+
+A request for a follow-up review is answered by each adapter's follow-up protocol, which observes
+the repository's review configuration and requests a review only where the adapter defines one. A
+request that asks only to wait for, poll, or triage a review bot's findings authorizes polling and
+triage: classify each finding, report the dispositions, and return `blocked` on the user's decision
+before any reaction, reply, review request, thread resolution, check rerun, edit, commit, or push.
 
 Neither authorization extends to:
 
-- handling feedback from an unknown source unless the initial prompt grants that authority or the
-  user grants it when asked;
+- a reply to other feedback that the user has not approved, except the reply that reports a
+  permitted fix;
 - bot-authored fixes such as asking a reviewer to change the branch;
-- CI troubleshooting;
+- repair of a required check the change request did not cause, or a change that makes a check pass
+  by disabling, skipping, or loosening the check or a test;
 - force pushes or history rewriting outside `git:tidy-history`;
 - merging the change request.
+
+## Other feedback
+
+**Other feedback** is an unresolved review thread or review comment from a source with no active
+adapter: a person, or a bot with no active adapter. Disposition the other feedback in the snapshot,
+and refetch unresolved threads from every source when each poll ends. Do not wait for other
+feedback, poll for it, or request a review from its source.
+
+Triage each item as `3. Triage and respond` directs. For a permitted fix, record the reply that
+reports the fix with the verdict `accepted`, without asking. Every other reply to other feedback is
+a checkpoint, because the reply speaks for the user to a reader this workflow does not poll: a
+rejection, a deferral, an answer to a question, or a request for clarification. A request that
+states the reply for a thread, or the decision the reply carries, approves that reply: record it
+with the verdict `none` as `3. Triage and respond` directs. A request to reply that states neither
+does not. Draft every other reply, leave the thread open, continue the loop, and show the drafts
+together at the hand off. With the user's approval, record each approved draft with the verdict
+`none`, which replies and resolves without a reaction. Without approval, or when no user can answer,
+post nothing and end with the drafts in the report.
 
 ## Adapter selection
 
@@ -85,8 +119,9 @@ Available adapters:
 - [GITHUB-CODEX.md](references/GITHUB-CODEX.md)
 - [GITHUB-COPILOT.md](references/GITHUB-COPILOT.md)
 
-Load the reference for every active adapter before polling. Stop precisely when the current forge or
-bot has no available adapter.
+Load the reference for every active adapter before polling. When the forge is not GitHub, stop and
+report that. When no adapter is active, the review gate is satisfied with no adapter to classify:
+report that, skip `2. Poll active adapters`, and work the CI gate and the thread gate.
 
 ## Review loop
 
@@ -103,9 +138,6 @@ commands; the current checkout may be a fork. Confirm the request is open and no
 
 For paginated review, comment, or thread connections, fetch every page before classifying their
 state. A first page cannot prove that every finding is dispositioned.
-
-Treat feedback from a source with no active adapter as unknown. Surface each unresolved unknown
-thread as a user gate unless the invocation already authorized handling unknown feedback.
 
 ### 2. Poll active adapters
 
@@ -161,13 +193,16 @@ minutes without adapter-defined activity after acknowledgment. Reset it only for
 adapter state transition tied to the current review round or source head; unrelated comments, stale
 reactions, and old approvals do not reset it. A terminal response ends the wait immediately.
 
-CI is observable context, not this skill's repair scope. Report a failed or errored required check
-as a blocker. Allow clearly advancing CI to continue; do not claim merge readiness from review state
-alone.
+Check required CI in the snapshot and when each poll ends. When a required check on the current head
+is pending with no adapter left to poll, or has failed, errored, or been cancelled, read
+[GITHUB-CI.md](references/GITHUB-CI.md) and apply it before the round's push, so that a CI repair
+and the round's review fixes share one push. The reference applies `engineering:diagnose` when a
+failure's cause is unknown. Allow clearly advancing CI to continue; do not claim merge readiness
+from review state alone.
 
 ### 3. Triage and respond
 
-For each new finding:
+For each new finding, from an active adapter or from other feedback:
 
 1. apply `engineering:receiving-feedback`, and judge the finding against the repository's review
    rules when it states them, in a `REVIEW.md` or a `## Code Review Rules` section: a finding those
@@ -179,20 +214,20 @@ For each new finding:
    round's push when accepted work changes the branch and at once when it does not;
 6. preserve rejected or deferred reasoning in the change request within granted authority.
 
-When accepted work changes the branch, apply `git:commit` to the completed round, then apply
-`git:tidy-history`, which publishes the branch it rewrites; push normally when it rewrote nothing.
-Record the new SHA. The repository's review configuration decides whether the new head gets another
-review, and each adapter's follow-up protocol observes that decision: when the configuration reviews
-the new head, every earlier signal from that adapter is stale and its round continues on the new
-head; when it does not, the classification the adapter's last review earned carries forward and the
-report names the head that review covered.
+When accepted work or a CI repair changes the branch, apply `git:commit` to the completed round,
+then apply `git:tidy-history`, which publishes the branch it rewrites; push normally when it rewrote
+nothing. Record the new SHA. The repository's review configuration decides whether the new head gets
+another review, and each adapter's follow-up protocol observes that decision: when the configuration
+reviews the new head, every earlier signal from that adapter is stale and its round continues on the
+new head; when it does not, the classification the adapter's last review earned carries forward and
+the report names the head that review covered.
 
 Apply `writing:technical-writing` to each reply and each disposition comment when that skill is
 available; it owns the wording, as a collaborative comment. Three things stay with this workflow:
 Authority and boundaries decides whether a reply is published and its thread resolved, the active
-adapter owns reactions, mentions, and the forge calls, and a reply identifies an accepted fix by the
-file and the behavior or rule it changes, not by a commit SHA, because this round's tidy, or a later
-round's, replaces the commits.
+adapter, or Other feedback for a source without one, owns reactions, mentions, and the forge calls,
+and a reply identifies an accepted fix by the file and the behavior or rule it changes, not by a
+commit SHA, because this round's tidy, or a later round's, replaces the commits.
 
 **Record dispositions.** Write one entry per review thread to a dispositions file, a JSON array of
 `{"thread": "<thread id>", "verdict": "accepted" | "rejected" | "none", "reply": "<text>"}`, with
@@ -225,7 +260,8 @@ through its terminal response. A current-head review already observed when the i
 counts as round one. After dispositioning a round's findings for an adapter, take the first case
 that applies:
 
-1. A finding is gated or needs clarification: stop rounds as a required user decision.
+1. A finding from the adapter is gated or needs clarification: stop rounds as a required user
+   decision.
 2. An accepted finding sits in the top consequence tier, as `engineering:receiving-feedback` rates
    it: push the round's permitted fixes and run another round on the new head.
 3. Otherwise the adapter leaves the loop. Push its permitted fixes, if any, in one push. Classify it
@@ -262,18 +298,20 @@ session-only counters or assumptions.
 
 ## Completion and hand off
 
-Report the current source head and target branch, active adapters, rounds completed, feedback
-dispositions, thread resolution, required CI state, and one terminal status per adapter. When more
-than three rounds completed, add the round trend: findings per round, findings whose mechanism
-repeated an earlier round, and each round's fix size in changed lines, so the user can judge whether
-a further invocation would pay.
+Report the current source head and target branch, the three gates, active adapters, rounds
+completed, feedback dispositions, thread resolution, required CI state with each rerun and repair,
+and one terminal status per adapter. When drafts are held, show them and take the checkpoint Other
+feedback defines. When more than three rounds completed, add the round trend: findings per round,
+findings whose mechanism repeated an earlier round, and each round's fix size in changed lines, so
+the user can judge whether a further invocation would pay.
 
-When every active adapter is `approved`, stop and recommend `git:merge-pr` next; continue into it
-only when the user's request asked to merge the change request.
+When every active adapter is `approved`, the CI gate holds, and every thread is resolved, the change
+request is merge-ready: stop and recommend `git:merge-pr` next; continue into it only when the
+user's request asked to merge the change request.
 
 For `resolved-with-exceptions`, include every exception and the missing green signal in the same
 hand off. When every exception is a rejection recorded in the change request or an accepted fix on a
-head the repository's review configuration does not review, every thread is resolved, and required
-CI passes, recommend `git:merge-pr` with those exceptions, naming each such fix as unconfirmed by
+head the repository's review configuration does not review, every thread is resolved, and the CI
+gate holds, recommend `git:merge-pr` with those exceptions, naming each such fix as unconfirmed by
 its adapter; otherwise the user decides whether to rerun this skill or continue with `git:merge-pr`.
-For `blocked`, do not suggest that the review gate passed.
+For a `blocked` adapter or CI gate, do not suggest that the gate passed.

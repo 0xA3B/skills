@@ -36,7 +36,7 @@ change request is not merged, report its state and stop. That authorization does
 
 - administrative bypass of checks, approvals, branch protections, merge queues, or unresolved
   threads;
-- adapter-specific review polling or feedback handling;
+- review polling, feedback handling, or CI repair;
 - conflict resolution, history repair, or target-branch rewriting;
 - ordinary asynchronous auto-merge;
 - force-deleting a local branch without the proof required below.
@@ -44,7 +44,7 @@ change request is not merged, report its state and stop. That authorization does
 An administrative override of a forge protection requires an explicit same-invocation request naming
 that protection and must still comply with loaded repository policy. Unresolved review threads are
 not overrideable in this workflow: reply to or resolve a thread only as the user directs for it;
-otherwise stop, report it, and recommend `git:babysit-pr` for automated-review threads.
+otherwise stop, report it, and on GitHub recommend `git:babysit-pr`.
 
 ## Forge selection
 
@@ -79,7 +79,7 @@ Before merging, require:
 
 Wait through required CI using ten minutes without observable job, step, log, or state progress as a
 soft inactivity timeout. Continue while CI is clearly advancing. Stop immediately on failure or
-error. Do not troubleshoot CI in this workflow.
+error; on GitHub, recommend `git:babysit-pr`.
 
 When target drift makes the branch unmergeable or requires new commits, stop and recommend invoking
 `git:create-pr` next.

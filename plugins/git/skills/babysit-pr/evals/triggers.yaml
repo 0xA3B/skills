@@ -1,5 +1,6 @@
 version: 1
 applies:
+  - engineering:diagnose
   - engineering:receiving-feedback
   - git:commit
   - writing:technical-writing
@@ -59,14 +60,29 @@ cases:
     prompt: >-
       My teammate left two comments on pull request 42 asking why the retry limit is five. Reply to
       them in the threads.
-    expect: skip
-    rationale: Human-only review comments are outside the automated-review adapters.
+    expect: invoke
+    rationale:
+      Review comments from a person on the pull request are other feedback this skill dispositions.
 
   - id: ci-repair
     prompt: >-
-      The lint job on pull request 42 is failing. Fix the pipeline so the checks pass.
+      The lint job on pull request 42 is failing. Fix it so the checks pass.
+    expect: invoke
+    rationale: Repairing a failing check on the pull request is this skill's CI gate.
+
+  - id: get-pr-merge-ready
+    prompt: >-
+      Babysit pull request 42 until it is ready to merge: checks green and every review thread
+      resolved.
+    expect: invoke
+    rationale: Driving a pull request to a merge-ready state is this skill's outcome.
+
+  - id: failing-test-no-pr
+    prompt: >-
+      The date parser test fails on my machine and I do not know why. Find the cause.
     expect: skip
-    rationale: CI repair is excluded from the review loop.
+    invoke-instead: engineering:diagnose
+    rationale: A local failure with no pull request belongs to diagnose.
 
   - id: conceptual-question
     prompt: >-

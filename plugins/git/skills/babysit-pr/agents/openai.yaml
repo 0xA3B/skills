@@ -1,7 +1,7 @@
 version: 1
 interface:
   display_name: "Babysit PR"
-  short_description: "Drive automated review feedback to resolution"
-  default_prompt: "Drive the automated review feedback on this pull request to a clean approval."
+  short_description: "Get a pull request ready to merge"
+  default_prompt: "Babysit this pull request until it is ready to merge."
 policy:
   allow_implicit_invocation: true
