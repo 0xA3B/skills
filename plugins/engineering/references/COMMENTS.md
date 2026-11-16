@@ -4,7 +4,7 @@ Rules for when a code comment earns its place and what it says, applied while co
 checked when changes are reviewed, so comments are neither noise nor missing where a reader needs
 them. The basis is John Ousterhout's _A Philosophy of Software Design_. Where the repository
 documents its own comment conventions, such as a doc-comment format, they win over this file. For
-the prose of a long-form docstring, apply `writing:technical-writing`.
+the prose of a long-form docstring, apply `writing:technical-writing` when that skill is available.
 
 ## Rules
 
