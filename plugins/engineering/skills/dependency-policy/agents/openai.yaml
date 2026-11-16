@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Dependency Policy"
+  short_description: "Choose, bound, and lock dependencies by default policy"
+  default_prompt: "Add this dependency following the dependency policy."
+policy:
+  allow_implicit_invocation: true

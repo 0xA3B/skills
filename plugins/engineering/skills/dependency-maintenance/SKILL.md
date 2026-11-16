@@ -27,7 +27,8 @@ policy wins on any point it covers: bound posture, lockfile ownership, lock and 
 update cadence, cooldowns, merge signals, and which pins are repo-owned.
 
 Read that policy during discovery, before classifying anything. Apply these defaults only where the
-repository is silent.
+repository is silent. Where the repository's policy is silent on a point, apply
+`engineering:dependency-policy` for that point.
 
 ## Boundaries
 

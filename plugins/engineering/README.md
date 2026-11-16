@@ -26,7 +26,10 @@ surface for language and decisions: `ubiquitous-language` keeps the ubiquitous l
 `AGENTS.md`, and `decision-records` keeps architecture decision records under `docs/adr/`, following
 domain-driven design's separation of the shared language from the decisions expressed in that
 language. `diagnose`, `improve-codebase-architecture`, `improve-codebase-tests`, and
-`dependency-maintenance` remain focused workflows for their respective concerns.
+`dependency-maintenance` remain focused workflows for their respective concerns. `dependency-policy`
+holds default dependency rules, so a repository's `AGENTS.md` carries only the rules that differ; it
+loads on its own when a session changes a dependency or a toolchain version, and
+`dependency-maintenance` applies it on each point where a repository's policy is silent.
 
 On Claude Code, the bundled `code-review` skill competes with `review-changes` for generic review
 prompts. To keep the bundled skill typable as `/code-review` but stop its implicit invocation, set
@@ -47,6 +50,8 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
   read the records that touch an area before a change there.
 - `engineering:dependency-maintenance`: Review dependency update PRs, merge ready ones, sync local
   state, refresh repo-pinned tooling, and file linked follow-up issues.
+- `engineering:dependency-policy`: Apply default rules for choosing, bounding, overriding, and
+  locking dependencies and toolchain versions where the repository states none.
 - `engineering:diagnose`: Diagnose bugs through a tight red-capable loop, minimization, falsifiable
   probes, and regression evidence.
 - `engineering:grill-me`: Stress-test a plan, decision, idea, or design until the user confirms

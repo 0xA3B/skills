@@ -56,41 +56,12 @@ in `AGENTS.md`. When you add, move, or remove a nested `AGENTS.md`, update this 
 
 ## Dependency policy
 
-- Prefer built-in or standard-library capabilities when they fit the problem; otherwise prefer
-  widely adopted, well-maintained ecosystem-standard packages over custom implementations.
-- Treat `package.json` as a compatibility manifest. Bound each direct dependency below its next
-  major release, such as `<22`, and a 0.x dependency below 1, such as `<1`. Weekly automerged
-  lockfile maintenance resolves an unbounded dependency to its newest release, majors included.
-- Beyond those bounds, use lower bounds for required features or to exclude vulnerable older
-  releases, tighter upper bounds for intentionally deferred incompatibilities, exclusions for
-  known-bad releases, and exact pins only when no version range is acceptable. Use the least
-  restrictive constraint that expresses the requirement, and remove it when the requirement ends.
-- When a transitive dependency must be constrained, use the owning package manager's constraint or
-  override mechanism. Do not declare it as a direct dependency solely to control its resolved
-  version.
-- Treat `pnpm-lock.yaml` and `mise.lock` as the exact tested resolutions. Let Renovate perform
-  routine lockfile refreshes; regenerate a lockfile locally when a requested dependency change
-  requires a new resolution.
-- Before merging a Renovate PR that rewrites a dependency entry in `package.json` or a version in
-  `mise.toml`, read the release notes of each release it adopts; Renovate automerges every other
-  update once CI passes.
-- Declare the Node.js and pnpm ranges only in `package.json#devEngines`, and every other
-  mise-managed tool in `mise.toml` `[tools]`; mise installs each at the release `mise.lock` pins.
-- Write a version range that mise reads, including the `devEngines` ranges, as a prefix such as
-  `26`, not a caret or comparison range such as `^26.12.1`; mise ignores `mise.lock` for those.
-- Declare pnpm in `devEngines.packageManager` as a major range such as `12` with `onFail: "ignore"`.
-  Any other `onFail` value makes pnpm lock its own version in `pnpm-lock.yaml`, a second pin that
-  drifts from `mise.lock`. An exact version would receive no in-range updates, because Renovate
-  leaves in-range pnpm releases to lockfile maintenance.
-- Set `mise.toml` tools to `latest` and let CI catch breaking releases. To take an in-range release
-  before Renovate's lockfile maintenance, run `mise lock --bump`. To defer a specific tool
-  incompatibility, pin the tool to an exact version and restore `latest` once the incompatibility is
-  fixed; Renovate holds each PR that moves the pin for review.
+Apply `engineering:dependency-policy`, with these additions:
+
+- Renovate is the updater. It takes in-range Node.js, pnpm, and mise tool releases only through
+  weekly lockfile maintenance. Once CI passes, it automerges every update that leaves the entries in
+  `package.json` and `mise.toml` unchanged, and it holds the rest for review.
 - Update major Node.js and TypeScript versions manually; Renovate must not update them.
-- Require a three-day cooldown before selecting releases from public registries, in every resolver
-  and updater that supports one: Renovate, pnpm, and mise. Bypass the cooldown only for an urgent
-  security fix, with a package-specific exception in each applicable resolver or updater, and remove
-  the exception once the release has aged out.
 
 ## Code Review Rules
 
