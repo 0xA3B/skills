@@ -70,6 +70,10 @@ this skill.
 - When the repository uses pnpm or mise, read [node-pnpm-mise.md](references/node-pnpm-mise.md) for
   where each version is declared and locked, how to write ranges mise reads, and how to take or
   defer a tool release.
+- When the repository resolves Python dependencies with uv, shown by a `uv.lock`, a `[tool.uv]`
+  table, or scripts that run through `uv run`, read [python-uv.md](references/python-uv.md) for
+  where the Python version and each dependency are declared, how to bound a script's dependencies,
+  and the uv settings for locking, overrides, and the cooldown.
 - For any other ecosystem, apply the principles with that ecosystem's own manifest, lockfile,
   override, and cooldown mechanisms.
 
