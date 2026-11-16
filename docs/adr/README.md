@@ -15,3 +15,5 @@ existing record. Files are numbered `NNNN-slug.md`. A replaced record carries
 - [0003 mise installs and locks the toolchain](0003-mise-installs-and-locks-the-toolchain.md)
 - [0004 Compound cases assert the first trigger decision](0004-compound-cases-assert-the-first-trigger-decision.md)
 - [0005 create-pr applies review-changes before publishing](0005-create-pr-applies-review-changes-before-publishing.md)
+- [0006 ship is one skill in the git plugin with two end points](0006-ship-is-one-git-skill-with-two-end-points.md)
+- [0007 An invocation of ship authorizes the whole delivery](0007-a-ship-invocation-authorizes-the-whole-delivery.md)

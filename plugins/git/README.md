@@ -5,15 +5,16 @@
 These skills create Conventional Commits and drive GitHub or GitLab change requests from operational
 preparation through review feedback, CI repair, and verified merge cleanup.
 
-`babysit-pr` requires the `engineering` plugin so it can apply `engineering:receiving-feedback`.
-When that plugin is installed and the session made the unpublished changes or inherited their
-decisions, `create-pr` also applies `engineering:review-changes` before it publishes them, unless a
-review already covered them or the user asks to skip it.
+`babysit-pr` requires the `engineering` plugin so it can apply `engineering:receiving-feedback`, and
+`ship` requires it for the review that precedes a merge. When that plugin is installed and the
+session made the unpublished changes or inherited their decisions, `create-pr` also applies
+`engineering:review-changes` before it publishes them, unless a review already covered them or the
+user asks to skip it.
 
-An agent can invoke every skill implicitly. Each skill stops at a hand off that recommends the next
-workflow, and the agent continues into that workflow only when the user's request already asked for
-that outcome, or for a later outcome that requires it, so `merge-pr` merges only when the user's
-request asks to merge the change request.
+An agent can invoke every skill except `ship` implicitly. Each of those skills stops at a hand off
+that recommends the next workflow, and the agent continues into that workflow only when the user's
+request already asked for that outcome, or for a later outcome that requires it, so `merge-pr`
+merges only when the user's request asks to merge the change request.
 
 `tidy-history` rewrites a topic branch and publishes it with `--force-with-lease` without asking, so
 `create-pr` and `babysit-pr` keep history tidy as they push. On `main`, the remote's default branch,
@@ -37,3 +38,9 @@ and report when a merge or a rebase would require it.
   adapter, waits for the user's approval unless it reports a permitted fix.
 - `merge-pr`: Enforce forge-native merge gates, select a merge method, verify the remote merge, and
   clean up local and remote branch state and the change request's leftover working files.
+- `ship`: Manual-only. Take the work from its current stage to a merged change request, or to a
+  merge-ready one on request, by chaining the skills above with `engineering:tdd` and
+  `engineering:review-changes`. An invocation authorizes the whole delivery, including the merge;
+  every failure, checkpoint, or decision a chained skill stops for is a blocker that `ship` reports
+  and waits on. Invoke it as `/git:ship` in Claude Code or `$git:ship` in Codex, with an optional
+  intent source and an optional request to stop at merge-ready.

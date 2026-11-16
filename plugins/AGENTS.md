@@ -225,10 +225,18 @@ with a different meaning, say so before you continue. Change this section throug
 - **Candidate**: Pending work a workflow proposed and set aside until a stated revisit trigger
   fires, recorded with its evidence as a `candidate:<kind>` issue or a scratch file. Aliases to
   avoid: deferred finding, backlog item, decision.
+- **Delivery plan**: The split of one body of work into change requests, with their dependencies and
+  merge order. Aliases to avoid: delivery strategy, delivery sequence, delivery shape.
 - **Metadata surface**: Any file that exposes plugin or skill metadata and must stay aligned with
   adjacent surfaces. Aliases to avoid: docs.
+- **Stack**: Change requests chained by base branch, each targeting the previous one's branch; a
+  forge feature that manages such a chain is named as that feature. Aliases to avoid: stacked PR
+  feature, merge stack.
 
 Relationships:
+
+- A **Delivery plan** runs dependent change requests in sequence or arranges them as a **Stack**;
+  `docs/adr/0007-a-ship-invocation-authorizes-the-whole-delivery.md` records who decides the plan.
 
 - A **Candidate** closes when its implementation lands, when a **Decision record** declines it, or
   with a stated invalidation reason.
