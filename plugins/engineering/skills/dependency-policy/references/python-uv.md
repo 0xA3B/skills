@@ -15,8 +15,9 @@ The manifests are `pyproject.toml` and the inline script metadata of PEP 723; th
 - When a script with inline metadata has a `<script>.lock` file beside it, that file is the script's
   lockfile: regenerate it with `uv lock --script <script>`. Without that file, uv resolves the
   metadata on each machine that runs the script, so bound a 0.x dependency there below its next
-  minor release, such as `tomlkit<0.16`. To make CI test that range, mirror the dependency in
-  `[project].dependencies` with the same bound.
+  minor release, such as `tomlkit<0.16`. When `pyproject.toml` has a `[project]` table, mirror each
+  of the script's dependencies in `[project].dependencies` with the same bound, so CI tests the
+  range that machines resolve.
 - When a dependency change you make requires a new resolution, run `uv lock`, which keeps each
   locked version that the bounds still allow. To take a newer in-range release of one package, run
   `uv lock --upgrade-package <name>`.
