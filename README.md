@@ -110,6 +110,8 @@ session should continue from an ignored local context document.
   Finds evidence-backed test-suite improvement opportunities.
 - [`engineering:prototype`](./plugins/engineering/skills/prototype/): Creates disposable exploratory
   code to answer a design question.
+- [`engineering:retro`](./plugins/engineering/skills/retro/): Reviews agent sessions for
+  improvements to the agent's environment and reports findings in severity order.
 - [`engineering:review-changes`](./plugins/engineering/skills/review-changes/): Reviews changes
   authored in the current session through focused lanes, fixes accepted findings, and reruns
   invalidated lanes.

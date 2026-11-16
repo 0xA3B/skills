@@ -15,7 +15,8 @@ requests. `review-changes` reviews the unpublished changes in the checkout throu
 fixes accepted findings, verifies the fixes with the lanes that reviewed them, and reruns the lanes
 those fixes invalidated; `tdd` applies it at completion, and `git:create-pr` applies it before
 publishing. Use `handoff` when another agent session should continue the work from an ignored local
-context document.
+context document. Use `retro` after a session to find changes to instruction files, checks, review
+rules, and tools that would make later sessions cheaper; it reports findings and changes nothing.
 
 `codebase-design` is a shared background discipline consumed by the user-facing workflows.
 `wayfinder`, `grill-me`, `prototype`, `tdd`, `diagnose`, `improve-codebase-architecture`, and
@@ -62,6 +63,8 @@ MIT license notice from the source repository is in [LICENSE](./LICENSE).
 - `engineering:improve-codebase-tests`: Find evidence-backed test-suite improvement opportunities.
 - `engineering:prototype`: Create disposable exploratory code to answer one design question.
 - `engineering:receiving-feedback`: Triage and respond to existing review feedback.
+- `engineering:retro`: Review agent sessions for improvements to the agent's environment, and report
+  findings in severity order.
 - `engineering:review-changes`: Review unpublished changes in the checkout through focused lanes,
   fix accepted findings, and rerun invalidated lanes.
 - `engineering:tdd`: Build features or fixes with a red-green-refactor loop.
