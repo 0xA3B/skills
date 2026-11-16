@@ -108,6 +108,34 @@
   the user asks in prose. Reference manual-only skills only as hand offs that recommend an explicit
   user invocation.
 
+## Requirements between plugins
+
+Each plugin installs alone, so a skill of another plugin may be absent when an instruction that
+names it runs. In a skill body or a reference a skill body loads, give every instruction that
+applies a skill of another plugin one of two forms:
+
+- **Soft requirement.** Condition the instruction on the other skill being available, as in "apply
+  `writing:technical-writing` to the description when that skill is available", so the work
+  continues without it. When the applying skill's report would otherwise imply that the skipped work
+  happened, also state the fallback and have the applying skill report the omission, as the prose
+  lane of `engineering:review-changes` does. A soft requirement is the default.
+- **Hard requirement.** Before the applying skill's first side effect, have it confirm that the
+  other plugin is available, through one skill of that plugin it applies. When the plugin is absent,
+  the applying skill stops and reports the plugin to install or enable. One check covers every skill
+  of that plugin the applying skill applies. When the applying skill relies on behavior the other
+  plugin ships from a version, name that version, have the applying skill check for the behavior,
+  and when the behavior is missing, have it stop and report that the plugin must be updated.
+  `git:babysit-pr` is the model.
+
+Choose by the fallback, not by invocation policy. Use a hard requirement only when no safe fallback
+exists: without the other skill, the applying skill would take a side effect outside the checkout,
+such as a merge or a recorded verdict on a review finding, on a decision the other skill supplies.
+Wording that another skill shapes has a safe fallback, so an instruction that applies a skill only
+to the wording of a description, a reply, or an issue is a soft requirement.
+
+An instruction that only names another plugin's skill, such as a `description` exclusion or a hand
+off that recommends the skill, applies nothing and takes neither form.
+
 ## Retiring a skill
 
 - Retire a skill when feedback triage or a maintainer decision finds its job absorbed by other
