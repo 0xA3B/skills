@@ -129,10 +129,10 @@ session should continue from an ignored local context document.
 This plugin maintains the marketplace itself; its skills operate on the marketplace's own skills and
 repository rather than on a user's project.
 
-- [`meta:submit-skill-feedback`](./plugins/meta/skills/submit-skill-feedback/): Captures the
-  session's qualified feedback from an actual marketplace-skill run. It files public-source feedback
-  as GitHub issues or recurrence comments and preserves private-source feedback as ignored local
-  records.
+- [`meta:submit-skill-feedback`](./plugins/meta/skills/submit-skill-feedback/): Captures qualified
+  feedback from actual marketplace-skill runs, in the current session or in sessions you name. It
+  files public-source feedback as GitHub issues or recurrence comments and preserves private-source
+  feedback as ignored local records.
 
 ### `writing`
 
