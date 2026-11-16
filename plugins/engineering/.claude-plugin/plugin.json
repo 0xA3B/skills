@@ -1,8 +1,8 @@
 {
   "name": "engineering",
   "displayName": "Engineering",
-  "version": "3.2.1",
-  "description": "Engineering workflow skills for decision mapping, adversarial design review, dependency policy and maintenance, ubiquitous language, decision records, prototyping, TDD, diagnosis, architecture, code review, and handoffs.",
+  "version": "3.3.0",
+  "description": "Engineering workflow skills for decision mapping, adversarial design review, dependency policy and maintenance, ubiquitous language, decision records, prototyping, TDD, diagnosis, architecture, code review, handoffs, and session retrospectives.",
   "author": {
     "name": "Alex Baker"
   },

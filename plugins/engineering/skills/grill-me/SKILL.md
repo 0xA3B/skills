@@ -30,8 +30,8 @@ implement, defer, or reject.
 ## Facts and decisions
 
 - Find facts by inspecting the environment: repository files, history, tools, configured services,
-  and current external sources when relevant. When the harness provides subagents, dispatch lookups
-  to them so questioning continues while they run.
+  and current external sources when relevant. When the agent supports subagents, dispatch lookups to
+  them so questioning continues while they run.
 - When a question needs executable evidence, apply `engineering:prototype`; its subagent decision
   tree decides where the prototype runs. When that tree dispatches a subagent, treat the prototype
   as a running lookup. When the tree keeps the prototype in the main thread, no subagent capability

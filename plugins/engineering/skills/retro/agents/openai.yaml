@@ -1,0 +1,8 @@
+version: 1
+interface:
+  display_name: "Retro"
+  short_description: "Find environment improvements from agent sessions"
+  default_prompt:
+    "Use $engineering:retro to review this session for improvements to the agent's environment."
+policy:
+  allow_implicit_invocation: false
