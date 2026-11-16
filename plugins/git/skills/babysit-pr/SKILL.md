@@ -246,9 +246,10 @@ it needs `gh` and `jq`. Read the outcome from its `exit=` line:
 When a finding exists only in a review body and has no thread, record its disposition in a
 pull-request comment that names the finding.
 
-Keep a poll log or another file this workflow writes in a directory named for the topic branch under
-the scratch location the repository's instructions name, or in the system temporary directory
-without one, and list in the report each such file that outlives the invocation.
+Keep a poll log or another file this workflow writes under the scratch location the repository's
+instructions name, in a directory whose path is the topic branch name, such as `feat/retry/` for the
+branch `feat/retry`, or in the system temporary directory without such a location, and list in the
+report each such file that outlives the invocation.
 
 Never filter new feedback by commit association alone when the forge can re-anchor old threads.
 Track stable thread or comment IDs and compare them with the snapshot.

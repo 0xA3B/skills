@@ -121,9 +121,10 @@ the effective diff, and the decisions that shaped the final solution:
 - Include validation evidence only when it adds information beyond required CI, such as manual
   behavior checks, local checks not represented in CI, checks not run, or known failures.
 
-Write the description's body file, and any other draft this workflow keeps on disk, in a directory
-named for the topic branch under the scratch location the repository's instructions name; without
-such a location, use the system temporary directory.
+Write the description's body file, and any other draft this workflow keeps on disk, under the
+scratch location the repository's instructions name, in a directory whose path is the topic branch
+name, such as `feat/retry/` for the branch `feat/retry`; without such a location, use the system
+temporary directory.
 
 After authoring:
 
