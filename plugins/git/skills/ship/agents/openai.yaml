@@ -1,0 +1,7 @@
+version: 1
+interface:
+  display_name: "Ship"
+  short_description: "Take work from its current stage to a merged change request"
+  default_prompt: "Use $git:ship to take this work to a merged change request."
+policy:
+  allow_implicit_invocation: false

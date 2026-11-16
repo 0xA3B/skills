@@ -52,7 +52,7 @@ These skills create Conventional Commits and drive GitHub or GitLab change reque
 preparation through review feedback, CI repair, and verified merge cleanup.
 
 `babysit-pr` requires the `engineering` plugin so it can apply the shared `receiving-feedback`
-discipline.
+discipline, and `ship` requires it for the review that precedes a merge.
 
 - [`git:commit`](./plugins/git/skills/commit/): Reviews current changes, stages logical units, and
   creates git commits with Conventional Commit messages.
@@ -67,6 +67,9 @@ discipline.
   request broke it, and every review thread resolved or held for the user's decision.
 - [`git:merge-pr`](./plugins/git/skills/merge-pr/): Verifies merge gates, merges synchronously, and
   cleans up verified local and remote branch state.
+- [`git:ship`](./plugins/git/skills/ship/): Manual-only. Takes the work from its current stage to a
+  merged change request, or to a merge-ready one on request, and reports each blocker a chained
+  skill raises.
 
 ### `engineering`
 
