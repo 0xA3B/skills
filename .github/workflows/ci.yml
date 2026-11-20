@@ -28,11 +28,11 @@ jobs:
       # releases mise.lock pins; see docs/adr/0003-mise-installs-and-locks-the-toolchain.md. The
       # action puts those tools on PATH for later steps, so they run without `mise exec --`.
       - name: Set up tools
-        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
           # Without a version, the action installs the newest mise release with no three-day
           # cooldown; Renovate updates this input.
-          version: 2026.11.5
+          version: 2026.11.9
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
